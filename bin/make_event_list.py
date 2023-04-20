@@ -1,0 +1,56 @@
+import fetch_sep.idsep.make_event_list as event_list
+import argparse
+
+
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--SEPTimes", type=str, default='',
+        help=("Filename with SEP start and end times."))
+parser.add_argument("--DetectorList", type=str, default='',
+        help=("Filename with months and GOES detectors if "
+            "multiple detectors were compiled to create the "
+            "dataset."))
+parser.add_argument("--Experiment", type=str, choices=['GOES-08',
+        'GOES-09', 'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14',
+        'GOES-15','GOES-16','GOES-17','SEPEM', 'SEPEMv3', 'EPHIN',
+        'EPHIN_REleASE', 'user'],
+        default='', help=("Enter name of spacecraft or dataset. "
+            "Use Experiment if only one experiment was used to "
+            "create the SEP event list. Otherwise ignore."))
+parser.add_argument("--FluxType", type=str, choices=['integral',
+        'differential'], default='',
+        help=("Do you want to use integral or differential fluxes?"))
+parser.add_argument("--options", type=str, default='', help=("You "
+        "may specify a series of options as a semi-colon separated list "
+        "surrounded by quotations.\n"
+        "\"uncorrected\" for GOES uncorrected differential fluxes with "
+        "nominal GOES energy bins,\n "
+        "\"S14\" to apply Sandberg et al. (2014) "
+        "effective energies to GOES uncorrected fluxes for P2-P6,\n "
+        "\"Bruno2017\" to apply Bruno (2017) effective energies to GOES-13 "
+        "or GOES-15 P6-P11 channels for either corrected or uncorrected "
+        "GOES fluxes. \n"
+        "If both S14 and Bruno2017 are "
+        "specified for GOES-13 or GOES-15, S14 bins will be applied to "
+        "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
+        "fluxes.\n"
+        "e.g. \"uncorrected;S14;Bruno2017\""))
+parser.add_argument("--OutFile", type=str, default='out_event_list.txt',
+        help=("Name of output SEP event list file."))
+
+
+args = parser.parse_args()
+
+septimes_file = args.SEPTimes
+detector_list = args.DetectorList
+experiment = args.Experiment
+flux_type = args.FluxType
+options = args.options
+outfile = args.OutFile
+
+
+event_list.make_event_list(septimes_file,detector_list,experiment,
+        flux_type,options,outfile)
+
+
