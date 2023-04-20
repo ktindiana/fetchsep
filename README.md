@@ -53,6 +53,22 @@ OpSEP creates files from observations that can be directly compared to SEP model
 
 For time profile SEP models, OpSEP may be used to create the JSON files that can be submitted to the SEP Scoreboard.
 
+## Running OpSEP for your own time series
+Users may input their own time series into OpSEP by specifying some information in the utils/config.py file:
+
+    ##### DELIMETER between columns of file with time series
+    user_delim = " "  #any string
+    ##### COLUMNS containing the fluxes you want to analyze
+    user_col = arr.array('i',[1,2,3,4,5,6,7,8])
+    err_col = arr.array('i',[]) #set to [] if no uncertainties
+                            #err_col only used by idsep
+    ##### ENERGY BINS associated with user file and columns
+    #For differential bins, use the format:
+    user_energy_bins = [[Elow1,Ehigh1],[Elow2,Ehigh2],etc]
+    #For integral bins, use the format:
+    user_energy_bins = [[Elow1,-1],[Elow2,-1],[Elow3,-1],etc]
+    
+    
 ## Automatically generate a Processed SEP Event list
 It is possible to run both codes with a single button push to create a preliminary SEP event list. 
 The code:
