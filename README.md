@@ -7,23 +7,24 @@ datapath will be the location that the code downloads satellite data from the in
 Note that outpath, plotpath, and listpath each need to have subdirectories idsep and opsep. For now, you need to create them yourself.
 For example:
 
->/Path/to/MyData/data (satellite data will be downloaded here)
->/Path/to/Store/Output/output
->/Path/to/Store/Output/output/idsep
->/Path/to/Store/Output/output/opsep
->/Path/to/Store/Output/plots
->/Path/to/Store/Output/plots/opsep
->/Path/to/Store/Output/plots/idsep
->/Path/to/Store/Output/lists/
->/Path/to/Store/Output/lists/opsep
->/Path/to/Store/Output/lists/idsep
+    /Path/to/MyData/data (satellite data will be downloaded here)
+    /Path/to/Store/Output/output
+    /Path/to/Store/Output/output/idsep
+    /Path/to/Store/Output/output/opsep
+    /Path/to/Store/Output/plots
+    /Path/to/Store/Output/plots/opsep
+    /Path/to/Store/Output/plots/idsep
+    /Path/to/Store/Output/lists/
+    /Path/to/Store/Output/lists/opsep
+    /Path/to/Store/Output/lists/idsep
 
 # Run
->source env.sh to add the directory to your python path
+Add the directory to your python path:
+    source env.sh
 
 To run OpSEP to process individual SEP events:
 
->python3 bin/opsep.py --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
+    python3 bin/opsep.py --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
 
 ## IDSEP
 The idsep code will read in a long time series and automatically identify increases above background. This is done by estimating a mean background level plus an expected level of variation (sigma). All flux less than mean + 3sigma are considered background while all points above mean + 3sigma are identified as increases.
@@ -34,13 +35,12 @@ The code also outputs a file containing every single high flux point above the m
 
 Note that in fetch-sep/utils/config.py, number of sigma, the initial window used to estimate background levels, and the final sliding window used to estimate background levels can be adjusted. 
 
->idsep_nsigma = 3
->init_win = 150 #days to average initial estimate of threshold
->sliding_win = 27 #days in sliding window to calculate final threshold
->percent_points = 0.9 #Percent of points that must be in the sliding
->                    #window to calculate the background; otherwise use
->                    #previous good value
-
+    idsep_nsigma = 3
+    init_win = 150 #days to average initial estimate of threshold
+    sliding_win = 27 #days in sliding window to calculate final threshold
+    percent_points = 0.9 #Percent of points that must be in the sliding
+                    #window to calculate the background; otherwise use
+                    #previous good value
 
 ## OPSEP
 The OpSEP code was previously supported at https://github.com/ktindiana/operational-sep and is now transitioned to this package going forward. Please see the operational-sep repository for extensive documentation until the documentation in this repository can be updated.
@@ -57,7 +57,7 @@ For time profile SEP models, OpSEP may be used to create the JSON files that can
 It is possible to run both codes with a single button push to create a preliminary SEP event list. 
 The code:
 
->bin/prep_obs.py
+    bin/prep_obs.py
 
 will first run idsep on a specified data set and identify all increases above background. Output files are created that are then used to automatically run opsep in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
 
