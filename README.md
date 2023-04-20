@@ -1,12 +1,12 @@
 # fetch-sep
 Identify SEP elevations above background in a time series (idsep) and analyze events individually (opsep)
 
-#Set Up
+# Set Up
 In fetch_sep/utils/config.py, set the location of your datapath, outpath, plotpath, listpath.
 datapath will be the location that the code downloads satellite data from the internet and stores it on your computer.
 Note that outpath, plotpath, and listpath each need to have subdirectories idsep and opsep. For now, you need to create them yourself.
 
-#Run
+# Run
 >source env.sh to add the directory to your python path
 
 To run OpSEP to process individual SEP events:
@@ -30,7 +30,7 @@ Note that in fetch-sep/utils/config.py, number of sigma, the initial window used
 >                    #previous good value
 
 
-##OPSEP
+## OPSEP
 The OpSEP code was previously supported at https://github.com/ktindiana/operational-sep and is now transitioned to this package going forward. Please see the operational-sep repository for extensive documentation until the documentation in this repository can be updated.
 
 OpSEP is intended to assess each individual SEP event at a time, extracting information such as start and end times, peak fluxes, and event fluence.
@@ -41,7 +41,7 @@ OpSEP creates files from observations that can be directly compared to SEP model
 
 For time profile SEP models, OpSEP may be used to create the JSON files that can be submitted to the SEP Scoreboard.
 
-##Automatically generating an SEP Event list
+## Automatically generate a Processed SEP Event list
 It is possible to run both codes with a single button push to create a preliminary SEP event list. 
 The code:
 
@@ -51,5 +51,5 @@ will first run idsep on a specified data set and identify all increases above ba
 
 Note that manual intervention is required to get a truly good event list. The automated method is not perfect at identifying individual SEP events, but it will get you 80% of the way there. 
 
-##Support
+## Support
 Do not hesitate to contact Katie Whitman at kathryn.whitman@nasa.gov for support with this code.
