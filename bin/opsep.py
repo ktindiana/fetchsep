@@ -1,0 +1,136 @@
+import fetch_sep.opsep
+import argparse
+import matplotlib.pyplot as plt
+
+#INPUTS:
+#   Start and end dates of SEP event
+#   Experiment is the source of the dataset - GOES or SEPEM:
+#       The energy bins and input file format will be determined
+#       by the 1) selected experiment, 2) SEP dates, and 3) FluxType
+#   FluxType can be differential or integral. If differential is specified
+#       and ThresholdType is chosen as 0 (>10 MeV exceeds 10 pfu, >100 MeV
+#       exceeds 1 pfu), then differential bins will be converted to
+#       integral flux
+#   showplot: set this flag to plot the SEP fluxes or background-
+#       subtracted SEP fluxes; also plot fluence
+parser = argparse.ArgumentParser()
+parser.add_argument("--StartDate", type=str, default='',
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+               " with quotes"))
+parser.add_argument("--EndDate", type=str, default='',
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes"))
+parser.add_argument("--Experiment", type=str, choices=['GOES-08',
+        'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
+        'GOES-16', 'GOES-17','SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE',
+        'SRAG12', 'STEREO-A', 'STEREO-B', 'user'],
+        default='', help="Enter name of spacecraft or dataset")
+parser.add_argument("--FluxType", type=str, choices=['integral',
+        'differential'], default='',
+        help=("Do you want to use integral or differential fluxes?"))
+parser.add_argument("--ModelName", type=str, default='', help=("If you "
+        "chose user for experiment, specify the name of the model or "
+        "experiment that you are analyzing (no spaces)."))
+parser.add_argument("--UserFile", type=str, default='tmp.txt', help=("If "
+        "you chose user for experiment, specify the filename containing "
+        "the fluxes. Specify energy bins and delimeter in code at top. "
+        "Default is tmp.txt."))
+parser.add_argument("--JSONType", type=str, choices=['model',
+        'observations'], default='model',
+        help=("For user-input files, specify whether they are observations "
+        "or model predictions to generate a JSON file in the correct format. "
+        "Choices are \"model\" or \"observations\" Default is model."))
+parser.add_argument("--spase_id", type=str, default='', help=("If your "
+        "model or data source has an associated Spase ID, specify here. "
+        "Enter the full Spase ID for the CCMC system, including url, "
+        "including spase://CCMC/SimulationModel/."))
+parser.add_argument("--Threshold", type=str, default="",
+        help=("Additional energy and flux threshold which will be used to "
+                "define the event. To define an integral flux threshold: "
+                "write 100,1 with no spaces; e.g. 100,1 indicates >100 MeV "
+                "fluxes crossing 1 pfu (1/[cm^2 s sr])."
+                "To define a differential flux threshold: write 25-40.9,0.01"
+                "with no spaces; e.g. energy bin "
+                "low edge-high edge,threshold (1/[MeV/n cm^2 s sr])). "
+                "Multiple thresholds may be entered separated by a "
+                "semi-colon with no spaces and surrounded by quotes, "
+                "e.g. \"30,1;50,1;25-40.9,0.001\""))
+parser.add_argument("--options", type=str, default='', help=("You "
+        "may specify a series of options as a semi-colon separated list "
+        "surrounded by quotations.\n"
+        "\"uncorrected\" for GOES uncorrected differential fluxes with "
+        "nominal GOES energy bins,\n "
+        "\"S14\" to apply Sandberg et al. (2014) "
+        "effective energies to GOES uncorrected fluxes for P2-P6,\n "
+        "\"Bruno2017\" to apply Bruno (2017) effective energies to GOES-13 "
+        "or GOES-15 P6-P11 channels for either corrected or uncorrected "
+        "GOES fluxes. \n"
+        "If both S14 and Bruno2017 are "
+        "specified for GOES-13 or GOES-15, S14 bins will be applied to "
+        "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
+        "fluxes.\n"
+        "e.g. \"uncorrected;S14;Bruno2017\""))
+parser.add_argument("--NoInterp",
+        help=("Do not fill in negative or missing fluxes via "
+                "linear interpolation in time. Set as None values "
+                "instead."), action="store_true")
+parser.add_argument("--SubtractBG",
+        help="Set to calculate the background and subtract from the "\
+            "SEP flux. Must define start and end dates for the background.",
+            action="store_true")
+parser.add_argument("--BGStartDate", type=str, default='',
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+               " with quotes to define the background time period."))
+parser.add_argument("--BGEndDate", type=str, default='',
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes to define the background time period."))
+parser.add_argument("--showplot",
+        help="Flag to display plots", action="store_true")
+parser.add_argument("--saveplot",
+        help="Flag to save plots to file", action="store_true")
+parser.add_argument("--DetectPreviousEvent",
+        help=("Flag to indicate that the threshold is crossed at the "
+               "first point due to a previous event."), action="store_true")
+parser.add_argument("--TwoPeaks",
+        help=("Flag to indicate that the event exceeds threshold (usually "
+                "for a couple of points), then drops below threshold "
+                "before increasing again to the true peak of the event."),
+                action="store_true")
+parser.add_argument("--UMASEP",
+        help=("Flag to calculate flux values and thresholds specific to "
+            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
+            "flux values at various time periods after crossing "
+            "thresholds."), action="store_true")
+
+
+args = parser.parse_args()
+
+str_startdate = args.StartDate
+str_enddate = args.EndDate
+experiment = args.Experiment
+flux_type = args.FluxType
+model_name = args.ModelName
+user_file = args.UserFile
+json_type = args.JSONType
+spase_id = args.spase_id
+str_thresh = args.Threshold
+doBGSub = args.SubtractBG
+str_bgstartdate = args.BGStartDate
+str_bgenddate = args.BGEndDate
+showplot = args.showplot
+saveplot = args.saveplot
+detect_prev_event = args.DetectPreviousEvent
+two_peaks = args.TwoPeaks
+umasep = args.UMASEP
+options = args.options
+nointerp = args.NoInterp
+
+
+
+sep_year, sep_month, sep_day, jsonfname = fetch_sep.opsep.run_all(str_startdate,
+    str_enddate, experiment,
+    flux_type, model_name, user_file, json_type, spase_id, showplot, saveplot,
+    detect_prev_event, two_peaks, umasep, str_thresh, options, doBGSub,
+    str_bgstartdate, str_bgenddate, nointerp)
+
+if showplot: plt.show()

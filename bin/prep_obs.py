@@ -1,0 +1,368 @@
+import fetch_sep.idsep
+import fetch_sep.idsep.make_event_list as event_list
+import fetch_sep.opsep as opsep
+import fetch_sep.opsep.batch_run_opsep as batch
+import fetch_sep.utils.config as cfg
+import argparse
+import matplotlib.pyplot as plt
+import datetime
+from importlib import reload
+import sys
+import os
+import logging
+
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('opsep')
+logging.getLogger("matplotlib").setLevel(logging.WARNING)
+
+
+
+#Helper
+def septimes_fname(experiment, flux_type, options, energy_bin):
+    """ Create the filename of the file output by
+        SEPAutoID (idsep) that contains the SEP start and
+        end times of interest.
+        
+        INPUTS:
+        
+        :experiment: (string) name of experiment
+        :flux_type: (string) integral or differential
+        :options: (string array)
+        :energy_bins: (1x2 float array) [[low edge],[high edge]]
+            If the bin is >10 MeV, [[10],[-1]]
+        
+    """
+    #Additions to titles and filenames according to user-selected options
+    modifier = ''
+    title_mod = ''
+    if "uncorrected" in options:
+        modifier = modifier + '_uncorrected'
+        title_mod = title_mod + 'uncorrected '
+    if doBGSub:
+        modifier = modifier + '_bgsub'
+        title_mod = title_mod + 'BG-subtracted '
+    if "S14" in options:
+        modifier = modifier + '_S14'
+        title_mod = title_mod + 'S14 '
+    if "Bruno2017" in options:
+        modifier = modifier + '_Bruno2017'
+        title_mod = title_mod + 'Bruno2017 '
+
+    prename = 'SEPTimes_' + experiment + '_' + flux_type + modifier
+    if experiment == 'user' and exp_name != '':
+        prename = 'SEPTimes_' + exp_name + '_' + flux_type + modifier
+
+    fname = cfg.outpath + "/idsep/" + prename + '_' + str(energy_bin[0]) + '_to_' + str(energy_bin[1]) + '.txt'
+    
+    if not os.path.isfile(fname):
+        fname = cfg.outpath + "/idsep/" + prename + '_' + str(int(energy_bin[0])) + '_to_' + str(energy_bin[1]) + '.txt'
+        if not os.path.isfile(fname):
+            sys.exit("septimes_fname: Cannot find file: " + fname)
+    
+    return fname
+
+
+
+#------------------------- WORKFLOW -----------------------
+
+#FIRST ###########################
+#Read in a long time series and automatically identify
+#increases above background and output a preliminary list of
+#SEP events.
+##################################
+parser = argparse.ArgumentParser()
+parser.add_argument("--StartDate", type=str, default='',
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+               " with quotes"))
+parser.add_argument("--EndDate", type=str, default='',
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes"))
+parser.add_argument("--Experiment", type=str,
+        choices=['GOES','GOES-08', 'GOES-10', 'GOES-11',
+                'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
+                'GOES-16','GOES-17','SEPEM', 'SEPEMv3',
+                'EPHIN', 'EPHIN_REleASE', 'user'],
+        default='', help="Enter name of spacecraft or dataset")
+parser.add_argument("--FluxType", type=str, choices=['integral',
+        'differential'], default='',
+        help=("Are these integral or differential fluxes?"))
+parser.add_argument("--ExperimentName", type=str, default='',
+        help=("If you chose user for experiment, specify the "
+                "name of the model or experiment that you are "
+                "analyzing (no spaces)."))
+parser.add_argument("--UserFile", type=str, default='tmp.txt',
+        help=("If you chose user for experiment, specify the "
+                "filename containing the fluxes. "
+                "Specify energy bins and delimeter in the config "
+                " file (idsep/config.py). Default is tmp.txt."))
+parser.add_argument("--Unixtime",
+        help=("Flag to indicate first column in user file is "
+                "in unixtime"), action="store_true")
+parser.add_argument("--options", type=str, default='',
+        help=("You may specify a series of options as a semi-colon "
+                "separated list surrounded by quotations.\n"
+                "\"uncorrected\" for GOES uncorrected differential "
+                " fluxes with nominal GOES energy bins,\n "
+                "\"S14\" to apply Sandberg et al. (2014) "
+                "effective energies to GOES uncorrected fluxes for "
+                    "P2-P6,\n "
+                "\"Bruno2017\" to apply Bruno (2017) effective "
+                    "energies to GOES-13 or GOES-15 P6-P11 channels "
+                    "for either corrected or uncorrected GOES fluxes.\n"
+                "If both S14 and Bruno2017 are specified for "
+                "GOES-13 or GOES-15, S14 bins will be applied to "
+                "P2-P5 and Bruno2017 bins will be applied to P6-P11 "
+                "for uncorrected fluxes.\n"
+                "e.g. \"uncorrected;S14;Bruno2017\""))
+parser.add_argument("--DoInterp",
+        help=("Fill in negative, bad, or missing fluxes via "
+                "linear interpolation in time."), action="store_true")
+parser.add_argument("--SubtractBG",
+        help="Set to calculate the background and subtract from the "\
+            "SEP flux. Must define start and end dates for the background.",
+            action="store_true")
+
+parser.add_argument("--RemoveAbove", type=float, default=999999,
+        help=("Remove all flux points above a specified value. "
+                "The same value is applied to all channels."))
+        
+parser.add_argument("--ForInclusive",
+        help="Write out end times such that they end 1 second "
+                "before the next data point begins.",
+                action="store_true")
+parser.add_argument("--PlotTimeSeriesOnly",
+        help="Only plot the flux timeseries without calculating "
+            "background and SEP events.", action="store_true")
+
+parser.add_argument("--showplot",
+        help="Flag to display plots in IDSEP.", action="store_true")
+#parser.add_argument("--saveplot",
+#       help="Flag to save plots to file", action="store_true")
+
+####### OpSEP Arguments #####
+parser.add_argument("--Threshold", type=str, default="",
+        help=("An additional energy and flux thresholds "
+                "(written as 100,1 with no spaces) which will be "
+                "used to define the event. e.g. 100,1 indicates "
+                ">100 MeV fluxes crossing 1 pfu (1/[cm^2 s sr]). "
+                "Multiple thresholds may be written as \"30,1;50,1\" "
+                "separated by a semi-colon."))
+parser.add_argument("--UMASEP",
+        help=("Set flag to calculate flux values and thresholds "
+            "specific to the UMASEP model. Thresholds for >10, >30, "
+            ">50, >100 MeV and flux values at 3, 4, 5, 6, 7 hours "
+            "after crossing thresholds."), action="store_true")
+
+#WHERE TO START IN THE WORKFLOW
+parser.add_argument("--StartPoint", type=str, default="IDSEP",
+        choices=['IDSEP','MAKEFILE','BATCH'],
+        help=("Indicate where in the workflow you want to "
+                "start.\n"
+                "IDSEP will start at the beginning.\n"
+                "MAKEFILE will start at the point of converting "
+                "the IDSEP output into a file to batch run OpSEP.\n"
+                "BATCH will start at the point of batch running "
+                "OpSEP (useful if change made to opsep itself and "
+                "want to rerun).\n "
+                "Default is IDSEP (beginnning)."))
+
+
+args = parser.parse_args()
+
+str_startdate = args.StartDate
+str_enddate = args.EndDate
+experiment = args.Experiment
+flux_type = args.FluxType
+exp_name = args.ExperimentName
+user_file = args.UserFile
+is_unixtime = args.Unixtime
+doBGSub = args.SubtractBG
+
+options = args.options
+dointerp = args.DoInterp
+
+remove_above = args.RemoveAbove
+for_inclusive = args.ForInclusive
+plot_timeseries_only = args.PlotTimeSeriesOnly
+
+showplot = args.showplot
+saveplot = True #args.saveplot #Always saveplot for this script
+
+threshold = args.Threshold
+umasep = args.UMASEP
+
+startpoint = args.StartPoint
+    
+    
+if startpoint == "IDSEP":
+    fetch_sep.idsep.run_all(str_startdate, str_enddate,
+        experiment, flux_type, exp_name, user_file, is_unixtime,
+        options, doBGSub, dointerp, remove_above, for_inclusive,
+        plot_timeseries_only, showplot, saveplot)
+
+    if plot_timeseries_only:
+        sys.exit("User selected to only plot the timeseries. Exiting.")
+
+
+
+#If user selected "GOES", then list of GOES detectors with time
+#will be stored here. Written out in
+#fetch_sep/utils/read_dataset_auto_id.py > check_all_goes_data()
+goesfname = ''
+if experiment == "GOES":
+    goesfname = cfg.outpath + "/idsep/goes_experiments_dates.txt"
+
+
+#SECOND ########################
+#Parse the output file created in the previous step. This will
+#rewrite in the correct format to batch run quiet and elevated
+#time periods in OpSEP.
+################################
+energy_bin = [10.0,-1]
+septimes_file = septimes_fname(experiment, flux_type, options, energy_bin)
+detector_list = goesfname
+batchfile = 'batch_event_list.txt'
+
+if startpoint == "MAKEFILE" or startpoint == "IDSEP":
+    event_list.make_event_list(septimes_file,detector_list,experiment,
+        flux_type,options,batchfile)
+
+
+
+#THIRD #########################
+#Batch run OpSEP using the input file created above
+#to extract information and create json files and plots
+#for each quite period and each elevated period.
+#Identify SEP events that increase above thresholds.
+################################
+
+#if startpoint == "BATCH" or startpoint == "MAKEFILE" \
+#    or startpoint == "IDSEP":
+#    continue
+
+############## SET DEFAULTS ##################
+showplot = False
+saveplot = True
+detect_prev_event_default = False #Set to true if get FirstStart flag
+two_peaks_default = False #Set to true if get ShortEvent flag
+############## END DEFAULTS #################
+sep_filename = cfg.outpath + '/idsep/' + batchfile
+statusfname = 'batch_run_status.csv'
+
+
+""" Run all of the time periods and experiments in the list
+    file. Extract the values of interest and compile them
+    in event lists, one list per energy channel and threshold
+    combination.
+
+    INPUTS:
+
+    :sep_filename: (string) file containing list of events
+        and experiments to run
+    :outfname: (string) name of a file that will report any
+        errors encountered when running each event in the list
+    :threshold: (string) any additional thresholds to run
+        beyond >10 MeV, 10 pfu and >100 MeV, 1 pfu. Specify
+        in same way as called for by operational_sep_quantities.py
+    :umasep: (boolean) set to true to calculate values related to
+        the UMASEP model
+
+    OUTPUTS:
+
+    None except for:
+
+        * Output file listing each run and any errors encountered
+        * Output files containing event lists for each unique energy
+            channel and threshold combination
+
+"""
+
+batch.check_list_path()
+
+#READ IN SEP DATES AND experiments
+start_dates, end_dates, experiments, flux_types, flags,  \
+    model_names, user_files, json_types, options, bgstart,\
+    bgend = batch.read_sep_dates(sep_filename)
+
+#Prepare output file listing events and flags
+fout = open(cfg.listpath + "/opsep/" + statusfname,"w+")
+fout.write('#Experiment,SEP Date,Exception\n')
+
+#---RUN ALL SEP EVENTS---
+Nsep = len(start_dates)
+combos = {}
+print('Read in ' + str(Nsep) + ' SEP events.')
+for i in range(Nsep):
+    start_date = start_dates[i]
+    end_date = end_dates[i]
+    experiment = experiments[i]
+    flux_type = flux_types[i]
+    flag = flags[i]
+    model_name = model_names[i]
+    user_file = user_files[i]
+    json_type = json_types[i]
+    option = options[i]
+    bgstartdate = bgstart[i]
+    bgenddate = bgend[i]
+
+    spase_id = ''
+
+    flag = flag.split(';')
+    detect_prev_event = detect_prev_event_default
+    two_peaks = two_peaks_default
+    doBGSub = False
+    nointerp = False #if true, will not do interpolation in time
+    if "DetectPreviousEvent" in flag:
+        detect_prev_event = True
+    if "TwoPeak" in flag:
+        two_peaks = True
+    if "SubtractBG" in flag:
+        doBGSub = True
+
+    print('\n-------RUNNING SEP ' + start_date + '---------')
+    #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
+    try:
+        sep_year, sep_month, \
+        sep_day, jsonfname = opsep.run_all(start_date, end_date,
+            experiment, flux_type, model_name, user_file, json_type,
+            spase_id, showplot, saveplot, detect_prev_event,
+            two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
+            bgenddate, nointerp)
+
+        sep_date = datetime.datetime(year=sep_year, month=sep_month,
+                        day=sep_day)
+        if experiment == 'user' and model_name != '':
+            fout.write(model_name + ',')
+        if experiment != 'user':
+            fout.write(experiment + ',')
+        fout.write(str(sep_date) + ', ')
+        fout.write('Success\n')
+
+        #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
+        #EACH THRESHOLD
+        if not combos:
+            combos = batch.initialize_files(jsonfname)
+        success=batch.write_sep_lists(jsonfname,combos)
+        if not success:
+            print('Could not write values to file for ' + jsonfname)
+
+        plt.close('all')
+        opsep = reload(opsep)
+
+    except SystemExit as e:
+        # this log will include traceback
+        logger.exception('opsep failed with exception')
+        # this log will just include content in sys.exit
+        logger.error(str(e))
+        if experiment == 'user' and model_name != '':
+            fout.write(model_name + ',')
+        if experiment != 'user':
+            fout.write(experiment + ',')
+        fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
+        fout.write('\n')
+        opsep = reload(opsep)
+        continue
+
+fout.close()
+

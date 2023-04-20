@@ -1,0 +1,47 @@
+{
+   "sep_forecast_submission": {
+       "notes": [ { "note": "produced by fetch_sep/opsep.py"} ],
+       "model": { "short_name": "", "spase_id": "", "flux_type": "" },
+       "options": "",
+       "issue_time": "",
+       "mode": "historical",
+       "forecasts": [
+           {
+               "energy_channel": { "min": 10, "max": -1, "units": "MeV"},
+               "species": "proton",
+               "location": "earth",
+               "prediction_window": { "start_time": "", "end_time": "" },
+               "peak_intensity": { "intensity": "", "units": "", "time": ""},
+               "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
+               "event_lengths":[ { "start_time": "",  "end_time": "", "threshold": "", "threshold_units": ""  }],
+               "fluences": [{"fluence": "", "units": ""}],
+               "fluence_spectra": [{"start_time": "", "end_time": "",
+                   "threshold_start":"", "threshold_end":"",
+                   "threshold_units":"", "fluence_units": "",
+                   "fluence_spectrum":[{"energy_min": "", "energy_max":"", "fluence": ""}]}
+                   ],
+               "threshold_crossings": [ { "crossing_time": "", "threshold": "", "threshold_units": "" } ],
+               "all_clear": { "all_clear_boolean": "", "threshold": "", "threshold_units": ""},
+               "sep_profile": ""
+           },
+           {
+               "energy_channel": { "min": 100, "max": -1, "units": "MeV"},
+               "species": "proton",
+               "location": "earth",
+               "prediction_window": { "start_time": "", "end_time": "" },
+               "peak_intensity": { "intensity": "", "units": "", "time": ""},
+               "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
+               "event_lengths": [{ "start_time": "",  "end_time": "", "threshold": "", "threshold_units": ""  }],
+               "fluences": [{"fluence": "", "units": ""}],
+               "fluence_spectra": [{"start_time": "", "end_time": "",
+                   "threshold_start":"", "threshold_end":"",
+                   "threshold_units":"", "fluence_units": "",
+                   "fluence_spectrum":[{"energy_min": "", "energy_max":"", "fluence": ""}]}
+                   ],
+               "threshold_crossings": [ { "crossing_time": "", "threshold": "", "threshold_units": "" } ],
+               "all_clear": { "all_clear_boolean": "", "threshold": "", "threshold_units": ""},
+               "sep_profile": ""
+           }
+       ]
+   }
+}

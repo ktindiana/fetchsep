@@ -1,0 +1,99 @@
+import fetch_sep.idsep
+import argparse
+
+
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--StartDate", type=str, default='',
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+               " with quotes"))
+parser.add_argument("--EndDate", type=str, default='',
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes"))
+parser.add_argument("--Experiment", type=str,
+        choices=['GOES','GOES-08',
+        'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
+        'GOES-16','GOES-17','SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE', 'user'],
+        default='', help="Enter name of spacecraft or dataset")
+parser.add_argument("--FluxType", type=str, choices=['integral',
+        'differential'], default='',
+        help=("Do you want to use integral or differential fluxes?"))
+parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
+        "chose user for experiment, specify the name of the model or "
+        "experiment that you are analyzing (no spaces)."))
+parser.add_argument("--UserFile", type=str, default='tmp.txt', help=("If "
+        "you chose user for experiment, specify the filename containing "
+        "the fluxes. Specify energy bins and delimeter in code at top. "
+        "Default is tmp.txt."))
+parser.add_argument("--Unixtime",
+        help="Flag to indicate first column in user file is in unixtime",
+            action="store_true")
+
+parser.add_argument("--options", type=str, default='', help=("You "
+        "may specify a series of options as a semi-colon separated list "
+        "surrounded by quotations.\n"
+        "\"uncorrected\" for GOES uncorrected differential fluxes with "
+        "nominal GOES energy bins,\n "
+        "\"S14\" to apply Sandberg et al. (2014) "
+        "effective energies to GOES uncorrected fluxes for P2-P6,\n "
+        "\"Bruno2017\" to apply Bruno (2017) effective energies to GOES-13 "
+        "or GOES-15 P6-P11 channels for either corrected or uncorrected "
+        "GOES fluxes. \n"
+        "If both S14 and Bruno2017 are "
+        "specified for GOES-13 or GOES-15, S14 bins will be applied to "
+        "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
+        "fluxes.\n"
+        "e.g. \"uncorrected;S14;Bruno2017\""))
+parser.add_argument("--DoInterp",
+        help=("Fill in negative, bad, or missing fluxes via "
+                "linear interpolation in time."), action="store_true")
+parser.add_argument("--SubtractBG",
+        help="Set to calculate the background and subtract from the "\
+            "SEP flux. Must define start and end dates for the background.",
+            action="store_true")
+
+parser.add_argument("--RemoveAbove", type=float, default=999999,
+        help=("Remove all flux points above a specified value."))
+        
+parser.add_argument("--ForInclusive",
+        help="Write out end times such that they end 1 second before the "
+            "next data point begins.", action="store_true")
+parser.add_argument("--PlotTimeSeriesOnly",
+        help="Only plot the flux timeseries without calculating "
+            "background and SEP events.", action="store_true")
+
+parser.add_argument("--showplot",
+        help="Flag to display plots", action="store_true")
+parser.add_argument("--saveplot",
+        help="Flag to save plots to file", action="store_true")
+
+
+
+args = parser.parse_args()
+
+str_startdate = args.StartDate
+str_enddate = args.EndDate
+experiment = args.Experiment
+flux_type = args.FluxType
+exp_name = args.ExperimentName
+user_file = args.UserFile
+is_unixtime = args.Unixtime
+doBGSub = args.SubtractBG
+
+options = args.options
+dointerp = args.DoInterp
+
+remove_above = args.RemoveAbove
+for_inclusive = args.ForInclusive
+plot_timeseries_only = args.PlotTimeSeriesOnly
+
+showplot = args.showplot
+saveplot = args.saveplot
+
+    
+fetch_sep.idsep.run_all(str_startdate, str_enddate, experiment,
+    flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
+    remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot)
+
+
