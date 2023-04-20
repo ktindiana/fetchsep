@@ -53,7 +53,7 @@ OpSEP creates files from observations that can be directly compared to SEP model
 
 For time profile SEP models, OpSEP may be used to create the JSON files that can be submitted to the SEP Scoreboard.
 
-## Running OpSEP for your own time series
+### Running OpSEP for your own time series
 Users may input their own time series into OpSEP by specifying some information in the utils/config.py file:
 
     ##### DELIMETER between columns of file with time series
