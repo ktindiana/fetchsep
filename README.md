@@ -5,6 +5,18 @@ Identify SEP elevations above background in a time series (idsep) and analyze ev
 In fetch_sep/utils/config.py, set the location of your datapath, outpath, plotpath, listpath.
 datapath will be the location that the code downloads satellite data from the internet and stores it on your computer.
 Note that outpath, plotpath, and listpath each need to have subdirectories idsep and opsep. For now, you need to create them yourself.
+For example:
+
+>/Path/to/MyData/data (satellite data will be downloaded here)
+>/Path/to/Store/Output/output
+>/Path/to/Store/Output/output/idsep
+>/Path/to/Store/Output/output/opsep
+>/Path/to/Store/Output/plots
+>/Path/to/Store/Output/plots/opsep
+>/Path/to/Store/Output/plots/idsep
+>/Path/to/Store/Output/lists/
+>/Path/to/Store/Output/lists/opsep
+>/Path/to/Store/Output/lists/idsep
 
 # Run
 >source env.sh to add the directory to your python path
