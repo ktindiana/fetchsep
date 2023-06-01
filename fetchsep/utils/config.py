@@ -53,7 +53,7 @@ fluence_units_differential = "MeV^-1*cm^-2"
 ###### CONFIGURATION VARIABLES FOR USER TIME SERIES FILES #####
 ###############################################################
 
-#Set these variables when running fetch_sep with "user" as the
+#Set these variables when running fetchsep with "user" as the
 #experiment.
 
 ##### DELIMETER between columns (any string)

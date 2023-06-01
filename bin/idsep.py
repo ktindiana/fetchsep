@@ -1,4 +1,4 @@
-import fetch_sep.idsep
+import fetchsep.idsep
 import argparse
 
 
@@ -92,7 +92,7 @@ showplot = args.showplot
 saveplot = args.saveplot
 
     
-fetch_sep.idsep.run_all(str_startdate, str_enddate, experiment,
+fetchsep.idsep.run_all(str_startdate, str_enddate, experiment,
     flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
     remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot)
 

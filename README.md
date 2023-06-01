@@ -2,7 +2,7 @@
 Identify SEP elevations above background in a time series (idsep) and analyze events individually (opsep)
 
 # Set Up
-In fetch_sep/utils/config.py, set the location of your datapath, outpath, plotpath, listpath.
+In fetchsep/utils/config.py, set the location of your datapath, outpath, plotpath, listpath.
 datapath will be the location that the code downloads satellite data from the internet and stores it on your computer.
 Note that outpath, plotpath, and listpath each need to have subdirectories idsep and opsep. For now, you need to create them yourself.
 For example:
