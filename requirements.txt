@@ -1,0 +1,14 @@
+astropy==5.1
+python-dateutil==2.8.2
+matplotlib==3.5.3
+numpy==1.23.3
+scipy==1.9.1
+pandas==1.4.4
+wget==3.2
+zulu==2.0.0
+asciitable==0.8.0
+lmfit==1.0.3
+cycler==0.10.0
+scikit-learn==1.1.2
+seaborn==0.12.0
+netCDF4==1.6.0
