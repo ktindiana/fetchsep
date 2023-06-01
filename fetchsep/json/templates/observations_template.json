@@ -1,6 +1,6 @@
 {
    "sep_observation_submission": {
-       "notes": [ { "note": "produced by fetch_sep/opsep.py"} ],
+       "notes": [ { "note": "produced by fetchsep/opsep.py"} ],
        "observatory": { "short_name": "", "spase_id": "", "flux_type": "" },
        "options": "",
        "issue_time": "",

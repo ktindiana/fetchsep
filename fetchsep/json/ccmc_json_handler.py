@@ -109,7 +109,7 @@ def about_ccmc_json_handler():
         
         ADDITIONALLY:
         
-        ccmc_jason_handler.py combined with fetch_sep/json/keys.py
+        ccmc_jason_handler.py combined with fetchsep/json/keys.py
         provides all of the information needed to read the JSON
         files in the CCMC SEP Scoreboard format or produced
         by operational_sep_quantities.py.
@@ -177,11 +177,11 @@ def read_in_json_template(type):
                 "or \"observations\". You entered " + str(type))
 
     if type == "model":
-        with open('fetch_sep/json/templates/model_template.json') as f:
+        with open('fetchsep/json/templates/model_template.json') as f:
             template=json.load(f)
 
     if type == "observations":
-        with open('fetch_sep/json/templates/observations_template.json') as f:
+        with open('fetchsep/json/templates/observations_template.json') as f:
             template=json.load(f)
 
     return template
