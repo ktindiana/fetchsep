@@ -5,7 +5,7 @@
 
 import unittest
 
-from fetchsep import fetchsep
+import fetchsep
 
 
 class TestFetchsep(unittest.TestCase):
