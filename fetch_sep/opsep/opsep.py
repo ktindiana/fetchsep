@@ -3852,9 +3852,9 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
                     'Fluences for All Event Definitions')
         plt.xlabel('Energy [' + energy_units +']')
         if flux_type == "integral":
-            plt.ylabel('Integral Fluxes [' + flux_units_integral + ']')
+            plt.ylabel('Integral Fluence [' + fluence_units_integral + ']')
         if flux_type == "differential":
-            plt.ylabel('Flux [' + flux_units_differential + ']')
+            plt.ylabel('Differential Fluence [' + fluence_units_differential + ']')
         plt.xscale("log")
         plt.yscale("log")
         ax.legend(loc='upper right')
