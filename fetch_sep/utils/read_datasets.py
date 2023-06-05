@@ -16,7 +16,7 @@ import sys
 import math
 import netCDF4
 
-__version__ = "1.5"
+__version__ = "1.6"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -64,6 +64,10 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   values in the different versions.
 #2023-03-2, changes in 1.5: Combining with the read_datasets file
 #   used by SEPAutoID (idsep).
+#3023-06-05, changes in 1.6: NOAA changed the GOES-R data to version 3
+#   in May of 2022. Added ability to grab v3 data in check_goesR.
+#   Fixed bug that grabbed temperature uncorrected proton fluxes in
+#   read_in_goesR() and added v3 file formatting.
 
 datapath = cfg.datapath
 outpath = cfg.outpath
@@ -601,30 +605,51 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         day = date.day
         date_suffix = 'd%i%02i%02i' % (year,month,day)
  
-        #GOES-R differential data has two possible version numbers
-        fname1 = prefix + date_suffix + '_v2-0-0.nc'
-        exists1 = os.path.isfile(datapath + '/GOES-R/' + fname1)
-        if not exists1:
-            fname1 = prefix + date_suffix + '_v1-0-1.nc'
-            exists1 = os.path.isfile(datapath + '/GOES-R/' + fname1)
-
-        if not exists1:
-            fname1 = prefix + date_suffix + '_v2-0-0.nc'
-            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname1))
+        #GOES-R differential data has three possible version numbers
+        fnamev1 = prefix + date_suffix + '_v1-0-1.nc'
+        fnamev2 = prefix + date_suffix + '_v2-0-0.nc'
+        fnamev3 = prefix + date_suffix + '_v3-0-0.nc'
+        
+        existsv1 = os.path.isfile(datapath + '/GOES-R/' + fnamev1)
+        existsv2 = os.path.isfile(datapath + '/GOES-R/' + fnamev2)
+        existsv3 = os.path.isfile(datapath + '/GOES-R/' + fnamev3)
+        
+        foundfile = None
+        if existsv1: foundfile = fnamev1
+        if existsv2: foundfile = fnamev2
+        if existsv3: foundfile = fnamev3
+            
+        #Try version 1
+        if foundfile == None:
+            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fnamev1))
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES-R/' + fname1)
+                wget.download(url, datapath + '/GOES-R/' + fnamev1)
+                foundfile = fnamev1
             except urllib.request.HTTPError:
-                fname1 = prefix + date_suffix + '_v1-0-1.nc'
-                url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname1))
-                try:
-                    urllib.request.urlopen(url)
-                    wget.download(url, datapath + '/GOES-R/' + fname1)
-                except urllib.request.HTTPError:
-                    sys.exit("Cannot access orientation file at " + url +
-                   ". Please check that selected spacecraft covers date range.")
+                foundfile = None
+        
+        #Try version 2
+        if foundfile == None:
+            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fnamev2))
+            try:
+                urllib.request.urlopen(url)
+                wget.download(url, datapath + '/GOES-R/' + fnamev2)
+                foundfile = fnamev2
+            except urllib.request.HTTPError:
+                foundfile = None
+        
+        if foundfile == None:
+            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fnamev3))
+            try:
+                urllib.request.urlopen(url)
+                wget.download(url, datapath + '/GOES-R/' + fnamev3)
+                foundfile = fnamev3
+            except urllib.request.HTTPError:
+                sys.exit("Cannot access GOES-R file at " + url +
+               ". Tried file versions v1-0-1, v2-0-0, and v3-0-0. Please check that selected spacecraft covers date range.")
   
-        filenames1.append('GOES-R/' + fname1)
+        filenames1.append('GOES-R/' + foundfile)
         
     return filenames1, filenames2, filenames_orien, date
 
@@ -1636,21 +1661,29 @@ def read_in_goesR(experiment, flux_type, filenames1):
         infile = os.path.expanduser(datapath + "/" + filenames1[i])
         data = netCDF4.Dataset(infile)
         
-        ntstep = len(data.variables["L2_SciData_TimeStamp"])
+        if "v3-0-0" in filenames1[i]:
+            ntstep = len(data.variables["time"])
+        else:
+            ntstep = len(data.variables["L2_SciData_TimeStamp"])
         
         #13 differential channels, one integral channel
         #5 minute time steps
         fluxes = np.zeros(shape=(ndiff_chan+1,ntstep))
         
-        ntimes = len(data.variables["L2_SciData_TimeStamp"])
-        for j in range(ntimes):
-            time_sec = float(data.variables["L2_SciData_TimeStamp"][j].data)
+        for j in range(ntstep):
+            if "v3-0-0" in filenames1[i]:
+                time_sec = float(data.variables["time"][j].data)
+            else:
+                time_sec = float(data.variables["L2_SciData_TimeStamp"][j].data)
             td = datetime.timedelta(seconds=time_sec)
             date = ref_date + td
             all_dates.append(date)
             
             #Orientation flag
-            flip_flag = data.variables["YawFlipFlag"][j]
+            if "v3-0-0" in filenames1[i]:
+                flip_flag = data.variables["yaw_flip_flag"][j]
+            else:
+                flip_flag = data.variables["YawFlipFlag"][j]
             idx = 0
             if flip_flag == 1:
                 idx = 1
@@ -1662,25 +1695,14 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 ###TEMP###
                 #kk = k + 8
                 #[288 time step, 2 +/-X, 13 energy chan]
-                #Special file info FOR SEP Events during 2017-09
-                if filenames1[i] == "GOES-R/se_sgps-l2-avg5m_g16_s20172440000000_e20172732355000_v2_0_0.nc":
-                    flux = data.variables["AvgDiffProtonFlux"][j][idx][k]
-                if 'v1-0-1' in filenames1[i]:
-                    flux = data.variables["AvgDiffProtonFlux"][j][idx][k]
-                else:
-                    flux = data.variables["AvgDiffProtonFluxObserved"][j][idx][k]
+                
+                flux = data.variables["AvgDiffProtonFlux"][j][idx][k]
                 if flux < 0:
                     flux = badval
                 fluxes[k][j] = flux*conversion
             
-            #>500 MeV integral channel
-            #Special file info FOR SEP Events during 2017-09
-            if filenames1[i] == "GOES-R/se_sgps-l2-avg5m_g16_s20172440000000_e20172732355000_v2_0_0.nc":
-                flux = data.variables["AvgIntProtonFlux"][j][idx]
-            if 'v1-0-1' in filenames1[i]:
-                flux = data.variables["AvgIntProtonFlux"][j][idx]
-            else:
-                flux = data.variables["AvgIntProtonFluxObserved"][j][idx]
+
+            flux = data.variables["AvgIntProtonFlux"][j][idx]
             if flux < 0:
                 flux = badval
             fluxes[-1][j] = flux
