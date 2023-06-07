@@ -1,6 +1,6 @@
-import fetch_sep.opsep as opsep
-import fetch_sep.opsep.batch_run_opsep as batch
-import fetch_sep.utils.config as cfg
+import fetchsep.opsep as opsep
+import fetchsep.opsep.batch_run_opsep as batch
+import fetchsep.utils.config as cfg
 import argparse
 import matplotlib.pyplot as plt
 import datetime
