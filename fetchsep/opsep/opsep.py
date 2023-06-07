@@ -289,7 +289,7 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   is not used. These changes were needed when testing out the
 #   additional of STEREO-A and -B data as native data sets in
 #   read_datasets.py v1.3. Added STEREO-A and -B to list of allowed instruments.
-#2023-03-03, changes in v3.2: Restructuring to be part of fetch_sep package.
+#2023-03-03, changes in v3.2: Restructuring to be part of fetchsep package.
 #   Combing with SEPAutoID (now idsep), which identifies multiple SEP events in
 #   long time series, in same package. Merging overlapping code and supporting
 #   files.

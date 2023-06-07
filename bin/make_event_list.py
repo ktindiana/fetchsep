@@ -1,4 +1,4 @@
-import fetch_sep.idsep.make_event_list as event_list
+import fetchsep.idsep.make_event_list as event_list
 import argparse
 
 

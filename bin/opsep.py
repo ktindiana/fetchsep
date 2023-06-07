@@ -1,4 +1,4 @@
-import fetch_sep.opsep
+import fetchsep.opsep
 import argparse
 import matplotlib.pyplot as plt
 
@@ -127,7 +127,7 @@ nointerp = args.NoInterp
 
 
 
-sep_year, sep_month, sep_day, jsonfname = fetch_sep.opsep.run_all(str_startdate,
+sep_year, sep_month, sep_day, jsonfname = fetchsep.opsep.run_all(str_startdate,
     str_enddate, experiment,
     flux_type, model_name, user_file, json_type, spase_id, showplot, saveplot,
     detect_prev_event, two_peaks, umasep, str_thresh, options, doBGSub,

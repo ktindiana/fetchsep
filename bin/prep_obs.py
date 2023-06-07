@@ -1,8 +1,8 @@
-import fetch_sep.idsep
-import fetch_sep.idsep.make_event_list as event_list
-import fetch_sep.opsep as opsep
-import fetch_sep.opsep.batch_run_opsep as batch
-import fetch_sep.utils.config as cfg
+import fetchsep.idsep
+import fetchsep.idsep.make_event_list as event_list
+import fetchsep.opsep as opsep
+import fetchsep.opsep.batch_run_opsep as batch
+import fetchsep.utils.config as cfg
 import argparse
 import matplotlib.pyplot as plt
 import datetime
@@ -196,7 +196,7 @@ startpoint = args.StartPoint
     
     
 if startpoint == "IDSEP":
-    fetch_sep.idsep.run_all(str_startdate, str_enddate,
+    fetchsep.idsep.run_all(str_startdate, str_enddate,
         experiment, flux_type, exp_name, user_file, is_unixtime,
         options, doBGSub, dointerp, remove_above, for_inclusive,
         plot_timeseries_only, showplot, saveplot)
@@ -208,7 +208,7 @@ if startpoint == "IDSEP":
 
 #If user selected "GOES", then list of GOES detectors with time
 #will be stored here. Written out in
-#fetch_sep/utils/read_dataset_auto_id.py > check_all_goes_data()
+#fetchsep/utils/read_dataset_auto_id.py > check_all_goes_data()
 goesfname = ''
 if experiment == "GOES":
     goesfname = cfg.outpath + "/idsep/goes_experiments_dates.txt"
