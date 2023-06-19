@@ -53,7 +53,7 @@ Add the directory to your python path:
 
 To run OpSEP to process individual SEP events:
 
-    python3 bin/opsep.py --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
+    | python3 bin/opsep.py --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
 
 IDSEP
 =====
@@ -66,12 +66,12 @@ The code also outputs a file containing every single high flux point above the m
 
 Note that in fetchsep/utils/config.py, number of sigma, the initial window used to estimate background levels, and the final sliding window used to estimate background levels can be adjusted. 
 
-|    idsep_nsigma = 3
-|    init_win = 150 #days to average initial estimate of threshold
-|    sliding_win = 27 #days in sliding window to calculate final threshold
-|    percent_points = 0.9 #Percent of points that must be in the sliding
-|                    #window to calculate the background; otherwise use
-|                    #previous good value
+    | idsep_nsigma = 3
+    | init_win = 150 #days to average initial estimate of threshold
+    | sliding_win = 27 #days in sliding window to calculate final threshold
+    | percent_points = 0.9 #Percent of points that must be in the sliding
+    |                #window to calculate the background; otherwise use
+    |                #previous good value
 
 OPSEP
 =====
@@ -91,17 +91,17 @@ Running OpSEP for your own time series
 
 Users may input their own time series into OpSEP by specifying some information in the utils/config.py file:
 
-|    ##### DELIMETER between columns of file with time series
-|    user_delim = " "  #any string
-|    ##### COLUMNS containing the fluxes you want to analyze
-|    user_col = arr.array('i',[1,2,3,4,5,6,7,8])
-|    err_col = arr.array('i',[]) #set to [] if no uncertainties
-|                            #err_col only used by idsep
-|    ##### ENERGY BINS associated with user file and columns
-|    #For differential bins, use the format:
-|    user_energy_bins = [[Elow1,Ehigh1],[Elow2,Ehigh2],etc]
-|    #For integral bins, use the format:
-|    user_energy_bins = [[Elow1,-1],[Elow2,-1],[Elow3,-1],etc]
+    | ##### DELIMETER between columns of file with time series
+    | user_delim = " "  #any string
+    | ##### COLUMNS containing the fluxes you want to analyze
+    | user_col = arr.array('i',[1,2,3,4,5,6,7,8])
+    | err_col = arr.array('i',[]) #set to [] if no uncertainties
+                            |#err_col only used by idsep
+    | ##### ENERGY BINS associated with user file and columns
+    | #For differential bins, use the format:
+    | user_energy_bins = [[Elow1,Ehigh1],[Elow2,Ehigh2],etc]
+    | #For integral bins, use the format:
+    | user_energy_bins = [[Elow1,-1],[Elow2,-1],[Elow3,-1],etc]
     
     
 Automatically generate a Processed SEP Event list
@@ -110,7 +110,7 @@ Automatically generate a Processed SEP Event list
 It is possible to run both codes with a single button push to create a preliminary SEP event list. 
 The code:
 
-|    bin/prep_obs.py
+    | bin/prep_obs.py
 
 will first run idsep on a specified data set and identify all increases above background. Output files are created that are then used to automatically run opsep in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
 
