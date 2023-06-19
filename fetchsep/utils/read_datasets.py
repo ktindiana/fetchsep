@@ -16,7 +16,7 @@ import sys
 import math
 import netCDF4
 
-__version__ = "1.6"
+__version__ = "1.7"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -68,6 +68,9 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   in May of 2022. Added ability to grab v3 data in check_goesR.
 #   Fixed bug that grabbed temperature uncorrected proton fluxes in
 #   read_in_goesR() and added v3 file formatting.
+#2023-06-19, changes in 1.7: NOAA added a v3-0-1 format for files
+#   starting in April 2023. Rewrote check_goesR to be more versatile.
+#   Added checking that include v3-0-1 in read_in_goesR.
 
 datapath = cfg.datapath
 outpath = cfg.outpath
@@ -606,48 +609,31 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         date_suffix = 'd%i%02i%02i' % (year,month,day)
  
         #GOES-R differential data has three possible version numbers
-        fnamev1 = prefix + date_suffix + '_v1-0-1.nc'
-        fnamev2 = prefix + date_suffix + '_v2-0-0.nc'
-        fnamev3 = prefix + date_suffix + '_v3-0-0.nc'
-        
-        existsv1 = os.path.isfile(datapath + '/GOES-R/' + fnamev1)
-        existsv2 = os.path.isfile(datapath + '/GOES-R/' + fnamev2)
-        existsv3 = os.path.isfile(datapath + '/GOES-R/' + fnamev3)
+        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc']
         
         foundfile = None
-        if existsv1: foundfile = fnamev1
-        if existsv2: foundfile = fnamev2
-        if existsv3: foundfile = fnamev3
+        for ext in file_ext:
+            fname_data = prefix + date_suffix + ext
+            exists = os.path.isfile(datapath + '/GOES-R/' + fname_data)
+            if exists:
+                foundfile = fname_data
             
-        #Try version 1
+        #Try versions
         if foundfile == None:
-            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fnamev1))
-            try:
-                urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES-R/' + fnamev1)
-                foundfile = fnamev1
-            except urllib.request.HTTPError:
-                foundfile = None
-        
-        #Try version 2
+            for ext in file_ext:
+                fname_data = prefix + date_suffix + ext
+                url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
+                try:
+                    urllib.request.urlopen(url)
+                    wget.download(url, datapath + '/GOES-R/' + fname_data)
+                    foundfile = fname_data
+                    break
+                except urllib.request.HTTPError:
+                    foundfile = None
+
         if foundfile == None:
-            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fnamev2))
-            try:
-                urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES-R/' + fnamev2)
-                foundfile = fnamev2
-            except urllib.request.HTTPError:
-                foundfile = None
-        
-        if foundfile == None:
-            url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fnamev3))
-            try:
-                urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES-R/' + fnamev3)
-                foundfile = fnamev3
-            except urllib.request.HTTPError:
-                sys.exit("Cannot access GOES-R file at " + url +
-               ". Tried file versions v1-0-1, v2-0-0, and v3-0-0. Please check that selected spacecraft covers date range.")
+            sys.exit("Cannot access GOES-R file at " + url +
+               ". Tried file versions " + str(file_ext) + ". Please check that selected spacecraft covers date range.")
   
         filenames1.append('GOES-R/' + foundfile)
         
@@ -1661,7 +1647,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         infile = os.path.expanduser(datapath + "/" + filenames1[i])
         data = netCDF4.Dataset(infile)
         
-        if "v3-0-0" in filenames1[i]:
+        if "v3-0" in filenames1[i]:
             ntstep = len(data.variables["time"])
         else:
             ntstep = len(data.variables["L2_SciData_TimeStamp"])
@@ -1671,7 +1657,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         fluxes = np.zeros(shape=(ndiff_chan+1,ntstep))
         
         for j in range(ntstep):
-            if "v3-0-0" in filenames1[i]:
+            if "v3-0" in filenames1[i]:
                 time_sec = float(data.variables["time"][j].data)
             else:
                 time_sec = float(data.variables["L2_SciData_TimeStamp"][j].data)
@@ -1680,7 +1666,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
             all_dates.append(date)
             
             #Orientation flag
-            if "v3-0-0" in filenames1[i]:
+            if "v3-0" in filenames1[i]:
                 flip_flag = data.variables["yaw_flip_flag"][j]
             else:
                 flip_flag = data.variables["YawFlipFlag"][j]
