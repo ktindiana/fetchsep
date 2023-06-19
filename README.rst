@@ -48,8 +48,8 @@ For example:
 Run
 ===
 
-Add the directory to your python path:
-    source env.sh
+Until this repository is finalized into a package, you will need to add the fetchsep directory to your path. In Mac, run the command:
+export PYTHONPATH="$PYTHONPATH:$PWD"
 
 To run OpSEP to process individual SEP events:
 
