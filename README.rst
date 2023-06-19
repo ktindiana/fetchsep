@@ -32,15 +32,15 @@ Note that outpath, plotpath, and listpath each need to have subdirectories idsep
 For example:
 
     /Path/to/MyData/data (satellite data will be downloaded here)
-    /Path/to/Store/Output/output
-    /Path/to/Store/Output/output/idsep
-    /Path/to/Store/Output/output/opsep
-    /Path/to/Store/Output/plots
-    /Path/to/Store/Output/plots/opsep
-    /Path/to/Store/Output/plots/idsep
-    /Path/to/Store/Output/lists/
-    /Path/to/Store/Output/lists/opsep
-    /Path/to/Store/Output/lists/idsep
+    /OutputPath/output
+    /OutputPath/output/idsep
+    /OutputPath/output/opsep
+    /OutputPath/plots
+    /OutputPatht/plots/opsep
+    /OutputPath/plots/idsep
+    /OutputPath/lists/
+    /OutputPath/lists/opsep
+    /OutputPath/lists/idsep
 
 Run
 ===
