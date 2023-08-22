@@ -45,11 +45,17 @@ setup(
         'Programming Language :: Python :: 3.10',
     ],
     description="Identify SEP elevations above background in a time series (idsep) and analyze events individually (opsep)",
-    entry_points={
-        'console_scripts': [
-            'fetchsep=fetchsep.cli:main',
-        ],
-    },
+    # TODO: migrate scripts below to entry_points pattern
+    #entry_points={
+    #    'console_scripts': [
+    #        'fetchsep=fetchsep.cli:main',
+    #    ],
+    #},
+    scripts=['bin/opsep_batch',
+             'bin/idsep',
+             'bin/make_opsep_event_list',
+             'bin/opsep',
+             'bin/fetchsep_prepare_obs'],
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
