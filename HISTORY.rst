@@ -1,6 +1,11 @@
 History
 =======
 
+0.1.4 (2023-08-22)
+------------------
+
+* Fix bug preventing command-line scripts from executing in Python interpreter
+
 0.1.3 (2023-08-22)
 ------------------
 
