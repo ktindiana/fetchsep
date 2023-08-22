@@ -66,9 +66,7 @@ Note that in fetchsep/utils/config.py, number of sigma, the initial window used 
     idsep_nsigma = 3
     init_win = 150 #days to average initial estimate of threshold
     sliding_win = 27 #days in sliding window to calculate final threshold
-    percent_points = 0.9 #Percent of points that must be in the sliding
-                    #window to calculate the background; otherwise use
-                    #previous good value
+    percent_points = 0.9 #Percent of points that must be in the sliding window to calculate the background; otherwise use previous good value
 
 OPSEP
 =====
@@ -92,8 +90,7 @@ Users may input their own time series into OpSEP by specifying some information 
     user_delim = " "  #any string
     ##### COLUMNS containing the fluxes you want to analyze
     user_col = arr.array('i',[1,2,3,4,5,6,7,8])
-    err_col = arr.array('i',[]) #set to [] if no uncertainties
-                            #err_col only used by idsep
+    err_col = arr.array('i',[]) #set to [] if no uncertainties. err_col only used by idsep
     ##### ENERGY BINS associated with user file and columns
     #For differential bins, use the format:
     user_energy_bins = [[Elow1,Ehigh1],[Elow2,Ehigh2],etc]
