@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import fetchsep.idsep
 import fetchsep.idsep.make_event_list as event_list
 import fetchsep.opsep as opsep
