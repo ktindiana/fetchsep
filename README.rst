@@ -26,9 +26,6 @@ Identify SEP elevations above background in a time series (idsep) and analyze ev
 Set Up
 ======
 
-Until this repository is finalized into a package, you will need to add the fetchsep directory to your path. In Mac, run the command:
-export PYTHONPATH="$PYTHONPATH:$PWD"
-
 In fetchsep/utils/config.py, set the location of your datapath, outpath, plotpath, listpath.
 datapath will be the location that the code downloads satellite data from the internet and stores it on your computer.
 Note that outpath, plotpath, and listpath each need to have subdirectories idsep and opsep. For now, you need to create them yourself.
