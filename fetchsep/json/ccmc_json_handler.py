@@ -9,7 +9,7 @@ from . import keys
 import os
 import sys
 
-__version__ = "1.7"
+__version__ = "1.8"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -89,7 +89,9 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   Added set_json_value_by_index() which allows the user to change a value in
 #   the json. In the context of this code, may be most useful to add
 #   the trigger information and change the issue time.
-
+#2023-7-06, changes in 1.8: cast max flux as float in fill_json
+#   because found that models with 0 flux resulted in an error
+#   when dumping json.
 
 def about_ccmc_json_handler():
     """ ABOUT ccmc_json_handler.py
@@ -430,12 +432,12 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
                 all_clear = False            
 
             #Onset Peak Flux
-            onset_dict = {"intensity":onset_peak[i],"time": zodate,
+            onset_dict = {"intensity":float(onset_peak[i]),"time": zodate,
                             "units":flux_units}
             template[key][type_key][tidx]['peak_intensity'].update(onset_dict)
             
             #Maximum Flux
-            max_dict = {"intensity":peak_flux[i],"time": zpdate,
+            max_dict = {"intensity":float(peak_flux[i]),"time": zpdate,
                             "units":flux_units}
             template[key][type_key][tidx]['peak_intensity_max'].update(max_dict)
             
@@ -526,7 +528,7 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
             zeet = ""
             template[key][type_key][tidx]['sep_profile'] = profile_filenames[i]
             
-            max_dict = {"intensity":peak_flux[i],"time": zpdate,
+            max_dict = {"intensity":float(peak_flux[i]),"time": zpdate,
                         "units":flux_units}
             template[key][type_key][tidx]['peak_intensity_max'].update(max_dict)
             
