@@ -93,9 +93,9 @@ user_energy_bins = [[750,-1],[500,-1],[300,-1],[100,-1],\
 #determines the flux level that is considered background at the beginning of the
 #event
 idsep_nsigma = 3
-init_win = 10 #150 #days to average initial estimate of threshold
-sliding_win = 5 #27 #days in sliding window to calculate final threshold
-percent_points = 0.7 #Percent of points that must be in the sliding
+init_win = 150 #days to average initial estimate of threshold
+sliding_win = 27 #days in sliding window to calculate final threshold
+percent_points = 0.9 #Percent of points that must be in the sliding
                     #window to calculate the background; otherwise use
                     #previous good value
 
