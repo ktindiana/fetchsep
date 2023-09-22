@@ -1,7 +1,7 @@
 History
 =======
 
-0.1.5 (2023-09-22)
+0.2.0 (2023-09-22)
 ------------------
 
  * Add GOES-18 differential and real time integral fluxes; changes
