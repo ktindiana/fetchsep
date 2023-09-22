@@ -26,21 +26,21 @@ Identify SEP elevations above background in a time series (`idsep`) and analyze 
 Set Up
 ======
 
-In fetchsep/utils/config.py, set the location of your datapath, outpath, plotpath, listpath.
-datapath will be the location that the code downloads satellite data from the internet and stores it on your computer.
-Note that outpath, plotpath, and listpath each need to have subdirectories `idsep` and `opsep`. For now, you need to create them yourself.
-For example:
+By default, `idsep` and `opsep` will create the necessary output
+directories in the current working directory where the command is
+executed.  The directories that will be created are `data`, `ouptut`,
+`plots`, and `lists`.  The directories will not be overwritten if they
+already exist.  If you would like to choose another output location,
+generate a config file (`fetchsep.cfg`) with `opsep --ExportConfig`
+and edit the paths described there.
 
-   | /Path/to/MyData/data (satellite data will be downloaded here)
-   | /OutputPath/output
-   | /OutputPath/output/idsep
-   | /OutputPath/output/opsep
-   | /OutputPath/plots
-   | /OutputPatht/plots/opsep
-   | /OutputPath/plots/idsep
-   | /OutputPath/lists/
-   | /OutputPath/lists/opsep
-   | /OutputPath/lists/idsep
+A configuration file may also be placed in your home directory with
+the name `.fetchsep`.  The configuration file does not need to be
+complete; you may specify only the values for which you wish to
+override the default.  The order of config value precidence
+is 1. current working directory `fetchsep.cfg`, 2. home directory
+`.fetchsep`, 3. fetchsep defaults.
+
 
 Run
 ===
@@ -87,7 +87,8 @@ For time profile SEP models, `opsep` may be used to create the JSON files that c
 Running `opsep` for your own time series
 ----------------------------------------
 
-Users may input their own time series into `opsep` by specifying some information in the utils/config.py file:
+Users may input their own time series into `opsep` by specifying some
+information in the config file:
 
     | ##### DELIMETER between columns of file with time series
     | user_delim = " "  #any string
