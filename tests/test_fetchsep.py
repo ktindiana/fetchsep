@@ -17,5 +17,6 @@ class TestFetchsep(unittest.TestCase):
     def tearDown(self):
         """Tear down test fixtures, if any."""
 
-    def test_000_something(self):
-        """Test something."""
+    def test_version(self):
+        """Test that version exists."""
+        self.assertIsInstance(fetchsep.__version__, str)

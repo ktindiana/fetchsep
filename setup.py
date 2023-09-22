@@ -40,16 +40,22 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     description="Identify SEP elevations above background in a time series (idsep) and analyze events individually (opsep)",
-    entry_points={
-        'console_scripts': [
-            'fetchsep=fetchsep.cli:main',
-        ],
-    },
+    # TODO: migrate scripts below to entry_points pattern
+    #entry_points={
+    #    'console_scripts': [
+    #        'fetchsep=fetchsep.cli:main',
+    #    ],
+    #},
+    scripts=['bin/opsep_batch',
+             'bin/idsep',
+             'bin/make_opsep_event_list',
+             'bin/opsep',
+             'bin/fetchsep_prepare_obs'],
     install_requires=requirements,
     license="MIT license",
     long_description=readme + '\n\n' + history,
@@ -60,6 +66,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/rickyegeland/fetchsep',
-    version='0.1.0',
+    version='0.2.2',
     zip_safe=False,
 )

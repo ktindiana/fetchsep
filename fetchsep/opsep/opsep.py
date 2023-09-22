@@ -26,6 +26,7 @@ import scipy
 from scipy import signal
 from statistics import mode
 from lmfit import minimize, Parameters
+import array
 
 __version__ = "3.3"
 __author__ = "Katie Whitman"
@@ -309,6 +310,13 @@ outpath = cfg.outpath + "/opsep"
 plotpath = cfg.plotpath + "/opsep"
 badval = cfg.badval #bad data points will be set to this value; must be negative
 
+# Prepare directories
+cfg.prepare_dirs()
+for path in (outpath, plotpath):
+    if not os.path.isdir(path):
+        print("Making directory:", path)
+        os.mkdir(path)
+
 #####UNITS#####
 energy_units = cfg.energy_units
 flux_units_integral = cfg.flux_units_integral
@@ -319,7 +327,7 @@ fluence_units_differential = cfg.fluence_units_differential
 ######FOR USER DATA SETS######
 #(expect the first (0th) column contains date in YYYY-MM-DD HH:MM:SS format)
 #Identify columns containing fluxes you want to analyze
-user_col = cfg.user_col
+user_col = array.array('i', cfg.user_col)
 #DELIMETER between columns; for whitespace separating columns, use " " or ""
 user_delim = cfg.user_delim
 #DEFINE ENERGY BINS associated with user file and columns specified above as:
