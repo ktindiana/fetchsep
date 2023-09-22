@@ -1,7 +1,7 @@
 History
 =======
 
-0.2.0 (2023-09-22)
+0.2.1 (2023-09-22)
 ------------------
 
  * Fix packaging bug that failed to include the default configuration
