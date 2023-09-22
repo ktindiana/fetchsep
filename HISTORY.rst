@@ -1,6 +1,12 @@
 History
 =======
 
+0.2.2 (2023-09-22)
+------------------
+
+ * Fix packaging bug that failed to include and correctly use the CCMC
+   json templates
+
 0.2.1 (2023-09-22)
 ------------------
 
