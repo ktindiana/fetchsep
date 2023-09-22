@@ -4,6 +4,11 @@ History
 0.2.0 (2023-09-22)
 ------------------
 
+ * Fix packaging bug that failed to include the default configuration
+
+0.2.0 (2023-09-22)
+------------------
+
  * Add GOES-18 differential and real time integral fluxes; changes
    GOES-R integral flux source to CCMC's HAPI API
  * Add configuration by user config file in the configparser INI
