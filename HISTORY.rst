@@ -1,6 +1,20 @@
 History
 =======
 
+0.1.5 (2023-09-22)
+------------------
+
+ * Add GOES-18 differential and real time integral fluxes; changes
+   GOES-R integral flux source to CCMC's HAPI API
+ * Add configuration by user config file in the configparser INI
+   format, replacing placement of config values in config.py.  This
+   fixes the pip deployment issue whereby a user could not easily
+   update the code configuration.
+ * Add --ExportConfig option to opsep & idsep.  Users may use this to
+   prepare a custom configuration.
+ * Fix: Create necessary output directories instead of crashing if
+   they don't exist
+
 0.1.4 (2023-08-22)
 ------------------
 
