@@ -26,6 +26,7 @@ import scipy
 from scipy import signal
 from statistics import mode
 from lmfit import minimize, Parameters
+import array
 
 __version__ = "3.3"
 __author__ = "Katie Whitman"
@@ -319,7 +320,7 @@ fluence_units_differential = cfg.fluence_units_differential
 ######FOR USER DATA SETS######
 #(expect the first (0th) column contains date in YYYY-MM-DD HH:MM:SS format)
 #Identify columns containing fluxes you want to analyze
-user_col = cfg.user_col
+user_col = array.array('i', cfg.user_col)
 #DELIMETER between columns; for whitespace separating columns, use " " or ""
 user_delim = cfg.user_delim
 #DEFINE ENERGY BINS associated with user file and columns specified above as:
