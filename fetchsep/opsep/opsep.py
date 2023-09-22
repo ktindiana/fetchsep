@@ -310,6 +310,13 @@ outpath = cfg.outpath + "/opsep"
 plotpath = cfg.plotpath + "/opsep"
 badval = cfg.badval #bad data points will be set to this value; must be negative
 
+# Prepare directories
+cfg.prepare_dirs()
+for path in (outpath, plotpath):
+    if not os.path.isdir(path):
+        print("Making directory:", path)
+        os.mkdir(path)
+
 #####UNITS#####
 energy_units = cfg.energy_units
 flux_units_integral = cfg.flux_units_integral
