@@ -31,6 +31,14 @@ __email__ = "kathryn.whitman@nasa.gov"
 datapath = cfg.datapath
 outpath = cfg.outpath + "/idsep"
 plotpath = cfg.plotpath + "/idsep"
+
+# Prepare directories
+cfg.prepare_dirs()
+for path in (outpath, plotpath):
+    if not os.path.isdir(path):
+        print("Making directory:", path)
+        os.mkdir(path)
+
 badval = cfg.badval #bad data points will be set to this value; must be negative
 nsigma = cfg.idsep_nsigma #threshold mean + nsigma*sigma
 init_win = cfg.init_win
