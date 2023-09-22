@@ -177,13 +177,15 @@ def read_in_json_template(type):
     if type != "model" and type != "observations":
         sys.exit("json_handler: read_in_template: type may be \"model\" "
                 "or \"observations\". You entered " + str(type))
-
+    
+    templatedir = os.path.join(os.path.dirname(__file__), 'templates')
+    
     if type == "model":
-        with open('fetchsep/json/templates/model_template.json') as f:
+        with open(os.path.join(templatedir, 'model_template.json')) as f:
             template=json.load(f)
 
     if type == "observations":
-        with open('fetchsep/json/templates/observations_template.json') as f:
+        with open(os.path.join(templatedir, 'observations_template.json')) as f:
             template=json.load(f)
 
     return template
