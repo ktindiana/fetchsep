@@ -103,7 +103,7 @@ parser.add_argument("--UMASEP",
             "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
             "flux values at various time periods after crossing "
             "thresholds."), action="store_true")
-parser.add_argument("--ExportConfig",
+parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
               "the current working directory and exit.  Used to prepare a "
               "starting point for creating a new user configuration."))
