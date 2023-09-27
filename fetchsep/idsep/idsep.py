@@ -951,7 +951,8 @@ def run_all(str_startdate, str_enddate, experiment,
     enddate = dateh.str_to_datetime(str_enddate)
     
     error_check_inputs(startdate, enddate, experiment, flux_type)
-        
+    datasets.check_paths()
+    
     #READ IN FLUXES
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
         flux_type, user_file, startdate, enddate, options, dointerp,is_unixtime)
