@@ -109,7 +109,14 @@ def error_check_inputs(startdate, enddate, experiment, flux_type):
     if (enddate < startdate):
         sys.exit('End time before start time! Enter a valid date range. '
                 'Exiting.')
-                
+
+    dt = enddate - startdate
+    if (dt.days < init_win):
+        sys.exit(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
+                 'is less than the '
+                 f'length of the background subtraction window, init_win={init_win} days. '
+                 'Choose a longer date range or update your configuration. Exiting.')
+        
     if flux_type == "":
         sys.exit('User must indicate whether input flux is integral or '
                 'differential. Exiting.')
@@ -951,7 +958,8 @@ def run_all(str_startdate, str_enddate, experiment,
     enddate = dateh.str_to_datetime(str_enddate)
     
     error_check_inputs(startdate, enddate, experiment, flux_type)
-        
+    datasets.check_paths()
+    
     #READ IN FLUXES
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
         flux_type, user_file, startdate, enddate, options, dointerp,is_unixtime)
