@@ -485,8 +485,9 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                 urllib.request.urlopen(url)
                 wget.download(url, datapath + '/GOES/' + fname1)
             except urllib.request.HTTPError:
-                sys.exit("Cannot access file at " + url +
+                print("Cannot access file at " + url +
                 ". Please check that selected spacecraft covers date range.")
+                return filenames1, filenames2, filenames_orien, date
 
 
         if not exists2: #download file if not found on your computer
@@ -497,8 +498,9 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                 urllib.request.urlopen(url)
                 wget.download(url, datapath + '/GOES/' + fname2)
             except urllib.request.HTTPError:
-                sys.exit("Cannot access file at " + url +
+                print("Cannot access file at " + url +
                ". Please check that selected spacecraft covers date range.")
+                return filenames1, filenames2, filenames_orien, date
 
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
@@ -510,9 +512,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                     urllib.request.urlopen(url)
                     wget.download(url, datapath + '/GOES/' + fname_orien)
                 except urllib.request.HTTPError:
-                    sys.exit("Cannot access orientation file at "
+                    print("Cannot access orientation file at "
                         + url + ". Please check that selected "
                         + "spacecraft covers date range.")
+                    return filenames1, filenames2, filenames_orien, date
 
         filenames1.append('GOES/' + fname1)
         filenames2.append('GOES/' + fname2)
@@ -578,8 +581,10 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                 urllib.request.urlopen(url)
                 wget.download(url, datapath + '/GOES-R/' + fname1)
             except urllib.request.HTTPError:
-                sys.exit("Cannot access SEP event file at " + url +
+                print("Cannot access SEP event file at " + url +
                ". Please check that the url is still active.")
+                return filenames1, filenames2, filenames_orien, startdate
+
         
         filenames1.append('GOES-R/' + fname1)
         return filenames1, filenames2, filenames_orien, startdate
@@ -636,9 +641,10 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                     foundfile = None
 
         if foundfile == None:
-            sys.exit("Cannot access GOES-R file at " + url +
+            print("Cannot access GOES-R file at " + url +
                ". Tried file versions " + str(file_ext) + ". Please check that selected spacecraft covers date range.")
-  
+            return filenames1, filenames2, filenames_orien, date
+
         filenames1.append('GOES-R/' + foundfile)
         
     return filenames1, filenames2, filenames_orien, date
@@ -776,7 +782,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
     #Write dates and experiment used for those dates
     #This is meant to allow the user to know which
     #spacecraft is available for which time period
-    outfname = outpath + "/goes_experiments_dates.txt"
+    outfname = outpath + "/idsep/goes_experiments_dates.txt"
     outfile = open(outfname,'w')
     
     
