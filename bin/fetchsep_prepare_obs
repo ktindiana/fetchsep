@@ -97,7 +97,7 @@ parser.add_argument("--UserFile", type=str, default='tmp.txt',
         help=("If you chose user for experiment, specify the "
                 "filename containing the fluxes. "
                 "Specify energy bins and delimeter in the config "
-                " file (idsep/config.py). Default is tmp.txt."))
+                "file (idsep/config.py). Default is tmp.txt."))
 parser.add_argument("--Unixtime",
         help=("Flag to indicate first column in user file is "
                 "in unixtime"), action="store_true")
@@ -108,10 +108,10 @@ parser.add_argument("--options", type=str, default='',
                 " fluxes with nominal GOES energy bins,\n "
                 "\"S14\" to apply Sandberg et al. (2014) "
                 "effective energies to GOES uncorrected fluxes for "
-                    "P2-P6,\n "
+                "P2-P6,\n "
                 "\"Bruno2017\" to apply Bruno (2017) effective "
-                    "energies to GOES-13 or GOES-15 P6-P11 channels "
-                    "for either corrected or uncorrected GOES fluxes.\n"
+                "energies to GOES-13 or GOES-15 P6-P11 channels "
+                "for either corrected or uncorrected GOES fluxes.\n"
                 "If both S14 and Bruno2017 are specified for "
                 "GOES-13 or GOES-15, S14 bins will be applied to "
                 "P2-P5 and Bruno2017 bins will be applied to P6-P11 "
@@ -122,8 +122,8 @@ parser.add_argument("--DoInterp",
                 "linear interpolation in time."), action="store_true")
 parser.add_argument("--SubtractBG",
         help="Set to calculate the background and subtract from the "\
-            "SEP flux. Must define start and end dates for the background.",
-            action="store_true")
+                "SEP flux. Must define start and end dates for the background.",
+                action="store_true")
 
 parser.add_argument("--RemoveAbove", type=float, default=999999,
         help=("Remove all flux points above a specified value. "
@@ -135,12 +135,10 @@ parser.add_argument("--ForInclusive",
                 action="store_true")
 parser.add_argument("--PlotTimeSeriesOnly",
         help="Only plot the flux timeseries without calculating "
-            "background and SEP events.", action="store_true")
+                "background and SEP events.", action="store_true")
 
 parser.add_argument("--showplot",
         help="Flag to display plots in IDSEP.", action="store_true")
-#parser.add_argument("--saveplot",
-#       help="Flag to save plots to file", action="store_true")
 
 ####### OpSEP Arguments #####
 parser.add_argument("--Threshold", type=str, default="",
@@ -152,9 +150,9 @@ parser.add_argument("--Threshold", type=str, default="",
                 "separated by a semi-colon."))
 parser.add_argument("--UMASEP",
         help=("Set flag to calculate flux values and thresholds "
-            "specific to the UMASEP model. Thresholds for >10, >30, "
-            ">50, >100 MeV and flux values at 3, 4, 5, 6, 7 hours "
-            "after crossing thresholds."), action="store_true")
+                "specific to the UMASEP model. Thresholds for >10, >30, "
+                ">50, >100 MeV and flux values at 3, 4, 5, 6, 7 hours "
+                "after crossing thresholds."), action="store_true")
 
 #WHERE TO START IN THE WORKFLOW
 parser.add_argument("--StartPoint", type=str, default="IDSEP",
@@ -221,14 +219,16 @@ if experiment == "GOES":
 #rewrite in the correct format to batch run quiet and elevated
 #time periods in OpSEP.
 ################################
-energy_bin = [10.0,-1]
+energy_bin = cfg.ref_energy_bin
 septimes_file = septimes_fname(experiment, flux_type, options, energy_bin)
 detector_list = goesfname
 batchfile = 'batch_event_list.txt'
 
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    event_list.make_event_list(septimes_file,detector_list,experiment,
-        flux_type,options,batchfile)
+    revise = True #add time padding in front of each SEP event
+    event_list.make_event_list(str_startdate, str_enddate,
+        septimes_file, detector_list,experiment, flux_type,options,
+        batchfile, revise)
 
 
 
