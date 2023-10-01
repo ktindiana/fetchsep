@@ -28,7 +28,7 @@ from statistics import mode
 from lmfit import minimize, Parameters
 import array
 
-__version__ = "3.3"
+__version__ = "3.4"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -295,13 +295,16 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   long time series, in same package. Merging overlapping code and supporting
 #   files.
 #   Changed filename from operational_sep_quantities.py to opsep.py.
-#2024-04-10, changes in v3.3: Changed the logic to end an event. Previously
+#2023-04-10, changes in v3.3: Changed the logic to end an event. Previously
 #   used 3 points below cfg.endfac*threshold (typically endfac was set at 0.85).
 #   Now the code will apply a dwell time of 3 hours to find when the flux
 #   has dropped below threshold for longer than the dwell time, then choose the
 #   end time as the first below below threshold. endfac should be set to 1.0 in
 #   config.py to ensure the end of the event applies the same threshold as the
 #   start of the event.
+#2023-09-30, changes in v3.4: Changed filenames of plots to contain zulu
+#   time for starting window or threshold crossing time so that they
+#   are unique.
 ########################################################################
 
 #See full program description in all_program_info() below
@@ -1946,12 +1949,10 @@ def find_max_curvature(x, y, energy_threshold, crossing_time,
     k_x = (np.max(yarr)/np.max(k_x))*k_x
     
     if showplot or saveplot:
-        year = crossing_time.year
-        month = crossing_time.month
-        day = crossing_time.day
-        figname = str(year) + "_" + str(month) + "_" + str(day) + "_" \
-                        + "SecondDerivative_" + experiment + "_"\
-                        + str(energy_threshold) + "MeV"
+        tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time)
+        tzulu = tzulu.replace(":","")
+        figname = tzulu + "_" + "SecondDerivative_" + experiment + "_"\
+                + str(energy_threshold) + "MeV"
         fig = plt.figure(figname,figsize=(9,5))
         plt.plot(xarr,yarr,label="orig")
         plt.plot(xarr[max_k_idx+2], yarr[max_k_idx+2],"o",label="Min 2nd Derivative on Weibull")
@@ -2125,12 +2126,10 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral
         
         
         if showplot or saveplot:
-            year = crossing_time[i].year
-            month = crossing_time[i].month
-            day = crossing_time[i].day
-            figname = str(year) + "_" + str(month) + "_" + str(day)\
-                        + "_Weibull_fit_"+ experiment + "_" \
-                        + str(energy_thresholds[i]) + "MeV"
+            tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time[i])
+            tzulu = tzulu.replace(":","")
+            figname = tzulu + "_Weibull_fit_"+ experiment + "_" \
+                    + str(energy_thresholds[i]) + "MeV"
             fig = plt.figure(figname,figsize=(9,5))
             label = ">" + str(energy_thresholds[i]) + " MeV"
             plt.plot(trim_times,trim_fluxes,label=label)
@@ -3649,13 +3648,16 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     #####################################################################
     #===============PLOTS==================
     if saveplot or showplot:
+        stzulu = ccmc_json.make_ccmc_zulu_time(startdate)
+        stzulu = stzulu.replace(":","")
         #Plot selected results
         #Event definition from integral fluxes
         if flux_type == "differential":
-            print("Generating figure of estimated integral fluxes with threshold "
-                   "crossings.")
+            print("Generating figure of estimated integral fluxes with "
+                   "threshold crossings.")
         if flux_type == "integral":
-            print("Generating figure of integral fluxes with threshold crossings.")
+            print("Generating figure of integral fluxes with threshold "
+                    "crossings.")
 
         #Additions to titles and filenames according to user-selected options
         modifier = ''
@@ -3675,20 +3677,16 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
 
         #plot integral fluxes (either input or estimated)
         nthresh = len(flux_thresholds)
-        figname = str(sep_year) + '_' + str(sep_month)+ '_' + str(sep_day) \
-                + '_' + experiment + '_' + flux_type + modifier \
+        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
                 + '_' + 'Event_Def'
         if experiment == 'user' and model_name != '':
-            figname = str(sep_year) + '_' + str(sep_month)+ '_' + str(sep_day) \
-                    + '_' + model_name + '_' + flux_type + modifier \
+            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
                     + '_' + 'Event_Def'
         if umasep or nthresh > 4:
             fig = plt.figure(figname,figsize=(9,9))
         else:
             fig = plt.figure(figname,figsize=(9,7))
         for i in range(nthresh):
-            #if crossing_time[i] == 0:
-            #    continue
             data_label = (experiment + ' >'+ plt_energy[i] + ' '
                             + energy_units)
             plot_title = 'Threshold crossings for ' + experiment + '\n ' \
@@ -3759,12 +3757,10 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
               "points were interpolated. Lines indicate event start and stop for "
               "thresholds.")
         #Plot all channels of user specified data
-        figname = str(sep_year) + '_' + str(sep_month)+ '_' + str(sep_day) \
-                + '_' + experiment + '_' + flux_type + modifier \
+        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
                 + '_' + 'All_Bins'
         if experiment == 'user' and model_name != '':
-            figname = str(sep_year) + '_' + str(sep_month)+ '_' + str(sep_day) \
-                    + '_' + model_name + '_' + flux_type + modifier \
+            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
                     + '_' + 'All_Bins'
         fig = plt.figure(figname,figsize=(9,4))
         ax = plt.subplot(111)
@@ -3830,12 +3826,10 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         print("Generating figure of event-integrated fluence spectrum.")
         ncross = 0 #Check if any thresholds were crossed, if not no need plot
         #Plot fluence spectrum summed between SEP start and end dates
-        figname = str(sep_year) + '_' + str(sep_month)+ '_' + str(sep_day) \
-                + '_' + experiment + '_' + flux_type + modifier \
+        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
                 + '_' + 'Fluence'
         if experiment == 'user' and model_name != '':
-            figname = str(sep_year) + '_' + str(sep_month)+ '_' + str(sep_day) \
-                    + '_' + model_name + '_' + flux_type + modifier \
+            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
                     + '_' + 'Fluence'
         fig = plt.figure(figname,figsize=(6,5))
         ax = plt.subplot(111)
