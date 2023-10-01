@@ -112,10 +112,11 @@ def error_check_inputs(startdate, enddate, experiment, flux_type):
 
     dt = enddate - startdate
     if (dt.days < init_win):
-        sys.exit(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
-                 'is less than the '
-                 f'length of the background subtraction window, init_win={init_win} days. '
-                 'Choose a longer date range or update your configuration. Exiting.')
+        print(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
+            'is less than the '
+            f'length of the background subtraction window, init_win={init_win} days. '
+            'fetchsep is extending the time frame automatically to run and '
+            'trimming results to requested time frame at the end. Continuing.')
         
     if flux_type == "":
         sys.exit('User must indicate whether input flux is integral or '
@@ -750,6 +751,9 @@ def get_bg_sep(threshold, dates, fluxes):
                 dates,fluxes[i])
         fluxes_bg.append(flux_below)
         fluxes_sep.append(flux_above)
+        
+    fluxes_bg = np.array(fluxes_bg)
+    fluxes_sep = np.array(fluxes_sep)
 
     return fluxes_bg, fluxes_sep
 
@@ -956,13 +960,21 @@ def run_all(str_startdate, str_enddate, experiment,
     
     startdate = dateh.str_to_datetime(str_startdate)
     enddate = dateh.str_to_datetime(str_enddate)
+    eff_startdate = startdate
+    
+    #If the user entered a date range shorter than required for the
+    #initial window used to identify the background, extend the date
+    #range
+    diff = (enddate - startdate).days
+    if diff < init_win*2:
+        eff_startdate = enddate - datetime.timedelta(days=init_win*2)
     
     error_check_inputs(startdate, enddate, experiment, flux_type)
     datasets.check_paths()
     
     #READ IN FLUXES
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
-        flux_type, user_file, startdate, enddate, options, dointerp,is_unixtime)
+        flux_type, user_file, eff_startdate, enddate, options, dointerp,is_unixtime)
             
             
     if plot_timeseries_only:
@@ -997,9 +1009,20 @@ def run_all(str_startdate, str_enddate, experiment,
             print("None values present in second: in " + str(i))
     fluxes_bg2, fluxes_high2 = get_bg_sep(threshold2,dates,fluxes)
     
+    #Once the background and high fluxes have been identified,
+    #trim back to the original dates input by the user
+    trim_dates = dates
+    trim_fluxes = fluxes
+    trim_fluxes_high = fluxes_high2
+    if eff_startdate != startdate:
+        trim_dates, trim_fluxes_high = datasets.extract_date_range(startdate,
+                enddate, dates, fluxes_high2)
+        trim_dates, trim_fluxes = datasets.extract_date_range(startdate,
+                enddate, dates, fluxes)
+    
     
     #Identify SEP events
-    SEPstart, SEPend, fluxes_sep = identify_sep(dates, fluxes_high2)
+    SEPstart, SEPend, fluxes_sep = identify_sep(trim_dates, trim_fluxes_high)
     
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins, \
@@ -1018,16 +1041,21 @@ def run_all(str_startdate, str_enddate, experiment,
         
         make_plots(str(sliding_win)+"window", experiment, flux_type, exp_name, options, dates, fluxes_bg, energy_bins, dates, ave_background2, ave_sigma2, dates, threshold2, doBGSub, showplot, saveplot)
         
-        make_plots(str(sliding_win)+"window_nosigma", experiment, flux_type, exp_name, options, dates, fluxes_bg, energy_bins, dates, ave_background2, ave_sigma2, dates, threshold2, doBGSub, showplot, saveplot,
-            True) #disable_sigma
+        make_plots(str(sliding_win)+"window_nosigma", experiment, flux_type,
+            exp_name, options, dates, fluxes_bg, energy_bins, dates,
+            ave_background2, ave_sigma2, dates, threshold2, doBGSub, showplot,
+            saveplot, True) #disable_sigma
 
+        make_bg_sep_plot(str(sliding_win)+"window", experiment, flux_type,
+            exp_name, options, dates, fluxes_bg2, fluxes_high2, energy_bins,
+            doBGSub, showplot, saveplot)
         
-        make_bg_sep_plot(str(sliding_win)+"window", experiment, flux_type, exp_name, options, dates, fluxes_bg2, fluxes_high2, energy_bins, doBGSub,
-            showplot, saveplot)
+        make_bg_sep_plot("OnlySEP", experiment, flux_type, exp_name, options,
+            trim_dates, trim_fluxes, fluxes_sep, energy_bins, doBGSub, showplot,
+            saveplot)
         
-        make_bg_sep_plot("OnlySEP", experiment, flux_type, exp_name, options, dates, fluxes, fluxes_sep, energy_bins, doBGSub, showplot, saveplot)
-        
-        make_diff_plot("Background-Subtracted", experiment, flux_type, exp_name, options, dates,diff_fluxes2, ave_sigma2, energy_bins, doBGSub,
+        make_diff_plot("Background-Subtracted", experiment, flux_type, exp_name,
+            options, dates,diff_fluxes2, ave_sigma2, energy_bins, doBGSub,
             showplot, saveplot)
  
         
