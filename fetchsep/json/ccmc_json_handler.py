@@ -1,15 +1,16 @@
+from ..utils import config as cfg
+from . import keys
 import json
 import calendar
 import datetime
 from datetime import timedelta
 import copy
 import zulu
-from ..utils import config as cfg
-from . import keys
+from astropy import units as u
 import os
 import sys
 
-__version__ = "1.8"
+__version__ = "1.9"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -92,6 +93,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2023-7-06, changes in 1.8: cast max flux as float in fill_json
 #   because found that models with 0 flux resulted in an error
 #   when dumping json.
+#2023-10-01, changes in 1.9: Added subroutines to transform
+#   threshold and energy channels to string keys.
 
 def about_ccmc_json_handler():
     """ ABOUT ccmc_json_handler.py
@@ -682,9 +685,10 @@ def write_json(template, filename):
 def read_in_json(filename):
     """Read in json file """
     if not os.path.isfile(filename):
-        sys.exit("ccmc_json_handler: could not read in file " \
+        print("ccmc_json_handler: could not read in file " \
                 + filename + ". Exiting.")
-
+        return None
+        
     with open(filename) as f:
         info=json.load(f)
 
@@ -1568,3 +1572,95 @@ def set_json_value_by_index(value, injson, key_id, channel_index=0, index=0):
     
     
     return injson #if get here, nothing replaced
+
+
+######################################################
+#### Converting json fields to strings and vice versa
+def convert_string_to_units(str_units):
+    """ Take units written as a string following the CCMC SEP
+        Scoreboard format and convert to astropy units.
+        
+        Expect, e.g.
+        "MeV^-1*s^-1*cm^-2*sr^-1"
+        "MeV"
+        "cm^-2*sr^-1"
+        "pfu"
+        
+    """
+    
+    str_units = str_units.replace("*",".")
+    str_units = str_units.replace("^","")
+    if str_units == "pfu":
+        units = u.cm**-2*u.sr**-1*u.s**-1 #pfu
+    else:
+        units = u.Unit(str_units)
+    
+    return units
+
+
+def convert_units_to_string(units):
+    """ Convert astropy units object to a string.
+    """
+    return str(units)
+
+
+def energy_channel_to_key(energy_channel):
+    """ Want to organize observations and forecasts according
+        to energy channel to reduce uneccesary elements in loops.
+        
+        Turn the energy channel into a string key that can
+        be used to organize a dictionary.
+        
+    Inputs:
+    
+        :energy_channel: (dict)
+            {'min': 10, 'max': -1, 'units': Unit("MeV")}
+    
+    Output:
+    
+        :key: (string)
+    
+    """
+
+    units = energy_channel['units']
+    if isinstance(units,str):
+        units = convert_string_to_units(units)
+        
+    str_units = convert_units_to_string(units)
+
+    key = "min." +str(float(energy_channel['min'])) + ".max." \
+        + str(float(energy_channel['max'])) + ".units." \
+        + str_units
+    
+    return key
+
+
+def threshold_to_key(threshold):
+    """ Want to organize observations and forecasts according
+        to energy channel and thresholds.
+        
+        Turn the threshold into a string key that can
+        be used to organize a dictionary.
+        
+    Inputs:
+    
+        :threshold: (dict)
+            {'threshold': 10, 'threshold_units': Unit("1 / (cm2 s sr)")}
+    
+    Output:
+    
+        :key: (string) e.g. "threshold.10.0.units.1 / (cm2 s sr)"
+    
+    """
+
+    units = threshold['threshold_units']
+    if isinstance(units,str):
+        units = convert_string_to_units(units)
+        
+    str_units = convert_units_to_string(units)
+
+    key = "threshold." +str(float(threshold['threshold'])) \
+        + ".units." + str_units
+    
+    return key
+

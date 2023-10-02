@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+import fetchsep.utils.move_output as move_output
+import argparse
+
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--TargetDir", type=str, default='',
+        help=("Target directory to move files and plots "
+            "produced by OpSEP."))
+
+args = parser.parse_args()
+
+target_dir = args.TargetDir
+
+move_output.move_output(target_dir)
+
+
