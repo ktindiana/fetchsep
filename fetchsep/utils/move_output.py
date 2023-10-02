@@ -285,10 +285,11 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
     
     #SEP in fetchsep observations
     df_sep = check_for_sep()
-    print(df_sep)
     
     #Approved SEP in target directory
     df_approved = read_approved_sep(target_dir)
+    print("Approved SEP in " + target_dir + "/approved_SEP.csv")
+    print(df_approved)
 
     #Identify which files to move and move them
     obspath = outpath + "/opsep"
@@ -308,9 +309,9 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
         ###SEP CHECKS
         #Check if there is an SEP event in this observations
         df = df_sep.loc[(df_sep["Observation Window Start"] == obs_st)]
-        print(df)
         
         sep_time = None
+        sep = None
         if not df.empty:
             sep_time = df["Threshold Crossing Time"]
             if df_approved.empty:
@@ -326,23 +327,26 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
             
             
             
-            df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == sep_time)]
-            if df_check.empty:
-                if enforce_sep_stop:
-                    sys.exit("move_obs: The observation with observation "
-                        "window starting at " + str(obs_st) + " contains an "
-                        "SEP event with threshold crossing time "
-                        + str(sep_time) + ". "
-                        "This SEP is not in the approved SEP file "
-                        + target_dir + "/approved_SEP.csv. Outputs cannot "
-                        "be moved until the SEP event has been approved. "
-                        "Exiting.")
+            for j in range(len(df)):
+                sep = df["Threshold Crossing Time"].iloc[j]
+                df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == str(sep))]
+                print(df_check)
+                if df_check.empty:
+                    if enforce_sep_stop:
+                        sys.exit("move_obs: The observation with observation "
+                            "window starting at " + str(obs_st) + " contains "
+                            "an SEP event with threshold crossing time "
+                            + str(sep_time) + ". "
+                            "This SEP is not in the approved SEP file "
+                            + target_dir + "/approved_SEP.csv. Outputs "
+                            "cannot be moved until the SEP event has been "
+                            "approved. Exiting.")
 
         ###MOVE FILES
         #Move the quiet and approved observations
         zulu_st = ccmc_json.make_ccmc_zulu_time(obs_st)
         zulu_st = zulu_st.replace(':','')
-        zulu_sep = ccmc_json.make_ccmc_zulu_time(sep_time)
+        zulu_sep = ccmc_json.make_ccmc_zulu_time(sep)
         
         selectfiles = [f for f in allfiles if zulu_st in f]
         selectplots = [f for f in allplots if zulu_st in f]
