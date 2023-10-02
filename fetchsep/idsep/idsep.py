@@ -448,7 +448,7 @@ def make_plots(unique_id, experiment, flux_type, exp_name, options, dates, fluxe
             fig = plt.figure(figname_plt,figsize=(12,8))
             ax = plt.subplot(111)
             ifig = 0
-    
+
         ax = plt.subplot(min(nbins,3), 1, ifig+1)
         ifig = ifig + 1
         legend_label = ""
@@ -483,9 +483,9 @@ def make_plots(unique_id, experiment, flux_type, exp_name, options, dates, fluxe
         plt.yscale("log")
         fig.autofmt_xdate(rotation=45)
         chartBox = ax.get_position()
-        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-                         chartBox.height])
-        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05), fontsize=11)
+#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+#                         chartBox.height])
+#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05), fontsize=11)
     
         if saveplot and i == nbins-1:
             fig.savefig(plotpath + '/' +figname_plt + '.png')
@@ -533,7 +533,7 @@ def make_timeseries_plot(unique_id, experiment, flux_type, exp_name,\
             fig = plt.figure(figname_plt,figsize=(12,8))
             ax = plt.subplot(111)
             ifig = 0
-    
+
         ax = plt.subplot(min(nbins,3), 1, ifig+1)
         ifig = ifig + 1
         legend_label = ""
@@ -563,9 +563,9 @@ def make_timeseries_plot(unique_id, experiment, flux_type, exp_name,\
         plt.yscale("log")
         fig.autofmt_xdate(rotation=45)
         chartBox = ax.get_position()
-        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-                         chartBox.height])
-        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
+#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+#                         chartBox.height])
+#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
     
         if saveplot and i == nbins-1:
             figname_plt = figname + str(i)
@@ -622,7 +622,7 @@ def make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         legend_label = ""
         if energy_bins[i][1] != -1:
             legend_label = str(energy_bins[i][0]) + '-' \
-                           + str(energy_bins[i][1]) + ' ' + energy_units
+                        + str(energy_bins[i][1]) + ' ' + energy_units
         else:
             legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
 
@@ -647,9 +647,9 @@ def make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         plt.yscale("log")
         fig.autofmt_xdate(rotation=45)
         chartBox = ax.get_position()
-        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-                         chartBox.height])
-        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
+#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+#                         chartBox.height])
+#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
     
         if saveplot and i == nbins-1:
             fig.savefig(plotpath + '/' +figname + '.png')
@@ -700,19 +700,18 @@ def make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
             fig = plt.figure(figname,figsize=(12,8))
             ax = plt.subplot(111)
             ifig = 0
-    
+
         ax = plt.subplot(min(3,nbins), 1, ifig+1)
         ifig = ifig + 1
         legend_label = ""
         if energy_bins[i][1] != -1:
             legend_label = str(energy_bins[i][0]) + '-' \
-                           + str(energy_bins[i][1]) + ' ' + energy_units
+                    + str(energy_bins[i][1]) + ' ' + energy_units
         else:
             legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
 
         ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
         ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
-        
         
         flux_units = ''
         if flux_type == "integral": flux_units = flux_units_integral
@@ -729,9 +728,9 @@ def make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
         plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
         fig.autofmt_xdate(rotation=45)
         chartBox = ax.get_position()
-        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-                         chartBox.height])
-        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
+#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+#                         chartBox.height])
+#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
  
  
         if saveplot and i == nbins-1:
