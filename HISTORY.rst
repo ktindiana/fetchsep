@@ -5,6 +5,7 @@ History
 ------------------
 
 * Fixed bug preventing fluence calculation for differential fluxes
+* Improved plots for differential energy channels
 * Added capability to move output produced by `opsep` to a target dir
 * Updated filenames for plots to contain full zulu string
 * Added padding to SEP start and end times in `fetchsep_prepare_obs`
