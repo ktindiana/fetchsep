@@ -3106,7 +3106,8 @@ def calculate_integral_fluences(experiment, flux_type, options,
 
 
 
-def append_differential_thresholds(energy_thresholds, flux_thresholds,
+def append_differential_thresholds(experiment, flux_type,
+        energy_thresholds, flux_thresholds,
         options, str_thresh, is_diff_thresh, plt_energy, plt_flux,
         input_threshold, energy_bins,
         dates, fluxes, detect_prev_event, two_peaks,
@@ -3615,7 +3616,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         all_threshold_fluences, all_fluence, all_energies,\
         crossing_time, peak_flux, peak_time, rise_time, event_end_time,\
         duration, onset_date, onset_peak, integral_fluxes\
-            = append_differential_thresholds(energy_thresholds,
+            = append_differential_thresholds(experiment, flux_type,
+                energy_thresholds,
                 flux_thresholds, options,
                 str_thresh, is_diff_thresh, plt_energy, plt_flux,
                 input_threshold, energy_bins,
