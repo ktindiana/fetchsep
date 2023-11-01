@@ -19,7 +19,6 @@ requirements = [
     'pandas',
     'wget',
     'zulu',
-    'asciitable',
     'lmfit',
     'cycler',
     'scikit-learn',
