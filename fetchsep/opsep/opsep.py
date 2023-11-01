@@ -3251,8 +3251,8 @@ def append_differential_thresholds(experiment, flux_type,
                 pf = [np.amax(fluxes[svbin])]
                 pf_idx = np.where(fluxes[svbin] == np.amax(fluxes[svbin]))
                 pt = [dates[pf_idx[0][0]]]
-                op = pf #onset peak = max flux when no threshold crossed
-                od = pt #time of max flux
+                op = [None] #onset peak = None when no threshold crossed
+                od = [None]
                 
             else:
                 #Extract the original fluxes for the SEP start and stop times
