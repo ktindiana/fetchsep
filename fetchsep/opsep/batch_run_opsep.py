@@ -10,7 +10,6 @@ import datetime
 import logging
 import sys
 import os
-import asciitable
 
 __version__ = "0.7"
 __author__ = "Katie Whitman"
