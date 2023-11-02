@@ -1,7 +1,7 @@
 History
 =======
 
-0.2.3 (2023-11-01)
+0.3.0 (2023-11-02)
 ------------------
 
 * Fixed bug preventing fluence calculation for differential fluxes
