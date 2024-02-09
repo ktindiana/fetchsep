@@ -28,7 +28,7 @@ from statistics import mode
 from lmfit import minimize, Parameters
 import array
 
-__version__ = "3.4"
+__version__ = "3.5"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -305,6 +305,13 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2023-09-30, changes in v3.4: Changed filenames of plots to contain zulu
 #   time for starting window or threshold crossing time so that they
 #   are unique.
+#2024-02-09, changes in v3.5: Changed onset peak fitting algorithm. Added
+#   logic that identifies large and small events and handles them a little
+#   differently as far as the time range for applying the fit. For lower
+#   intensity events, added logic that attempts to identify when the first
+#   increase above background occurred (defined as a set flux threshold,
+#   currently will only be useful for integral fluxes) and extends the fit
+#   time range closer to that initial increase to capture more of the onset.
 ########################################################################
 
 #See full program description in all_program_info() below
@@ -1870,6 +1877,18 @@ def calculate_onset_peak(experiment, energy_thresholds, dates, integral_fluxes,
 
 
 
+def residual(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    resid = []
+    for i in range(len(fit)):
+        resid.append(data[i] - fit[i])
+    
+    return resid
+
+
 def modified_weibull(times, Ip, a, b):
     """ Create a Weibull for times in seconds since first
         date with params a and b.
@@ -1884,21 +1903,21 @@ def modified_weibull(times, Ip, a, b):
     return weibull
 
 
-
-def residual(fit, data):
-    """ Calculate difference between fit and data.
-    
+def lognormal(times, Ip, a, b):
+    """ Create a lognormal fit for times in seconds since first
+        date with params a and b. (a=sigma and b=mu)
+        
     """
     
-    resid = []
-    for i in range(len(fit)):
-        resid.append(data[i] - fit[i])
-    
-    return resid
-    
+    func = []
+    for t in times:
+        LN = Ip/(t*a*(2.*math.pi)**0.5) * math.exp(-((math.log(t)-b)**2)/(2*a**2))
+        func.append(LN)
+        
+    return func
 
 
-def weibull_residual(params, *args):
+def func_residual(params, *args):
     """ Caluate the residual of the Weibull fit
         compared to data.
         
@@ -1909,17 +1928,16 @@ def weibull_residual(params, *args):
     b = pars['beta']
     Ip = pars['peak_intensity']
     
-    #print('Generating Weibull Ip: ' + str(Ip) + ', a: ' + str(a) + ', b: ' + str(b))
     times = args[0]
     data = args[1]
     
     fit = modified_weibull(times, Ip, a, b)
+#    fit = lognormal(times, Ip, a, b)
     
     resid = residual(fit, data)
 
     return resid
     
-
 
 
 def find_max_curvature(x, y, energy_threshold, crossing_time,
@@ -1955,8 +1973,8 @@ def find_max_curvature(x, y, energy_threshold, crossing_time,
                 + str(energy_threshold) + "MeV"
         fig = plt.figure(figname,figsize=(9,5))
         plt.plot(xarr,yarr,label="orig")
-        plt.plot(xarr[max_k_idx+2], yarr[max_k_idx+2],"o",label="Min 2nd Derivative on Weibull")
-        plt.plot(xarr[max_y_idx], yarr[max_y_idx],"o",label="max Weibull")
+        plt.plot(xarr[max_k_idx+2], yarr[max_k_idx+2],"o",label="Min 2nd Derivative on Fit")
+        plt.plot(xarr[max_y_idx], yarr[max_y_idx],"o",label="max Fit")
         plt.plot(xarr[2:],k_x,label="2nd Derivative")
         plt.plot(xarr[max_k_idx+2],k_x[max_k_idx],"o",label="Min 2nd Derivative")
         plt.legend(loc='lower left')
@@ -1974,9 +1992,32 @@ def find_max_curvature(x, y, energy_threshold, crossing_time,
 
 
 
+def get_thresh_cross_time(dates,fluxes,thresh):
+    """ For a given threshold value, find the first time that
+        the flux exceeds (or is equal to) that value;
+        
+        INPUT:
+        
+            :dates: (datetime array)
+            :fluxes: (float array 1xn)
+            :thresh: (float) threshold value
+            
+        OUTPUT:
+        
+            (datetime) time that threshold was crossed
+            
+    """
 
-def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral_fluxes,
-                crossing_time, event_end_time, showplot, saveplot):
+    for i in range(len(fluxes)):
+        if fluxes[i] >= thresh:
+            return dates[i]
+            
+    return 0
+
+
+def calculate_onset_peak_from_fit(experiment, energy_thresholds,
+    flux_thresholds, dates, integral_fluxes, crossing_time, event_end_time,
+    showplot, saveplot):
     """ Calculate the peak associated with the initial SEP onset. This subroutine
         searches for the rollover that typically occurs after the SEP onset.
         The peak value will be specified as the flux value at the rollover
@@ -2002,8 +2043,10 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral
         INPUTS:
         
         :experiment: (string) e.g. GOES-13
-        :energy_thresholds: (float 1xn array) - energy channels for which thresholds
-            are applied
+        :energy_thresholds: (float 1xn array) - energy channels for which
+            thresholds are applied
+        :flux_thresholds: (float 1xn array) - flux threshold applied to
+            associated energy channel
         :dates: (datetime 1xm array) - dates associated with flux time profile
         :integral_fluxes: (float nxm array) - fluxes for each energy channel for
             which a threshold is applied; each is the same length as dates
@@ -2040,18 +2083,62 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral
     times = [((t - dates[0]).total_seconds() + 60)/(60*60) for t in dates]
     
     #Do a fit of the Weibull function for each time profile
-    params_weib = Parameters()
-    params_weib.add('alpha', value = -3, min = -5, max = -0.1)
-    params_weib.add('beta', value = 10, min = 1, max =100)
-    params_weib.add('peak_intensity', value = 100, min = 1e-3, max =1e6)
+    params_fit = Parameters()
+    params_fit.add('alpha', value = -3, min = -5, max = -0.1)
+    params_fit.add('beta', value = 10, min = 1, max =100)
+    params_fit.add('peak_intensity', value = 100, min = 1e-3, max =1e6)
+    
+    #Lognormal Parameters
+#    params_fit = Parameters()
+#    params_fit.add('alpha', value = 1, min = 0.1, max = 5)
+#    params_fit.add('beta', value = 2, min = 0.1, max = 10)
+#    params_fit.add('peak_intensity', value = 100, min = 1e-3, max =1e6)
     
     for i in range(nthresh):
         if crossing_time[i] == 0: continue
         
+        #Attempt to refine the fit start point, particularly in the cases
+        #where the event was very gradual and just barely crossed threshold.
+        #The initial increase above background may have started many hours
+        #prior to the official threshold crossing and the onset peak
+        #may be many hours prior to the threshold crossing in that case.
+        #If an event has low fluxes, then apply a threshold closer to the
+        #background and extend the fit to try to better capture the onset.
+        #If an event has very high fluxes, then there is plenty of values
+        #above threshold to fit and don't need to extend back so far.
+        flxratio = max(integral_fluxes[i])/flux_thresholds[i]
+        print("Ratio of max flux " + str(max(integral_fluxes[i])) + " to threshold " + str(flux_thresholds[i]) + " is " + str(flxratio))
+        #For mid to strong SEP events, time according to prompt onset and the
+        #possibility of a CME arriving around 24 hours later (set timing
+        #to approximately exclude CME arrival)
+        start_fit_time = crossing_time[i] - datetime.timedelta(hours=3)
+        end_fit_time = crossing_time[i] + datetime.timedelta(hours=24)
+
+        #For lower intensity events, extend back to initial elevation to
+        #capture more of the event and also capture more time
+        #after threshold crossing as likely a slower CME or CME that
+        #will not arrive at Earth (for very gradual rises)
+        if flxratio < 10:
+            low_thresh = 0.5 #integral flux, > GOES bg
+            low_cross_time =\
+                get_thresh_cross_time(dates,integral_fluxes[i],low_thresh)
+            print("Crossing Time above thresh: " + str(low_thresh) + " is " + str(low_cross_time))
+            
+            start_fit_time = crossing_time[i] - datetime.timedelta(hours=3)
+            end_fit_time = min(event_end_time[i],crossing_time[i] + datetime.timedelta(hours=36))
+            if low_cross_time != 0:
+                #Try options for fit times
+                td = [6, 8, 12, 16, 20, 24, 28]
+                for tm in td:
+                    delta = datetime.timedelta(hours=tm)
+                    if low_cross_time < (crossing_time[i] - delta):
+                        start_fit_time = crossing_time[i] - delta
+
         #Fit only to fluxes starting at crossing time up to 24
         #hours afterwards
-        fit_st = crossing_time[i] - datetime.timedelta(hours=6)
+        fit_st = start_fit_time
         fit_end = crossing_time[i] + datetime.timedelta(hours=24)
+        print("FITTING BETWEEN " + str(fit_st) + " to " + str(fit_end))
         trim_fluxes = []
         trim_times = []
         trim_dates = []
@@ -2062,27 +2149,28 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral
                 trim_dates.append(dates[j])
         
         #log_fluxes = [math.log10(f) for f in integral_fluxes[i]]
-        minimize_weib = minimize(weibull_residual, params_weib,
+        minimize_func = minimize(func_residual, params_fit,
                     args = [trim_times, trim_fluxes],
                     nan_policy= 'propagate', max_nfev=np.inf)
         
-        best_pars = minimize_weib.params.valuesdict()
+        best_pars = minimize_func.params.valuesdict()
         best_a = best_pars['alpha']
         best_b = best_pars['beta']
         best_Ip = best_pars['peak_intensity']
-        best_weibull = modified_weibull(trim_times, best_Ip, best_a, best_b)
+        best_fit = modified_weibull(trim_times, best_Ip, best_a, best_b)
+#        best_fit = lognormal(trim_times, best_Ip, best_a, best_b)
         print("calculate_onset_peak_from_fit ==== "
                 + str(energy_thresholds[i]) + " MeV =====")
-        print('Best Fit Weibull Ip: ' + str(best_Ip) + ', a: ' + str(best_a) + ', b: ' + str(best_b))
+        print('Best Fit Ip: ' + str(best_Ip) + ', a: ' + str(best_a) + ', b: ' + str(best_b))
         
         ####FIND ONSET PEAK USING MAXIMUM CURVATURE ON WEIBULL FIT
-        max_curve_idx = find_max_curvature(trim_times, best_weibull,
+        max_curve_idx = find_max_curvature(trim_times, best_fit,
                             energy_thresholds[i], crossing_time[i],
                             experiment, showplot, saveplot)
 
         max_curve_model_time = trim_times[max_curve_idx]
         max_curve_model_date = trim_dates[max_curve_idx]
-        max_curve_model_peak = best_weibull[max_curve_idx]
+        max_curve_model_peak = best_fit[max_curve_idx]
         
         #Pull out max measured value around the maximum of curvature
         max_curve_meas_peak = 0
@@ -2102,8 +2190,8 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral
         onset_peak[i] = max_curve_meas_peak
         
         ####FIND PEAK BY JUST TAKING MAXIMUM OF WEIBULL
-        max_val = np.max(best_weibull)
-        max_idx = np.where(best_weibull == max_val)
+        max_val = np.max(best_fit)
+        max_idx = np.where(best_fit == max_val)
         max_time = trim_times[max_idx[0][0]]
         
         #Pull out max measured value around this identified maximum in the fit
@@ -2128,22 +2216,22 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds, dates, integral
         if showplot or saveplot:
             tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time[i])
             tzulu = tzulu.replace(":","")
-            figname = tzulu + "_Weibull_fit_"+ experiment + "_" \
+            figname = tzulu + "_profile_fit_"+ experiment + "_" \
                     + str(energy_thresholds[i]) + "MeV"
             fig = plt.figure(figname,figsize=(9,5))
             label = ">" + str(energy_thresholds[i]) + " MeV"
             plt.plot(trim_times,trim_fluxes,label=label)
-            label_weib = "Weibull\n Ip: " + str(best_Ip) \
+            label_fit = "Fit\n Ip: " + str(best_Ip) \
                         + "\n alpha: " + str(best_a) \
                         +"\n beta: " + str(best_b)
-            plt.plot(trim_times,best_weibull,label=label_weib)
-            plt.plot(max_time, max_val,"o",label="max Weibull")
-            plt.plot(max_meas_time, max_meas,">",label="measured peak near Weibull max")
+            plt.plot(trim_times,best_fit,label=label_fit)
+            plt.plot(max_time, max_val,"o",label="max fit")
+            plt.plot(max_meas_time, max_meas,">",label="measured peak near fit max")
             plt.plot(max_curve_model_time, max_curve_model_peak,"D",label="Min 2nd Derivative")
             plt.plot(max_curve_meas_time, max_curve_meas_peak,"^",label="measured peak near min 2nd Derivative")
             #plt.plot(onset_time, onset_peak[i],">",label="onset Weibull")
             plt.legend(loc='lower right')
-            plt.title("Weibull Fit to Find Onset Peak for " + experiment
+            plt.title("Fit to Find Onset Peak for " + experiment
                         +"\n " + str(crossing_time[i]))
             plt.xlabel("Hours")
             plt.ylabel("Intensity")
@@ -3266,7 +3354,7 @@ def append_differential_thresholds(experiment, flux_type,
                 bin_fl = fl[svbin] #fluence for bin associated with threshold
                 
                 od,op=calculate_onset_peak_from_fit(experiment, energy_thresh,
-                            dates, in_flx, ct, eet, showplot, saveplot)
+                        flux_thresh, dates, in_flx, ct, eet, showplot, saveplot)
 
                 if umasep:
                     umasep_t, umasep_f = calculate_umasep_info(\
@@ -3568,8 +3656,9 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
                     #Always integral fluxes here, so False
 
     #Calculate onset peak for all thresholds
-    onset_date, onset_peak = calculate_onset_peak_from_fit(experiment, energy_thresholds,
-                dates, integral_fluxes, crossing_time, event_end_time, showplot, saveplot)
+    onset_date, onset_peak = calculate_onset_peak_from_fit(experiment,
+        energy_thresholds, flux_thresholds, dates, integral_fluxes, crossing_time,
+        event_end_time, showplot, saveplot)
 
     #Calculate times used in UMASEP
     umasep_times =[]
