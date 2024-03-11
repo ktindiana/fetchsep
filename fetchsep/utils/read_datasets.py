@@ -1597,7 +1597,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
         csvfile.close()
 
         #If reading in multiple files, then combine all data into one array
-        if all_fluxes == []:
+        if len(all_fluxes) == 0:
             all_fluxes = fluxes
             all_dates = dates
         else:
@@ -1714,7 +1714,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 flux = badval
             fluxes[-1][j] = flux
                 
-        if all_fluxes == []:
+        if len(all_fluxes) == 0:
             all_fluxes = fluxes
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes),axis=1)
