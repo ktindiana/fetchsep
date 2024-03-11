@@ -28,7 +28,7 @@ from statistics import mode
 from lmfit import minimize, Parameters
 import array
 
-__version__ = "3.5"
+__version__ = "3.6"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -312,6 +312,9 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   increase above background occurred (defined as a set flux threshold,
 #   currently will only be useful for integral fluxes) and extends the fit
 #   time range closer to that initial increase to capture more of the onset.
+#2024-03-11, changes in v3.6: If onset peak time is calculated to be after the
+#   maximum flux time, then choose to set the onset peak to the same point
+#   as the max flux.
 ########################################################################
 
 #See full program description in all_program_info() below
@@ -2208,11 +2211,6 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds,
                     max_date = trim_dates[k]
         
         
-        #onset_date[i] = max_date
-        #onset_peak[i] = max_meas
-        
-        
-        
         if showplot or saveplot:
             tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time[i])
             tzulu = tzulu.replace(":","")
@@ -3355,7 +3353,13 @@ def append_differential_thresholds(experiment, flux_type,
                 
                 od,op=calculate_onset_peak_from_fit(experiment, energy_thresh,
                         flux_thresh, dates, in_flx, ct, eet, showplot, saveplot)
-
+                #If the onset peak is after the maximum flux, set the onset peak
+                #to the same point as the maximum flux
+                if isinstance(od[0],datetime.date) and isinstance(pt[0], datetime.date):
+                    if od[0] > pt[0]:
+                        od = pt
+                        op = pf
+                    
                 if umasep:
                     umasep_t, umasep_f = calculate_umasep_info(\
                                 [input_threshold[i][0]],[input_threshold[i][1]],
@@ -3659,6 +3663,14 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     onset_date, onset_peak = calculate_onset_peak_from_fit(experiment,
         energy_thresholds, flux_thresholds, dates, integral_fluxes, crossing_time,
         event_end_time, showplot, saveplot)
+        
+        
+    #If onset_date is after peak_time, then set the onset peak to the max flux point
+    for ii in range(len(peak_time)):
+        if isinstance(onset_date[ii], datetime.date) and isinstance(peak_time[ii],datetime.date):
+            if onset_date[ii] > peak_time[ii]:
+                onset_date[ii] = peak_time[ii]
+                onset_peak[ii] = peak_flux[ii]
 
     #Calculate times used in UMASEP
     umasep_times =[]

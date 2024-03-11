@@ -220,11 +220,11 @@ if experiment == "GOES":
 #time periods in OpSEP.
 ################################
 energy_bin = cfg.ref_energy_bin
-septimes_file = septimes_fname(experiment, flux_type, options, energy_bin)
-detector_list = goesfname
 batchfile = 'batch_event_list.txt'
 
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
+    septimes_file = septimes_fname(experiment, flux_type, options, energy_bin)
+    detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
         septimes_file, detector_list,experiment, flux_type,options,
