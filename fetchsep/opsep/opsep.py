@@ -28,7 +28,7 @@ from statistics import mode
 from lmfit import minimize, Parameters
 import array
 
-__version__ = "3.6"
+__version__ = "3.7"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -315,6 +315,10 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2024-03-11, changes in v3.6: If onset peak time is calculated to be after the
 #   maximum flux time, then choose to set the onset peak to the same point
 #   as the max flux.
+#2024-04-24, changes in v3.7: The json templates and ccmc_json_handler
+#   were changed to reflect CCMC's schema.
+#   "model":{"flux_type":} --> "source_info":{"native_flux_type":}
+#   "event_lengths": [{"threshold":}] --> "event_lengths": [{"threshold_start":}]
 ########################################################################
 
 #See full program description in all_program_info() below

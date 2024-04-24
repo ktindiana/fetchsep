@@ -1,6 +1,6 @@
 from ..utils import config as cfg
 
-__version__ = "0.4"
+__version__ = "0.5"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -16,6 +16,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   project library. Must keep both of these version matched and
 #   up-to-date with each other.
 #2023-04-18, changes in 0.4: Adding keys for triggers.
+#2024-04-24, changes in 0.5: changed event_lengths threshold to
+#   threshold_start to reflect CCMC's SEP Scoreboard format
 
 def about_keys():
     """ About keys.py
@@ -439,7 +441,7 @@ def get_key_chain(value, index=0):
     if value == id_event_length_end_time:
         key_chain = ['event_lengths',index,'end_time']  #--> string zulu time
     if value == id_event_length_threshold:
-        key_chain = ['event_lengths',index,'threshold'] #--> float
+        key_chain = ['event_lengths',index,'threshold_start'] #--> float
     if value == id_event_length_threshold_units:
         key_chain = ['event_lengths',index,'threshold_units'] #--> string
         
