@@ -343,7 +343,15 @@ def identify_sep(dates, fluxes):
     dwell_pts = max(math.ceil(nconsec/2),2)
     #Rosetta? needs --> dwell_pts = max(math.ceil(nconsec),2)
     
-    print("Requiring " + str(nconsec) + " points (" + str(time_increase/(60.*60.)) + " hours) to define an onset.")
+#    #TO USE THE VALUES IN THE CONFIG FILE
+#    global nconsec
+#    nconsec = cfg.nconsec
+#    global allow_miss
+#    allow_miss = cfg.allow_miss
+#    global dwell_pts
+#    dwell_pts = cfg.dwell_pts
+    
+    print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
     print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
     print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
                 
@@ -441,7 +449,7 @@ def make_plots(unique_id, experiment, flux_type, exp_name, options, dates, fluxe
     nbins = len(energy_bins)
     ifig = 0
     for i in range(nbins):
-        if (i != 0 and not i%3) or nbins < 3:
+        if (i != 0 and not i%3) or nbins <= 3:
             if saveplot:
                 fig.savefig(plotpath + '/' +figname + '.png')
             figname_plt = figname + str(i)
@@ -820,7 +828,7 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
         fname = outpath + "/" + prename + '_' + str(energy_bins[j][0]) + '_to_'\
                 + str(energy_bins[j][1]) + '.txt'
         outfile = open(fname,"w")
-        outfile.write("#SEP times calculated by SEPAutoID\n")
+        outfile.write("#SEP times calculated by idsep\n")
         if experiment == "user" and exp_name != '':
             outfile.write("#Experiment: " + exp_name + "\n")
         else:
@@ -835,6 +843,8 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
                 + ", initial averaging window of " + str(init_win) + " days"
                 + ", final threshold with a sliding window of "
                 + str(sliding_win) + " days\n")
+        outfile.write("#The percentage of points in the sliding window that must be "
+                "background was " + str(cfg.percent_points) + "\n")
         outfile.write("#Threshold defined as mean background + " + str(nsigma)
                 + " x sigma\n")
         outfile.write("#SEPs were identified when " + str(nconsec) + " points "
@@ -847,7 +857,6 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
             SEPst = SEPstart[j][k]
             SEPed = SEPend[j][k]
             if for_inclusive:
-                SEPst = SEPst - one_sec
                 SEPed = SEPed - one_sec
             outfile.write(str(SEPst) + " " + str(SEPed) + "\n")
             
@@ -918,7 +927,7 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
         fname = outpath + "/" + prename + '_' + str(energy_bins[j][0]) + '_to_'\
                 + str(energy_bins[j][1]) + '.txt'
         outfile = open(fname,"w")
-        outfile.write("#All high points above mean background + 3*sigma calculated by SEPAutoID\n")
+        outfile.write("#All high points above mean background + 3*sigma calculated by idsep\n")
         if experiment == "user" and exp_name != '':
             outfile.write("#Experiment: " + exp_name + "\n")
         else:
@@ -933,6 +942,8 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
                 + ", initial averaging window of " + str(init_win) + " days"
                 + ", final threshold with a sliding window of "
                 + str(sliding_win) + " days\n")
+        outfile.write("#The percentage of points in the sliding window that must be "
+                "background was " + str(cfg.percent_points) + "\n")
         outfile.write("#Threshold defined as mean background + " + str(nsigma)
                 + " x sigma\n")
         outfile.write("#High flux points were identified when flux values "

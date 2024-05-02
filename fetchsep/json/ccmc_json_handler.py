@@ -10,7 +10,7 @@ from astropy import units as u
 import os
 import sys
 
-__version__ = "1.9"
+__version__ = "2.0"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -95,6 +95,11 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   when dumping json.
 #2023-10-01, changes in 1.9: Added subroutines to transform
 #   threshold and energy channels to string keys.
+#2024-04-24, changes in 2.0: Made changes to accomodate new fields
+#   from CCMC. "model": {"flux_type": } --> "source_info": {"native_flux_type":}
+#   Modified clean_json to remove the options field if nothing added.
+#   Changed event_lengths threshold field to threshold_start and added
+#   threshold_end.
 
 def about_ccmc_json_handler():
     """ ABOUT ccmc_json_handler.py
@@ -328,7 +333,7 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
         type_key = keys.model_type
         win_key = keys.model_win
         template[key]['model']['short_name'] = model_name
-        template[key]['model']['flux_type'] = flux_type
+        template[key]['source_info']['native_flux_type'] = flux_type
         template[key]['model']['spase_id'] = spase_id
                         
     else:
@@ -338,7 +343,7 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
         template[key][keys.obs_exp]['short_name'] = experiment
         if experiment == "user" and model_name != "":
                 template[key][keys.obs_exp]['short_name'] = model_name
-        template[key][keys.obs_exp]['flux_type'] = flux_type
+        template[key]['source_info']['native_flux_type'] = flux_type
         if spase_id != "":
             template[key]['observatory']['spase_id'] = spase_id
 
@@ -448,7 +453,8 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
             
             #Start and End Times
             length_dict = { "start_time": zct,  "end_time": zeet,
-                            "threshold": flux_thresholds[i],
+                            "threshold_start": flux_thresholds[i],
+                            "threshold_end": flux_thresholds[i]*cfg.endfac,
                             "threshold_units": flux_units }
             if template[key][type_key][tidx]['event_lengths'][0]['start_time']\
                 == "":
@@ -602,6 +608,10 @@ def clean_json(template, experiment, json_type):
         spase_id = template[key]['observatory']['spase_id']
         if spase_id != "":
             template[key]['observatory'].pop('spase_id', None)
+
+    options = template[key]['options']
+    if options == [""]:
+        template[key].pop('options', None)
 
     nent = len(template[key][type_key])
     for i in range(nent-1,-1,-1):
