@@ -64,7 +64,7 @@ setup(
     packages=find_packages(include=['fetchsep', 'fetchsep.*']),
     test_suite='tests',
     tests_require=test_requirements,
-    url='https://github.com/rickyegeland/fetchsep',
+    url='https://github.com/ktindiana/fetchsep',
     version='0.3.0',
     zip_safe=False,
 )
