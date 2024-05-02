@@ -1,6 +1,18 @@
 History
 =======
 
+0.3.1 (2024-05-02)
+------------------
+
+* opsep: modified onset peak fitting and estimate
+* opsep: onset peak changed to max flux if automated algorithm
+  identifies onset after max
+* opsep: better workflow for fetchsep_prepare_obs when starting from
+  BATCH
+* opsep: updates to json output to comply with CCMC schema
+* Bugfix: Fix crash in opsep and idsep on certain python installations
+  when reading in GOES-R data files
+
 0.3.0 (2023-11-02)
 ------------------
 
