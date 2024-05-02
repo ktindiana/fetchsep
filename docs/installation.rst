@@ -32,13 +32,13 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/rickyegeland/fetchsep
+    $ git clone git://github.com/ktindiana/fetchsep
 
 Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl -OJL https://github.com/rickyegeland/fetchsep/tarball/master
+    $ curl -OJL https://github.com/ktindiana/fetchsep/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +47,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/rickyegeland/fetchsep
-.. _tarball: https://github.com/rickyegeland/fetchsep/tarball/master
+.. _Github repo: https://github.com/ktindiana/fetchsep
+.. _tarball: https://github.com/ktindiana/fetchsep/tarball/master
