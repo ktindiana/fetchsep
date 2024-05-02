@@ -19,7 +19,6 @@ requirements = [
     'pandas',
     'wget',
     'zulu',
-    'asciitable',
     'lmfit',
     'cycler',
     'scikit-learn',
@@ -66,6 +65,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/rickyegeland/fetchsep',
-    version='0.2.2',
+    version='0.3.0',
     zip_safe=False,
 )

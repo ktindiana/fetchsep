@@ -7,6 +7,3 @@ tox==4.7.0
 coverage==7.2.7
 Sphinx==7.1.2
 twine==4.0.2
-
-
-
