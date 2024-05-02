@@ -1,7 +1,8 @@
 {
    "sep_forecast_submission": {
        "notes": [ { "note": "produced by fetchsep/opsep.py"} ],
-       "model": { "short_name": "", "spase_id": "", "flux_type": "" },
+       "model": { "short_name": "", "spase_id": ""},
+       "source_info": {"native_flux_type": ""},
        "options": "",
        "issue_time": "",
        "mode": "historical",
@@ -13,7 +14,7 @@
                "prediction_window": { "start_time": "", "end_time": "" },
                "peak_intensity": { "intensity": "", "units": "", "time": ""},
                "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
-               "event_lengths":[ { "start_time": "",  "end_time": "", "threshold": "", "threshold_units": ""  }],
+               "event_lengths":[ { "start_time": "",  "end_time": "", "threshold_start": "", "threshold_end": "", "threshold_units": ""  }],
                "fluences": [{"fluence": "", "units": ""}],
                "fluence_spectra": [{"start_time": "", "end_time": "",
                    "threshold_start":"", "threshold_end":"",
