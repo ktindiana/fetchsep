@@ -1597,7 +1597,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
         csvfile.close()
 
         #If reading in multiple files, then combine all data into one array
-        if all_fluxes == []:
+        if len(all_fluxes) == 0:
             all_fluxes = fluxes
             all_dates = dates
         else:
@@ -1714,7 +1714,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 flux = badval
             fluxes[-1][j] = flux
                 
-        if all_fluxes == []:
+        if len(all_fluxes) == 0:
             all_fluxes = fluxes
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes),axis=1)
@@ -1836,8 +1836,8 @@ def read_in_goesR_RT(experiment, flux_type, filenames1):
                     fluxes[k][j] = flux
                 
                 j = j+1 #count dates
-                    
-        if all_fluxes == []:
+        
+        if len(all_fluxes) == 0:
             all_fluxes = fluxes
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes[:,0:len(all_dates)]),axis=1)
@@ -2778,35 +2778,35 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
             if fluxes[i,j] == None: #bad data
                 #estimate flux with interpolation in time
                 if dointerp:
-                    print('There is a data gap for time ' + str(dates[j])
-                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-                            + str(energy_bins[i][1]) + '.'
-                            + ' Filling in missing value with linear '
-                            + 'interpolation in time.')
+#                    print('There is a data gap for time ' + str(dates[j])
+#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
+#                            + str(energy_bins[i][1]) + '.'
+#                            + ' Filling in missing value with linear '
+#                            + 'interpolation in time.')
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
                 else:
-                    print('There is a data gap for time ' + str(dates[j])
-                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-                            + str(energy_bins[i][1]) + '.'
-                            + ' Filling in missing value with None ')
+#                    print('There is a data gap for time ' + str(dates[j])
+#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
+#                            + str(energy_bins[i][1]) + '.'
+#                            + ' Filling in missing value with None ')
                     fluxes[i,j] = None
 
             elif fluxes[i,j] < 0:
                 #estimate flux with interpolation in time
                 if dointerp:
-                    print('There is a data gap for time ' + str(dates[j])
-                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-                            + str(energy_bins[i][1]) + '.'
-                            + ' Filling in missing value with linear '
-                            + 'interpolation in time.')
+#                    print('There is a data gap for time ' + str(dates[j])
+#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
+#                            + str(energy_bins[i][1]) + '.'
+#                            + ' Filling in missing value with linear '
+#                            + 'interpolation in time.')
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
                 else:
-                    print('There is a data gap for time ' + str(dates[j])
-                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-                            + str(energy_bins[i][1]) + '.'
-                            + ' Filling in missing value with None ')
+#                    print('There is a data gap for time ' + str(dates[j])
+#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
+#                            + str(energy_bins[i][1]) + '.'
+#                            + ' Filling in missing value with None ')
                     fluxes[i,j] = None #results in NaN value in np array
 
     
