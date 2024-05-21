@@ -1507,8 +1507,11 @@ def calculate_event_info(energy_thresholds,flux_thresholds,dates,
         #value in the total time period
         if ct == 0:
             pf = np.amax(integral_fluxes[i])
-            indx = np.where(integral_fluxes[i]==pf)
-            pt = dates[indx[0][0]]
+            if math.isnan(pf):
+                pt = 0
+            else:
+                indx = np.where(integral_fluxes[i]==pf)
+                pt = dates[indx[0][0]]
         
         crossing_time.append(ct)
         peak_flux.append(pf)
@@ -2979,7 +2982,10 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
     #Define energy bins
     energy_bins = datasets.define_energy_bins(experiment, flux_type, \
                                 west_detector, options)
-    
+
+    if len(all_dates) <= 1:
+        sys.exit("read_in_flux_files: The specified start and end dates were not present in the specified input file or were too restrictive. Exiting.")
+
     all_fluxes, energy_bins = sort_bin_order(all_fluxes, energy_bins)
     
     

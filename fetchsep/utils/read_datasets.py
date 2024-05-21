@@ -728,11 +728,16 @@ def check_goesR_RTdata(startdate, enddate, experiment, flux_type):
 
         if not exists1:
         #https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=2023-05-23T00:00:00.0Z&time.max=2023-05-24T00:00:00.0Z&format=csv
+        #Note that iSWA will return an empty csv file if make a request into the future or the
+        #data isn't present yet. This can cause idsep or opsep to think the data is
+        #already present on the computer and leave it as an empty file.
         
             url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES-R/' + fname1)
+                #iSWA only returns a filename if the data is present. Should avoid
+                #creating empty files.
+                fnm = wget.download(url, datapath + '/GOES-R/' + fname1)
                 print("Downloading GOES data " + url)
             except urllib.request.HTTPError:
                 print("Cannot access GOES-R file at " + url +
