@@ -172,6 +172,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
         detector_dates, detector = read_detector_list(detector_list)
     
     sep_sttimes, sep_endtimes = read_sep_times_file(septimes_file)
+    
+    if len(sep_sttimes) == 0:
+        out.close()
+        return
+    
     if revise:
         sep_sttimes, sep_endtimes = revise_sep_times(startdate, enddate,
                 sep_sttimes, sep_endtimes)
