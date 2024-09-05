@@ -2,6 +2,7 @@ from ..utils import config as cfg
 from ..utils import read_datasets as datasets
 from ..utils import date_handler as dateh
 from ..utils import define_background_idsep as defbg
+from ..utils import plotting_tools as plt_tools
 import re
 import calendar
 import datetime
@@ -244,6 +245,9 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
                                     
     #read in flux files
     if experiment != "user":
+        #Combine integral channels for all GOES spacecraft together into
+        #a long time series. Only works for integral channels, since
+        #GOES differential channels differ across experiments.
         if experiment == "GOES":
             all_dates, all_fluxes, west_detector = \
                 datasets.read_in_files(experiment, flux_type, \
@@ -257,14 +261,21 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
         all_dates, all_fluxes = datasets.read_in_user_files(filenames1,is_unixtime)
         west_detector = []
     
-    print("+===ALL_FLUXES=====")
-    print(len(all_fluxes))
-    for ii in range(len(all_fluxes)):
-        print(len(all_fluxes[ii]))
-    
     #Define energy bins
-    energy_bins = datasets.define_energy_bins(experiment, flux_type, \
+    #ERNE energy bins depend on the time period of the experiment.
+    #For idsep, it is acceptable to include fluxes across slightly
+    #different energy channels for the purposes of SEP identification.
+    if experiment == "ERNE":
+        version = datasets.which_erne(all_dates)
+        energy_bins = datasets.define_energy_bins(version, flux_type, \
                                 west_detector, options)
+    else:
+        energy_bins = datasets.define_energy_bins(experiment, flux_type, \
+                                west_detector, options)
+    
+    if energy_bins == None:
+        sys.exit("Could not identify energy bins for experiment " + experiment
+                + " and fluxtype " + flux_type)
     
     all_fluxes, energy_bins = sort_bin_order(all_fluxes, energy_bins)
 
@@ -413,340 +424,6 @@ def identify_sep(dates, fluxes):
                         SPEfluxes[j][kk] = fluxes[j][kk]
                     
     return SPEstart, SPEend, SPEfluxes
-
-
-
-def make_plots(unique_id, experiment, flux_type, exp_name, options, dates, fluxes,\
-         energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,\
-        threshold, doBGSub, showplot, saveplot, disable_sigma=False):
-    
-    #Additions to titles and filenames according to user-selected options
-    modifier = ''
-    title_mod = ''
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
-
-
-    figname = experiment + '_' + flux_type + modifier \
-            + '_' + 'All_Bins_' + unique_id
-    if experiment == 'user' and exp_name != '':
-        figname = exp_name + '_' + flux_type + modifier \
-                + '_' + 'All_Bins_' + unique_id
-    
-    fig = plt.figure(figname,figsize=(12,8))
-    plt.rcParams.update({'font.size': 16})
-    ax = plt.subplot(111)
-    nbins = len(energy_bins)
-    ifig = 0
-    for i in range(nbins):
-        if (i != 0 and not i%3) or nbins <= 3:
-            if saveplot:
-                fig.savefig(plotpath + '/' +figname + '.png')
-            figname_plt = figname + str(i)
-            fig = plt.figure(figname_plt,figsize=(12,8))
-            ax = plt.subplot(111)
-            ifig = 0
-
-        ax = plt.subplot(min(nbins,3), 1, ifig+1)
-        ifig = ifig + 1
-        legend_label = ""
-        if energy_bins[i][1] != -1:
-            legend_label = str(energy_bins[i][0]) + '-' \
-                           + str(energy_bins[i][1]) + ' ' + energy_units
-        else:
-            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
-
-        maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
-        ax.plot_date(dates,maskfluxes,'.-',label=legend_label)
-    
-        if not disable_sigma:
-            ax.errorbar(ave_dates, ave_fluxes[i],fmt='.', yerr=[ave_sigma[i][0], ave_sigma[i][1]], label="ave " + legend_label,zorder=100)
-        if disable_sigma:
-            ax.errorbar(ave_dates, ave_fluxes[i],fmt='-',
-                label="ave " + legend_label,zorder=100)
-        
-        ax.plot_date(threshold_dates,threshold[i],'-',label="threshold\n" + legend_label, zorder=200)
-        
-        flux_units = ''
-        if flux_type == "integral": flux_units = flux_units_integral
-        if flux_type == "differential": flux_units = flux_units_differential
-        
-        if i==0:
-            plt.title(experiment + ' '+ title_mod + ' ' + unique_id)
-            if experiment == 'user' and exp_name != '':
-                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id)
-        plt.xlabel('Date')
-      #  plt.ylabel('Flux [' + flux_units + ']')
-        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
-        plt.yscale("log")
-        fig.autofmt_xdate(rotation=45)
-        chartBox = ax.get_position()
-#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-#                         chartBox.height])
-#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05), fontsize=11)
-    
-        if saveplot and i == nbins-1:
-            fig.savefig(plotpath + '/' +figname_plt + '.png')
-    
-    if not showplot:
-        plt.close(fig)
-
-
-
-def make_timeseries_plot(unique_id, experiment, flux_type, exp_name,\
-        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot):
-
-    #Additions to titles and filenames according to user-selected options
-    modifier = ''
-    title_mod = ''
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
-
-
-    figname = experiment + '_' + flux_type + modifier \
-            + '_' + 'All_Bins_' + unique_id
-    if experiment == 'user' and exp_name != '':
-        figname = exp_name + '_' + flux_type + modifier \
-                + '_' + 'All_Bins_' + unique_id
-    
-    fig = plt.figure(figname,figsize=(12,8))
-    plt.rcParams.update({'font.size': 16})
-    nbins = len(energy_bins)
-    ifig = 0
-    for i in range(nbins):
-        if i!= 0 and not i%3:
-            if saveplot:
-                fig.savefig(plotpath + '/' +figname + '.png')
-            figname_plt = figname + str(i)
-            fig = plt.figure(figname_plt,figsize=(12,8))
-            ax = plt.subplot(111)
-            ifig = 0
-
-        ax = plt.subplot(min(nbins,3), 1, ifig+1)
-        ifig = ifig + 1
-        legend_label = ""
-        if energy_bins[i][1] != -1:
-            legend_label = str(energy_bins[i][0]) + '-' \
-                           + str(energy_bins[i][1]) + ' ' + energy_units
-        else:
-            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
-
-        maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
-        ax.plot_date(dates,maskfluxes,'.-',label=legend_label)
-    
-        
-        flux_units = ''
-        if flux_type == "integral": flux_units = flux_units_integral
-        if flux_type == "differential": flux_units = flux_units_differential
-        
-        if i==0:
-            plt.title(experiment + ' '+ title_mod + ' ' + unique_id)
-            if experiment == 'user' and exp_name != '':
-                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id)
-            #plt.ylabel('Flux [' + flux_units + ']')
-            plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
-        
-        plt.xlabel('Date')
-        
-        plt.yscale("log")
-        fig.autofmt_xdate(rotation=45)
-        chartBox = ax.get_position()
-#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-#                         chartBox.height])
-#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
-    
-        if saveplot and i == nbins-1:
-            figname_plt = figname + str(i)
-            fig.savefig(plotpath + '/' +figname_plt + '.png')
-    
-    if not showplot:
-        plt.close(fig)
-
-
-
-def make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
-            dates, fluxes_bg, fluxes_sep, energy_bins, doBGSub,
-            showplot, saveplot):
-    
-    #Additions to titles and filenames according to user-selected options
-    modifier = ''
-    title_mod = ''
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
-
-
-    figname = experiment + '_' + flux_type + modifier \
-            + '_' + 'SEP_BG_' + unique_id
-    if experiment == 'user' and exp_name != '':
-        figname = exp_name + '_' + flux_type + modifier \
-                + '_' + 'SEP_BG_' + unique_id
-    
-    fig = plt.figure(figname,figsize=(12,8))
-    plt.rcParams.update({'font.size': 16})
-    ax = plt.subplot(111)
-    nbins = len(energy_bins)
-    ifig = 0
-    for i in range(nbins):
-        if i != 0 and not i%3:
-            if saveplot:
-                fig.savefig(plotpath + '/' +figname + '.png')
-            figname = figname + str(i)
-            fig = plt.figure(figname,figsize=(12,8))
-            ax = plt.subplot(111)
-            ifig = 0
-    
-        ax = plt.subplot(min(nbins,3), 1, ifig+1)
-        ifig = ifig + 1
-        legend_label = ""
-        if energy_bins[i][1] != -1:
-            legend_label = str(energy_bins[i][0]) + '-' \
-                        + str(energy_bins[i][1]) + ' ' + energy_units
-        else:
-            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
-
-    
-        maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
-        ax.plot_date(dates,maskfluxes_bg,'.-',label="bg " + legend_label)
-        maskfluxes_sep = np.ma.masked_less_equal(fluxes_sep[i], 0)
-        ax.plot_date(dates,maskfluxes_sep,'.-',label="sep " + legend_label, zorder=100)
-        
-        
-        flux_units = ''
-        if flux_type == "integral": flux_units = flux_units_integral
-        if flux_type == "differential": flux_units = flux_units_differential
-        
-        if i==0:
-            plt.title(experiment + ' '+ title_mod + ' ' + unique_id)
-            if experiment == 'user' and exp_name != '':
-                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id)
-        plt.xlabel('Date')
-        #plt.ylabel('Flux [' + flux_units + ']')
-        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
-        plt.yscale("log")
-        fig.autofmt_xdate(rotation=45)
-        chartBox = ax.get_position()
-#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-#                         chartBox.height])
-#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
-    
-        if saveplot and i == nbins-1:
-            fig.savefig(plotpath + '/' +figname + '.png')
-    
-    if not showplot:
-        plt.close(fig)
-
-
-
-
-def make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
-            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot):
-    
-    #Additions to titles and filenames according to user-selected options
-    modifier = ''
-    title_mod = ''
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
-
-
-    figname = experiment + '_' + flux_type + modifier \
-            + '_' + 'Diff_' + unique_id
-    if experiment == 'user' and exp_name != '':
-        figname = exp_name + '_' + flux_type + modifier \
-                + '_' + 'Diff_' + unique_id
-    
-    fig = plt.figure(figname,figsize=(12,8))
-    plt.rcParams.update({'font.size': 16})
-    ax = plt.subplot(111)
-    nbins = len(energy_bins)
-    ifig = 0
-    for i in range(nbins):
-        thresh = np.multiply(ave_sigma[i][1],nsigma)
-        if i != 0 and not i%3:
-            if saveplot:
-                fig.savefig(plotpath + '/' +figname + '.png')
-            figname = figname + str(i)
-            fig = plt.figure(figname,figsize=(12,8))
-            ax = plt.subplot(111)
-            ifig = 0
-
-        ax = plt.subplot(min(3,nbins), 1, ifig+1)
-        ifig = ifig + 1
-        legend_label = ""
-        if energy_bins[i][1] != -1:
-            legend_label = str(energy_bins[i][0]) + '-' \
-                    + str(energy_bins[i][1]) + ' ' + energy_units
-        else:
-            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
-
-        ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
-        ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
-        
-        flux_units = ''
-        if flux_type == "integral": flux_units = flux_units_integral
-        if flux_type == "differential": flux_units = flux_units_differential
-        
-        if i==0:
-            plt.title(experiment + ' '+ title_mod + ' ' + unique_id\
-                    + "\nDiff = Flux - Mean BG")
-            if experiment == 'user' and exp_name != '':
-                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id\
-                    + "\nDiff = Flux - Mean BG")
-        plt.xlabel('Date')
-        #plt.ylabel('Flux [' + flux_units + ']')
-        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
-        fig.autofmt_xdate(rotation=45)
-        chartBox = ax.get_position()
-#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-#                         chartBox.height])
-#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
- 
- 
-        if saveplot and i == nbins-1:
-            fig.savefig(plotpath + '/' +figname + '.png')
-    
-    if not showplot:
-        plt.close(fig)
-
 
 
 
@@ -989,7 +666,7 @@ def run_all(str_startdate, str_enddate, experiment,
             
     if plot_timeseries_only:
         unique_id = "FluxTimeSeries"
-        make_timeseries_plot(unique_id, experiment, flux_type, exp_name,\
+        plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot)
         if showplot:
             plt.show()
@@ -1044,29 +721,29 @@ def run_all(str_startdate, str_enddate, experiment,
 
 
     if showplot or saveplot:
-        make_plots(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, doBGSub, showplot, saveplot)
+        plt_tools.idsep_make_plots(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, doBGSub, showplot, saveplot)
         
-        make_bg_sep_plot(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins, doBGSub,
+        plt_tools.idsep_make_bg_sep_plot(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins, doBGSub,
             showplot, saveplot)
         
-        make_plots(str(sliding_win)+"window", experiment, flux_type, exp_name, options, dates, fluxes_bg, energy_bins, dates, ave_background2, ave_sigma2, dates, threshold2, doBGSub, showplot, saveplot)
+        plt_tools.idsep_make_plots(str(sliding_win)+"window", experiment, flux_type, exp_name, options, dates, fluxes_bg, energy_bins, dates, ave_background2, ave_sigma2, dates, threshold2, doBGSub, showplot, saveplot)
         
-        make_plots(str(sliding_win)+"window_nosigma", experiment, flux_type,
+        plt_tools.idsep_make_plots(str(sliding_win)+"window_nosigma", experiment, flux_type,
             exp_name, options, dates, fluxes_bg, energy_bins, dates,
             ave_background2, ave_sigma2, dates, threshold2, doBGSub, showplot,
             saveplot, True) #disable_sigma
 
-        make_bg_sep_plot(str(sliding_win)+"window", experiment, flux_type,
+        plt_tools.idsep_make_bg_sep_plot(str(sliding_win)+"window", experiment, flux_type,
             exp_name, options, dates, fluxes_bg2, fluxes_high2, energy_bins,
             doBGSub, showplot, saveplot)
         
-        make_bg_sep_plot("OnlySEP", experiment, flux_type, exp_name, options,
+        plt_tools.idsep_make_bg_sep_plot("OnlySEP", experiment, flux_type, exp_name, options,
             trim_dates, trim_fluxes, fluxes_sep, energy_bins, doBGSub, showplot,
             saveplot)
         
-        make_diff_plot("Background-Subtracted", experiment, flux_type, exp_name,
-            options, dates,diff_fluxes2, ave_sigma2, energy_bins, doBGSub,
-            showplot, saveplot)
+#        plt_tools.idsep_make_diff_plot("Background-Subtracted", experiment, flux_type,
+#            exp_name, options, dates,diff_fluxes2, ave_sigma2, energy_bins, doBGSub,
+#            showplot, saveplot)
  
         
         if showplot: plt.show()

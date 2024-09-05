@@ -2783,7 +2783,7 @@ def error_check_inputs(startdate, enddate, experiment, flux_type, json_type,
     if experiment == "user" and (json_type != "model" \
         and json_type != "observations"):
         sys.exit('User experiments must specify a JSONType of \"model\" or '
-            '\"observation\". Please change your JSONType. Exiting.')
+            '\"observations\". Please change your JSONType. Exiting.')
 
     for diff_thresh in is_diff_thresh:
         if diff_thresh and flux_type == "integral":
@@ -2810,9 +2810,13 @@ def error_check_inputs(startdate, enddate, experiment, flux_type, json_type,
     goes16_integral_stdate = datetime.datetime(2020,3,8)
     if(experiment == "GOES-16" or experiment == "GOES-17") \
         and startdate < goes16_integral_stdate:
-        sys.exit('The GOES-16 real time integral fluxes are only available '
-                + 'starting on '+ str(goes16_integral_stdate) +
-            '. Please change your requested dates. Exiting.')
+        if startdate >= datetime.datetime(2017,9,1) and \
+            startdate <= datetime.datetime(2017,9,20):
+            print("error_check_inputs: Only special event data for September 2017 is available for GOES-16.")
+        else:
+            sys.exit('The GOES-16 real time integral fluxes are only available '
+                    + 'starting on '+ str(goes16_integral_stdate) +
+                '. Please change your requested dates. Exiting.')
             
     stereoB_end_date = datetime.datetime(2014,9,27,16,26,00)
     if(experiment == "STEREO-B" and (startdate > stereoB_end_date or
@@ -2980,7 +2984,12 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
         all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
         west_detector = []
     #Define energy bins
-    energy_bins = datasets.define_energy_bins(experiment, flux_type, \
+    if experiment == "ERNE":
+        version = datasets.which_erne(all_dates)
+        energy_bins = datasets.define_energy_bins(version, flux_type, \
+                                west_detector, options)
+    else:
+        energy_bins = datasets.define_energy_bins(experiment, flux_type, \
                                 west_detector, options)
 
     if len(all_dates) <= 1:
@@ -3894,7 +3903,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
 
         colors = ['black','red','blue','green','cyan','magenta','violet',\
                 'orange','brown','darkred','deepskyblue','mediumseagreen',
-                'lightseagreen','purple','sandybrown']
+                'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
+                'navy','palevioletred','saddlebrown']
         for j in range(len(energy_thresholds)):
             #if crossing_time[j] == 0:
             #    continue

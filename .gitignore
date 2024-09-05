@@ -4,10 +4,16 @@ output/
 plots/
 lists/
 
+fetchsep.cfg
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+.DS_Store
+**/.DS_Store
+bin/batch_opsep_sepmod.py
 
 # C extensions
 *.so

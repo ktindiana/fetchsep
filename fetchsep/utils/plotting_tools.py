@@ -10,8 +10,8 @@ from sklearn.utils.validation import check_array
 import datetime
 from scipy.stats import pearsonr
 from math import log10
-from cycler import cycle
 from pandas.plotting import register_matplotlib_converters
+import warnings
 
 __version__ = "0.6"
 __author__ = "Phil Quinn, Kathryn Whitman"
@@ -29,6 +29,14 @@ __email__ = "philip.r.quinn@nasa.gov"
 #Changes in 0.5: correlation_plot subroutine added by K. Whitman
 #2021-09-03, changes in 0.6: Set a limiting value or 1e-4 on the
 #   axes in correlation_plot
+
+#####UNITS#####
+energy_units = cfg.energy_units
+flux_units_integral = cfg.flux_units_integral
+fluence_units_integral = cfg.fluence_units_integral
+flux_units_differential = cfg.flux_units_differential
+fluence_units_differential = cfg.fluence_units_differential
+
 
 
 def plot_marginals(y_true, y_pred, scale="linear",
@@ -180,124 +188,6 @@ def plot_marginals(y_true, y_pred, scale="linear",
     if showplot: plt.show()
 
     fig.savefig('plots/MarginalPlots/'+save+'.png', dpi=300, bbox_inches='tight')
-
-    if closeplot: plt.close(fig)
-
-    return
-
-
-def plot_metric_profile(date, metric, labels, mean, title=None,
-                x_min=None, x_max=None, x_label="Date",
-                y_label="Metric", save="metric_profile",
-                showplot=False, closeplot=False):
-    """
-    Plots metric time profile
-
-    Parameters
-    ----------
-    date : array-like datetime objects, shape=(n model subtypes, n dates)
-        Datetimes
-
-    metric : array-like float, shape=(n model subtypes, n dates)
-        Metric values as function of datetime
-
-    labels : array-like string, shape=(n model subtypes, n dates)
-        Labels for the model subtypes
-
-    mean : array-like float, shape=(n model subtypes, n dates)
-        Mean of metrics for each model subtype
-
-    title : string
-        Title for plot
-        Optional
-
-    x_min : datetime object
-        Minimum datetime for x-axis
-        Optional
-
-    x_max : datetime object
-        Maximum datetime for x-axis
-        Optional
-
-    x_label : string
-        Label for x-axis
-        Optional. Defaults to "Date"
-
-    y_label : string
-        Label for y-axis
-        Optional. Defaults to "Metric"
-
-    save : string
-        Name to save PNG as (should not include ".png")
-        Optional. Defaults to "metric_profile"
-
-    showplot : boolean
-        Indicator for displaying the plot on screen or not
-        Optional. Defaults to False
-
-    closeplot : boolean
-        Indicator for clearing the figure from memory
-        Optional. Defaults to False
-
-    Returns
-    -------
-    None
-    """
-
-    register_matplotlib_converters()
-
-    #check_consistent_length(date, metric)
-
-    # checking if items in date are datetime objects
-    #if not all(isinstance(x, datetime.datetime) for x in date):
-    #    raise TypeError("Dates must be datetime objects.")
-
-    plt.style.use('dark_background')
-
-    fig = plt.figure()
-    ax = plt.subplot(111)
-
-    #color_metric = '#247afd'
-    color_nans = '#05ffa6'
-
-    for i in range(len(metric)):
-
-        # getting indices where the metric is nan or +/-inf
-        #indices = [j for j, arr in enumerate(metric[i]) if not np.isfinite(arr).all()]
-
-        # replacing nan and +/-inf with None types so the results are still plottable
-        metric[i] = [None if np.isnan(x) else x for x in metric[i]]
-        metric[i] = [None if x==np.inf else x for x in metric[i]]
-
-        ax.plot(date[i], metric[i], label=labels[i])
-
-        #ax.axhline(mean[i])
-
-    # plotting vertical dashed lines where the metric is nan or +/-inf
-    #for i in indices:
-    #    plt.axvline(x=date[i], color=color_nans, linestyle='--')
-
-    ax.grid(True, linestyle=':', alpha=0.5)
-
-    if x_min != None and x_max != None:
-
-        if not isinstance(x_min, datetime.datetime):
-            raise TypeError("x_min must be datetime object.")
-        if not isinstance(x_max, datetime.datetime):
-            raise TypeError("x_max must be datetime object.")
-        ax.set_xlim(x_min, x_max)
-
-    ax.set(xlabel=x_label, ylabel=y_label)
-    ax.xaxis.set_major_formatter(DateFormatter('%m-%d\n%H:%M'))
-    ax.xaxis_date()
-    ax.set_title(title)
-
-    ax.legend(loc='lower left', bbox_to_anchor=(0.0, 0.0), fontsize='8', \
-              framealpha=0.5)
-
-    if showplot: plt.show()
-
-    fig.savefig('plots/TimeProfileError/'+save+'.png', dpi=300, bbox_inches='tight')
 
     if closeplot: plt.close(fig)
 
@@ -555,104 +445,6 @@ def correlation_plot(obs_values, model_values, plot_title, \
     return plt
 
 
-def plot_scores_thresholds(thresholds, scores, labels, x_scale='log', \
-                           y_min=None, y_max=None, x_label="Thresholds", \
-                           y_label="Score", title=None, \
-                           save="score_thresholds", showplot=False, \
-                           closeplot=False):
-    """
-    Plots ratio or skill score for vary thresholds
-    and for each model subtype
-
-    Parameters
-    ----------
-    thresholds : array-like, shape=(n thresholds)
-        thresholds used when calculating scores
-        from contingency table
-
-    scores : array-like, shape=(n model subtypes, n thresholds)
-        Scores calculated from the contingency table.
-        Function of model subtype and threshold
-
-    labels : array-like, shape=(n model subtypes)
-        Labels of the model subtype for use in the legend
-
-    x_scale : string
-        Scale of thresholds ("linear" or "log")
-        Optional. Defaults to "log"
-
-    y_min : float
-        Minimum value for y-axis
-        Optional
-
-    y_max : datetime object
-        Maximum value for y-axis
-        Optional
-
-    x_label : string
-        Label for x-axis
-        Optional. Defaults to "Thresholds"
-
-    y_label : string
-        Label for y-axis
-        Optional. Defaults to "Score"
-
-    title : string
-        Title for plot
-        Optional
-
-    save : string
-        Name to save PNG as (should not include ".png")
-        Optional. Defaults to "score_thresholds"
-
-    showplot : boolean
-        Indicator for displaying the plot on screen or not
-        Optional. Defaults to False
-
-    closeplot : boolean
-        Indicator for clearing the figure from memory
-        Optional. Defaults to False
-
-    Returns
-    -------
-    None
-    """
-
-    if x_scale not in ("linear", "log"):
-        raise ValueError("Scale must either be 'linear' or 'log'")
-
-    plt.style.use('dark_background')
-
-    fig = plt.figure()
-    ax = plt.subplot(111)
-
-    lines = ["-","--","-.",":"]
-    linecycler = cycle(lines)
-
-    for i in range(len(scores)):
-
-        ax.plot(thresholds, scores[i], linestyle=next(linecycler), \
-                label=labels[i])
-
-    ax.grid(True, linestyle=':', alpha=0.5)
-
-    if y_min != None and y_max != None:
-        ax.set_ylim(y_min, y_max)
-    ax.set_xscale(x_scale)
-
-    ax.set_title(title)
-    ax.set(xlabel=x_label, ylabel=y_label)
-
-    ax.legend(loc='upper left', bbox_to_anchor=(0.0, 1.0),
-            fontsize='8', framealpha=0.5)
-
-    if showplot: plt.show()
-
-    fig.savefig('plots/ScoresThresholds/'+save+'.png', dpi=300,
-                bbox_inches='tight')
-
-    if closeplot: plt.close(fig)
-
 
 def box_plot(values, labels, x_label="Model", y_label="Metric",
              title=None, save="boxes", uselog=False, showplot=False,
@@ -737,3 +529,329 @@ def box_plot(values, labels, x_label="Model", y_label="Metric",
         ax.set_yscale('log')
 
     return fig
+
+
+############ IDSEP PLOTS ##############
+def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units):
+    """ Set up figure and axes for idsep 3 row plots.
+    
+    """
+    nrow = 3 #number of rows of subplots
+    
+    plt.rcParams.update({'font.size': 16})
+    fig, ax = plt.subplots(nrow, 1, sharex=True, figsize=(13,8), gridspec_kw={'height_ratios' : [1, 1, 1], 'hspace' : 0.4})
+    fig.canvas.manager.set_window_title(figname)
+    fig.suptitle((f"{experiment} {title_mod} {unique_id}"))
+    
+    #Formatting of axes
+    ax[1].set_ylabel((f"Flux ({flux_units})"))
+    ax[2].set_xlabel("Date")
+    
+    #Apply tight layout and suppress warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=UserWarning)
+        plt.tight_layout()
+
+    for iax in range(nrow):
+        ax[iax].set_yscale('log')
+        ax[iax].grid(axis='both')
+    
+    fig.autofmt_xdate(rotation=45)
+
+    return fig, ax
+
+
+
+def setup_modifiers(options, doBGSub):
+    """ Add modifier strings according to options.
+    
+    """
+    modifier = '' #for appending to filenames
+    title_mod = '' #for appending to plot titles
+
+    if "uncorrected" in options:
+        modifier = modifier + '_uncorrected'
+        title_mod = title_mod + 'uncorrected '
+    if doBGSub:
+        modifier = modifier + '_bgsub'
+        title_mod = title_mod + 'BG-subtracted '
+    if "S14" in options:
+        modifier = modifier + '_S14'
+        title_mod = title_mod + 'S14 '
+    if "Bruno2017" in options:
+        modifier = modifier + '_Bruno2017'
+        title_mod = title_mod + 'Bruno2017 '
+
+    return modifier, title_mod
+
+
+def setup_energy_bin_label(energy_bin, energy_units):
+    """ Label for a single energy bin.
+    
+    """
+    label = ""
+    if energy_bin[1] != -1:
+        label = (f"{energy_bin[0]}-{energy_bin[1]} {energy_units}")
+    else:
+        label = (f">{energy_bin[0]} {energy_units}")
+
+    return label
+
+
+def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
+        fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,
+        threshold, doBGSub, showplot, saveplot, disable_sigma=False):
+    """ Make multiple plots with 3 vertical subplots representing individual energy
+        channels.
+        
+        INPUTS:
+            
+            :unique_id: (string) used in filename and figname
+            :experiment: (string)
+            :flux_type: (string) integral or differential
+            :exp_name: (string) if experiment is "user", then this holds
+                the name of the satellite/model
+            :options: (array of strings) options applied to data set, used
+                to append to filenames and plot title
+            :dates: (1xn array of datetime) n time steps
+            :fluxes: (pxn array of float) p energy channels for n time steps
+            :energy_bins: (px2 array of float) p energy channels
+            :ave_dates: (1xm array of datetime) m time steps
+            :ave_fluxes: (pxm array of float) average background fluxes for
+                p energy channels and m time steps
+            :ave_sigma: (px2xm array of float) +- sigma for p energy channels
+                and m time steps
+            :threshold_dates: (1xn array of datetime) each time step of fluxes
+            :threshold: (pxn array of float) ave_fluxes + n*ave_sigma for
+                n defined in the fetchsep.config for each time step of fluxes
+            :doBGSub: (bool) do background subtraction
+            :showplot: (bool)
+            :saveplot: (bool)
+            :disable_sigma: (bool) True = plot only ave_fluxes withou ave_sigma
+
+        OUPTPUTS:
+        
+            None, except possibly to write out a plot to file (if showplot, saveplot)
+    
+    
+    """
+    #Additions to titles and filenames according to user-selected options
+    modifier, title_mod = setup_modifiers(options, doBGSub)
+
+    figname = (f"{experiment}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
+    if experiment == 'user' and exp_name != '':
+        figname = (f"{exp_name}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
+    
+    #UNITS
+    if flux_type == "integral": flux_units = flux_units_integral
+    if flux_type == "differential": flux_units = flux_units_differential
+
+    nbins = len(energy_bins)
+    for i in range(nbins):
+        if not i%3:
+            exp = experiment
+            if experiment == 'user' and exp_name != '':
+                exp = exp_name
+            fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
+            iax = 0
+
+        legend_label = setup_energy_bin_label(energy_bins[i], energy_units)
+            
+        #PLOT FLUXES
+        maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
+        ax[iax].plot_date(dates,maskfluxes,'.-',label=legend_label,color='tab:blue')
+    
+        #PLOT BACKGROUND
+        if not disable_sigma:
+            ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='.', yerr=[ave_sigma[i][0], ave_sigma[i][1]], label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
+        if disable_sigma:
+            ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='-',
+                label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
+        
+        #PLOT THRESHOLD = n*sigma (n in config file)
+        ax[iax].plot_date(threshold_dates,threshold[i],'-',label=(f"threshold {legend_label}"), zorder=200, color='tab:green')
+
+        ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+                      ncol=3, mode="expand", borderaxespad=0., fontsize=11,
+                      facecolor='lightgray', edgecolor='black')
+
+        if saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(plotpath,(f"{figname}{i}.png")))
+ 
+        #increment to next axis
+        iax += 1
+ 
+    if not showplot:
+        plt.close(fig)
+
+
+
+def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
+        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot):
+
+    #Additions to titles and filenames according to user-selected options
+    modifier, title_mod = setup_modifiers(options, doBGSub)
+
+    figname = (f"{experiment}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
+    if experiment == 'user' and exp_name != '':
+        figname = (f"{exp_name}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
+ 
+    flux_units = ''
+    if flux_type == "integral": flux_units = flux_units_integral
+    if flux_type == "differential": flux_units = flux_units_differential
+
+    nbins = len(energy_bins)
+    for i in range(nbins):
+        if not i%3:
+            exp = experiment
+            if experiment == 'user' and exp_name != '':
+                exp = exp_name
+            fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
+            iax = 0
+
+        legend_label = setup_energy_bin_label(energy_bins[i], energy_units)
+
+        maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
+        ax[iax].plot_date(dates,maskfluxes,'.-',label=legend_label)
+    
+        ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+                      ncol=3, mode="expand", borderaxespad=0., fontsize=11,
+                      facecolor='lightgray', edgecolor='black')
+                      
+        if saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(plotpath,(f"{figname}{i}.png")))
+ 
+        #increment to next axis
+        iax += 1
+    
+    if not showplot:
+        plt.close(fig)
+
+
+
+def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
+            dates, fluxes_bg, fluxes_sep, energy_bins, doBGSub,
+            showplot, saveplot):
+    
+    #Additions to titles and filenames according to user-selected options
+    modifier, title_mod = setup_modifiers(options, doBGSub)
+
+    figname = (f"{experiment}_{flux_type}{modifier}_SEP_BG_{unique_id}")
+    if experiment == 'user' and exp_name != '':
+        figname = (f"{exp_name}_{flux_type}{modifier}_SEP_BG_{unique_id}")
+
+    flux_units = ''
+    if flux_type == "integral": flux_units = flux_units_integral
+    if flux_type == "differential": flux_units = flux_units_differential
+
+    nbins = len(energy_bins)
+    for i in range(nbins):
+        if not i%3:
+            exp = experiment
+            if experiment == 'user' and exp_name != '':
+                exp = exp_name
+            fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
+            iax = 0
+
+        legend_label = setup_energy_bin_label(energy_bins[i], energy_units)
+
+        maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
+        ax[iax].plot_date(dates,maskfluxes_bg,'.-',label=(f"Background {legend_label}"))
+        maskfluxes_sep = np.ma.masked_less_equal(fluxes_sep[i], 0)
+        ax[iax].plot_date(dates,maskfluxes_sep,'.-',label=(f"SEP {legend_label}"), zorder=100)
+
+        ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+                      ncol=3, mode="expand", borderaxespad=0., fontsize=11,
+                      facecolor='lightgray', edgecolor='black')
+        
+        if saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(plotpath,(f"{figname}{i}.png")))
+ 
+        #increment to next axis
+        iax += 1
+    
+    if not showplot:
+        plt.close(fig)
+
+
+
+
+def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
+            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot):
+    
+    #Additions to titles and filenames according to user-selected options
+    modifier = ''
+    title_mod = ''
+    if "uncorrected" in options:
+        modifier = modifier + '_uncorrected'
+        title_mod = title_mod + 'uncorrected '
+    if doBGSub:
+        modifier = modifier + '_bgsub'
+        title_mod = title_mod + 'BG-subtracted '
+    if "S14" in options:
+        modifier = modifier + '_S14'
+        title_mod = title_mod + 'S14 '
+    if "Bruno2017" in options:
+        modifier = modifier + '_Bruno2017'
+        title_mod = title_mod + 'Bruno2017 '
+
+
+    figname = experiment + '_' + flux_type + modifier \
+            + '_' + 'Diff_' + unique_id
+    if experiment == 'user' and exp_name != '':
+        figname = exp_name + '_' + flux_type + modifier \
+                + '_' + 'Diff_' + unique_id
+    
+    fig = plt.figure(figname,figsize=(12,8))
+    plt.rcParams.update({'font.size': 16})
+    ax = plt.subplot(111)
+    nbins = len(energy_bins)
+    ifig = 0
+    for i in range(nbins):
+        thresh = np.multiply(ave_sigma[i][1],nsigma)
+        if i != 0 and not i%3:
+            if saveplot:
+                fig.savefig(plotpath + '/' +figname + '.png')
+            figname = figname + str(i)
+            fig = plt.figure(figname,figsize=(12,8))
+            ax = plt.subplot(111)
+            ifig = 0
+
+        ax = plt.subplot(min(3,nbins), 1, ifig+1)
+        ifig = ifig + 1
+        legend_label = ""
+        if energy_bins[i][1] != -1:
+            legend_label = str(energy_bins[i][0]) + '-' \
+                    + str(energy_bins[i][1]) + ' ' + energy_units
+        else:
+            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
+
+        ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
+        ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
+        
+        flux_units = ''
+        if flux_type == "integral": flux_units = flux_units_integral
+        if flux_type == "differential": flux_units = flux_units_differential
+        
+        if i==0:
+            plt.title(experiment + ' '+ title_mod + ' ' + unique_id\
+                    + "\nDiff = Flux - Mean BG")
+            if experiment == 'user' and exp_name != '':
+                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id\
+                    + "\nDiff = Flux - Mean BG")
+        plt.xlabel('Date')
+        #plt.ylabel('Flux [' + flux_units + ']')
+        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
+        fig.autofmt_xdate(rotation=45)
+        chartBox = ax.get_position()
+#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+#                         chartBox.height])
+#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
+ 
+ 
+        if saveplot and i == nbins-1:
+            fig.savefig(plotpath + '/' +figname + '.png')
+    
+    if not showplot:
+        plt.close(fig)
+
