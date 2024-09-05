@@ -15,6 +15,9 @@ import matplotlib.pyplot as plt
 import sys
 import math
 import netCDF4
+import requests
+from bs4 import BeautifulSoup
+import tarfile
 
 __version__ = "1.7"
 __author__ = "Katie Whitman"
@@ -139,10 +142,18 @@ def check_paths():
         print('check_paths: Directory containing fluxes, ' + datapath +
         '/EPHIN, does not exist. Creating.')
         os.mkdir(datapath + '/EPHIN');
-    if not os.path.isdir(datapath + '/SRAG12'):
+    if not os.path.isdir(datapath + '/ERNE'):
         print('check_paths: Directory containing fluxes, ' + datapath +
-        '/SRAG12, does not exist. Creating.')
-        os.mkdir(datapath + '/SRAG12');
+        '/ERNE, does not exist. Creating.')
+        os.mkdir(datapath + '/ERNE');
+    if not os.path.isdir(datapath + '/ERNE/export.srl.utu.fi'):
+        print('check_paths: Directory containing fluxes, ' + datapath +
+        '/ERNE/export.srl.utu.fi, does not exist. Creating.')
+        os.mkdir(datapath + '/ERNE/export.srl.utu.fi');
+    if not os.path.isdir(datapath + '/CalGOES'):
+        print('check_paths: Directory containing fluxes, ' + datapath +
+        '/CalGOES, does not exist. Creating.')
+        os.mkdir(datapath + '/CalGOES');
     if not os.path.isdir(datapath + '/STEREO-A'):
         print('check_paths: Directory containing fluxes, ' + datapath +
         '/STEREO-A, does not exist. Creating.')
@@ -228,7 +239,7 @@ def check_sepem_data(startdate, enddate, experiment, flux_type):
         :startdate: (datetime) start of time period specified by user
         :enddate: (datetime) end of time period entered by user
         :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :flux_type: (string) "differential"
         
         OUTPUTS:
         
@@ -286,8 +297,8 @@ def check_sepem_data(startdate, enddate, experiment, flux_type):
     return filenames1
     
     
-def check_srag12_data(startdate, enddate, experiment, flux_type):
-    """Check if SRAG1.2 data is present on the computer. Break into yearly
+def check_calgoes_data(startdate, enddate, experiment, flux_type):
+    """Check if SRAG1.2 (CalGOES) data is present on the computer. Break into yearly
         files if needed. Return SRAG filenames for analysis.
         
         INPUTS:
@@ -295,7 +306,7 @@ def check_srag12_data(startdate, enddate, experiment, flux_type):
         :startdate: (datetime) start of time period specified by user
         :enddate: (datetime) end of time period entered by user
         :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :flux_type: (string) "differential"
         
         OUTPUTS:
         
@@ -314,7 +325,7 @@ def check_srag12_data(startdate, enddate, experiment, flux_type):
 
     year = styear
 
-    if experiment == 'SRAG12':
+    if experiment == 'CalGOES':
         basenm = 'srag12'
         dir = experiment
 
@@ -328,7 +339,7 @@ def check_srag12_data(startdate, enddate, experiment, flux_type):
         if not exists:
             sys.exit('Please contact Shaowen Hu (shaowen.hu-1@nasa.gov) '
                     'for his recalibrated data set. Unzip and put the .dat files '
-                    'in the data/SRAG12 folder.')
+                    'in the data/CalGOES folder.')
 
     return filenames1
 
@@ -884,7 +895,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
 def check_ephin_data(startdate, enddate, experiment, flux_type):
     """Check for SOHO/COSTEP/EPHIN data on your computer. If not there,
         download from http://ulysses.physik.uni-kiel.de/costep/level3/l3i/
-        30 minute data will be downloaded. Intensities are in units of
+        5 minute data will be downloaded. Intensities are in units of
         (cm^2 s sr mev/nuc)^-1
         First available date is 1995 12 8 (DOY = 342).
         The files are available in daily or yearly format.
@@ -894,7 +905,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
         :startdate: (datetime) start of time period specified by user
         :enddate: (datetime) end of time period entered by user
         :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :flux_type: (string) "differential"
         
         OUTPUTS:
         
@@ -916,15 +927,17 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = str(year) + '.l3i'
-
-        exists = os.path.isfile(datapath + '/EPHIN/' + fname)
+        res = '5min'
+        
+        svfile = os.path.join(datapath,'EPHIN',res,fname)
+        exists = os.path.isfile(svfile)
         if not exists: #download file if not found on your computer
-            url = ('http://ulysses.physik.uni-kiel.de/costep/level3/l3i/10min/%s'
-                    % (fname))
+            url = ('http://ulysses.physik.uni-kiel.de/costep/level3/l3i/%s/%s'
+                    % (res,fname))
             print('Downloading EPHIN data: ' + url)
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/EPHIN/' + fname)
+                wget.download(url, svfile)
             except urllib.request.HTTPError:
                 sys.exit("Cannot access EPHIN file at " + url +
                ". Please check that selected spacecraft covers date range.")
@@ -954,7 +967,7 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
         :startdate: (datetime) start of time period specified by user
         :enddate: (datetime) end of time period entered by user
         :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :flux_type: (string) "differential"
         
         OUTPUTS:
         
@@ -984,6 +997,111 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
        
         filenames1.append('EPHIN_REleASE/' + fname)
         
+    return filenames1
+
+
+def check_erne_data(startdate, enddate, experiment, flux_type):
+    """Check for SOHO/ERNE data on your computer. If not there,
+        download from https://export.srl.utu.fi.
+        Intensities are in units of (cm^2 s sr mev/nuc)^-1
+        First available date is 1996 05 07.
+        The files are available in randomly grouped dates.
+        
+        .dates files on the site indicate which dates are in each
+        .tgz data file. Will download all lightweight .dates files
+        to find the correct data files to download.
+        
+        INPUTS:
+        
+        :startdate: (datetime) start of time period specified by user
+        :enddate: (datetime) end of time period entered by user
+        :experiment: (string) name of native experiment or "user"
+        :flux_type: (string) "differential"
+        
+        OUTPUTS:
+        
+        :filenames1: (string array) the files containing the SOHO
+            EPHIN Level 3 data that span the desired time range
+            (yearly files)
+        
+    """
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
+
+    ernepath = os.path.join(datapath,'ERNE')
+    
+    #Download all the .dates files each time
+    #Should always work if user has an internet connection,
+    #but allow for case where user doesn't have internet access.
+    #Don't want to stop workflow if user has files on the computer.
+    allfiles = os.listdir(ernepath)
+    datefiles = [x for x in allfiles if 'dates' in x]
+    try:
+        r = requests.get('https://export.srl.utu.fi')
+        soup = BeautifulSoup(r.text, 'html.parser')
+        links = soup.find_all('a')
+        checkfiles = [x.text for x in links if 'dates' in x.text]
+        for fl in checkfiles:
+            if fl in datefiles:
+                continue #don't need to download again
+            url = 'https://export.srl.utu.fi/%s' % (fl)
+            localfl = os.path.join(ernepath,fl)
+            try:
+                urllib.request.urlopen(url)
+                wget.download(url, localfl)
+                datefiles.append(fl) #add to datefiles if not present
+            except:
+                print('Cannot download ' + url)
+    except:
+        pass
+
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []
+
+    for file in datefiles:
+        fnm = file.replace('.dates','.tgz') #data filename only
+        localfnm = os.path.join(ernepath,fnm) #data full path
+        with open(os.path.join(ernepath,file),'r') as datefile:
+            lines = datefile.readlines()
+            firstdate = datetime.datetime.strptime(lines[0].strip(),"%Y.%m.%d")
+            lastdate = datetime.datetime.strptime(lines[-1].strip(),"%Y.%m.%d")
+            
+            #Subdirectory that will hold all the files that come out of
+            #the ERNE data gzip file
+            datedir = lines[0].strip() + '_' + lines[-1].strip()
+            unzipdir = os.path.join(ernepath,datedir)
+
+            #Are the user requested dates contained within this file?
+            if (startdate >= firstdate and startdate < lastdate) or \
+                (enddate > firstdate and enddate <= lastdate) or \
+                (firstdate >= startdate and firstdate <= enddate):
+
+                exists = os.path.isfile(localfnm)
+
+                if not exists: #download file if not found on your computer
+                    url = ('https://export.srl.utu.fi/%s' % (fnm))
+                    print('Downloading ERNE data: ' + url)
+                    try:
+                        urllib.request.urlopen(url)
+                        wget.download(url, localfnm)
+                        #Decompress gzip file
+                        tar = tarfile.open(name=localfnm,mode='r:gz')
+                        tar.extractall(path=unzipdir)
+                        
+                    except urllib.request.HTTPError:
+                        sys.exit("Cannot access EPHIN file at " + url +
+                       ". Please check that selected spacecraft covers date range.")
+
+                dfiles = os.listdir(os.path.join(unzipdir,'export.src'))
+                dfiles = [os.path.join(unzipdir,'export.src',x) for x in dfiles if (('HED' in x or 'LED' in x) and ('SL2' in x))]
+                #HED, LET files
+                filenames1.extend(dfiles) #save filenames
+
     return filenames1
 
 
@@ -1190,8 +1308,8 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
         filenames1 = check_sepem_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
         
-    if experiment == "SRAG12":
-        filenames1 = check_srag12_data(startdate, enddate, experiment, flux_type)
+    if experiment == "CalGOES":
+        filenames1 = check_calgoes_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
     #Try all GOES experiments
@@ -1236,6 +1354,11 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
     if experiment == "EPHIN_REleASE":
         filenames1 = check_ephin_release_data(startdate, enddate,
             experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
+
+
+    if experiment == "ERNE":
+        filenames1 = check_erne_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
 
@@ -1347,7 +1470,7 @@ def read_in_sepem(experiment, flux_type, filenames1):
         INPUTS:
         
         :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :flux_type: (string) "differential"
         :filenames1: (string array) names of files containing
             SEPEM data in desired time range (yearly files)
             
@@ -1408,7 +1531,7 @@ def read_in_sepem(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
-def read_in_srag12(experiment, filenames1):
+def read_in_calgoes(experiment, filenames1):
     """ Read in the data set created by Shaowen Hu (NASA JSC SRAG)
         that generates a consistent and recalibrated GOES data set.
     """
@@ -1419,20 +1542,21 @@ def read_in_srag12(experiment, filenames1):
     for filenm in filenames1:
         print("reading filename " + filenm)
         with open(datapath + '/' + filenm) as file:
-            #Get number of columns in file
-            #Fill in first row so can have correct format array
-            firstline = file.readline().strip().split(",")
-            ncol = len(firstline) - 1
-            for i in range(ncol):
-                fluxes.append([float(firstline[i+1])])
+            if len(fluxes) == 0:
+                #Get number of columns in file
+                #Fill in first row so can have correct format array
+                firstline = file.readline().strip().split(",")
+                ncol = len(firstline) - 1
+                for i in range(ncol):
+                    fluxes.append([float(firstline[i+1])])
         
             for line in file:
                 if line == "": continue
                 
                 row = line.strip().split(",")
                 if row[0] == "0": continue
-                for i in range(ncol):
-                    fluxes[i].append(float(row[i+1]))
+                for j in range(ncol):
+                    fluxes[j].append(float(row[j+1]))
                 
                 date = datetime.datetime.strptime(row[0][0:19],
                                                 "%Y-%m-%d %H:%M:%S")
@@ -2016,8 +2140,8 @@ def read_in_ephin(experiment, flux_type, filenames1):
                         flux = badval
                     fluxes[j][count] = flux
                 count = count + 1
+
         #If reading in multiple files, then combine all data into one array
-        #SEPEM currently only has one file, but making generalized
         if i==0:
             all_fluxes = fluxes
             all_dates = dates
@@ -2094,8 +2218,8 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
                         flux = badval
                     fluxes[j][count] = flux
                 count = count + 1
+
         #If reading in multiple files, then combine all data into one array
-        #SEPEM currently only has one file, but making generalized
         if i==0:
             all_fluxes = fluxes
             all_dates = dates
@@ -2104,6 +2228,151 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
             all_dates = all_dates + dates
 
     return all_dates, all_fluxes
+
+
+
+##START HERE
+def read_in_erne(experiment, flux_type, filenames1):
+    """ Read in ERNE files from your computer.
+        Each ERNE gzip file (erne-1996.05.07-1996.05.31-23.tgz) has
+        a subfolder export.src which contains HED files names as
+        HEDYYDOY.SL2, which contains count rates and intensities.
+        LEDYYDOY.SL2, contains 10 - 13 MeV channel
+        
+        More information about the data formats and caveats:
+        https://export.srl.utu.fi/export_data_description.txt
+        
+        Note that timestamps in the files are of the format
+        TAI time stamp (seconds since 1.1.1958) and will not be used.
+
+        INPUTS:
+        
+        :experiment: (string) experiment name
+        :flux_type: (string) integral or differential
+        :filenames1: (string array) names of files containing
+            ERNE data in desired time range (randomly dated files)
+            This list contains both LED and HED files in order of
+            however os.listdir lists them.
+            
+        OUTPUTS:
+        
+        :all_dates: (datetime 1xm array) time points for every time in
+            all the data points in the files contained in filenames1
+        :all_fluxes: (float nxm array) fluxes for n energy channels and m
+            time points
+    
+        Note that all_dates and all_fluxes will be trimmed down to the
+        user time period of interest.
+    
+    """
+    #filenames1 contains a list of both HED and LED files in somewhat
+    #random order. Need to divide the low and high energy fluxes and
+    #align by date.
+    HEDfiles = sorted([x for x in filenames1 if 'HED' in x])
+    LEDfiles = sorted([x for x in filenames1 if 'LED' in x])
+    
+    if len(HEDfiles) != len(LEDfiles):
+        print("LED FILES")
+        print(LEDfiles)
+        print("HED FILES")
+        print(HEDfiles)
+        sys.exit("read_datasets: read_in_erne: There are not the same number of "
+                "LED and HED files. Cannot align. Exiting.")
+
+
+
+    NFILES = len(HEDfiles)
+
+    datecols = [3] #seconds since 1958-01-01
+    fluxcols = [x for x in range(4,14)] #cols 4 - 13 for HED, LED
+    fluxcols.extend(fluxcols) #2x for LED and HED
+    ncol= len(fluxcols) #HED and LED each has 10 channels
+
+    for i in range(NFILES):
+        print('Reading in file ' + LEDfiles[i])
+        with open(LEDfiles[i], 'r') as ledfile, open(HEDfiles[i], 'r') as hedfile:
+            #Count header lines indicated by hash #
+            nhead_led = 0
+            for line in ledfile:
+                line = line.lstrip()
+                if line[0] == "#":
+                    nhead_led = nhead_led + 1
+                else:
+                    break
+            #number of lines containing data
+            nrow_led = len(ledfile.readlines())+1
+            
+            nhead_hed = 0
+            for line in hedfile:
+                line = line.lstrip()
+                if line[0] == "#":
+                    nhead_hed = nhead_hed + 1
+                else:
+                    break
+            #number of lines containing data
+            nrow_hed = len(hedfile.readlines())+1
+
+            if nrow_led != nrow_hed:
+                print("# LED data lines = " + str(nrow_led) +", " + LEDfiles[i])
+                print("# HED data lines = " + str(nrow_hed) +", " + HEDfiles[i])
+                sys.exit("read_datasets: read_in_erne: There are not the same number of "
+                        "lines in LED and HED files. Cannot align. Exiting.")
+
+
+            #Define arrays that hold dates and fluxes
+            dates = []
+            fluxes = np.zeros(shape=(ncol,nrow_led))
+
+            ledfile.seek(0) #back to beginning of file
+            hedfile.seek(0) #back to beginning of file
+            for k in range(nhead_led):
+                ledfile.readline()  # Skip header rows and get to data.
+
+            for k in range(nhead_hed):
+                hedfile.readline()  # Skip header rows and get to data.
+
+            count = 0 #counts rows, i.e. dates
+            for k in range(nrow_led):
+                line_led = ledfile.readline()
+                line_hed = hedfile.readline()
+                
+                row_led = line_led.split()
+                row_hed = line_hed.split()
+                
+                ts_led = int(row_led[datecols[0]])
+                ts_hed = int(row_hed[datecols[0]])
+                
+                if ts_led != ts_hed:
+                    print("Timestamps in LED and HED files on the same line "
+                        "do not match. Data out of order. Look for extra blank lines "
+                        "or files that do not correspond to same time period.")
+                    print("LED file: " + LEDfiles[i] + ", TIMESTAMP: " + str(ts_led))
+                    print("HED file: " + HEDfiles[i] + ", TIMESTAMP: " + str(ts_hed))
+                    sys.exit("Exiting")
+                
+                date = datetime.datetime(1958,1,1) + datetime.timedelta(seconds=ts_led)
+ 
+                dates.append(date)
+                for j in range(ncol):
+                    if j < ncol/2:
+                        flux = float(row_led[fluxcols[j]])
+                    else:
+                        flux = float(row_hed[fluxcols[j]])
+                    if flux < 0:
+                        flux = badval
+                    fluxes[j][count] = flux
+                count = count + 1
+
+        #If reading in multiple files, then combine all data into one array
+        if i==0:
+            all_fluxes = fluxes
+            all_dates = dates
+        else:
+            all_fluxes = np.concatenate((all_fluxes,fluxes),axis=1)
+            all_dates = all_dates + dates
+
+    return all_dates, all_fluxes
+
 
 
 
@@ -2391,8 +2660,8 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes = read_in_sepem(experiment, flux_type, filenames1)
         return all_dates, all_fluxes, west_detector
 
-    if experiment == "SRAG12":
-        all_dates, all_fluxes = read_in_srag12(experiment, filenames1)
+    if experiment == "CalGOES":
+        all_dates, all_fluxes = read_in_calgoes(experiment, filenames1)
         return all_dates, all_fluxes, west_detector
 
     #All GOES data
@@ -2428,7 +2697,11 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes = read_in_ephin_release(experiment, flux_type,
                     filenames1)
         return all_dates, all_fluxes, west_detector
-        
+
+    if experiment == "ERNE":
+        all_dates, all_fluxes = read_in_erne(experiment, flux_type, filenames1)
+        return all_dates, all_fluxes, west_detector
+
     if "STEREO" in experiment:
         all_dates, all_fluxes = read_in_stereo(experiment, flux_type,
                     filenames1, filenames2)
@@ -2820,6 +3093,66 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
     return fluxes
 
 
+def which_erne(dates):
+    """ ERNE energy bins depend on the dates of the data.
+        Identify the appropriate calibration.
+        
+        From export_data_description.txt:
+        
+        Data versions
+        -------------
+        Since launch the on-board system has been updated several times. Some of the
+        changes have also affected the telemetry data, these are deemed 'format
+        versions'. The relevant formats are:
+
+        f10     2 Dec 1995     Original launch format
+        f40    19 Apr 2000     Major update of the on-board program
+        f40brk 21 Nov 2000     HED S1X H2 E-amplifier breakdown at 00:15:44.833
+        f50     3 Jul 2001     On-board SW updated to (partially) fix the HED S1X
+                       E-amplifier breakdown.
+    
+        The format f20 has never existed and f30 was a short lived test version with
+        no user level data. The version designation f40brk is unofficial and not
+        used outside this document.
+
+        NOTE: all the f40brk HED data are left out from this data set. The
+            corresponding files are provided but are empty.
+
+        NOTE: The particles through the broken S1X H2 detector are left out from
+            the f50 HED PHA data.
+    
+        INPUTS:
+            
+            :dates: (datetime list) Dates for all read in data
+            
+        OUTPUTS:
+        
+            :version: (string) ERNEf10, ERNEf40, ERNEf40brk, ERNEf50
+                Data version indicating which bins to choose.
+                f40, f40brk, and f50 are all the same bins, but dividing
+                up to match the documentation
+                
+    """
+
+    date_f10 = datetime.datetime(1995,12,2)
+    date_f40 = datetime.datetime(2000,4,19)
+    date_f40brk = datetime.datetime(2000,11,21)
+    date_f50 = datetime.datetime(2001,7,3)
+    
+    #SIMPLE SOLUTION TO GET IT WORK FOR THE MOMENT, MUST EXPAND ON THIS
+    if dates[0] >= date_f10 and dates[0] < date_f40:
+        return "ERNEf10"
+
+    if dates[0] >= date_f40 and dates[0] < date_f40brk:
+        return "ERNEf40"
+
+    if dates[0] >= date_f40brk and dates[0] < date_f50:
+        return "ERNEf40brk"
+
+    if dates[0] >= date_f50:
+        return "ERNEf50"
+
+
 
 def define_energy_bins(experiment,flux_type,west_detector,options):
     """ Define the energy bins for the selected spacecraft or data set.
@@ -2845,6 +3178,8 @@ def define_energy_bins(experiment,flux_type,west_detector,options):
             experiment specified by the user
        
     """
+    energy_bins = None
+    
     #use corrected proton flux for GOES eps or epead; include hepad
     #-1 indicates infinity ([700, -1] means all particles above 700 MeV)
     if experiment == "SEPEM":
@@ -2860,26 +3195,54 @@ def define_energy_bins(experiment,flux_type,west_detector,options):
                        [200.0,289.2],[289.2,418.3],[418.3,604.9],
                        [604.9,874.7]]
 
-    if experiment == "SRAG12":
+    if experiment == "CalGOES":
         energy_bins = [[10.0,10.0],[15.8,15.8],[25.1,25.1],[39.8,39.8],
                         [65.1,65.1],[100.0,100.0],[158.5,158.5],[251.2,251.2],
                         [398.1,398.1],[630.9,630.9],[1000.0,1000.0]]
    
     if experiment == "ERNEf10":
-        #The top 3 channels tend to saturate and show incorrect values during
-        #high intensity SEP events. For this reason, only the >10 MeV
-        #integral fluxes should be derived from ERNE data.
+        #The highest energy 3 channels tend to saturate and show incorrect
+        #values during high intensity SEP events. For this reason, only the
+        #>10 MeV integral fluxes should be used from ERNE data during the
+        #most intense part of intense SEP events.
         #f10 format, from 2 December 1996
-        energy_bins = [[10.0,13.0],[14.0,17.0],[17.0,22.0],[21.0,28.0],
+        #f10     2 Dec 1995     Original launch format
+        energy_bins = [[1.5,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
+                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
+                       [10.0,13.0],[14.0,17.0],[17.0,22.0],[21.0,28.0],
                        [26.0,32.0],[32.0,40.0],[41.0,51.0],
                        [51.0,67.0],[54.0,79.0],[79.0,114.0],[111.0,140.]]
 
     if experiment == "ERNEf40":
         #f40 format, from 19 May 2000
-        energy_bins = [[10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
+        #f40    19 Apr 2000     Major update of the on-board program
+        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
+                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
+                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
                        [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
                        [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-
+                       
+    if experiment == "ERNEf40brk":
+        #f40brk format, from 21 Nov 2000
+        #f40brk 21 Nov 2000     HED S1X H2 E-amplifier breakdown at 00:15:44.833
+        #NOTE: all the f40brk HED data are left out from this data set. The
+        #corresponding files are provided but are empty.
+        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
+                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
+                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
+                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
+                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
+                       
+    if experiment == "ERNEf50":
+        #f50 format, from 3 Jul 2001
+        #f50     3 Jul 2001     On-board SW updated to (partially) fix the HED S1X
+        #               E-amplifier breakdown.
+        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
+                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
+                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
+                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
+                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
+                       
     if experiment == "EPHIN":
         #http://ulysses.physik.uni-kiel.de/costep/level3/l3i/
         #DOCUMENTATION-COSTEP-EPHIN-L3-20181002.pdf

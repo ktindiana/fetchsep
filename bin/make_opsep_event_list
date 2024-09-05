@@ -16,7 +16,7 @@ parser.add_argument("--DetectorList", type=str, default='',
 parser.add_argument("--Experiment", type=str, choices=['GOES-08',
         'GOES-09', 'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14',
         'GOES-15','GOES-16','GOES-17','SEPEM', 'SEPEMv3', 'EPHIN',
-        'EPHIN_REleASE', 'user'],
+        'EPHIN_REleASE', 'CalGOES', 'user'],
         default='', help=("Enter name of spacecraft or dataset. "
             "Use Experiment if only one experiment was used to "
             "create the SEP event list. Otherwise ignore."))

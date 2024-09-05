@@ -60,6 +60,14 @@ def prepare_dirs():
             print('Making directory:', dir)
             os.makedirs(dir)
 
+        for sub in ['idsep', 'opsep']:
+            subdir = os.path.join(dir, sub)
+            if not os.path.isdir(subdir):
+                print('Making directory:', subdir)
+                os.makedirs(subdir)
+
+
+
 if __name__ == '__main__':
     """If called from the command line, copy the package config file to the current
     working directory to give the user an example to start with."""
