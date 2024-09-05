@@ -18,6 +18,7 @@ import netCDF4
 import requests
 from bs4 import BeautifulSoup
 import tarfile
+import ssl
 
 __version__ = "1.7"
 __author__ = "Katie Whitman"
@@ -74,6 +75,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2023-06-19, changes in 1.7: NOAA added a v3-0-1 format for files
 #   starting in April 2023. Rewrote check_goesR to be more versatile.
 #   Added checking that include v3-0-1 in read_in_goesR.
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 datapath = cfg.datapath
 outpath = cfg.outpath
