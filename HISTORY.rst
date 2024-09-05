@@ -1,6 +1,29 @@
 History
 =======
 
+0.3.1 (2024-05-02)
+------------------
+
+* opsep: modified onset peak fitting and estimate
+* opsep: onset peak changed to max flux if automated algorithm
+  identifies onset after max
+* opsep: better workflow for fetchsep_prepare_obs when starting from
+  BATCH
+* opsep: updates to json output to comply with CCMC schema
+* Bugfix: Fix crash in opsep and idsep on certain python installations
+  when reading in GOES-R data files
+
+0.3.0 (2023-11-02)
+------------------
+
+* Fixed bug preventing fluence calculation for differential fluxes
+* Improved plots for differential energy channels
+* Added capability to move output produced by `opsep` to a target dir
+* Updated filenames for plots to contain full zulu string
+* Added padding to SEP start and end times in `fetchsep_prepare_obs`
+  workflow
+* Removed unneeded asciitable dependency
+
 0.2.2 (2023-09-22)
 ------------------
 
