@@ -932,7 +932,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
         fname = str(year) + '.l3i'
         res = '5min'
         
-        svfile = os.path.join(datapath,'EPHIN',res,fname)
+        svfile = os.path.join(datapath,'EPHIN',fname)
         exists = os.path.isfile(svfile)
         if not exists: #download file if not found on your computer
             url = ('http://ulysses.physik.uni-kiel.de/costep/level3/l3i/%s/%s'
