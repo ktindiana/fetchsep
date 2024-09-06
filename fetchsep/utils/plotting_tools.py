@@ -12,6 +12,7 @@ from scipy.stats import pearsonr
 from math import log10
 from pandas.plotting import register_matplotlib_converters
 import warnings
+import os
 
 __version__ = "0.6"
 __author__ = "Phil Quinn, Kathryn Whitman"
@@ -37,6 +38,12 @@ fluence_units_integral = cfg.fluence_units_integral
 flux_units_differential = cfg.flux_units_differential
 fluence_units_differential = cfg.fluence_units_differential
 
+
+#See full program description in all_program_info() below
+datapath = cfg.datapath
+outpath = cfg.outpath + "/opsep"
+plotpath = cfg.plotpath + "/opsep"
+badval = cfg.badval #bad data points will be set to this value; must be negative
 
 
 def plot_marginals(y_true, y_pred, scale="linear",
