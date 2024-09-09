@@ -60,11 +60,12 @@ def prepare_dirs():
             print('Making directory:', dir)
             os.makedirs(dir)
 
-        for sub in ['idsep', 'opsep']:
-            subdir = os.path.join(dir, sub)
-            if not os.path.isdir(subdir):
-                print('Making directory:', subdir)
-                os.makedirs(subdir)
+        if dir != datapath:
+            for sub in ['idsep', 'opsep']:
+                subdir = os.path.join(dir, sub)
+                if not os.path.isdir(subdir):
+                    print('Making directory:', subdir)
+                    os.makedirs(subdir)
 
 
 
