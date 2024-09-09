@@ -1301,12 +1301,12 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
     if experiment == "user":
         nuser = len(user_fname)
         for i in range(nuser):
-            exists = os.path.isfile(datapath + '/' + user_fname[i])
+            exists = os.path.isfile(user_fname[i])
             if exists:
                 filenames1.append(user_fname[i])
             if not exists:
                 sys.exit("You have selected to read a user input "
-                "file with filename " + datapath + '/' + user_fname[i]
+                "file with filename " + user_fname[i]
                 + ". This file is not found! Exiting.")
 
         return filenames1, filenames2, filenames_orien

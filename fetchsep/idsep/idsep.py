@@ -31,8 +31,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 #See full program description in all_program_info() below
 datapath = cfg.datapath
-outpath = cfg.outpath + "/idsep"
-plotpath = cfg.plotpath + "/idsep"
+outpath = os.path.join(cfg.outpath, "idsep")
+plotpath = os.path.join(cfg.plotpath, "idsep")
 
 # Prepare directories
 cfg.prepare_dirs()
