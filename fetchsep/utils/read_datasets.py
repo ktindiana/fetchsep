@@ -20,7 +20,6 @@ from bs4 import BeautifulSoup
 import tarfile
 import ssl
 
-__version__ = "1.7"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -75,6 +74,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2023-06-19, changes in 1.7: NOAA added a v3-0-1 format for files
 #   starting in April 2023. Rewrote check_goesR to be more versatile.
 #   Added checking that include v3-0-1 in read_in_goesR.
+#2024-09-09: Added GOES v3-0-2 format, which NOAA began using
+#   exclusively on 2023-10-19.
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -85,6 +86,9 @@ badval = cfg.badval #bad data points will be set to this value; must be negative
 user_col = cfg.user_col
 user_delim = cfg.user_delim
 user_energy_bins = cfg.user_energy_bins
+
+#Spacecraft in the GOES-R series
+goes_R = ["GOES-16", "GOES-17", "GOES-18"]
 
 def about_read_datasets():
     """ About read_datasets.py
@@ -129,10 +133,10 @@ def check_paths():
         print('check_paths: Directory containing fluxes, ' + datapath +
         '/GOES, does not exist. Creating.')
         os.mkdir(datapath + '/GOES');
-    if not os.path.isdir(datapath + '/GOES-R'):
+    if not os.path.isdir(datapath + '/GOES_RT'):
         print('check_paths: Directory containing fluxes, ' + datapath +
-        '/GOES-R, does not exist. Creating.')
-        os.mkdir(datapath + '/GOES-R');
+        '/GOES_RT, does not exist. Creating.')
+        os.mkdir(datapath + '/GOES_RT');
     if not os.path.isdir(datapath + '/SEPEM'):
         print('check_paths: Directory containing fluxes, ' + datapath +
         '/SEPEM, does not exist. Creating.')
@@ -541,6 +545,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
 
 
 
+
 def check_goesR_data(startdate, enddate, experiment, flux_type):
     """Check that GOES-R data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
@@ -632,7 +637,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         date_suffix = 'd%i%02i%02i' % (year,month,day)
  
         #GOES-R differential data has three possible version numbers
-        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc']
+        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc']
         
         foundfile = None
         for ext in file_ext:
@@ -664,19 +669,26 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
     return filenames1, filenames2, filenames_orien, date
 
 
-def check_goesR_RTdata(startdate, enddate, experiment, flux_type):
-    """Check that GOES-R data is on your computer or download it from the NOAA
+def check_goes_RTdata(startdate, enddate, experiment, flux_type):
+    """Check that GOES Real Time data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
-        GOES-R real time integral files are saved daily in txt format.
+        GOES real time integral files are saved daily in txt format.
         
-        The GOES-16 & 17 & 18 integral fluxes are the real time product plotted
-        by SWPC on a daily basis and archived at CCMC. These fluxes are
-        not the official science-grade integral flux product from NOAA, as
-        these are not yet available. Also, only the PRIMARY spacecraft
+        The CCMC HAPI server returns real time integral fluxes for GOES
+        downloaded from the SWPC realtime 3-day jsons starting from
+        2010-04-14 00:00:00.
+        
+        These fluxes are by default from the primary GOES satellite.
+        
+        The GOES-16 & 17 & 18 integral fluxes are currently only available from
+        the real time product plotted by SWPC on a daily basis and archived at CCMC.
+        These fluxes are not the official science-grade integral flux product from
+        NOAA, as these are not yet available. Also, only the PRIMARY spacecraft
         integral fluxes are available and it isn't possible to choose
         between GOES-16 or GOES-17 or GOES-18 for the integral fluxes.
-        When the official integral fluxes are available, it will be
-        possible to select the spacecraft.
+        
+        When the official integral fluxes are available for GOES-R, support
+        to select the spacecraft will be added to this package.
         
         INPUTS:
         
@@ -698,8 +710,8 @@ def check_goesR_RTdata(startdate, enddate, experiment, flux_type):
         
     """
     if flux_type == "differential":
-        sys.exit("check_goesR_RTdata: This subroutine is only valid for GOES-R "
-                "integral fluxes. Please set the flux_type to integral and try "
+        sys.exit("check_goes_RTdata: This subroutine is only valid for GOES real time "
+                "integral fluxes. Please set the FluxType (flux_type) to integral and try "
                 "again.")
     
     styear = startdate.year
@@ -738,7 +750,7 @@ def check_goesR_RTdata(startdate, enddate, experiment, flux_type):
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
         fname1 = date_suffix + prefix + '.csv'
-        exists1 = os.path.isfile(datapath + '/GOES-R/' + fname1)
+        exists1 = os.path.isfile(datapath + '/GOES_RT/' + fname1)
 
         if not exists1:
         #https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=2023-05-23T00:00:00.0Z&time.max=2023-05-24T00:00:00.0Z&format=csv
@@ -751,14 +763,14 @@ def check_goesR_RTdata(startdate, enddate, experiment, flux_type):
                 urllib.request.urlopen(url)
                 #iSWA only returns a filename if the data is present. Should avoid
                 #creating empty files.
-                fnm = wget.download(url, datapath + '/GOES-R/' + fname1)
+                fnm = wget.download(url, datapath + '/GOES_RT/' + fname1)
                 print("Downloading GOES data " + url)
             except urllib.request.HTTPError:
                 print("Cannot access GOES-R file at " + url +
                ". Please check that selected spacecraft covers date range. Continuing.")
                 return filenames1, filenames2, filenames_orien, date
 
-        filenames1.append('GOES-R/' + fname1)
+        filenames1.append('GOES_RT/' + fname1)
 
     return filenames1, filenames2, filenames_orien, date
 
@@ -769,12 +781,16 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
         This will allow the creation of a long flux timeseries
         with multiple GOES satellites included.
         
-        The subroutine will search the experiments in backwards
-        time order to ensure that data from the newest spacecraft
-        is given preference.
+        Data availability are searched for spacecraft in an order
+        of preference, given by:
+        ["GOES-13","GOES-15","GOES-11", "GOES-14",
+        "GOES-09", "GOES-08","GOES-16","GOES-17","GOES-18"]
+        
+        The first spacecraft encountered with data for the requested
+        time period is selected.
         
         ONLY ALLOW FOR INTEGRAL FLUXES, OTHERWISE RUN INTO PROBLEM
-        OF ENERGY BINS.
+        OF MISMATCHING ENERGY BINS.
         
     """
     #Search GOES data in a search order that emphasizes GOES-15 and
@@ -821,9 +837,6 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
         test_date = datetime.datetime(year=test_year, month=test_month, day=1)
     
     
-    print(get_years)
-    print(get_months)
-    
     #Read in data one month at a time
     
     for k in range(len(get_months)):
@@ -849,20 +862,16 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
             #until 2020-03-08. The real time fluxes archived at CCMC
             #prior to that date are from other GOES spacecraft.
             if stdate < datetime.datetime(year=2020,month=3,day=8):
-                if goes[i] == "GOES-16" or goes[i] == "GOES-17" \
-                or goes[i] == "GOES-18":
+                if goes[i] in goes_R:
                     continue
         
-            if goes[i] != "GOES-16" and goes[i] != "GOES-17"\
-                and goes[i] != "GOES-18":
+            if goes[i] not in goes_R:
                 filenames1, filenames2, filenames_orien, date = \
                      check_goes_data(stdate, enddt, goes[i], flux_type)
                 
-            if (goes[i] == "GOES-16" or goes[i] == "GOES-17"
-                or goes[i] == "GOES-18") and \
-                flux_type == "integral":
+            if (goes[i] in goes_R) and flux_type == "integral":
                 filenames1, filenames2, filenames_orien, date = \
-                 check_goesR_RTdata(stdate, enddt, goes[i], flux_type)
+                 check_goes_RTdata(stdate, enddt, goes[i], flux_type)
                  
 #            if (goes[i] == "GOES-16" or goes[i] == "GOES-17") and \
 #                flux_type == "differential":
@@ -873,8 +882,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
                 filenames1_all.extend(filenames1)
                 detector.extend([goes[i]]*len(filenames1))
                 
-                outfile.write(str(year)+","+str(month)+","
-                    +goes[i]+"\n")
+                outfile.write(str(year)+","+str(month)+"," +goes[i]+"\n")
                 
                 if filenames2 == []:
                     filenames2_all.extend([None]*len(filenames1))
@@ -1322,7 +1330,7 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
         return filenames1, filenames2, filenames_orien, detector
 
     #Specific GOES prior to GOES-R, e.g. GOES-13 or GOES-08
-    if experiment[0:4] == "GOES" and experiment != "GOES-16" and experiment != "GOES-17" and experiment != "GOES-18":
+    if experiment[0:4] == "GOES" and (experiment not in goes_R) and experiment != "GOES_RT":
         filenames1, filenames2, filenames_orien, date =\
             check_goes_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
@@ -1337,16 +1345,14 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
  #       return filenames1, filenames2, filenames_orien
 
 
-    if (experiment == "GOES-16" or experiment == "GOES-17"
-        or experiment == "GOES-18") and flux_type == "differential":
+    if (experiment in goes_R) and flux_type == "differential":
         filenames1, filenames2, filenames_orien, date =\
             check_goesR_data(startdate,enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
         
-    if (experiment == "GOES-16" or experiment == "GOES-17"
-        or experiment == "GOES-18") and flux_type == "integral":
+    if (experiment == "GOES_RT") and flux_type == "integral":
         filenames1, filenames2, filenames_orien, date =\
-            check_goesR_RTdata(startdate,enddate, experiment, flux_type)
+            check_goes_RTdata(startdate,enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
         
 
@@ -1892,8 +1898,8 @@ def zulu_to_time(zt):
 
 
 
-def read_in_goesR_RT(experiment, flux_type, filenames1):
-    """ Read in GOES-R data from your computer.
+def read_in_goes_RT(experiment, flux_type, filenames1):
+    """ Read in GOES_RT real time data from your computer.
         Read in the NOAA SWPC real time integral flux files from
         the 1 day json files for the primary GOES spacecraft.
         These files are archived on the CCMC website.
@@ -2037,11 +2043,9 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
     #Read in each file one at a time because they may be different
     #detectors for each file
     for i in range(len(filenames1)):
-        if (detector[i] == "GOES-16" or detector[i] == "GOES-17"
-            or detector[i] == "GOES-18") and\
-            flux_type == "integral":
+        if (detector[i] == "GOES_RT") and flux_type == "integral":
             all_dates, all_fluxes, west_detector = \
-                read_in_goesR_RT(detector[i], flux_type, [filenames1[i]])
+                read_in_goes_RT(detector[i], flux_type, [filenames1[i]])
             
             all_dates_out.extend(all_dates)
             for k in range(nbins):
@@ -2053,14 +2057,11 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
                     all_fluxes_out[k].extend(all_fluxes[idx,0:len(all_dates)])
                 
                 
-        if (detector[i] == "GOES-16" or detector[i] == "GOES-17"
-            or detector[i] == "GOES-18") and\
-            flux_type == "differential":
+        if (detector[i] in goes_R) and flux_type == "differential":
             all_dates, all_fluxes, west_detector = \
                 read_in_goesR(detector[i], flux_type, [filenames1[i]])
                 
-        if detector[i] != "GOES-16" and detector[i] != "GOES-17" \
-                and detector[i] != "GOES-18":
+        if (detector[i] not in goes_R) and detector[i] != "GOES_RT":
             all_dates, all_fluxes, west_detector = \
                 read_in_goes(detector[i], flux_type, [filenames1[i]],
                     [filenames2[i]], [filenames_orien[i]], options)
@@ -2673,23 +2674,21 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
                     flux_type, filenames1, filenames2, filenames_orien,\
                     options, detector)
         return all_dates, all_fluxes, west_detector
-        
-    if experiment[0:4] == "GOES" and experiment != "GOES-16" and experiment != "GOES-17" and experiment != "GOES-18":
+    
+    if experiment[0:4] == "GOES" and (experiment not in goes_R) and experiment != "GOES_RT":
         all_dates, all_fluxes, west_detector =\
             read_in_goes(experiment, flux_type, filenames1,
                 filenames2, filenames_orien, options)
         return all_dates, all_fluxes, west_detector
         
-    if (experiment == "GOES-16" or experiment == "GOES-17"
-        or experiment == "GOES-18") and flux_type == "differential":
+    if experiment in goes_R and flux_type == "differential":
         all_dates, all_fluxes, west_detector =\
             read_in_goesR(experiment,flux_type, filenames1)
         return all_dates, all_fluxes, west_detector
         
-    if (experiment == "GOES-16" or experiment == "GOES-17"
-        or experiment == "GOES-18") and flux_type == "integral":
+    if (experiment == "GOES_RT") and flux_type == "integral":
         all_dates, all_fluxes, west_detector =\
-            read_in_goesR_RT(experiment,flux_type, filenames1)
+            read_in_goes_RT(experiment,flux_type, filenames1)
         return all_dates, all_fluxes, west_detector
 
     if experiment == "EPHIN":
@@ -3342,21 +3341,15 @@ def define_energy_bins(experiment,flux_type,west_detector,options):
                     energy_bins[9] = [878.6,1230.0] #P11
 
 
-    if experiment == "GOES-16" or experiment == "GOES-17"\
-        or experiment == "GOES-18":
+    if experiment in goes_R:
         if flux_type == "differential":
-            #energy_bins = [[83.7,98.5],
-            #               [99.9,118.0],[115.0,143.0],[160.0,242.0],
-            #               [276.0,404.0],[500.0,-1]]
             energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
                            [3.4,6.48],[5.84,11.0],[11.64,23.27],
                            [24.9,38.1],[40.3,73.4],[83.7,98.5],
                            [99.9,118.0],[115.0,143.0],[160.0,242.0],
                            [276.0,404.0],[500.0,-1]]
-            #energy_bins = [[5.84,11.0],[11.64,23.27],
-            #               [24.9,38.1],[40.3,73.4],[83.7,98.5],
-            #               [99.9,118.0],[115.0,143.0],[160.0,242.0],
-            #               [276.0,404.0],[500.0,-1]]
+
+    if experiment == "GOES_RT":
         if flux_type == "integral":
             energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1]]
     

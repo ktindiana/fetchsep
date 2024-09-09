@@ -22,7 +22,6 @@ import array as arr
 import pandas as pd
 import scipy
 
-__version__ = "0.2"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
