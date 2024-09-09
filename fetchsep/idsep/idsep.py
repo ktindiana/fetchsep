@@ -209,7 +209,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     #For idsep, it is acceptable to include fluxes across slightly
     #different energy channels for the purposes of SEP identification.
     if experiment == "ERNE":
-        version = datasets.which_erne(all_dates)
+        version = datasets.which_erne(startdate, enddate)
         energy_bins = datasets.define_energy_bins(version, flux_type, \
                                 west_detector, options)
     else:
