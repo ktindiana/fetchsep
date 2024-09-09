@@ -3,6 +3,7 @@ from ..utils import read_datasets as datasets
 from ..utils import date_handler as dateh
 from ..utils import define_background_idsep as defbg
 from ..utils import plotting_tools as plt_tools
+from ..utils import error_check
 import re
 import calendar
 import datetime
@@ -91,64 +92,6 @@ def about_idsep():
         SEP fluxes only.
         
     """
-
-def error_check_inputs(startdate, enddate, experiment, flux_type):
-    """ Check that all of the user inputs make sense and fall within bounds.
-        
-        INPUTS:
-        
-        :startdate: (datetime) - start of time period entered by user
-        :enddate: (datetime) - end of time period entered by user
-        :experiment: (string) - name of experiment specifed by user
-        :flux_type: (string) - integral or differential
-            
-        OUTPUTS:
-        
-        None, but system exit if error found
-    """
-    #CHECKS ON INPUTS
-    if (enddate < startdate):
-        sys.exit('End time before start time! Enter a valid date range. '
-                'Exiting.')
-
-    dt = enddate - startdate
-    if (dt.days < init_win):
-        print(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
-            'is less than the '
-            f'length of the background subtraction window, init_win={init_win} days. '
-            'fetchsep is extending the time frame automatically to run and '
-            'trimming results to requested time frame at the end. Continuing.')
-        
-    if flux_type == "":
-        sys.exit('User must indicate whether input flux is integral or '
-                'differential. Exiting.')
-
-    if (experiment == "SEPEM" and flux_type == "integral"):
-        sys.exit('The SEPEM (RSDv2) data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-
-    if (experiment == "SEPEMv3" and flux_type == "integral"):
-        sys.exit('The SEPEM (RSDv3) data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-
-    if ((experiment == "EPHIN" or experiment == "EPHIN_REleASE") \
-        and flux_type == "integral"):
-        sys.exit('The SOHO/EPHIN data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-
-    sepem_end_date = datetime.datetime(2015,12,31,23,55,00)
-    if(experiment == "SEPEM" and (startdate > sepem_end_date or
-                   enddate > sepem_end_date)):
-        sys.exit('The SEPEM (RSDv2) data set only extends to '
-                  + str(sepem_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-    sepemv3_end_date = datetime.datetime(2017,12,31,23,55,00)
-    if(experiment == "SEPEMv3" and (startdate > sepemv3_end_date or
-                   enddate > sepemv3_end_date)):
-        sys.exit('The SEPEM (RSDv3) data set only extends to '
-                  + str(sepemv3_end_date) +
-            '. Please change your requested dates. Exiting.')
 
 
 
@@ -656,7 +599,9 @@ def run_all(str_startdate, str_enddate, experiment,
     if diff < init_win*2:
         eff_startdate = enddate - datetime.timedelta(days=init_win*2)
     
-    error_check_inputs(startdate, enddate, experiment, flux_type)
+    error_check.error_check_options(experiment, flux_type, options, doBGSub)
+    error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
+        subroutine='idsep')
     datasets.check_paths()
     
     #READ IN FLUXES

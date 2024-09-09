@@ -7,7 +7,6 @@ import os
 import pandas as pd
 import shutil
 
-__version__ = "1.0"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"

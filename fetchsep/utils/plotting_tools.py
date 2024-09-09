@@ -14,7 +14,6 @@ from pandas.plotting import register_matplotlib_converters
 import warnings
 import os
 
-__version__ = "0.6"
 __author__ = "Phil Quinn, Kathryn Whitman"
 __maintainer__ = "Phil Quinn"
 __email__ = "philip.r.quinn@nasa.gov"
@@ -30,20 +29,6 @@ __email__ = "philip.r.quinn@nasa.gov"
 #Changes in 0.5: correlation_plot subroutine added by K. Whitman
 #2021-09-03, changes in 0.6: Set a limiting value or 1e-4 on the
 #   axes in correlation_plot
-
-#####UNITS#####
-energy_units = cfg.energy_units
-flux_units_integral = cfg.flux_units_integral
-fluence_units_integral = cfg.fluence_units_integral
-flux_units_differential = cfg.flux_units_differential
-fluence_units_differential = cfg.fluence_units_differential
-
-
-#See full program description in all_program_info() below
-datapath = cfg.datapath
-outpath = cfg.outpath + "/opsep"
-plotpath = cfg.plotpath + "/opsep"
-badval = cfg.badval #bad data points will be set to this value; must be negative
 
 
 def plot_marginals(y_true, y_pred, scale="linear",
@@ -592,15 +577,15 @@ def setup_modifiers(options, doBGSub):
     return modifier, title_mod
 
 
-def setup_energy_bin_label(energy_bin, energy_units):
+def setup_energy_bin_label(energy_bin):
     """ Label for a single energy bin.
     
     """
     label = ""
     if energy_bin[1] != -1:
-        label = (f"{energy_bin[0]}-{energy_bin[1]} {energy_units}")
+        label = (f"{energy_bin[0]}-{energy_bin[1]} {cfg.energy_units}")
     else:
-        label = (f">{energy_bin[0]} {energy_units}")
+        label = (f">{energy_bin[0]} {cfg.energy_units}")
 
     return label
 
@@ -650,8 +635,8 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         figname = (f"{exp_name}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
     
     #UNITS
-    if flux_type == "integral": flux_units = flux_units_integral
-    if flux_type == "differential": flux_units = flux_units_differential
+    if flux_type == "integral": flux_units = cfg.flux_units_integral
+    if flux_type == "differential": flux_units = cfg.flux_units_differential
 
     nbins = len(energy_bins)
     for i in range(nbins):
@@ -662,7 +647,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
-        legend_label = setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = setup_energy_bin_label(energy_bins[i])
             
         #PLOT FLUXES
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
@@ -683,7 +668,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
                       facecolor='lightgray', edgecolor='black')
 
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(plotpath,(f"{figname}{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}{i}.png")))
  
         #increment to next axis
         iax += 1
@@ -704,8 +689,8 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         figname = (f"{exp_name}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
  
     flux_units = ''
-    if flux_type == "integral": flux_units = flux_units_integral
-    if flux_type == "differential": flux_units = flux_units_differential
+    if flux_type == "integral": flux_units = cfg.flux_units_integral
+    if flux_type == "differential": flux_units = cfg.flux_units_differential
 
     nbins = len(energy_bins)
     for i in range(nbins):
@@ -716,7 +701,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
-        legend_label = setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = setup_energy_bin_label(energy_bins[i])
 
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
         ax[iax].plot_date(dates,maskfluxes,'.-',label=legend_label)
@@ -726,7 +711,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
                       facecolor='lightgray', edgecolor='black')
                       
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(plotpath,(f"{figname}{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}{i}.png")))
  
         #increment to next axis
         iax += 1
@@ -748,8 +733,8 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         figname = (f"{exp_name}_{flux_type}{modifier}_SEP_BG_{unique_id}")
 
     flux_units = ''
-    if flux_type == "integral": flux_units = flux_units_integral
-    if flux_type == "differential": flux_units = flux_units_differential
+    if flux_type == "integral": flux_units = cfg.flux_units_integral
+    if flux_type == "differential": flux_units = cfg.flux_units_differential
 
     nbins = len(energy_bins)
     for i in range(nbins):
@@ -760,7 +745,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
-        legend_label = setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = setup_energy_bin_label(energy_bins[i])
 
         maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
         ax[iax].plot_date(dates,maskfluxes_bg,'.-',label=(f"Background {legend_label}"))
@@ -772,7 +757,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
                       facecolor='lightgray', edgecolor='black')
         
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(plotpath,(f"{figname}{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}{i}.png")))
  
         #increment to next axis
         iax += 1
@@ -818,7 +803,7 @@ def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, da
         thresh = np.multiply(ave_sigma[i][1],nsigma)
         if i != 0 and not i%3:
             if saveplot:
-                fig.savefig(plotpath + '/' +figname + '.png')
+                fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
             figname = figname + str(i)
             fig = plt.figure(figname,figsize=(12,8))
             ax = plt.subplot(111)
@@ -829,16 +814,16 @@ def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, da
         legend_label = ""
         if energy_bins[i][1] != -1:
             legend_label = str(energy_bins[i][0]) + '-' \
-                    + str(energy_bins[i][1]) + ' ' + energy_units
+                    + str(energy_bins[i][1]) + ' ' + cfg.energy_units
         else:
-            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
+            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + cfg.energy_units
 
         ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
         ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
         
         flux_units = ''
-        if flux_type == "integral": flux_units = flux_units_integral
-        if flux_type == "differential": flux_units = flux_units_differential
+        if flux_type == "integral": flux_units = cfg.flux_units_integral
+        if flux_type == "differential": flux_units = cfg.flux_units_differential
         
         if i==0:
             plt.title(experiment + ' '+ title_mod + ' ' + unique_id\
@@ -857,7 +842,7 @@ def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, da
  
  
         if saveplot and i == nbins-1:
-            fig.savefig(plotpath + '/' +figname + '.png')
+            fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
     
     if not showplot:
         plt.close(fig)

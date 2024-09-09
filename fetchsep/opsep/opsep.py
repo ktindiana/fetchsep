@@ -2,6 +2,7 @@ from ..utils import read_datasets as datasets
 from ..utils import config as cfg
 from ..json import ccmc_json_handler as ccmc_json
 from ..utils import derive_background_opsep as bgsub
+from ..utils import error_check
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -2675,157 +2676,6 @@ def print_values_to_file(experiment, flux_type, options, doBGSub,
     return year, month, day, True
 
 
-def error_check_options(experiment, flux_type, options, doBGSub):
-    """ Make sure the selected options make sense for the experiment.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral or differential
-        :options: (string array) - various options applied to GOES data
-        :doBGSub: (boolean) - indicates if background subtraction to be
-            performed
-        
-        OUTPUTS:
-        
-        no outputs by system exit if error found
-        
-    """
-    if "S14" in options and experiment[0:4] != "GOES":
-        sys.exit("Sandberg et al. (2014) effective energies (S14) may only "
-            "be applied to GOES data.")
-    if "S14" in options and "uncorrected" not in options:
-        sys.exit("Sandberg et al. (2014) effective energies (S14) may only be "
-            "applied to GOES uncorrected fluxes. Please add "
-            "\"uncorrected\" to options.")
-    if "uncorrected" in options and flux_type == "integral":
-        sys.exit("The uncorrected option cannot be used with integral fluxes. "
-                "Please remove this option and run again. Exiting.")
-    if "uncorrected" in options and experiment[0:4] != "GOES":
-        sys.exit("The uncorrected option may only be specified for GOES "
-                "differential fluxes. Exiting.")
-    if "Bruno2017" in options and (experiment != "GOES-13" and \
-        experiment != "GOES-15"):
-        sys.exit("Bruno2017 effective energies may only be appied to GOES-13 "
-                "or GOES-15 fluxes. Exiting.")
-    if "S14" in options and (experiment == "GOES-13" or \
-        experiment == "GOES-15"):
-        print("Sandberg et al. (2014) effective energies found for GOES-11 "
-            "will be applied to channels P2-P7. Continuing.")
-    if "S14" in options and "Bruno2017" in options:
-        print("Sandberg et al. (2014) effective energies from GOES-11 will be "
-            "applied to P2-P5. Bruno (2017) effective energies will be applied "
-            "to P6-P11.")
-    if doBGSub and experiment[0:4] == "GOES" and flux_type == "integral":
-        sys.exit("Do not perform background subtraction on GOES integral "
-                "fluxes. Integral fluxes have already been derived by "
-                "applying corrections for cross-contamination and removing "
-                "the instrument background levels.")
-    if ("uncorrected" in options or "S14" in options or "Bruno2017" in options)\
-                and experiment[0:4] != "GOES":
-        sys.exit("The options you have selected are only applicable to GOES "
-                "data. Please remove these options and run again: "
-                "uncorrected, S14, or Bruno2017.")
-
-
-
-def error_check_inputs(startdate, enddate, experiment, flux_type, json_type,
-    is_diff_thresh):
-    """ Check that all of the user inputs make sense and fall within bounds.
-        
-        INPUTS:
-        
-        :startdate: (datetime) - start of time period entered by user
-        :enddate: (datetime) - end of time period entered by user
-        :experiment: (string) - name of experiment specifed by user
-        :flux_type: (string) - integral or differential
-        :json_type: (string) - model or observations, only needed if "user" experiment
-        :is_diff_thresh: (bool 1xn array) - where n indicates the number of
-            thresholds input by the user, e.g. "30,1;50,1" n=2
-            Indicates if the user-input thresholds apply to integral or
-            differential channels
-            
-        OUTPUTS:
-        
-        None, but system exit if error found
-        
-    """
-    #CHECKS ON INPUTS
-    if (enddate < startdate):
-        sys.exit('End time before start time! Enter a valid date range. '
-                'Exiting.')
-                
-    if flux_type == "":
-        sys.exit('User must indicate whether input flux is integral or '
-                'differential. Exiting.')
-
-    if (experiment == "SEPEM" and flux_type == "integral"):
-        sys.exit('The SEPEM (RSDv2) data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-
-    if (experiment == "SEPEMv3" and flux_type == "integral"):
-        sys.exit('The SEPEM (RSDv3) data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-
-    if ((experiment == "EPHIN" or experiment == "EPHIN_REleASE") \
-        and flux_type == "integral"):
-        sys.exit('The SOHO/EPHIN data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-    
-    #UNTIL NOAA PROVIDES A SUPPORTED INTEGRAL PRODUCT
-    if ((experiment == "GOES-16" or experiment == "GOES-17") \
-        and flux_type == "integral"):
-        print('Note: The GOES-R integral fluxes are the daily real time fluxes '
-            'for the primary GOES spacecraft served by NOAA and archived at CCMC. '
-            'These are not NOAA\'s official L2 fluxes, which are not '
-            'yet available in the GOES-R archive. (as of 2022-02-11)')
-            
-    if experiment == "user" and (json_type != "model" \
-        and json_type != "observations"):
-        sys.exit('User experiments must specify a JSONType of \"model\" or '
-            '\"observations\". Please change your JSONType. Exiting.')
-
-    for diff_thresh in is_diff_thresh:
-        if diff_thresh and flux_type == "integral":
-            sys.exit('The input flux type is specified as integral, but you '
-                    'have requested a threshold in a differential energy bin. '
-                    'Flux must be differential to impelement a threshold on a '
-                    'differential energy bin. Exiting.')
-
-    sepem_end_date = datetime.datetime(2015,12,31,23,55,00)
-    if(experiment == "SEPEM" and (startdate > sepem_end_date or
-                   enddate > sepem_end_date + datetime.timedelta(days=1))):
-        sys.exit('The SEPEM (RSDv2) data set only extends to '
-                  + str(sepem_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-    sepemv3_end_date = datetime.datetime(2017,12,31,23,55,00)
-    if(experiment == "SEPEMv3" and (startdate > sepemv3_end_date or
-                   enddate > sepemv3_end_date + datetime.timedelta(days=1))):
-        sys.exit('The SEPEM (RSDv3) data set only extends to '
-                  + str(sepemv3_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-    
-    goes16_integral_stdate = datetime.datetime(2020,3,8)
-    if(experiment == "GOES-16" or experiment == "GOES-17") \
-        and startdate < goes16_integral_stdate:
-        if startdate >= datetime.datetime(2017,9,1) and \
-            startdate <= datetime.datetime(2017,9,20):
-            print("error_check_inputs: Only special event data for September 2017 is available for GOES-16.")
-        else:
-            sys.exit('The GOES-16 real time integral fluxes are only available '
-                    + 'starting on '+ str(goes16_integral_stdate) +
-                '. Please change your requested dates. Exiting.')
-            
-    stereoB_end_date = datetime.datetime(2014,9,27,16,26,00)
-    if(experiment == "STEREO-B" and (startdate > stereoB_end_date or
-                   enddate > stereoB_end_date + datetime.timedelta(days=1))):
-        sys.exit('The STEREO-B data set only extends to '
-                  + str(stereoB_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-
 def sort_bin_order(all_fluxes, energy_bins):
     """Check the order of the energy bins. Usually, bins go from
         low to high energies, but some modelers or users may
@@ -3648,8 +3498,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     enddate = str_to_datetime(str_enddate)
 
     #PERFORM CHECKS AND VALIDATE INPUTS
-    error_check_options(experiment, flux_type, options, doBGSub)
-    error_check_inputs(startdate, enddate, experiment, flux_type, json_type, is_diff_thresh)
+    error_check.error_check_options(experiment, flux_type, options, doBGSub)
+    error_check.error_check_inputs(startdate, enddate, experiment, flux_type, json_type, is_diff_thresh)
     datasets.check_paths()
     
     #READ IN FLUXES AND ENERGY BINS, BG SUBTRACT, INTERPOLATE
