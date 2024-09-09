@@ -2835,7 +2835,7 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
         west_detector = []
     #Define energy bins
     if experiment == "ERNE":
-        version = datasets.which_erne(all_dates)
+        version = datasets.which_erne(startdate, enddate)
         energy_bins = datasets.define_energy_bins(version, flux_type, \
                                 west_detector, options)
     else:

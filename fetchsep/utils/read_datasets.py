@@ -2775,8 +2775,8 @@ def read_in_user_files(filenames1, is_unixtime=False):
     NFILES = len(filenames1)
     ncol = len(user_col) #include column for date
     for i in range(NFILES):
-        print('Reading in ' + datapath + '/' + filenames1[i])
-        with open(datapath + '/' + filenames1[i]) as csvfile:
+        print('Reading in ' + filenames1[i])
+        with open(filenames1[i]) as csvfile:
             #Count header lines indicated by hash #
             nhead = 0
             for line in csvfile:
@@ -2841,8 +2841,7 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     #print("Read in flux for column " + str(user_col[j]) + ': '\
                     #    + str(date)) #+ ' ' + row[user_col[j]])
                     #print(row)
-                    if user_col_mod ==[] or j >= len(user_col_mod) \
-                        or user_col_mod[j] >= len(row):
+                    if user_col_mod[j] >= len(row):
                         sys.exit("read_datasets: read_in_user_files: "
                             "Something is wrong with reading in the "
                             "user files (mismatch in number of "
@@ -2859,15 +2858,13 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     fluxes[j][count] = flux
                 count = count + 1
 
-        #Remove dates that have None values (because they were n/a in
-        #REleASE)
+        #Remove dates that have None values
         for k in range(len(dates)-1,-1,-1):
             if None in fluxes[:,k] or np.isnan(np.sum(fluxes[:,k])):
                 del dates[k]
                 fluxes = np.delete(fluxes, k, 1)
 
         #If reading in multiple files, then combine all data into one array
-        #SEPEM currently only has one file, but making generalized
         if i==0:
             all_fluxes = fluxes
             all_dates = dates
@@ -3035,8 +3032,10 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
             the date range specified by startdate and enddate
         :fluxes: (float nxp array) flux time profiles for n energy
             channels and p time points
-        :energy_bins: (float nx2 array) energy bins associated with     fluxes
-        :dointerp: (bool) Set True to perform linear interpolation in   time, otherwise will fill bad data points with None values
+        :energy_bins: (float nx2 array) energy bins associated with
+            fluxes
+        :dointerp: (bool) Set True to perform linear interpolation in
+            time, otherwise will fill bad data points with None values
             
         OUTPUT:
         
@@ -3095,9 +3094,16 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
     return fluxes
 
 
-def which_erne(dates):
+def which_erne(startdate, enddate):
     """ ERNE energy bins depend on the dates of the data.
         Identify the appropriate calibration.
+        
+        For now, requiring the user to choose dates that do not
+        cross time periods with different energy bins.
+        f40, f40brk, and f50 actually have all the same energy bins,
+        so will require that users select a time period contained within:
+        1995-12-02 to 2000-04-18 for f10
+        2000-04-19 to present for f40
         
         From export_data_description.txt:
         
@@ -3142,17 +3148,18 @@ def which_erne(dates):
     date_f50 = datetime.datetime(2001,7,3)
     
     #SIMPLE SOLUTION TO GET IT WORK FOR THE MOMENT, MUST EXPAND ON THIS
-    if dates[0] >= date_f10 and dates[0] < date_f40:
+    if startdate >= date_f10 and enddate < date_f40:
         return "ERNEf10"
 
-    if dates[0] >= date_f40 and dates[0] < date_f40brk:
+    if startdate >= date_f40:
         return "ERNEf40"
 
-    if dates[0] >= date_f40brk and dates[0] < date_f50:
-        return "ERNEf40brk"
-
-    if dates[0] >= date_f50:
-        return "ERNEf50"
+    if startdate < date_f40 and enddate >= date_f40:
+        sys.exit("ERNE data has different two different sets of energy channels "
+                "for the date ranges specified. Please choose all data to be "
+                "contained within these date ranges:\n" \
+                + str(date_f10) + " to " +  str(date_f40) + "\n" \
+                + str(date_f40) + " to present")
 
 
 
