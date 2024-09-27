@@ -87,7 +87,7 @@ user_col = cfg.user_col
 user_delim = cfg.user_delim
 user_energy_bins = cfg.user_energy_bins
 
-#Spacecraft in the GOES-R series
+#Spacecraft in the GOES-R+ series
 goes_R = ["GOES-16", "GOES-17", "GOES-18"]
 
 def about_read_datasets():
@@ -96,16 +96,18 @@ def about_read_datasets():
         Subroutines that are required to read in the data sets
         native to this code or the user-specified data set.
         
-        Reads GOES-08 to GOES-15, GOES-R, SOHO/EPHIN Level 3 data,
-        SOHO/EPHIN data from the REleASE website, SEPEM RDSv2
-        and SEPEM RDSv3 (if the user downloads and unzips the
+        Reads GOES-08 to GOES-15, GOES-R+ (-16, -17, -18),
+        SOHO/ERNE data, SOHO/EPHIN Level 3 data,
+        SOHO/EPHIN data from the REleASE website, SRAG's CalGOES,
+        STEREO-A, STEREO-B, SEPEM RDSv2 and SEPEM RDSv3
+        (if the user downloads and unzips the
         files into the data directory).
         
         When possible, data is pulled from online databases and
         saved on your computer in the directory specified by
         datapath in global_vars.py. The default path is "data".
         
-        Data files will be stored in subdirectories named as:
+        Data files will be stored in subdirectories named as, e.g.:
         
         * data/GOES/
         * data/SEPEM/  (user must make this directory and put data inside)
@@ -547,11 +549,11 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
 
 
 def check_goesR_data(startdate, enddate, experiment, flux_type):
-    """Check that GOES-R data is on your computer or download it from the NOAA
+    """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
-        GOES-R files are saved daily in cdf format.
+        GOES files are saved daily in cdf format.
         
-        GOES-16 & 17 differential fluxes are the official science-grade product
+        GOES differential fluxes are the official science-grade product
         provided by NOAA SWPC.
         
         INPUTS:
@@ -574,7 +576,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         
     """
     if flux_type == "integral":
-        sys.exit("check_goesR_data: This subroutine is only valid for GOES-R "
+        sys.exit("check_goesR_data: This subroutine is only valid for GOES-R+ "
                 "differential fluxes. Please set the flux_type to differential "
                 "and try again.")
                 
@@ -604,8 +606,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                ". Please check that the url is still active.")
                 return filenames1, filenames2, filenames_orien, startdate
 
-        
-        filenames1.append('GOES-R/' + fname1)
+        filenames1.append(os.path.join('GOES',fname1))
         return filenames1, filenames2, filenames_orien, startdate
     
     
@@ -642,7 +643,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         foundfile = None
         for ext in file_ext:
             fname_data = prefix + date_suffix + ext
-            exists = os.path.isfile(datapath + '/GOES-R/' + fname_data)
+            exists = os.path.isfile(os.path.join(datapath,'GOES',fname_data))
             if exists:
                 foundfile = fname_data
             
@@ -653,20 +654,43 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                 url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
                 try:
                     urllib.request.urlopen(url)
-                    wget.download(url, datapath + '/GOES-R/' + fname_data)
+                    wget.download(url, os.path.join(datapath,'GOES',fname_data))
                     foundfile = fname_data
                     break
                 except urllib.request.HTTPError:
                     foundfile = None
 
         if foundfile == None:
-            print("Cannot access GOES-R file at " + url +
+            print("Cannot access GOES file at " + url +
                ". Tried file versions " + str(file_ext) + ". Please check that selected spacecraft covers date range.")
             return filenames1, filenames2, filenames_orien, date
 
-        filenames1.append('GOES-R/' + foundfile)
+        filenames1.append(os.path.join('GOES', foundfile))
         
     return filenames1, filenames2, filenames_orien, date
+
+
+
+def rerequest(url, tries=0):
+    """
+    Runs requests.get() until a response is received to avoid chokepoints
+
+    Parameters
+    ----------
+    url : string
+        URL where desired data resides
+    tries [untouched by user] : int
+        Number of attempts
+    """
+
+    # end the requesting process if tries > 5
+    if tries > 5:
+        raise Exception(url + " refuses to respond after 5 attempts. Exiting.")
+    try:
+        output = requests.get(url, timeout=10.0)
+        return output
+    except requests.exceptions.Timeout as e:
+        return rerequest(url, tries + 1)
 
 
 def check_goes_RTdata(startdate, enddate, experiment, flux_type):
@@ -722,11 +746,11 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
     endday = enddate.day
 
     #Array of filenames that contain the data requested by the User
-    filenames1 = []  #GOES-R
+    filenames1 = []  #GOES_RT files
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
-    #GOES-R data is stored in daily data files
+    #Choose to download daily data files
     td = enddate - startdate
     NFILES = td.days #number of data files to download
     if td.seconds > 0: NFILES = NFILES + 1
@@ -750,27 +774,38 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
         fname1 = date_suffix + prefix + '.csv'
-        exists1 = os.path.isfile(datapath + '/GOES_RT/' + fname1)
+        exists1 = os.path.isfile(os.path.join(datapath, 'GOES_RT', fname1))
 
         if not exists1:
-        #https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=2023-05-23T00:00:00.0Z&time.max=2023-05-24T00:00:00.0Z&format=csv
-        #Note that iSWA will return an empty csv file if make a request into the future or the
-        #data isn't present yet. This can cause idsep or opsep to think the data is
-        #already present on the computer and leave it as an empty file.
-        
+            #https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=2023-05-23T00:00:00.0Z&time.max=2023-05-24T00:00:00.0Z&format=csv
+            #Note that iSWA will return an empty csv file if make a request into the future or the
+            #data isn't present yet. This can cause idsep or opsep to think the data is
+            #already present on the computer and leave it as an empty file.
+
             url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
-            try:
-                urllib.request.urlopen(url)
-                #iSWA only returns a filename if the data is present. Should avoid
-                #creating empty files.
-                fnm = wget.download(url, datapath + '/GOES_RT/' + fname1)
-                print("Downloading GOES data " + url)
-            except urllib.request.HTTPError:
-                print("Cannot access GOES-R file at " + url +
-               ". Please check that selected spacecraft covers date range. Continuing.")
+            print("Trying to download url: " + url)
+            response = rerequest(url)
+            if response.status_code == 200:
+                data = response.text
+                fileout = open(os.path.join(datapath, 'GOES_RT', fname1),'w')
+                fileout.write(data)
+                fileout.close()
+            else:
+                print(f'Failed to retrieve data. HTTP Status code: {response.status_code}')
                 return filenames1, filenames2, filenames_orien, date
 
-        filenames1.append('GOES_RT/' + fname1)
+#            try:
+#                urllib.request.urlopen(url)
+#                #iSWA only returns a filename if the data is present. Should avoid
+#                #creating empty files.
+#                fnm = wget.download(url, os.path.join(datapath, 'GOES_RT', fname1))
+#                
+#            except urllib.request.HTTPError:
+#                print("Cannot access GOES-R file at " + url +
+#               ". Please check that selected spacecraft covers date range. Continuing.")
+#                return filenames1, filenames2, filenames_orien, date
+
+        filenames1.append(os.path.join('GOES_RT', fname1))
 
     return filenames1, filenames2, filenames_orien, date
 
@@ -817,7 +852,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
     #Write dates and experiment used for those dates
     #This is meant to allow the user to know which
     #spacecraft is available for which time period
-    outfname = outpath + "/idsep/goes_experiments_dates.txt"
+    outfname = os.path.join(outpath, "idsep", "goes_experiments_dates.txt")
     outfile = open(outfname,'w')
     
     
@@ -901,7 +936,14 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
     return filenames1_all, filenames2_all, filenames_orien_all, detector
 
 
-
+def check_primary_goes_data(startdate, enddate, flux_type):
+    """ For every day in desired time range, read in data from only
+        the primary GOES satellite.
+    
+    """
+    #TO BE CONTINUED
+    
+    
 
 def check_ephin_data(startdate, enddate, experiment, flux_type):
     """Check for SOHO/COSTEP/EPHIN data on your computer. If not there,
@@ -1750,7 +1792,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
 
 
 def read_in_goesR(experiment, flux_type, filenames1):
-    """Read in GOES-R data from your computer.
+    """Read in GOES-R+ data from your computer.
         Appears that only differential channels + one >500 MeV
         integral channel are available in the files.
         
@@ -1946,7 +1988,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
     
     #Read in fluxes from files
     for i in range(NFILES):
-        with open(datapath + "/" + filenames1[i]) as infile:
+        with open(os.path.join(datapath, filenames1[i])) as infile:
         
             #6 integral channels
             #5 minute time steps up to 00:00 of the next day
@@ -2955,9 +2997,9 @@ def do_interpolation(i,dates,flux):
             if flux[j] != badval and flux[j] != None:
                 postflux = flux[j]
                 postdate = dates[j]
-                print('First point in array is bad. The first good value after '
-                    'the gap is on '+ str(dates[j]) + ' with value '
-                    + str(flux[j]))
+#                print('First point in array is bad. The first good value after '
+#                    'the gap is on '+ str(dates[j]) + ' with value '
+#                    + str(flux[j]))
                 break
         preflux = postflux
 
@@ -2967,9 +3009,9 @@ def do_interpolation(i,dates,flux):
             if flux[j] != badval and flux[j] != None:
                 preflux = flux[j]
                 predate = dates[j]
-                print('Last point in the array is bad. The first good value '
-                    'previous to gap is on '+ str(dates[j]) + ' with value '
-                    + str(flux[j]))
+ #               print('Last point in the array is bad. The first good value '
+ #                   'previous to gap is on '+ str(dates[j]) + ' with value '
+ #                   + str(flux[j]))
                 break
         postflux = preflux
 
@@ -2980,8 +3022,8 @@ def do_interpolation(i,dates,flux):
             if flux[j] != badval and flux[j] != None:
                 preflux = flux[j]
                 predate = dates[j]
-                print('The first good value previous to gap is on '
-                    + str(dates[j]) + ' with value ' + str(flux[j]))
+#                print('The first good value previous to gap is on '
+#                    + str(dates[j]) + ' with value ' + str(flux[j]))
                 break
             if j == 0:
                 sys.exit('There is a data gap at the beginning of the '
@@ -2993,8 +3035,8 @@ def do_interpolation(i,dates,flux):
             if flux[j] != badval and flux[j] != None:
                 postflux = flux[j]
                 postdate = dates[j]
-                print('The first good value after to gap is on '
-                    + str(dates[j]) + ' with value ' + str(flux[j]))
+#                print('The first good value after to gap is on '
+#                    + str(dates[j]) + ' with value ' + str(flux[j]))
                 break
             
             if j == ndates-2 and (flux[j] == badval or flux[j] == None):
@@ -3004,9 +3046,9 @@ def do_interpolation(i,dates,flux):
                 else:
                     postflux = preflux
                     postdate = predate
-                    print(' Bad values continue to the end of the data set. '
-                        'Using the first good value previous to gap on '
-                        + str(postdate) + ' with value ' + str(postflux))
+#                    print(' Bad values continue to the end of the data set. '
+#                        'Using the first good value previous to gap on '
+#                        + str(postdate) + ' with value ' + str(postflux))
 
             
 
@@ -3015,8 +3057,8 @@ def do_interpolation(i,dates,flux):
     if preflux != postflux:
         interp_flux = preflux + (dates[i] - predate).total_seconds()\
              *(postflux - preflux)/(postdate - predate).total_seconds()
-    print('Filling gap at time ' + str(dates[i])
-            + ' with interpolated flux ' + str(interp_flux))
+#    print('Filling gap at time ' + str(dates[i])
+#            + ' with interpolated flux ' + str(interp_flux))
     return interp_flux
 
 

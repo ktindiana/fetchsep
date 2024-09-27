@@ -644,7 +644,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             exp = experiment
             if experiment == 'user' and exp_name != '':
                 exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
         legend_label = setup_energy_bin_label(energy_bins[i])
@@ -655,7 +655,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     
         #PLOT BACKGROUND
         if not disable_sigma:
-            ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='.', yerr=[ave_sigma[i][0], ave_sigma[i][1]], label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
+            ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='.', yerr=ave_sigma[i], label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
         if disable_sigma:
             ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='-',
                 label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
@@ -668,13 +668,13 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
                       facecolor='lightgray', edgecolor='black')
 
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}{i}.png")))
- 
+            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
+            if not showplot:
+                plt.close(fig)
+
         #increment to next axis
         iax += 1
  
-    if not showplot:
-        plt.close(fig)
 
 
 
@@ -698,7 +698,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             exp = experiment
             if experiment == 'user' and exp_name != '':
                 exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
         legend_label = setup_energy_bin_label(energy_bins[i])
@@ -711,13 +711,13 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
                       facecolor='lightgray', edgecolor='black')
                       
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}{i}.png")))
- 
+            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
+            if not showplot:
+                plt.close(fig)
+
         #increment to next axis
         iax += 1
     
-    if not showplot:
-        plt.close(fig)
 
 
 
@@ -742,7 +742,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             exp = experiment
             if experiment == 'user' and exp_name != '':
                 exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}{i}"), exp, title_mod, unique_id, flux_units)
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
         legend_label = setup_energy_bin_label(energy_bins[i])
@@ -757,20 +757,21 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
                       facecolor='lightgray', edgecolor='black')
         
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}{i}.png")))
- 
+            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
+            if not showplot:
+                plt.close(fig)
+
         #increment to next axis
         iax += 1
     
-    if not showplot:
-        plt.close(fig)
+    
 
 
 
 
 def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
             diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot):
-    
+    #NEEDS TO BE CLEANED UP
     #Additions to titles and filenames according to user-selected options
     modifier = ''
     title_mod = ''
@@ -843,7 +844,6 @@ def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, da
  
         if saveplot and i == nbins-1:
             fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
-    
-    if not showplot:
-        plt.close(fig)
+            if not showplot:
+                plt.close(fig)
 

@@ -9,6 +9,7 @@ import zulu
 from astropy import units as u
 import os
 import sys
+import pandas as pd
 
 __version__ = "2.0"
 __author__ = "Katie Whitman"
@@ -213,6 +214,8 @@ def make_ccmc_zulu_time(dt):
     """
     if dt == None:
         return None
+    if dt is pd.NaT:
+        return pd.NaT
     if dt == 0:
         return 0
 
@@ -240,6 +243,8 @@ def zulu_to_time(zt):
         return ''
     if zt == None:
         return None
+    if zt is pd.NaT:
+        return pd.NaT
     if zt == 0:
         return 0
   
