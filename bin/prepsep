@@ -1,0 +1,75 @@
+#!/usr/bin/env python
+
+import fetchsep.utils.prepsep as prepsep
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--TargetDir", type=str, default='',
+        help=("Target directory to move files and plots "
+            "produced by OpSEP."))
+
+parser.add_argument("--PrintInfo",
+        help=("Print information about the Target directory."),
+        action="store_true")
+
+parser.add_argument("--OverwriteDates",
+        help=("Do not perform a check to ensure that only new observations "
+            "are moved to the target directory. If observations overlap in "
+            "dates or already exist in the target directory, they will be "
+            "overwritten or doubled. Use carefully."),
+        action="store_true")
+
+parser.add_argument("--DontEnforceSEPCheck",
+        help=("Do not perform a check to ensure that only approved SEP "
+            "observations are moved to the target directory. "
+            "Use carefully."),
+        action="store_true")
+
+parser.add_argument("--EndDate", type=str, default='',
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes"))
+parser.add_argument("--Experiment", type=str, choices=['GOES-08',
+        'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
+        'GOES-16', 'GOES-17','GOES-18','GOES_RT', 'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE',
+        'ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B', 'user'],
+        default='', help="Enter name of spacecraft or dataset")
+parser.add_argument("--FluxType", type=str, choices=['integral',
+        'differential'], default='',
+        help=("Do you want to use integral or differential fluxes?"))
+parser.add_argument("--Threshold", type=str, default="",
+        help=("Additional energy and flux threshold which will be used to "
+                "define the event. To define an integral flux threshold: "
+                "write 100,1 with no spaces; e.g. 100,1 indicates >100 MeV "
+                "fluxes crossing 1 pfu (1/[cm^2 s sr])."
+                "To define a differential flux threshold: write 25-40.9,0.01"
+                "with no spaces; e.g. energy bin "
+                "low edge-high edge,threshold (1/[MeV/n cm^2 s sr])). "
+                "Multiple thresholds may be entered separated by a "
+                "semi-colon with no spaces and surrounded by quotes, "
+                "e.g. \"30,1;50,1;25-40.9,0.001\""))
+parser.add_argument("--NoInterp",
+        help=("Do not fill in negative or missing fluxes via "
+                "linear interpolation in time. Set as None values "
+                "instead."), action="store_true")
+
+args = parser.parse_args()
+
+target_dir = args.TargetDir
+print_info = args.PrintInfo
+enforce_new = not args.OverwriteDates
+enforce_sep_stop = not args.DontEnforceSEPCheck
+end_date = args.EndDate
+experiment = args.Experiment
+flux_type = args.FluxType
+threshold = args.Threshold
+nointerp = args.NoInterp
+
+if print_info:
+    move_output.print_target_info(target_dir)
+
+if not print_info:
+    prepsep.update_observations(target_dir, end_date, experiment, flux_type, threshold, nointerp=nointerp)
+    prepsep.move_output(target_dir,enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
+
+

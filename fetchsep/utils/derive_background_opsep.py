@@ -55,7 +55,6 @@ def about_derive_background_opsep():
         5. Return the total flux, the background flux, and the background-subtracted SEP fluxes
     """
     
-
 def remove_none(flux):
     """ Takes 1D array of flux and removes None values.
         None values in a list are converted to NaN values in a numpy array.
@@ -72,7 +71,7 @@ def remove_none(flux):
     """
     bad_index = np.argwhere(np.isnan(flux))
     clean_flux = np.delete(flux, bad_index)
-    return clean_flux
+    return clean_flux, bad_index
 
 
 def remove_zero(flux):
@@ -89,7 +88,8 @@ def remove_zero(flux):
     """
     bad_index = np.argwhere(flux == 0)
     clean_flux = np.delete(flux, bad_index)
-    return clean_flux
+    return clean_flux, bad_index
+
 
 
 def remove_above(flux, val):
@@ -205,7 +205,7 @@ def define_hist_bins(flux):
         
     """
     if flux.any(0):
-        flux = remove_zero(flux)
+        flux, bad_index = remove_zero(flux)
     max_val = flux.max()
     min_val = flux.min()
 
@@ -253,7 +253,7 @@ def create_histogram(flux, energy_bin, iteration):
     """
     #Bad values in the data were set to None
     #Remove None values to calculate flux distribution in a histogram
-    clean_flux = remove_none(flux) #remove any None values in numpy array
+    clean_flux, bad_index = remove_none(flux) #remove any None values in numpy array
 
     #Define a set of logarithmic bins that span the flux values
     hist_bins = define_hist_bins(clean_flux)
@@ -307,8 +307,8 @@ def calc_mean_sigma(flux):
     """
     #Bad values in the data were set to None
     #Remove None values to calculate flux distribution in a histogram
-    clean_flux = remove_none(flux) #remove any None values in numpy array
-    clean_flux = remove_zero(flux) #remove any None values in numpy array
+    clean_flux, bad_index = remove_none(flux) #remove any None values in numpy array
+    clean_flux, bad_index = remove_zero(flux) #remove any None values in numpy array
     mean  = sum(clean_flux)/len(clean_flux)
     sigmasq = sum([(x-mean)**2 for x in clean_flux])/len(clean_flux)
     sigma = math.sqrt(sigmasq)

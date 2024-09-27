@@ -3,6 +3,8 @@ from ..utils import config as cfg
 from ..json import ccmc_json_handler as ccmc_json
 from ..utils import derive_background_opsep as bgsub
 from ..utils import error_check
+from ..utils import tools
+from ..utils import plotting_tools as plt_tools
 import matplotlib.pyplot as plt
 import math
 import numpy as np
@@ -1095,7 +1097,7 @@ def calculate_threshold_crossing(energy_threshold,flux_threshold,dates,fluxes):
     event_end_time = 0
     duration = 0
     npoints = 3 #require 3 points above threshold
-    tdiff = determine_time_resolution(dates)
+    tdiff = tools.determine_time_resolution(dates)
     tdiff = tdiff.total_seconds()/(60) #time resolution of data set
     if tdiff > 15:
         npoints = 1 #time resolution >15 mins, require one point above threshold
@@ -1226,30 +1228,6 @@ def get_energy_bin_index(energy_threshold, energy_bins):
             "requested: " + str(energy_threshold) +". Exiting.")
     
     
-def determine_time_resolution(dates):
-    """ The time resolution is found by taking the difference between
-        every consecutive data point. The most common difference is
-        taken as the time resolution. Even if the data set has gaps,
-        if there are enough consecutive time points in the observational
-        or model output, the correct time resolution should be identified.
-        
-        INPUTS:
-        
-        :dates: (datetime 1xm array) - dates associated with flux time profile
-        
-        OUTPUTS:
-        
-        :time_resolution: (time delta object)
-        
-    """
-    ndates = len(dates)
-    time_diff = [a - b for a,b in zip(dates[1:ndates],dates[0:ndates-1])]
-    if not time_diff:
-        sys.exit("determine_time_resolution: Require more than 1 data point "
-                "to determine time resolution. Please extend your "
-                "requested time range and try again. Exiting.")
-    time_resolution = mode(time_diff)
-    return time_resolution
 
 
 def calculate_fluence(dates, flux):
@@ -1287,7 +1265,7 @@ def calculate_fluence(dates, flux):
         
     """
     ndates = len(dates)
-    time_resolution = determine_time_resolution(dates)
+    time_resolution = tools.determine_time_resolution(dates)
     
 #    print("calculate_fluence: Identified a time resolution of "
 #            + str(time_resolution.total_seconds()) + " seconds.")
@@ -1507,7 +1485,7 @@ def calculate_event_info(energy_thresholds,flux_thresholds,dates,
         #If a threshold wasn't crossed, save the max flux as the max
         #value in the total time period
         if ct == 0:
-            pf = np.amax(integral_fluxes[i])
+            pf = np.nanmax(integral_fluxes[i])
             if math.isnan(pf):
                 pt = 0
             else:
@@ -1593,7 +1571,7 @@ def calculate_onset_peak(experiment, energy_thresholds, dates, integral_fluxes,
     run_deriv = [[]]*nthresh
     run_deriv_norm = [[]]*nthresh
     nwin = 1 #Number of points away for calculating derivative, 5 min data
-    time_resolution = determine_time_resolution(dates)
+    time_resolution = tools.determine_time_resolution(dates)
     if time_resolution > datetime.timedelta(minutes=5):
         nwin = 1
     
@@ -1659,7 +1637,7 @@ def calculate_onset_peak(experiment, energy_thresholds, dates, integral_fluxes,
             #threshold not crossed
             #Find the max flux in the time period and time
             onset_peak[i] = np.max(smooth_flux[i])
-            peak_index = np.where(smooth_flux[i] == np.amax(smooth_flux[i]))
+            peak_index = np.where(smooth_flux[i] == np.nanmax(smooth_flux[i]))
             onset_date[i] = dates[peak_index[0][0]]
             continue
         #If all entries are zero flux (bg-sub or SEPEMv3)
@@ -1676,7 +1654,7 @@ def calculate_onset_peak(experiment, energy_thresholds, dates, integral_fluxes,
         #onset peak prior to threshold crossing
         #For very large event, begin looking after threshold crossing
         buffer = 0
-        if np.amax(smooth_flux[i]) < 500/energy_thresholds[i]:
+        if np.nanmax(smooth_flux[i]) < 500/energy_thresholds[i]:
             buffer = 12
         
         index_cross = 0
@@ -1806,7 +1784,7 @@ def calculate_onset_peak(experiment, energy_thresholds, dates, integral_fluxes,
         #Check the average derivative 1 hour prior to the onset peak
         #and the average 1 hour after the peak. If similar, likely event is
         #continuing to rise.
-        time_res = determine_time_resolution(dates)
+        time_res = tools.determine_time_resolution(dates)
         npts = math.ceil(50.*60./time_res.total_seconds())
         stpt = index_neg - npts
         if stpt < 0: stpt = 0
@@ -2083,7 +2061,7 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds,
         print("calculate_onset_peak_from_fit: Time duration too short to calculate "
             "onset peak. Setting onset peak and date to None.")
         onset_date = [None]*nthresh
-        onset_peak = [None]*nthresh
+        onset_peak = [np.nan]*nthresh
         return onset_date, onset_peak
     ###########
     
@@ -2248,8 +2226,6 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds,
                 fig.savefig(plotpath + '/' + figname + '.png')
             if not showplot:
                 plt.close(fig)
-            
-
 
     return onset_date, onset_peak
 
@@ -2676,55 +2652,6 @@ def print_values_to_file(experiment, flux_type, options, doBGSub,
     return year, month, day, True
 
 
-def sort_bin_order(all_fluxes, energy_bins):
-    """Check the order of the energy bins. Usually, bins go from
-        low to high energies, but some modelers or users may
-        go in reverse order. Usually expect:
-        [[10,20],[20,30],[30,40]]
-        But user may instead input files with fluxes in order of:
-        [[30,40],[20,30],[10,20]]
-        
-        This subroutine will reorder the fluxes and energy_bins
-        to go in increasing order. If differential fluxes were input,
-        this reordering will ensure that integral fluxes are
-        estimated properly.
-        
-        INPUTS:
-        
-        :all_fluxes: (float nxm array) - fluxes for n energy channels
-            and m time points
-        :energy_bins: (float 2xn array) - energy bins for each of the
-            energy channels
-            
-        OUTPUTS:
-        
-        :sort_fluxes: (float nxm array) - same as above, but sorted so
-            that the lowest energy channel is first and highest is last
-        :sort_bins: (float 2xn array) - same as above, but sorted
-        
-    """
-
-    nbins = len(energy_bins)
-    #Rank energy bins in order of lowest to highest effective
-    #energies
-    eff_en = []
-    for i in range(nbins):
-        if energy_bins[i][1] == -1:
-            eff_en.append(energy_bins[i][0])
-        else:
-            midpt = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
-            eff_en.append(midpt)
-            
-    eff_en_np = np.array(eff_en)
-    sort_index = np.argsort(eff_en_np) #indices in sorted order
-    
-    sort_fluxes = np.array(all_fluxes)
-    sort_bins = []
-    for i in range(nbins):
-        sort_fluxes[i] = all_fluxes[sort_index[i]]
-        sort_bins.append(energy_bins[sort_index[i]])
-    
-    return sort_fluxes, sort_bins
 
 
 ####TOOLS#####
@@ -2843,9 +2770,9 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
                                 west_detector, options)
 
     if len(all_dates) <= 1:
-        sys.exit("read_in_flux_files: The specified start and end dates were not present in the specified input file or were too restrictive. Exiting.")
+        sys.exit(f"read_in_flux_files: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
 
-    all_fluxes, energy_bins = sort_bin_order(all_fluxes, energy_bins)
+    all_fluxes, energy_bins = tools.sort_bin_order(all_fluxes, energy_bins)
     
     
     #IF REQUESTED BACKGROUND SUBTRACTION
@@ -3203,8 +3130,8 @@ def append_differential_thresholds(experiment, flux_type,
                 fl = np.array([0]*len(energy_bins))
                 en = np.array([0]*len(energy_bins))
                 bin_fl = 0
-                pf = [np.amax(fluxes[svbin])]
-                pf_idx = np.where(fluxes[svbin] == np.amax(fluxes[svbin]))
+                pf = [np.nanmax(fluxes[svbin])]
+                pf_idx = np.where(fluxes[svbin] == np.nanmax(fluxes[svbin]))
                 pt = [dates[pf_idx[0][0]]]
                 op = [None] #onset peak = None when no threshold crossed
                 od = [None]
@@ -3632,20 +3559,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
                     "crossings.")
 
         #Additions to titles and filenames according to user-selected options
-        modifier = ''
-        title_mod = ''
-        if "uncorrected" in options:
-            modifier = modifier + '_uncorrected'
-            title_mod = title_mod + 'uncorrected '
-        if doBGSub:
-            modifier = modifier + '_bgsub'
-            title_mod = title_mod + 'BG-subtracted '
-        if "S14" in options:
-            modifier = modifier + '_S14'
-            title_mod = title_mod + 'S14 '
-        if "Bruno2017" in options:
-            modifier = modifier + '_Bruno2017'
-            title_mod = title_mod + 'Bruno2017 '
+        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub)
 
         #plot integral fluxes (either input or estimated)
         nthresh = len(flux_thresholds)

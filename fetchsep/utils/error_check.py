@@ -1,3 +1,4 @@
+from ..utils import config as cfg
 import datetime
 import os
 import sys
@@ -60,7 +61,7 @@ def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None
 
 
 def error_check_inputs(startdate, enddate, experiment, flux_type,
-    json_type=None, is_diff_thresh=None, subroutine=None):
+    json_type=None, is_diff_thresh=[], subroutine=None):
     """ Check that all of the user inputs make sense and fall within bounds.
         
         INPUTS:
@@ -87,10 +88,10 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
  
     if subroutine == 'idsep':
         dt = enddate - startdate
-        if (dt.days < init_win):
+        if (dt.days < cfg.init_win):
             print(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
                 'is less than the '
-                f'length of the background subtraction window, init_win={init_win} days. '
+                f'length of the background subtraction window, init_win={cfg.init_win} days. '
                 'fetchsep is extending the time frame automatically to run and '
                 'trimming results to requested time frame at the end. Continuing.')
  
