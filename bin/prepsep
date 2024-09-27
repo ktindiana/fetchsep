@@ -80,7 +80,7 @@ if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    prepsep.update_observations(target_dir, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks)
+    prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks)
     prepsep.move_output(target_dir,enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
 
 
