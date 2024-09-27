@@ -26,6 +26,9 @@ parser.add_argument("--DontEnforceSEPCheck",
             "Use carefully."),
         action="store_true")
 
+parser.add_argument("--StartDate", type=str, default='',
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes. Not required."))
 parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
@@ -52,6 +55,12 @@ parser.add_argument("--NoInterp",
         help=("Do not fill in negative or missing fluxes via "
                 "linear interpolation in time. Set as None values "
                 "instead."), action="store_true")
+parser.add_argument("--TwoPeaks",
+        help=("Flag to indicate that the event exceeds threshold (usually "
+                "for a couple of points), then drops below threshold "
+                "before increasing again to the true peak of the event."),
+                action="store_true")
+
 
 args = parser.parse_args()
 
@@ -59,17 +68,19 @@ target_dir = args.TargetDir
 print_info = args.PrintInfo
 enforce_new = not args.OverwriteDates
 enforce_sep_stop = not args.DontEnforceSEPCheck
+start_date = args.StartDate
 end_date = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 threshold = args.Threshold
 nointerp = args.NoInterp
+two_peaks = args.TwoPeaks
 
 if print_info:
-    move_output.print_target_info(target_dir)
+    prepsep.print_target_info(target_dir)
 
 if not print_info:
-    prepsep.update_observations(target_dir, end_date, experiment, flux_type, threshold, nointerp=nointerp)
+    prepsep.update_observations(target_dir, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks)
     prepsep.move_output(target_dir,enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
 
 

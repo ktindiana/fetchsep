@@ -186,7 +186,8 @@ def identify_new_obs(target_dir, enforce_new=True):
 
 
 
-def check_for_sep():
+
+def check_for_sep(path):
     """ Read in json files output by OpSEP and check if SEP events
         are present.
         
@@ -214,8 +215,8 @@ def check_for_sep():
             "Observation Window End": [],
             "SEP Occurred": []}
     
-    obspath = os.path.join(cfg.outpath,"opsep")
-    onlyfiles = [os.path.join(obspath, f) for f in os.listdir(obspath) if os.path.isfile(os.path.join(obspath, f))]
+
+    onlyfiles = [os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
     jsonfiles = [f for f in onlyfiles if '.json' in f]
 
     for fname in jsonfiles:
@@ -265,7 +266,6 @@ def check_for_sep():
                     dict["Observation Window Start"].append(obs_st)
                     dict["Observation Window End"].append(obs_end)
                     dict["SEP Occurred"].append(True)
-
 
 
     df_sep = pd.DataFrame(dict)
@@ -319,19 +319,16 @@ def check_target(target_dir):
 
     fname = os.path.join(target_dir, "approved_SEP.csv")
     if not os.path.isfile(fname):
-        print("check_target: Cannot find " + fname + ". Creating.")
+        print("check_target: Cannot find " + fname + ". Creating and populating with any SEP events already in directory.")
         
-        dict = {"Energy Channel": [],
-            "Threshold": [],
-            "Threshold Crossing Time": [],
-            "Observation Window Start": [],
-            "Observation Window End": []}
-        df = pd.DataFrame(dict)
-        df.to_csv(fname)
+        df = check_for_sep(target_dir)
+        df = df[["Energy Channel","Threshold","Threshold Crossing Time", "Observation Window Start", "Observation Window End"]]
+        df = df.dropna()
+        df.to_csv(fname,index=False)
 
 
 
-def check_approved_sep(df_sep, df_approved, obs_st, enforce_sep_stop):
+def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop=True):
     """ Check if there are SEP events in the new observations and 
         determine if they can be moved.
         
@@ -441,6 +438,8 @@ def cleanup_csv(obspath, allfiles):
         fname = os.path.join(obspath, file)
         os.remove(fname)
 
+
+
 def print_target_info(target_dir):
     #Approved SEP in target directory
     df_approved = read_approved_sep(target_dir)
@@ -479,13 +478,13 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
     new_obs_st, new_obs_end = identify_new_obs(target_dir, enforce_new)
     
     #SEP in fetchsep observations
-    df_sep = check_for_sep()
+    obspath = os.path.join(cfg.outpath, "opsep")
+    df_sep = check_for_sep(obspath)
     
     #Approved SEP in target directory
     df_approved = read_approved_sep(target_dir)
 
     #Identify which files to move and move them
-    obspath = os.path.join(cfg.outpath, "opsep")
     allfiles = [f for f in os.listdir(obspath) if os.path.isfile(os.path.join(obspath, f))]
     
     pltpath = os.path.join(cfg.plotpath, "opsep")
@@ -499,7 +498,7 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
             + str(obs_st) + " to " + str(obs_end))
 
         ###SEP CHECKS
-        check_approved_sep(df_sep, df_approved, obs_st, enforce_sep_stop)
+        check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop)
 
         ###MOVE FILES
         move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep,
@@ -510,8 +509,8 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
 
 
 
-def update_observations(target_dir, end_date, experiment, flux_type, threshold,
-    nointerp=False):
+def update_observations(target_dir, end_date, experiment, flux_type,
+    threshold, nointerp=False, two_peaks=False):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -548,7 +547,6 @@ def update_observations(target_dir, end_date, experiment, flux_type, threshold,
     json_type = 'observations' #not relevant unless input a user file
     spase_id = ''
     detect_prev_event = False
-    two_peaks = False
     umasep = False
     option = ''
     doBGSub = False
