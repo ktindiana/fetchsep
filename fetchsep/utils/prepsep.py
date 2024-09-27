@@ -107,9 +107,12 @@ def make_observation_window_list(path):
             win_st.append(obs_st)
             win_end.append(obs_end)
 
-    
+    #SORT THE OBSERVATION WINDOWS IN TIME ORDER
+    sort_idx = [sorted(win_st).index(x) for x in win_st]
+    sort_obs_st = [win_st[sort_idx[ix]] for ix in sort_idx]
+    sort_obs_end = [win_end[sort_idx[ix]] for ix in sort_idx]
 
-    return win_st, win_end
+    return sort_obs_st, sort_obs_end
 
  
  
@@ -154,16 +157,12 @@ def identify_new_obs(target_dir, enforce_new=True):
     new_end = []
     
 #    obs_st, obs_end = read_batch_list()
-    obs_st, obs_end = make_observation_window_list(os.path.join(cfg.outpath,"opsep"))
+    sort_obs_st, sort_obs_end = make_observation_window_list(os.path.join(cfg.outpath,"opsep"))
     
-    if obs_st == []:
+    if not sort_obs_st:
         sys.exit("identify_new_obs: No new observations are available. "
             "Exiting.")
 
-    #SORT THE OBSERVATION WINDOWS IN TIME ORDER
-    sort_idx = [sorted(obs_st).index(x) for x in obs_st]
-    sort_obs_st = [obs_st[sort_idx[ix]] for ix in sort_idx]
-    sort_obs_end = [obs_end[sort_idx[ix]] for ix in sort_idx]
 
     if not enforce_new:
         return sort_obs_st, sort_obs_end
@@ -365,7 +364,7 @@ def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop
                         "window starting at " + str(obs_st) + " contains "
                         "an SEP event with threshold crossing time\n "
                         + str(df) + "\n "
-                        "This SEP is not in the approved SEP file "
+                        "This SEP " +str(sep) +" is not in the approved SEP file "
                         + target_dir + "/approved_SEP.csv. Outputs "
                         "cannot be moved until the SEP event has been "
                         "approved. Exiting.")
@@ -436,7 +435,8 @@ def cleanup_csv(obspath, allfiles):
     selectfiles = [f for f in allfiles if '.csv' in f]
     for file in selectfiles:
         fname = os.path.join(obspath, file)
-        os.remove(fname)
+        if os.path.isfile(fname):
+            os.remove(fname)
 
 
 
@@ -447,13 +447,10 @@ def print_target_info(target_dir):
     print(df_approved)
 
     target_st, target_end = make_observation_window_list(target_dir)
-    sort_idx = [sorted(target_st).index(x) for x in target_st]
-    sort_st = [target_st[sort_idx[ix]] for ix in sort_idx]
-    sort_end = [target_end[sort_idx[ix]] for ix in sort_idx]
     
     print("Observation Windows in " + target_dir)
-    for i in range(len(sort_st)):
-        print(f"Start: {sort_st[i]}, End: {sort_end[i]}")
+    for i in range(len(target_st)):
+        print(f"Start: {target_st[i]}, End: {target_end[i]}")
     
 
 
@@ -509,8 +506,8 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
 
 
 
-def update_observations(target_dir, end_date, experiment, flux_type,
-    threshold, nointerp=False, two_peaks=False):
+def update_observations(target_dir, start_date, end_date, experiment,
+    flux_type, threshold, nointerp=False, two_peaks=False):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -533,10 +530,11 @@ def update_observations(target_dir, end_date, experiment, flux_type,
             None. Files will be moved if any SEP events in the time frame are approved.
     
     """
-    #Get the date of the most recent data in the target directory
-    #Use the end of the last prediction window as the start time
-    target_st, target_end = make_observation_window_list(target_dir)
-    start_date = str(max(target_end))
+    if start_date == '':
+        #Get the date of the most recent data in the target directory
+        #Use the end of the last prediction window as the start time
+        target_st, target_end = make_observation_window_list(target_dir)
+        start_date = str(max(target_end))
     
     #Optimal settings for SEP Scoreboard
     showplot = False
