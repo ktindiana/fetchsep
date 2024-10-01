@@ -2989,7 +2989,7 @@ def do_interpolation(i,dates,flux):
     """
     ndates = len(dates)
     
-    print("ndates: " + str(ndates) + ", i: " + str(i))
+#    print("ndates: " + str(ndates) + ", i: " + str(i))
 
     #If first point is bad point, use the next good point to fill gap
     if i == 0:
