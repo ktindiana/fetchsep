@@ -32,7 +32,7 @@
                "observation_window": { "start_time": "", "end_time": "" },
                "peak_intensity": { "intensity": "", "units": "", "time": ""},
                "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
-               "event_lengths": [{ "start_time": "",  "end_time": "", "threshold": "", "threshold_units": ""  }],
+               "event_lengths":[ { "start_time": "",  "end_time": "", "threshold_start": "", "threshold_end": "", "threshold_units": ""  }],
                "fluences": [{"fluence": "", "units": ""}],
                "fluence_spectra": [{"start_time": "", "end_time": "",
                    "threshold_start":"", "threshold_end":"",
