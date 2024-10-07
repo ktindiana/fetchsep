@@ -506,7 +506,8 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     return fluxes_bg, fluxes_high
 
 
-def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma):
+def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
+    iteration=0):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
         by applying a sliding window of sliding_win days to get a background
@@ -531,7 +532,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma):
     
     """
     ave_background, ave_sigma, threshold, diff_fluxes =\
-                defbg.backward_window_background(sliding_win, dates, fluxes_bg_in, nsigma)
+        defbg.backward_window_background(sliding_win, dates, fluxes_bg_in, nsigma, iteration)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -606,7 +607,7 @@ def run_all(str_startdate, str_enddate, experiment,
         #into fluxes_bg and fluxes_high
         #The mean background is sensitive to the background selection in fluxes_bg_init
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
-            apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, nsigma)
+            apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, nsigma, iter)
 
         if showplot or saveplot:
             plt_tools.idsep_make_plots(str(sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, doBGSub, False, saveplot)
