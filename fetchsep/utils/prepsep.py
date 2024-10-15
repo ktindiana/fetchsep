@@ -108,9 +108,9 @@ def make_observation_window_list(path):
             win_end.append(obs_end)
 
     #SORT THE OBSERVATION WINDOWS IN TIME ORDER
-    sort_idx = [sorted(win_st).index(x) for x in win_st]
-    sort_obs_st = [win_st[sort_idx[ix]] for ix in sort_idx]
-    sort_obs_end = [win_end[sort_idx[ix]] for ix in sort_idx]
+    sort_idx = [win_st.index(x) for x in sorted(win_st)]
+    sort_obs_st = [win_st[ix] for ix in sort_idx]
+    sort_obs_end = [win_end[ix] for ix in sort_idx]
 
     return sort_obs_st, sort_obs_end
 
