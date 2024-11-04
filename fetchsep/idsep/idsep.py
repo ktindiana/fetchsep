@@ -71,7 +71,7 @@ dwell_pts = 0 #number of points that can be missed after SEP starts
 
 
 def read_in_flux_files(experiment, flux_type, user_file, startdate,
-        enddate, options, dointerp, is_unixtime):
+        enddate, options, dointerp, is_unixtime, write_fluxes=False):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
         points with linear interpolation in time unless nointerp True.
@@ -89,6 +89,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
             interpolation in time for negative of bad flux values
         :is_unixtime: (bool) - flag to indicate that time in first column
             of user file is in unixtime
+        :write_fluxes: (bool) True writes fluxes to standard format csv file
         
         OUTPUTS:
         
@@ -157,7 +158,10 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     if len(dates) <= 1:
         sys.exit("The specified start and end dates were not present in the "
                 "specified input file. Exiting.")
-    
+
+    if write_fluxes:
+        tools.write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, "idsep")
+
     return dates, fluxes, energy_bins
 
 
@@ -547,7 +551,8 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
 
 def run_all(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
-        remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot):
+        remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
+        write_fluxes=False):
     """ Run all the steps to do background and SEP separation.
     
     """
@@ -570,7 +575,8 @@ def run_all(str_startdate, str_enddate, experiment,
     
     #READ IN FLUXES
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
-        flux_type, user_file, eff_startdate, enddate, options, dointerp,is_unixtime)
+        flux_type, user_file, eff_startdate, enddate, options, dointerp, is_unixtime,
+        write_fluxes=write_fluxes)
             
             
     if plot_timeseries_only:
