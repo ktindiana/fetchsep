@@ -2648,6 +2648,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 
 
 
+    
 
 
 def read_in_files(experiment, flux_type, filenames1, filenames2,
@@ -2704,52 +2705,42 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
 
     if experiment == "SEPEM" or experiment == "SEPEMv3":
         all_dates, all_fluxes = read_in_sepem(experiment, flux_type, filenames1)
-        return all_dates, all_fluxes, west_detector
 
-    if experiment == "CalGOES":
+    elif experiment == "CalGOES":
         all_dates, all_fluxes = read_in_calgoes(experiment, filenames1)
-        return all_dates, all_fluxes, west_detector
 
     #All GOES data
-    if experiment == "GOES":
+    elif experiment == "GOES":
         all_dates, all_fluxes, west_detector = read_in_all_goes(experiment, \
                     flux_type, filenames1, filenames2, filenames_orien,\
                     options, detector)
-        return all_dates, all_fluxes, west_detector
     
-    if experiment[0:4] == "GOES" and (experiment not in goes_R) and experiment != "GOES_RT":
+    elif experiment[0:4] == "GOES" and (experiment not in goes_R) and experiment != "GOES_RT":
         all_dates, all_fluxes, west_detector =\
             read_in_goes(experiment, flux_type, filenames1,
                 filenames2, filenames_orien, options)
-        return all_dates, all_fluxes, west_detector
         
-    if experiment in goes_R and flux_type == "differential":
+    elif experiment in goes_R and flux_type == "differential":
         all_dates, all_fluxes, west_detector =\
             read_in_goesR(experiment,flux_type, filenames1)
-        return all_dates, all_fluxes, west_detector
         
-    if (experiment == "GOES_RT") and flux_type == "integral":
+    elif (experiment == "GOES_RT") and flux_type == "integral":
         all_dates, all_fluxes, west_detector =\
             read_in_goes_RT(experiment,flux_type, filenames1)
-        return all_dates, all_fluxes, west_detector
 
-    if experiment == "EPHIN":
+    elif experiment == "EPHIN":
         all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)
-        return all_dates, all_fluxes, west_detector
 
-    if experiment == "EPHIN_REleASE":
+    elif experiment == "EPHIN_REleASE":
         all_dates, all_fluxes = read_in_ephin_release(experiment, flux_type,
                     filenames1)
-        return all_dates, all_fluxes, west_detector
 
-    if experiment == "ERNE":
+    elif experiment == "ERNE":
         all_dates, all_fluxes = read_in_erne(experiment, flux_type, filenames1)
-        return all_dates, all_fluxes, west_detector
 
-    if "STEREO" in experiment:
+    elif "STEREO" in experiment:
         all_dates, all_fluxes = read_in_stereo(experiment, flux_type,
                     filenames1, filenames2)
-        return all_dates, all_fluxes, west_detector
 
     return all_dates, all_fluxes, west_detector
 
