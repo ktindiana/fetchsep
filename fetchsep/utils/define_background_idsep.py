@@ -942,13 +942,13 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
     window_sec = datetime.timedelta(days=N).total_seconds()
     
     if time_res_sec > window_sec:
-        sys.exit("backward_window_backgroud: The specified time window "
+        sys.exit("backward_window_backgroud_optimized: The specified time window "
             "for smoothing is shorter than the time resolution between "
             "data points! Exiting. Window: " + str(window) +
             ", Data sets resolution: " + str(time_res))
     
     nwin_pts = int(window_sec/time_res_sec)
-    print("backward_window_background: There are " + str(nwin_pts)
+    print("backward_window_background_optimized: There are " + str(nwin_pts)
         + " data points in the " + str(N) + " days time window.")
     
 
@@ -1009,7 +1009,7 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
         #Replace all zero values with nan
         #nan values are ignored by pd.mean and pd.sigma
         sub = sub.replace(0,np.nan)
-        print(f"Start Time: {starttime}, End Time: {endtime}, All points: {len(sub)}, Required: {cfg.percent_points*nwin_pts}")
+        #print(f"Start Time: {starttime}, End Time: {endtime}, All points: {len(sub)}, Required: {cfg.percent_points*nwin_pts}")
         #For each column of fluxes, calculate the mean and sigma.
         #Check that there are enough points in the selected data to calculate
         #reliable background and sigma values
@@ -1020,12 +1020,12 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
             #Set points above the previous threshold to nan
             if not df_thresholds.empty:
                 prev_thresh = df_thresholds[col].iloc[-1]
-                print(f"Column: {col}, Start Time: {starttime}, End Time: {endtime}, Previous Threshold: {prev_thresh}")
+                #print(f"Column: {col}, Start Time: {starttime}, End Time: {endtime}, Previous Threshold: {prev_thresh}")
                 if not pd.isnull(prev_thresh) and prev_thresh != 0:
                     sub.loc[(sub[col] > prev_thresh),col] = np.nan
 
             ngood = len(sub[col].dropna())
-            print(f"Start Time: {starttime}, End Time: {endtime}, Number of good points: {ngood}, Required: {cfg.percent_points*nwin_pts}")
+            #print(f"Start Time: {starttime}, End Time: {endtime}, Number of good points: {ngood}, Required: {cfg.percent_points*nwin_pts}")
             if ngood < cfg.percent_points*nwin_pts:
                 #If no good points yet, then set to zero
                 if df_means.empty:
