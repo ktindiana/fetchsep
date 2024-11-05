@@ -403,120 +403,158 @@ def find_last_good(idx, arr):
     return None
 
 
+######BACKGROUND AND ENHANCEMENT IDENTIFICATION##############
+#Note that the original versions of those code are ndays_average()
+#and backward_window_background().
+#The algorithms were rewritten to take advantage of dataframes to
+#attempt to speed up the computation. These subroutines are labeled
+#_optimized().
+
+def write_np(array, fname):
+    """ Write numpy array to file.
+    
+    """
+    filename = os.path.join(cfg.outpath,'idsep','csv',fname+'.csv')
+    np.savetxt(filename, array, delimiter=",", fmt='%s')
+
+
+
+def write_df(df, name, verbose=True):
+    """Writes a pandas dataframe to the standard location in multiple formats
+    """
+    dataformats = (('pkl' , getattr(df, 'to_pickle'), {}),
+                   ('csv',  getattr(df, 'to_csv'), dict(index=False)))
+    for ext, write_func, kwargs in dataformats:
+        filepath = os.path.join(cfg.outpath, 'idsep', ext, name + '.' + ext)
+        write_func(filepath, **kwargs)
+        if verbose:
+            print('Wrote ' + filepath)
+
+
+
 #ORIGINAL SLOW ALGORITHM
-#def ndays_average(N, dates, fluxes, nsigma, remove_above):
-#    """ Average flux over N days.
-#    
-#        INPUTS:
-#        
-#        :N: (integer) number of days over which to average
-#        :dates: (1xn datetime array)
-#        :fluxes: (pxn float array) fluxes for p energy channels
-#        :remove_above: (float) - remove all flux values above this value
-#            (assumed that these are bad or incorrect fluxes)
-#        
-#        OUTPUTS:
-#        
-#        :ave_dates: (1xm datetime array) dates at the midpoint of each
-#            time period
-#        :ave_fluxes: (pxm float array) average flux for the N days
-#        :ave_sigma: (px2xm float array) sigma of flux for the N days
-#        
-#    """
-#    #If entered array of fluxes for multiple energy channels
-#    nchan = len(fluxes)
-#    
-#    #If entered a 1D array of fluxes
-#    if len(dates) == len(fluxes): nchan = 1
-#    
-#    ave_dates = []
-#    ave_fluxes = [[]]*nchan
-#    ave_sigma = [[]]*nchan
-#    threshold = [[]]*nchan
-#    threshold_dates = []
-#    
-#    year = dates[0].year
-#    month = dates[0].month
-#    day = dates[0].day
-#    
-#    #Average the flux between the 1st of each month
-#    firstdate = datetime.datetime(year=year,month=month,day=day)
-#    td = datetime.timedelta(days=N)
-#    nextdate = firstdate + td
-#    
-#    #Align the average flux with the middle of the averaged time period
-#    td2 = datetime.timedelta(days=int(N/2.))
-#    savedate = firstdate + td2
-#    
-#    stidx = 0
-#    endidx = 0
-#    for i in range(len(dates)):
-#        if dates[i]<nextdate:
-#            endidx = i
-#        else:
-#            if nextdate == dates[-1]: endidx = len(dates)-1
-#            ave_dates.append(savedate)
-#            for j in range(nchan):
-#                #Calculate and save needed values
-#                flux_arr = np.array(fluxes[j][stidx:endidx+1])
-#                flux_arr, bad_index = remove_none_one(flux_arr)
-#                flux_arr, bad_index = remove_nan_one(flux_arr)
-#                flux_arr, bad_index = remove_zero_one(flux_arr)
-#                flux_arr, bad_index = remove_above_value_one(remove_above,flux_arr)
-#                if flux_arr == []:
-#                    if stidx > 0: #Use previous good value
-#                        mean = ave_fluxes[j][-1]
-#                        sigma_low = ave_sigma[j][0][-1]
-#                        sigma_high = ave_sigma[j][1][-1]
-#                    else:
-#                        mean = 0
-#                        sigma_low = 0
-#                        sigma_high = 0
-#                else:
-#                    mean = np.mean(flux_arr)
-#                    sigma = np.std(flux_arr)
-#                    sigma_low = sigma
-#                    sigma_high = sigma
-#                
-#                if not ave_fluxes[j]:
-#                    ave_fluxes[j] = [mean]
-#                    ave_sigma[j] = [[sigma_low],[sigma_high]]
-#                else:
-#                    ave_fluxes[j].append(mean)
-#                    ave_sigma[j][0].append(sigma_low)
-#                    ave_sigma[j][1].append(sigma_high)
-#            
-#            #Fill in threshold - one value for each of the input dates
-#            #mean + n*sigma
-##            print("stidx " + str(stidx) + ", endidx " + str(endidx) +
-##                ",stdate " + str(dates[stidx]) + ", enddate " + str(dates[endidx])
-##                +", ave flux: " + str(ave_fluxes[j][-1]) + ", sigma " +
-##                str(ave_sigma[j][1][-1]))
-#            for k in range(stidx, endidx+1):
-#                threshold_dates.append(dates[k])
-#                for j in range(nchan):
-#                    if not threshold[j]:
-#                        threshold[j] = [ave_fluxes[j][-1] + nsigma*ave_sigma[j][1][-1]]
-#                    else:
-#                        threshold[j].append(ave_fluxes[j][-1] + nsigma*ave_sigma[j][1][-1])
-#                        
-#            
-#            
-#            #Advance to next month
-#            stidx = i
-#            firstdate = dates[i]
-#            td = datetime.timedelta(days=N)
-#            nextdate = firstdate + td
-#            if nextdate > dates[-1]: nextdate = dates[-1]
-#            td2 = datetime.timedelta(days=int(N/2.))
-#            savedate = firstdate + td2
-#            if savedate > dates[-1]: savedate = dates[-1]
-#        
-#    return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
-
-
-#OPTIMIZED ALGORITHM
 def ndays_average(N, dates, fluxes, nsigma, remove_above):
+    """ Average flux over N days.
+    
+        INPUTS:
+        
+        :N: (integer) number of days over which to average
+        :dates: (1xn datetime array)
+        :fluxes: (pxn float array) fluxes for p energy channels
+        :remove_above: (float) - remove all flux values above this value
+            (assumed that these are bad or incorrect fluxes)
+        
+        OUTPUTS:
+        
+        :ave_dates: (1xm datetime array) dates at the midpoint of each
+            time period
+        :ave_fluxes: (pxm float array) average flux for the N days
+        :ave_sigma: (px2xm float array) sigma of flux for the N days
+        
+    """
+    #If entered array of fluxes for multiple energy channels
+    nchan = len(fluxes)
+    
+    #If entered a 1D array of fluxes
+    if len(dates) == len(fluxes): nchan = 1
+    
+    ave_dates = []
+    ave_fluxes = [[]]*nchan
+    ave_sigma = [[]]*nchan
+    threshold = [[]]*nchan
+    threshold_dates = []
+    
+    year = dates[0].year
+    month = dates[0].month
+    day = dates[0].day
+    
+    #Average the flux between the 1st of each month
+    firstdate = datetime.datetime(year=year,month=month,day=day)
+    td = datetime.timedelta(days=N)
+    nextdate = firstdate + td
+    
+    #Align the average flux with the middle of the averaged time period
+    td2 = datetime.timedelta(days=int(N/2.))
+    savedate = firstdate + td2
+    
+    stidx = 0
+    endidx = 0
+    for i in range(len(dates)):
+        if dates[i]<nextdate:
+            endidx = i
+        else:
+            if nextdate == dates[-1]: endidx = len(dates)-1
+            ave_dates.append(savedate)
+            for j in range(nchan):
+                #Calculate and save needed values
+                flux_arr = np.array(fluxes[j][stidx:endidx+1])
+                flux_arr, bad_index = remove_none_one(flux_arr)
+                flux_arr, bad_index = remove_nan_one(flux_arr)
+                flux_arr, bad_index = remove_zero_one(flux_arr)
+                flux_arr, bad_index = remove_above_value_one(remove_above,flux_arr)
+                if flux_arr == []:
+                    if stidx > 0: #Use previous good value
+                        mean = ave_fluxes[j][-1]
+                        sigma = ave_sigma[j][-1]
+                    else:
+                        mean = 0
+                        sigma = 0
+                else:
+                    mean = np.mean(flux_arr)
+                    sigma = np.std(flux_arr)
+                
+                if not ave_fluxes[j]:
+                    ave_fluxes[j] = [mean]
+                    ave_sigma[j] = [sigma]
+                else:
+                    ave_fluxes[j].append(mean)
+                    ave_sigma[j].append(sigma)
+            
+            #Fill in threshold - one value for each of the input dates
+            #mean + n*sigma
+#            print("stidx " + str(stidx) + ", endidx " + str(endidx) +
+#                ",stdate " + str(dates[stidx]) + ", enddate " + str(dates[endidx])
+#                +", ave flux: " + str(ave_fluxes[j][-1]) + ", sigma " +
+#                str(ave_sigma[j][-1]))
+            for k in range(stidx, endidx+1):
+                threshold_dates.append(dates[k])
+                for j in range(nchan):
+                    if not threshold[j]:
+                        threshold[j] = [ave_fluxes[j][-1] + nsigma*ave_sigma[j][-1]]
+                    else:
+                        threshold[j].append(ave_fluxes[j][-1] + nsigma*ave_sigma[j][-1])
+                        
+            
+            #Advance to next N days
+            stidx = i
+            firstdate = dates[i]
+            td = datetime.timedelta(days=N)
+            nextdate = firstdate + td
+            if nextdate > dates[-1]: nextdate = dates[-1]
+            td2 = datetime.timedelta(days=int(N/2.))
+            savedate = firstdate + td2
+            if savedate > dates[-1]: savedate = dates[-1]
+ 
+ 
+    #Write fluxes to file for testing and use
+    out_ave_fluxes = np.concatenate(([ave_dates],ave_fluxes),axis=0)
+    write_np(out_ave_fluxes.T,'mean_background_fluxes_ndays')
+    
+    out_ave_sigma = np.concatenate(([ave_dates],ave_sigma),axis=0)
+    write_np(out_ave_sigma.T,'background_sigma_ndays')
+    
+    out_threshold = np.concatenate(([threshold_dates],threshold),axis=0)
+    write_np(out_threshold.T,'threshold_ndays')
+ 
+ 
+    return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
+
+
+
+#####################################
+#OPTIMIZED ALGORITHM
+#####################################
+def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
     """ Average flux over N days.
 
         INPUTS:
@@ -611,264 +649,262 @@ def ndays_average(N, dates, fluxes, nsigma, remove_above):
     threshold_dates = df_thresholds['dates'].to_list()
     threshold = df_thresholds[cols].T.to_numpy()
 
+    #Write fluxes to file for testing and use
+    write_df(df_means,'mean_background_fluxes_ndays_optimized')
+    write_df(df_sigmas,'background_sigma_ndays_optimized')
+    write_df(df_thresholds,'threshold_ndays_optimized')
+
     return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
 
 
-def write_np(array, fname):
-    """ Write numpy array to file.
-    
-    """
-    filename = os.path.join(cfg.outpath,'idsep','txt',fname+'.txt')
-    np.savetxt(filename,array,fmt='%.8f')
-
 
 ##ORIGINAL SLOW ALGORITHM
-#def backward_window_background(N, dates, fluxes, nsigma, iteration=0):
-#    """ Average over a backward sliding window of N days.
-#        Estimate the value of the mean background (GCR) flux,
-#        sigma, and a threshold to separate GCR from SEP for
-#        every single time step of the data set.
-#        
-#        Expect that fluxes contain mostly background values
-#        and have already had some portion of SEPs excluded.
-#        This is meant to be a second iteration that further
-#        cleans the first attempt to remove SEPs.
-#    
-#        INPUTS:
-#        
-#        :N: (integer) number of days to smooth over
-#        :dates: (1xn datetime array)
-#        :fluxes: (pxn float array) fluxes for p energy channels
-#        :nsigma: (float) number of sigma to calculate threshold
-#        
-#        OUTPUTS:
-#        
-#        :smooth_dates: (1xm datetime array) currently unchanged
-#        :mean_background: (pxm float array) average flux for the month
-#        :ave_sigma: (pxm float array) sigma of flux for the month
-#        
-#    """
-#    print("backward_window_background: Calculating the background using "
-#        "a backward smoothing window of " + str(N) + " days.")
-#    #If entered array of fluxes for multiple energy channels
-#    nchan = len(fluxes)
-#    fluxes_cp = [[]]*len(fluxes)
-#    fluxes_bad = [[]]*len(fluxes)
-#    for i in range(len(fluxes)):
-#        fluxes_cp[i] = fluxes[i][:]
-#        fluxes_bad[i] = [0]*len(fluxes[i])
-#        
-#    
-#    #Figure out how many data points are in the window defined by
-#    #N days
-#    time_res = dates[1] - dates[0]
-#    print("Time resolution of the data set is: "
-#            + str(time_res.total_seconds()) + " seconds.")
-#    time_res_sec = time_res.total_seconds()
-#    
-#    window = datetime.timedelta(days=N)
-#    window_sec = window.total_seconds()
-#    
-#    if time_res_sec > window_sec:
-#        sys.exit("backward_window_backgroud: The specified time window "
-#            "for smoothing is shorter than the time resolution between "
-#            "data points! Exiting. Window: " + str(window) +
-#            ", Data sets resolution: " + str(time_res))
-#    
-#    nwin_pts = int(window_sec/time_res_sec)
-#    print("backward_window_background: There are " + str(nwin_pts)
-#        + " data points in the " + str(N) + " days time window.")
-#    
-#    #If entered a 1D array of fluxes
-#    if len(dates) == len(fluxes): nchan = 1
-#    
-#    mean_background = [[]]*nchan
-#    ave_sigma = [[]]*nchan
-#    threshold = [[]]*nchan
-#    diff_fluxes = [[]]*nchan
-#    
-#    year = dates[0].year
-#    month = dates[0].month
-#    day = dates[0].day
-#    
-#    #Average the flux in a sliding window of N days
-#    firstdate = datetime.datetime(year=year,month=month,day=day)
-#    td = datetime.timedelta(days=N)
-#    nextdate = firstdate + td
-#    
-#    
-#    #######BEGINNING OF DATA SET#####
-#    stidx = 0
-#    endidx = 0
-#    #Apply a window to the beginning of the data set
-#    for i in range(len(dates)):
-#        if dates[i] < nextdate:
-#            endidx = i
-#        else:
-#            break
-#    
-#    #calculate values using first N days of data
-#    #iterate one time to have the opportunity to remove particularly
-#    #high values
-#    for j in range(nchan):
-#        for jj in range(2): #iterate to remove 3sigma+ values
-#            #Calculate and save needed values
-#            flux_arr = np.array(fluxes_cp[j][stidx:endidx+1])
-#            if jj == 1:
-#                thresh = mean + nsigma*sigma
-#                if thresh != 0 and thresh != None:
-#                    flux_arr, bad_index = remove_above_value_one(thresh,flux_arr)
-#                    for bad in bad_index:
-#                        fluxes_cp[j][stidx+bad] = None #remove
-#                        fluxes_bad[j][stidx+bad] = fluxes[j][stidx+bad]
-#            
-#            flux_arr, bad_index = remove_none_one(flux_arr)
-#            flux_arr, bad_index = remove_nan_one(flux_arr)
-#            flux_arr, bad_index = remove_zero_one(flux_arr)
-#            
-#            
-#            if len(flux_arr) < 2:
-#                mean = 0
-#                sigma = 0
-#            else:
-#                mean = np.mean(flux_arr)
-#                sigma = np.std(flux_arr)
-#
-#            
-#            #Fill in first N days of data with the same threshold value
-#            if jj == 1:
-#                for i in range(endidx+1):
-#                    if not mean_background[j]:
-#                        mean_background[j] = [mean]
-#                        ave_sigma[j] = [sigma]
-#                        threshold[j] = [mean_background[j][-1] + nsigma*ave_sigma[j][-1]]
-#                        diff_fluxes[j] = [fluxes[j][i] - mean]
-#                    else:
-#                        mean_background[j].append(mean)
-#                        ave_sigma[j].append(sigma)
-#                        threshold[j].append(mean_background[j][-1] + nsigma*ave_sigma[j][-1])
-#                        diff_fluxes[j].append(fluxes[j][i] - mean)
-#
-#    #######REST OF DATA SET#######
-#    #Remaining dates
-#    #Get background and sigma for each day
-#    reftime = nextdate #from above
-#    for i in range(endidx+1,len(dates)):
-#        
-#        #Only calculate the background for each day
-#        #If there are multiple data points within 24
-#        #hours, assign them all the same mean and sigma
-#        checkdate = datetime.datetime(year=dates[i].year,
-#                        month=dates[i].month, day=dates[i].day)
-#        if checkdate == reftime:
-#            for j in range(nchan):
-#                mean_background[j].append(mean_background[j][-1])
-#                ave_sigma[j].append(ave_sigma[j][-1])
-#                threshold[j].append(mean_background[j][-1] + nsigma*ave_sigma[j][-1])
-#                diff_fluxes[j].append(fluxes[j][i] - mean_background[j][-1])
-#            continue #go to next time step
-#        
-#        #If it's a new day, calculate a new sigma and bg
-#        if checkdate != reftime:
-#            reftime = datetime.datetime(year=dates[i].year,
-#                        month=dates[i].month, day=dates[i].day)
-#        firstdate = reftime - td
-#        for k in range(i):
-#            if dates[k] <= firstdate:
-#                stidx = k
-#            else:
-#                break
-#        
-#        for j in range(nchan):
-#            #Calculate and save needed values
-#            flux_arr = np.array(fluxes_cp[j][stidx:i+1])
-#            
-#            test_arr, bad_index_test = remove_none_one(fluxes[j][stidx:i+1])
-#            test_arr, bad_index_test = remove_nan_one(test_arr)
-#            test_arr, bad_index_test = remove_zero_one(test_arr)
-#            
-#            if len(test_arr) == []:
-#                mean = 0
-#                sigma = 0
-#            else:
-#                #If have points in the time frame, remove any that
-#                #were above the previous threshold value
-#                if threshold[j][i-1] != 0:
-#                    flux_arr, bad_index = remove_above_value_one(threshold[j][i-1],flux_arr)
-#                    #Remove the values that are too high from the
-#                    #data set
-#                    for bad in bad_index:
-#                        fluxes_cp[j][stidx+bad] = None #remove
-#                        fluxes_bad[j][stidx+bad] = fluxes[j][stidx+bad]
-#                
-#                if flux_arr != []:
-#                    flux_arr, bad_index = remove_none_one(flux_arr)
-#                    flux_arr, bad_index = remove_nan_one(flux_arr)
-#                    flux_arr, bad_index = remove_zero_one(flux_arr)
-#
-#                #Require that at least some number of points in the time
-#                #window are good for calculating the background
-#                #otherwise use previous background level
-#                if flux_arr == []:
-#                    idx = find_last_good(i,mean_background[j])
-#                    if idx != None:
-#                        mean = mean_background[j][idx]
-#                        sigma = ave_sigma[j][idx]
-#                    else:
-#                        mean = 0
-#                        sigma = 0
-#                elif len(flux_arr) < cfg.percent_points*nwin_pts: #Use previous good value
-#                                #< 0.15*nwin_pts: Pioneer, Ulysses, STEREOA,B
-#                                #       IMP-8/CRNC,GME
-#                                #< 4: works for Voyager 1,2
-#                    idx = find_last_good(i, mean_background[j])
-#                    if idx != None:
-#                        mean = np.mean(flux_arr)
-#                        sigma = ave_sigma[j][idx]
-#                    else:
-#                        mean = 0
-#                        sigma = 0
-#                else:
-#                    mean = np.mean(flux_arr)
-#                    sigma = np.std(flux_arr)
-#                
-#            mean_background[j].append(mean)
-#            ave_sigma[j].append(sigma)
-#            threshold[j].append(mean_background[j][-1] + nsigma*ave_sigma[j][-1])
-#            diff_fluxes[j].append(fluxes[j][i] - mean)
-#
-#    #Write fluxes to file for testing and use
-#    write_np(np.array(mean_background).T,'mean_background_fluxes_it'+str(iteration))
-#    write_np(np.array(ave_sigma).T,'background_sigma_it'+str(iteration))
-#    write_np(np.array(threshold).T,'threshold_it'+str(iteration))
-#    write_np(np.array(diff_fluxes).T,'background_subtracted_fluxes_it'+str(iteration))
-#
-#
-#    #TESTING
-##    for i in range(len(fluxes_bad)):
-##        figname = "Bad fluxes " + str(i)
-##        fig = plt.figure(figname,figsize=(12,4))
-##        maskfluxes = np.ma.masked_less_equal(fluxes_bad[i], 0)
-##        plt.plot(dates,maskfluxes,'.-')
-##        plt.yscale("log")
-#        
-#    return mean_background, ave_sigma, threshold, diff_fluxes
-
-
-def write_df(df, name, verbose=True):
-    """Writes a pandas dataframe to the standard location in multiple formats
+def backward_window_background(N, dates, fluxes, nsigma, iteration=0):
+    """ Average over a backward sliding window of N days.
+        Estimate the value of the mean background (GCR) flux,
+        sigma, and a threshold to separate GCR from SEP for
+        every single time step of the data set.
+        
+        Expect that fluxes contain mostly background values
+        and have already had some portion of SEPs excluded.
+        This is meant to be a second iteration that further
+        cleans the first attempt to remove SEPs.
+    
+        INPUTS:
+        
+        :N: (integer) number of days to smooth over
+        :dates: (1xn datetime array)
+        :fluxes: (pxn float array) fluxes for p energy channels
+        :nsigma: (float) number of sigma to calculate threshold
+        
+        OUTPUTS:
+        
+        :smooth_dates: (1xm datetime array) currently unchanged
+        :mean_background: (pxm float array) average flux for the month
+        :ave_sigma: (pxm float array) sigma of flux for the month
+        
     """
-    dataformats = (('pkl' , getattr(df, 'to_pickle'), {}),
-                   ('csv',  getattr(df, 'to_csv'), {}))
-    for ext, write_func, kwargs in dataformats:
-        filepath = os.path.join(cfg.outpath, 'idsep', ext, name + '.' + ext)
-        write_func(filepath, **kwargs)
-        if verbose:
-            print('Wrote ' + filepath)
+    print("backward_window_background: Calculating the background using "
+        "a backward smoothing window of " + str(N) + " days.")
+    #If entered array of fluxes for multiple energy channels
+    nchan = len(fluxes)
+    fluxes_cp = [[]]*len(fluxes)
+    fluxes_bad = [[]]*len(fluxes)
+    for i in range(len(fluxes)):
+        fluxes_cp[i] = fluxes[i][:]
+        fluxes_bad[i] = [0]*len(fluxes[i])
+        
+    
+    #Figure out how many data points are in the window defined by
+    #N days
+    time_res = dates[1] - dates[0]
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    window = datetime.timedelta(days=N)
+    window_sec = window.total_seconds()
+    
+    if time_res_sec > window_sec:
+        sys.exit("backward_window_backgroud: The specified time window "
+            "for smoothing is shorter than the time resolution between "
+            "data points! Exiting. Window: " + str(window) +
+            ", Data sets resolution: " + str(time_res))
+    
+    nwin_pts = int(window_sec/time_res_sec)
+    print("backward_window_background: There are " + str(nwin_pts)
+        + " data points in the " + str(N) + " days time window.")
+    
+    #If entered a 1D array of fluxes
+    if len(dates) == len(fluxes): nchan = 1
+    
+    mean_background = [[]]*nchan
+    ave_sigma = [[]]*nchan
+    threshold = [[]]*nchan
+    diff_fluxes = [[]]*nchan
+    
+    year = dates[0].year
+    month = dates[0].month
+    day = dates[0].day
+    
+    #Average the flux in a sliding window of N days
+    firstdate = datetime.datetime(year=year,month=month,day=day)
+    td = datetime.timedelta(days=N)
+    nextdate = firstdate + td
+    
+    
+    #######BEGINNING OF DATA SET#####
+    stidx = 0
+    endidx = 0
+    #Apply a window to the beginning of the data set
+    for i in range(len(dates)):
+        if dates[i] < nextdate:
+            endidx = i
+        else:
+            break
+    
+    #calculate values using first N days of data
+    #iterate one time to have the opportunity to remove particularly
+    #high values
+    for j in range(nchan):
+        for jj in range(2): #iterate to remove 3sigma+ values
+            #Calculate and save needed values
+            flux_arr = np.array(fluxes_cp[j][stidx:endidx+1])
+            if jj == 1:
+                thresh = mean + nsigma*sigma
+                if thresh != 0 and thresh != None:
+                    flux_arr, bad_index = remove_above_value_one(thresh,flux_arr)
+                    for bad in bad_index:
+                        fluxes_cp[j][stidx+bad] = None #remove
+                        fluxes_bad[j][stidx+bad] = fluxes[j][stidx+bad]
+            
+            flux_arr, bad_index = remove_none_one(flux_arr)
+            flux_arr, bad_index = remove_nan_one(flux_arr)
+            flux_arr, bad_index = remove_zero_one(flux_arr)
+            
+            
+            if len(flux_arr) < 2:
+                mean = 0
+                sigma = 0
+            else:
+                mean = np.mean(flux_arr)
+                sigma = np.std(flux_arr)
+
+            
+            #Fill in first N days of data with the same threshold value
+            if jj == 1:
+                for i in range(endidx+1):
+                    if not mean_background[j]:
+                        mean_background[j] = [mean]
+                        ave_sigma[j] = [sigma]
+                        threshold[j] = [mean_background[j][-1] + nsigma*ave_sigma[j][-1]]
+                        diff_fluxes[j] = [fluxes[j][i] - mean]
+                    else:
+                        mean_background[j].append(mean)
+                        ave_sigma[j].append(sigma)
+                        threshold[j].append(mean_background[j][-1] + nsigma*ave_sigma[j][-1])
+                        diff_fluxes[j].append(fluxes[j][i] - mean)
+
+    #######REST OF DATA SET#######
+    #Remaining dates
+    #Get background and sigma for each day
+    reftime = nextdate #from above
+    for i in range(endidx+1,len(dates)):
+        
+        #Only calculate the background for each day
+        #If there are multiple data points within 24
+        #hours, assign them all the same mean and sigma
+        checkdate = datetime.datetime(year=dates[i].year,
+                        month=dates[i].month, day=dates[i].day)
+        if checkdate == reftime:
+            for j in range(nchan):
+                mean_background[j].append(mean_background[j][-1])
+                ave_sigma[j].append(ave_sigma[j][-1])
+                threshold[j].append(mean_background[j][-1] + nsigma*ave_sigma[j][-1])
+                diff_fluxes[j].append(fluxes[j][i] - mean_background[j][-1])
+            continue #go to next time step
+        
+        #If it's a new day, calculate a new sigma and bg
+        if checkdate != reftime:
+            reftime = datetime.datetime(year=dates[i].year,
+                        month=dates[i].month, day=dates[i].day)
+        firstdate = reftime - td
+        for k in range(i):
+            if dates[k] <= firstdate:
+                stidx = k
+            else:
+                break
+        
+        for j in range(nchan):
+            #Calculate and save needed values
+            flux_arr = np.array(fluxes_cp[j][stidx:i+1])
+            
+            test_arr, bad_index_test = remove_none_one(fluxes[j][stidx:i+1])
+            test_arr, bad_index_test = remove_nan_one(test_arr)
+            test_arr, bad_index_test = remove_zero_one(test_arr)
+            
+            if len(test_arr) == []:
+                mean = 0
+                sigma = 0
+            else:
+                #If have points in the time frame, remove any that
+                #were above the previous threshold value
+                if threshold[j][i-1] != 0:
+                    flux_arr, bad_index = remove_above_value_one(threshold[j][i-1],flux_arr)
+                    #Remove the values that are too high from the
+                    #data set
+                    for bad in bad_index:
+                        fluxes_cp[j][stidx+bad] = None #remove
+                        fluxes_bad[j][stidx+bad] = fluxes[j][stidx+bad]
+                
+                if flux_arr != []:
+                    flux_arr, bad_index = remove_none_one(flux_arr)
+                    flux_arr, bad_index = remove_nan_one(flux_arr)
+                    flux_arr, bad_index = remove_zero_one(flux_arr)
+
+                #Require that at least some number of points in the time
+                #window are good for calculating the background
+                #otherwise use previous background level
+                if flux_arr == []:
+                    idx = find_last_good(i,mean_background[j])
+                    if idx != None:
+                        mean = mean_background[j][idx]
+                        sigma = ave_sigma[j][idx]
+                    else:
+                        mean = 0
+                        sigma = 0
+                elif len(flux_arr) < cfg.percent_points*nwin_pts: #Use previous good value
+                                #< 0.15*nwin_pts: Pioneer, Ulysses, STEREOA,B
+                                #       IMP-8/CRNC,GME
+                                #< 4: works for Voyager 1,2
+                    idx = find_last_good(i, mean_background[j])
+                    if idx != None:
+                        mean = np.mean(flux_arr)
+                        sigma = ave_sigma[j][idx]
+                    else:
+                        mean = 0
+                        sigma = 0
+                else:
+                    mean = np.mean(flux_arr)
+                    sigma = np.std(flux_arr)
+                
+            mean_background[j].append(mean)
+            ave_sigma[j].append(sigma)
+            threshold[j].append(mean_background[j][-1] + nsigma*ave_sigma[j][-1])
+            diff_fluxes[j].append(fluxes[j][i] - mean)
+
+    #Write fluxes to file for testing and use
+    out_mean_background = np.concatenate(([dates],mean_background),axis=0)
+    write_np(out_mean_background.T,'mean_background_fluxes_it'+str(iteration))
+    
+    out_ave_sigma = np.concatenate(([dates],ave_sigma),axis=0)
+    write_np(out_ave_sigma.T,'background_sigma_it'+str(iteration))
+    
+    out_threshold = np.concatenate(([dates],threshold),axis=0)
+    write_np(out_threshold.T,'threshold_it'+str(iteration))
+    
+    out_diff_fluxes = np.concatenate(([dates],diff_fluxes),axis=0)
+    write_np(out_diff_fluxes.T,'background_subtracted_fluxes_it'+str(iteration))
 
 
+    #TESTING
+#    for i in range(len(fluxes_bad)):
+#        figname = "Bad fluxes " + str(i)
+#        fig = plt.figure(figname,figsize=(12,4))
+#        maskfluxes = np.ma.masked_less_equal(fluxes_bad[i], 0)
+#        plt.plot(dates,maskfluxes,'.-')
+#        plt.yscale("log")
+        
+    return mean_background, ave_sigma, threshold, diff_fluxes
+
+
+
+
+
+#####################################
 ##OPTIMIZED AGLORITHM
-def backward_window_background(N, dates, fluxes, nsigma,iteration=0):
+#####################################
+def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -1038,10 +1074,10 @@ def backward_window_background(N, dates, fluxes, nsigma,iteration=0):
     diff_fluxes = df_diffs[cols].T.to_numpy()
 
     #Write fluxes to file for testing and use
-    write_df(df_means,'mean_background_fluxes_it'+str(iteration))
-    write_df(df_sigmas,'background_sigma_it'+str(iteration))
-    write_df(df_thresholds,'threshold_it'+str(iteration))
-    write_df(df_diffs,'background_subtracted_fluxes_it'+str(iteration))
+    write_df(df_means,'mean_background_fluxes_optimized_it'+str(iteration))
+    write_df(df_sigmas,'background_sigma_optimized_it'+str(iteration))
+    write_df(df_thresholds,'threshold_optimized_it'+str(iteration))
+    write_df(df_diffs,'background_subtracted_fluxes_optimized_it'+str(iteration))
 
 
     return mean_background, ave_sigma, threshold, diff_fluxes
