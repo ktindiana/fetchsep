@@ -942,7 +942,7 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
     window_sec = datetime.timedelta(days=N).total_seconds()
     
     if time_res_sec > window_sec:
-        sys.exit("backward_window_backgroud_optimized: The specified time window "
+        sys.exit("backward_window_background_optimized: The specified time window "
             "for smoothing is shorter than the time resolution between "
             "data points! Exiting. Window: " + str(window) +
             ", Data sets resolution: " + str(time_res))

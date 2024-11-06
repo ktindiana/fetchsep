@@ -593,9 +593,10 @@ def run_all(str_startdate, str_enddate, experiment,
     #If the user entered a date range shorter than required for the
     #initial window used to identify the background, extend the date
     #range
-    diff = (enddate - startdate).days
-    if diff < init_win*2:
-        eff_startdate = enddate - datetime.timedelta(days=init_win*2)
+    if not plot_timeseries_only:
+        diff = (enddate - startdate).days
+        if diff < init_win*2:
+            eff_startdate = enddate - datetime.timedelta(days=init_win*2)
     
     error_check.error_check_options(experiment, flux_type, options, doBGSub)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
