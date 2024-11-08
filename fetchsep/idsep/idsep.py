@@ -466,7 +466,7 @@ def separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding):
 
 
 def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experiment,
-        flux_type, exp_name, options, doBGSub, showplot, saveplot, optimized=False):
+        flux_type, exp_name, options, doBGSub, showplot, saveplot):
     """ Remove fluxes above remove_above.
         Group fluxes into time periods of init_win.
         For each time period, calculate the mean background and sigma.
@@ -493,12 +493,8 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     """
     print("Preforming an initial rough cut between the background and enhanced fluxes.")
     print(f"Init win: {init_win}, Nsigma: {nsigma}, Remove above: {remove_above}")
-    if optimized:
-        ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
+    ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
                 defbg.ndays_average_optimized(init_win, dates, fluxes, nsigma, remove_above)
-    else:
-        ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
-                defbg.ndays_average(init_win, dates, fluxes, nsigma, remove_above)
     
     
     #INITIAL SEPARATION OF BG AND HIGHER THAN BG
@@ -515,7 +511,7 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
 
 
 def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
-    iteration=0, optimized=False):
+    iteration=0):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
         by applying a sliding window of sliding_win days to get a background
@@ -539,14 +535,9 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
             :fluxes_high: (mxn float array) enhanced fluxes for m energy bins, n dates
     
     """
-    if optimized:
-        ave_background, ave_sigma, threshold, diff_fluxes =\
+    ave_background, ave_sigma, threshold, diff_fluxes =\
             defbg.backward_window_background_optimized(sliding_win, dates, fluxes_bg_in,
             nsigma, iteration)
-    else:
-        ave_background, ave_sigma, threshold, diff_fluxes =\
-            defbg.backward_window_background(sliding_win, dates, fluxes_bg_in, nsigma,
-            iteration)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -573,16 +564,14 @@ def make_dirs():
 def run_all(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-        write_fluxes=False, optimized=False):
+        write_fluxes=False):
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
         
         :write_fluxes: (bool) Write fluxes to csv file after read in and processed 
             for bad points
-        :optimized: (bool) Use background identification subroutines that have been
-            optimized for speed using pandas dataframe rather than original approach
-            (results differ slightly)
+
     
     """
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
@@ -602,7 +591,7 @@ def run_all(str_startdate, str_enddate, experiment,
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
         subroutine='idsep')
     datasets.check_paths()
-    if write_fluxes: make_dirs()
+    make_dirs()
     
     #READ IN FLUXES
     print("TIMESTAMP: Reading in flux files " + str(datetime.datetime.now()))
@@ -623,7 +612,7 @@ def run_all(str_startdate, str_enddate, experiment,
     print("TIMESTAMP: Creating rough cut first guess at threshold " + str(datetime.datetime.now()))
     fluxes_bg_init, fluxes_high_init = rough_cut(init_win, dates, fluxes, nsigma,
         remove_above, energy_bins, experiment, flux_type, exp_name, options, doBGSub,
-        False, saveplot, optimized=optimized)
+        False, saveplot)
     
     
     #ITERATE over the identification of background and SEP periods
@@ -649,7 +638,7 @@ def run_all(str_startdate, str_enddate, experiment,
         print(f"TIMESTAMP: Starting sliding window background calculation, {datetime.datetime.now()}")
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
             apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, nsigma,
-            iteration=iter, optimized=optimized)
+            iteration=iter)
         print(f"TIMESTAMP: Completed sliding window background calculation, {datetime.datetime.now()}")
 
 

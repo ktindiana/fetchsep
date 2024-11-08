@@ -68,11 +68,6 @@ parser.add_argument("--PlotTimeSeriesOnly",
 parser.add_argument("--WriteFluxes",
         help="Write fluxes to csv file after read in and processed for "
             "bad data points.", action="store_true")
-parser.add_argument("--Optimized",
-        help="Use background identification subroutines that have been "
-            "optimized for speed.", action="store_true")
-
-
 
 parser.add_argument("--showplot",
         help="Flag to display plots", action="store_true")
@@ -106,15 +101,13 @@ remove_above = args.RemoveAbove
 for_inclusive = args.ForInclusive
 plot_timeseries_only = args.PlotTimeSeriesOnly
 write_fluxes = args.WriteFluxes
-optimized = args.Optimized
 
 showplot = args.showplot
 saveplot = args.saveplot
-
     
 fetchsep.idsep.run_all(str_startdate, str_enddate, experiment,
     flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
     remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-    write_fluxes=write_fluxes, optimized=optimized)
+    write_fluxes=write_fluxes)
 
 
