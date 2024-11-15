@@ -694,23 +694,17 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
         df_thresh.insert(0,'dates',insert_dates)
         df_thresholds = pd.concat([df_thresholds,df_thresh],ignore_index=True)
 
-
-    df_diffs = df[cols] - df_means[cols]
-
     ave_dates = df_means['dates'].to_list()
     mean_background = df_means[cols].T.to_numpy()
     ave_sigma = df_sigmas[cols].T.to_numpy()
     threshold = df_thresholds[cols].T.to_numpy()
-    diff_fluxes = df_diffs[cols].T.to_numpy()
 
     #Write fluxes to file for testing and use
     write_df(df_means,'mean_background_fluxes_optimized_it'+str(iteration))
     write_df(df_sigmas,'background_sigma_optimized_it'+str(iteration))
     write_df(df_thresholds,'threshold_optimized_it'+str(iteration))
-    write_df(df_diffs,'background_subtracted_fluxes_optimized_it'+str(iteration))
 
-
-    return mean_background, ave_sigma, threshold, diff_fluxes
+    return mean_background, ave_sigma, threshold
 
 
 
