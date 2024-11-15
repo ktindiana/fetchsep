@@ -115,10 +115,10 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
     for bin in energy_bins:
         keys.append((f"{bin[0]}-{bin[1]}"))
         
-    dict = {"Date":dates}
+    dict = {"dates":dates}
     for i in range(len(fluxes)):
         dict.update({keys[i]:fluxes[i]})
         
     df = pd.DataFrame(dict)
-    df.to_csv(fname)
+    df.to_csv(fname, index=False)
     print("Wrote " + fname + " to file.")
