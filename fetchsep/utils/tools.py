@@ -1,3 +1,6 @@
+from . import plotting_tools as plt_tools
+from . import config as cfg
+import pandas as pd
 import datetime
 import os
 import math
@@ -81,3 +84,41 @@ def determine_time_resolution(dates):
     return time_resolution
 
 
+def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, module):
+    """ Write dates, fluxes to a standard format csv file with datetime in the 
+        first column and fluxes in the remaining column. The energy bins will 
+        be indicated in the file comments.
+        
+        INPUTS:
+
+        :experiment: (string) name of native experiment or "user"
+        :flux_type: (string) "integral" or "differential"
+        :options: (string array) options that may be applied to GOES data
+        :dates: (datetime 1xm array) time points for every time in
+            all the data points in the files contained in filenames1
+        :fluxes: (float nxm array) fluxes for n energy channels and m
+            time points
+        :module: (string) "idsep" or "opsep"
+        
+        OUTPUTS:
+            
+            csv file written to outpath
+                 
+    """
+    modifier, title_modifier = plt_tools.setup_modifiers(options,False)
+    stdate = dates[0].strftime("%Y%m%d")
+    enddate = dates[-1].strftime("%Y%m%d")
+    fname = (f"fluxes_{experiment}_{flux_type}{modifier}_{stdate}_{enddate}.csv")
+    fname = os.path.join(cfg.outpath,module,fname)
+        
+    keys = []
+    for bin in energy_bins:
+        keys.append((f"{bin[0]}-{bin[1]}"))
+        
+    dict = {"Date":dates}
+    for i in range(len(fluxes)):
+        dict.update({keys[i]:fluxes[i]})
+        
+    df = pd.DataFrame(dict)
+    df.to_csv(fname)
+    print("Wrote " + fname + " to file.")
