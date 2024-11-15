@@ -23,6 +23,7 @@ import math
 from astropy.time import Time
 from statistics import mode
 import array
+import pandas as pd
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -535,7 +536,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
             :fluxes_high: (mxn float array) enhanced fluxes for m energy bins, n dates
     
     """
-    ave_background, ave_sigma, threshold, diff_fluxes =\
+    ave_background, ave_sigma, threshold =\
             defbg.backward_window_background_optimized(sliding_win, dates, fluxes_bg_in,
             nsigma, iteration)
     
@@ -546,6 +547,33 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
 
     return fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold
+
+def write_sep_fluxes(dates, fluxes, fluxes_bg):
+    """ Write out final SEP fluxes and bg-subtracted fluxes.
+        Subtract fluxes (e.g. SEP fluxes subtracted by the mean background).
+        If fluxes already at a value of zero, no background subtraction is
+        performed.
+        
+    """
+    dict = {'dates': dates}
+    cols = []
+    for ii in range(len(fluxes)):
+        dict.update({'fluxes'+str(ii): fluxes[ii]})
+        cols.append('fluxes'+str(ii))
+    df = pd.DataFrame(dict)
+    df_bg = pd.DataFrame(dict)
+    
+    defbg.write_df(df,'SEP_fluxes_FINAL')
+    
+    for ii in range(len(fluxes)):
+        df.update({cols[ii]:fluxes[ii]})
+        df_bg.update({cols[ii]:fluxes_bg[ii]})
+
+    df[cols] = df[cols] - df_bg[cols]
+    df[df[cols] < 0][cols] = 0
+    
+    defbg.write_df(df,'background_subtracted_SEP_fluxes_FINAL')
+
 
 
 def make_dirs():
@@ -558,7 +586,6 @@ def make_dirs():
         if not os.path.isdir(check_path):
             print('Making directory: ', check_path)
             os.makedirs(check_path)
-
 
 
 def run_all(str_startdate, str_enddate, experiment,
@@ -670,7 +697,7 @@ def run_all(str_startdate, str_enddate, experiment,
         padding = 2 #niter - iter #number of days on either side of SEP start and end
         if iter == niter-2: #Final round
             fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding)
-        else:
+        if iter < niter-2:
             fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes_bg, SEPstart, SEPend, padding)
 
     print(f"TIMESTAMP: Completed background and SEP event separation, {datetime.datetime.now()}")
@@ -681,10 +708,14 @@ def run_all(str_startdate, str_enddate, experiment,
                 enddate, dates, fluxes_high)
     trim_dates, trim_fluxes = datasets.extract_date_range(startdate,
                 enddate, dates, fluxes)
+    trim_bg_dates, trim_fluxes_bg = datasets.extract_date_range(startdate,
+                enddate, dates, fluxes_bg)
     #Expect that this solution is exactly the same as the last one in the loop above,
     #UNLESS the dates need to be trimmed down
     SEPstart, SEPend, final_fluxes_sep = identify_sep(trim_dates, trim_fluxes_high)
-
+    
+    #Write background-subtracted SEP only fluxes to file
+    write_sep_fluxes(dates, final_fluxes_sep, trim_fluxes_bg)
     
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins,
