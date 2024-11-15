@@ -108,6 +108,7 @@ def make_observation_window_list(path):
             win_end.append(obs_end)
 
     #SORT THE OBSERVATION WINDOWS IN TIME ORDER
+    #Indices indicate the locations of the times in win_st in sorted order
     sort_idx = [win_st.index(x) for x in sorted(win_st)]
     sort_obs_st = [win_st[ix] for ix in sort_idx]
     sort_obs_end = [win_end[ix] for ix in sort_idx]
