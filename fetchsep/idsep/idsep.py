@@ -618,7 +618,7 @@ def run_all(str_startdate, str_enddate, experiment,
     #ITERATE over the identification of background and SEP periods
     #This process refines the background and the identification of SEP start and
     #end times
-    niter = 5 #min = 2
+    niter = 3 #min = 2, max 5; tests show 3 iterations gives same result as 5
     fluxes_sep = []
     fluxes_bg = []
     fluxes_high = []
