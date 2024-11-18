@@ -591,7 +591,7 @@ def make_dirs():
 def run_all(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-        write_fluxes=False):
+        write_fluxes=True):
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
@@ -609,10 +609,19 @@ def run_all(str_startdate, str_enddate, experiment,
     #If the user entered a date range shorter than required for the
     #initial window used to identify the background, extend the date
     #range
+    #Add padding of n*sliding_win, because the background solution in the
+    #first dates of the timeseries are not accurate
     if not plot_timeseries_only:
-        diff = (enddate - startdate).days
+        #Extend timeseries to have a buffer in beginning
+        #4 months works well, but extend if use larger sliding window
+        ndays = max(27*4,sliding_win*4)
+        eff_startdate = startdate - datetime.timedelta(days=ndays)
+
+        #Extend timeseries to cover init_win
+        diff = (enddate - eff_startdate).days
         if diff < init_win*2:
             eff_startdate = enddate - datetime.timedelta(days=init_win*2)
+        
     
     error_check.error_check_options(experiment, flux_type, options, doBGSub)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
@@ -715,7 +724,7 @@ def run_all(str_startdate, str_enddate, experiment,
     SEPstart, SEPend, final_fluxes_sep = identify_sep(trim_dates, trim_fluxes_high)
     
     #Write background-subtracted SEP only fluxes to file
-    write_sep_fluxes(dates, final_fluxes_sep, trim_fluxes_bg)
+    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg)
     
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins,
