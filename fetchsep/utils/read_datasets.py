@@ -1259,7 +1259,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
     month = startdate.month
     nyr = 0
     for i in range(NFILESm):
-        month = month + i
+        month += 1
         if month == 13:
             month = 1
             nyr = nyr + 1
