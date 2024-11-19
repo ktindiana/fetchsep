@@ -2438,6 +2438,9 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     NFILESL = len(filenames1) #LET, daily
     NFILESH = len(filenames2) #HET, yearly
 
+    print(f"read_in_stereo: Reading in {NFILESL} LET files going from {filenames1[0]} to {filenames1[-1]}.")
+    print(f"read_in_stereo: Reading in {NFILESH} HET files going from {filenames2[0]} to {filenames2[-1]}.")
+
     datecolsL = [0,1,2,3,4] #yr, doy (frac), hour, min, sec - not used
     fluxcolsL = [7,8,9] #1.8-3.6, 4-6, 6-10, 10-15 <-- always empty
     ncolL = len(fluxcolsL)
@@ -2517,7 +2520,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
             all_fluxesL = np.concatenate((all_fluxesL,fluxesL),axis=1)
             all_datesL = all_datesL + datesL
             
-            
+    print("read_in_stereo: Finished reading LET data.")
     #READ IN HET
     for i in range(NFILESH):
         print('Reading in file ' + datapath + '/' + filenames2[i])
@@ -2584,6 +2587,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
             all_fluxesH = np.concatenate((all_fluxesH,fluxesH),axis=1)
             all_datesH = all_datesH + datesH
 
+    print("read_in_stereo: Finished reading HET data.")
     #Now we have the LET and HET data for every minute in different arrays.
     #The HET rows must be appended at the end of the LET rows (to go up
     #in energy bin)
@@ -2607,9 +2611,8 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 #    all_dates = datesL_trim
 #    all_fluxes = np.concatenate((fluxesL_trim,fluxesH_trim), axis=0)
  
-    #There may be data gaps in the LET and HET data sets, so make a time point for
-    #every minute between the first_date and last_date, then fill in
-    #with the appropriate data.
+    print("read_in_stereo: There may be data gaps in the LET and HET data sets, so make a time point for "
+        "every minute between the first_date and last_date, then fill in with the appropriate data.")
     nmins = math.ceil((last_date - first_date).total_seconds()/60.) + 1
     dates_all_min = []
     fluxes_all_min = np.zeros(shape=(ncolL+ncolH,nmins))
