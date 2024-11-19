@@ -153,6 +153,8 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
                             all_dates, all_fluxes)
     
     #Interpolate bad data with linear interpolation in time or set to None
+    print("read_in_flux_files: Checking for bad data and performing interpolation "
+        "(if not deselected).")
     fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins,dointerp)
     
         
