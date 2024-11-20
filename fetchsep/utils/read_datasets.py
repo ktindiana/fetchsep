@@ -1,4 +1,5 @@
 from . import config as cfg
+import pandas as pd
 import re
 import calendar
 import datetime
@@ -89,6 +90,9 @@ user_energy_bins = cfg.user_energy_bins
 
 #Spacecraft in the GOES-R+ series
 goes_R = ["GOES-16", "GOES-17", "GOES-18"]
+#Spacecraft prior to GOES-R
+goes_sc = ["GOES-08", "GOES-09","GOES-10","GOES-11",
+            "GOES-12","GOES-13","GOES-14","GOES-15"]
 
 def about_read_datasets():
     """ About read_datasets.py
@@ -183,6 +187,189 @@ def check_paths():
         print('check_paths: Directory to store plots does not exist. Creating.')
         os.mkdir(plotpath);
 
+
+def read_data_manager():
+    """ Create data management file that indicates whether a file is complete
+        or not.
+        
+    """
+    fname = os.path.join(cfg.datapath,"fetchsep_data_manager.csv")
+    exists = os.path.isfile(fname)
+    
+    if not exists:
+        df = pd.DataFrame(columns = ['File', 'Experiment', 'FluxType', 'Start Time', 'Cadence', 'Resolution', 'Complete'])
+        df.to_csv(fname)
+    else:
+        df = pd.read_csv(fname)
+        
+    return df
+    
+
+def add_to_data_manager(df, experiment, flux_type, filename, start_time, cadence, resolution, complete):
+    """ Add a new line to the data manager dataframe
+
+    """
+    vals = [filename, experiment, flux_type, start_time, cadence, resolution, complete]
+    dfadd = pd.DataFrame([vals],columns = ['File', 'Experiment', 'FluxType', 'Start Time', 'Cadence', 'Resolution', 'Complete'])
+
+    df = pd.concat([df,dfadd])
+                
+    return df
+
+
+def check_completeness(experiment, flux_type, filename, df=pd.DataFrame):
+    """ Check a data manager file to see if data has been recorded as 
+        complete or incomplete. 
+        
+    """
+    unmanaged = ['SEPEM', 'SEPEMv3', 'EPHIN_REleASE', 'CalGOES']
+    if experiment in unmanaged:
+        print(f"file_completeness: {experiment} file completeness is managed by the "
+            "user. Please ensure you have the most up-to-date data.")
+        return True
+
+    if experiment == 'ERNE':
+        print(f"file_completeness: {experiment} uses variable time periods and cannot "
+            "be checked for completeness. Double check data/ERNE/*.dates to ensure you "
+            "have the most up-to-date data.")
+        return True
+
+    if df.empty:
+        read_data_manager()
+
+    #Check if the file of interest has already been determined to be complete/incomplete
+    #Read in datafile containing a list of all files downloaded by fetchsep
+    #with indicated completeness
+    sub = df.loc[(df['File'] == filename)]
+    
+    #For testing and debugging. Check if files get added more than once.
+    if len(sub) > 1:
+        print(f"file_completeness: Multiple entries for {filename} in the fetchsep data manager file. "
+            "This should not happen. Exiting.")
+        return
+
+    complete = None
+    if not sub.empty:
+        complete = sub['Complete'].iloc[0]
+    
+    return complete
+
+
+def write_data_manager(df):
+    """ Write data manager dataframe to file. """
+    df.to_csv(os.path.join(cfg.datapath,"fetchsep_data_manager.csv"), index=False)
+
+
+
+def file_completeness(df, experiment, flux_type, filename, dates):
+    """Depending on when a file is downloaded, the file may not contain all the data.
+        i.e. a yearly file downloaded prior to the end of the year and likewise
+        for a monthly or daily file.
+        
+        FetchSEP must be able to determine whether a file on the user's computer is
+        complete or needs to be downloaded again to get the final data.
+        
+        This subroutine is relevant to data products that are downloaded from
+        the internet by FetchSEP.
+        
+        SEPEM, SEPEMv3, EPHIN_REleASE, CalGOES data must be downloaded by the user
+        manually, so they are not managed here.  
+        
+        INPUT:
+            
+            :df: (pandas DataFrame) contains the data manager information about
+                file completeness, read in with read_data_manager
+            :experiment: (string) any of the experiments that can be natively run 
+                by fetchsep
+            :flux_type: (string) integral or differential
+            :filename: (string) full path and filename
+            :dates: (array, list) dates associated with the file
+            
+        OUTPUT:
+        
+            :df: (pandas DataFrame) updated data manager dataframe
+    
+    """
+    
+    complete = check_completeness(experiment, flux_type, filename, df=df)
+    if complete:
+        return df
+
+    #If complete is False or None
+
+    #Note that EPHIN must match the res = '5min' variable set in check_ephin_data()
+    manager = { 'GOES': {'cadence': 'month',
+                        'resolution': datetime.timedelta(minutes=5)},
+                'GOES_R': {'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=5)},
+                'GOES_RT': {'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=5)},
+                'EPHIN': {'cadence': 'year',
+                        'resolution': datetime.timedelta(minutes=5)},
+                'ERNE': {'cadence': 'variable',
+                        'resolution': datetime.timedelta(minutes=1)},
+                'STEREO HET': {'cadence': 'month',
+                        'resolution': datetime.timedelta(minutes=1)},
+                'STEREO LET': {'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=1)}
+    }
+
+    key = experiment
+    if experiment in goes_sc: key = 'GOES'
+    if experiment in goes_R: key = 'GOES_R'
+    if 'STEREO' in experiment:
+        if 'HET' in filename: key = 'STEREO HET'
+        if 'LET' in filename: key = 'STEREO LET'
+    
+    cadence = manager[key]['cadence']
+    resolution = manager[key]['resolution']
+ 
+    year = dates[0].year
+    month = dates[0].month
+    day = dates[0].day
+
+    #Assume monthly files go from 1st to 30/31st
+    #Assume yearly files go Jan - Dec
+    #Identify expected last timestampe
+    if cadence == 'year':
+        last_timestamp = datetime.datetime(year+1,1,1) - resolution
+
+    if cadence == 'month':
+        month += 1
+        if month == 13:
+            month = 1
+            year = year + 1
+        
+        last_timestamp = datetime.datetime(year=year,month=month,day=1) - resolution
+
+    if cadence == 'day':
+        last_timestamp = datetime.datetime(year=year, month=month, day=day) \
+                        + datetime.timedelta(days=1) - resolution
+
+        #Sometimes missing timestamps in STEREO LET historical data and will never be complete.
+        #Consider complete if data goes up to minute 58
+        if key == 'STEREO LET':
+            last_timestamp = datetime.datetime(year=year, month=month, day=day) \
+                        + datetime.timedelta(days=1) - 2*resolution
+
+    #Check for completeness
+    complete = None
+    if dates[-1] >= last_timestamp:
+        complete = True
+    else:
+        complete = False
+    
+    #Update data manager dataframe
+    index = df[df['File'] == filename].index.values
+    if not index:
+        df = add_to_data_manager(df, experiment, flux_type, filename, dates[0], cadence, resolution, complete)
+    else:
+        df.at[index[0],'Complete'] = complete
+
+    return df
+
+                        
+                        
 
 def make_yearly_files(filename):
     """ Convert a large data set into yearly files.
@@ -397,6 +584,8 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
     endmonth = enddate.month
     endday = enddate.day
 
+    df = read_data_manager() #file completeness record
+
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, eps, or epead
     filenames2 = []  #hepad
@@ -482,13 +671,16 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
         date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,
                         last_day)
         fname1 = prefix1 + date_suffix + '.csv'
-        exists1 = os.path.isfile(datapath + '/GOES/' + fname1)
+        fullpath1 = os.path.join(cfg.datapath, 'GOES', fname1)
+        exists1 = os.path.isfile(fullpath1)
         fname2 = prefix2 + date_suffix + '.csv'
-        exists2 = os.path.isfile(datapath + '/GOES/' + fname2)
+        fullpath2 = os.path.join(cfg.datapath,'GOES',fname2)
+        exists2 = os.path.isfile(fullpath2)
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
             fname_orien = prefix_orien + date_suffix + '_v1.0.0.csv'
-            exists_orien = os.path.isfile(datapath + '/GOES/' + fname_orien)
+            fullpath_orien = os.path.join(cfg.datapath, 'GOES', fname_orien)
+            exists_orien = os.path.isfile(fullpath_orien)
 
 
         if fname1 in g13_bad or fname1 in g14_bad or fname1 in g15_bad:
@@ -496,27 +688,33 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                     + fname1 + "). Returning. ")
             return filenames1, filenames2, filenames_orien, date
 
-
-        if not exists1: #download file if not found on your computer
+        complete = None
+        if exists1:
+            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
+        
+        if not exists1 or not complete: #download file if not found on your computer
             url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
                 '%i/%02i/%s/csv/%s' % (year,month,satellite,fname1))
             print('Downloading GOES data: ' + url)
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES/' + fname1)
+                wget.download(url, fullpath1)
             except urllib.request.HTTPError:
                 print("Cannot access file at " + url +
                 ". Please check that selected spacecraft covers date range.")
                 return filenames1, filenames2, filenames_orien, date
 
+        complete = None
+        if exists2:
+            complete = check_completeness(experiment, flux_type, fullpath2, df=df)
 
-        if not exists2: #download file if not found on your computer
+        if not exists2 or not complete: #download file if not found on your computer
             url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
                '%i/%02i/%s/csv/%s' % (year,month,satellite,fname2))
             print('Downloading GOES data: ' + url)
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES/' + fname2)
+                wget.download(url, fullpath2)
             except urllib.request.HTTPError:
                 print("Cannot access file at " + url +
                ". Please check that selected spacecraft covers date range.")
@@ -524,24 +722,24 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
 
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
-            if not exists_orien: #download file if not found on your computer
+            if not exists_orien or not complete: #download file if not found on your computer
                 url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
                    '%i/%02i/%s/csv/%s' % (year,month,satellite,fname_orien))
                 print('Downloading GOES data: ' + url)
                 try:
                     urllib.request.urlopen(url)
-                    wget.download(url, datapath + '/GOES/' + fname_orien)
+                    wget.download(url, fullpath_orien)
                 except urllib.request.HTTPError:
                     print("Cannot access orientation file at "
                         + url + ". Please check that selected "
                         + "spacecraft covers date range.")
                     return filenames1, filenames2, filenames_orien, date
 
-        filenames1.append('GOES/' + fname1)
-        filenames2.append('GOES/' + fname2)
+        filenames1.append(os.path.join('GOES', fname1))
+        filenames2.append(os.path.join('GOES', fname2))
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
-            filenames_orien.append('GOES/' + fname_orien)
+            filenames_orien.append(os.path.join('GOES', fname_orien))
 
     return filenames1, filenames2, filenames_orien, date
 
@@ -586,6 +784,8 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
     endyear = enddate.year
     endmonth = enddate.month
     endday = enddate.day
+
+    df = read_data_manager() #file completeness record
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #GOES-R
@@ -643,9 +843,12 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         foundfile = None
         for ext in file_ext:
             fname_data = prefix + date_suffix + ext
-            exists = os.path.isfile(os.path.join(datapath,'GOES',fname_data))
+            fullpath = os.path.join(datapath,'GOES',fname_data)
+            exists = os.path.isfile(fullpath)
             if exists:
-                foundfile = fname_data
+                #Check if the file is listed as complete
+                complete = check_completeness(experiment, flux_type, fullpath, df=df)
+                if complete: foundfile = fname_data
             
         #Try versions
         if foundfile == None:
@@ -745,6 +948,8 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
     endmonth = enddate.month
     endday = enddate.day
 
+    df = read_data_manager() #file completeness record
+
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #GOES_RT files
     filenames2 = []  #place holder
@@ -774,9 +979,15 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
         fname1 = date_suffix + prefix + '.csv'
-        exists1 = os.path.isfile(os.path.join(datapath, 'GOES_RT', fname1))
+        fullpath1 = os.path.join(datapath, 'GOES_RT', fname1)
+        exists1 = os.path.isfile(fullpath1)
+        
+        complete = False
+        if exists1:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
 
-        if not exists1:
+        if not exists1 or not complete:
             #https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=2023-05-23T00:00:00.0Z&time.max=2023-05-24T00:00:00.0Z&format=csv
             #Note that iSWA will return an empty csv file if make a request into the future or the
             #data isn't present yet. This can cause idsep or opsep to think the data is
@@ -793,17 +1004,6 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
             else:
                 print(f'Failed to retrieve data. HTTP Status code: {response.status_code}')
                 return filenames1, filenames2, filenames_orien, date
-
-#            try:
-#                urllib.request.urlopen(url)
-#                #iSWA only returns a filename if the data is present. Should avoid
-#                #creating empty files.
-#                fnm = wget.download(url, os.path.join(datapath, 'GOES_RT', fname1))
-#                
-#            except urllib.request.HTTPError:
-#                print("Cannot access GOES-R file at " + url +
-#               ". Please check that selected spacecraft covers date range. Continuing.")
-#                return filenames1, filenames2, filenames_orien, date
 
         filenames1.append(os.path.join('GOES_RT', fname1))
 
@@ -974,6 +1174,8 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
     endmonth = enddate.month
     endday = enddate.day
 
+    df = read_data_manager() #file completeness record
+
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
 
@@ -982,9 +1184,15 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
         fname = str(year) + '.l3i'
         res = '5min'
         
-        svfile = os.path.join(datapath,'EPHIN',fname)
+        svfile = os.path.join(cfg.datapath,'EPHIN',fname)
         exists = os.path.isfile(svfile)
-        if not exists: #download file if not found on your computer
+        
+        complete = False
+        if exists:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, svfile, df=df)
+        
+        if not exists or not complete: #download file if not found on your computer
             url = ('http://ulysses.physik.uni-kiel.de/costep/level3/l3i/%s/%s'
                     % (res,fname))
             print('Downloading EPHIN data: ' + url)
@@ -995,7 +1203,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
                 sys.exit("Cannot access EPHIN file at " + url +
                ". Please check that selected spacecraft covers date range.")
                
-        filenames1.append('EPHIN/' + fname)
+        filenames1.append(os.path.join('EPHIN', fname))
         
     return filenames1
 
@@ -1189,6 +1397,8 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
     endmonth = enddate.month
     endday = enddate.day
 
+    df = read_data_manager() #file completeness record
+
     #Array of filenames that contain the data requested by the User
     filenames1 = [] #LET  
     filenames2 = [] #HET
@@ -1228,6 +1438,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
     #https://izw1.caltech.edu/STEREO/DATA/Level1/Public/behind/1Minute/2006/Summed/H/H_summed_behind_2006_317_level1_11.txt
     #HET
     #https://izw1.caltech.edu/STEREO/DATA/HET/Behind/1minute/BeH06Dec.1m
+ 
     #LET data
     for i in range(NFILESd):
         date = startdate + datetime.timedelta(days=i)
@@ -1239,16 +1450,24 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
         stryr = str(year)
 
         #LET
-        fname1 = '%s%i_%03i_level1_11.txt' % (let_prefix,year,doy) 
-        exists1 = os.path.isfile(datapath + '/' + experiment + '/LET/' + fname1)
-        filenames1.append(experiment + '/LET/' + fname1)
+        fname1 = '%s%i_%03i_level1_11.txt' % (let_prefix,year,doy)
+        fullpath1 = os.path.join(cfg.datapath,experiment,'LET',fname1)
+        exists1 = os.path.isfile(fullpath1)
 
-        if not exists1:
+        complete = False
+        if exists1:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
+            if complete:
+                filenames1.append(os.path.join(experiment,'LET',fname1))
+
+        if not exists1 or not complete:
             url=(let_url_prefix + '%i/Summed/H/%s' % (year,fname1))
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/' + experiment + '/LET/' + fname1)
-                print("Downloaded file --> " + datapath + '/' + experiment + '/LET/' + fname1)
+                wget.download(url, fullpath1)
+                print("Downloaded file --> " + fullpath1)
+                filenames1.append(os.path.join(experiment,'LET',fname1))
             except urllib.request.HTTPError:
                 sys.exit("Cannot access " + experiment + " file at " + url +
                 ". Please check that selected spacecraft covers date range.")
@@ -1259,7 +1478,6 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
     month = startdate.month
     nyr = 0
     for i in range(NFILESm):
-        month += 1
         if month == 13:
             month = 1
             nyr = nyr + 1
@@ -1271,26 +1489,28 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
 
         #HET
         fname2 = '%s%s%s.1m' % (het_prefix,stryr[2:4],strmonth)
-        exists2 = os.path.isfile(datapath + '/' + experiment + '/HET/' + fname2)
-        filenames2.append(experiment + '/HET/' + fname2)
+        fullpath2 = os.path.join(cfg.datapath,experiment,'HET',fname2)
+        exists2 = os.path.isfile(fullpath2)
 
-        #The monthly files continue to be updated as the month progresses.
-        #If already have the file on your computer for the current year and month,
-        #still want to update it because there may be new data since the
-        #last time it was downloaded.
-        time_now = datetime.datetime.now()
-        if time_now.year == year and time_now.month == month: exists2 = False
+        complete = False
+        if exists2:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, fullpath2, df=df)
+            if complete:
+                filenames2.append(os.path.join(experiment,'HET',fname2))
 
-        if not exists2:
+        if not exists2 or not complete:
             url=het_url_prefix + fname2
             try:
                 urllib.request.urlopen(url)
-                wget.download(url,datapath + '/' + experiment + '/HET/' + fname2)
-                print("Downloaded file --> " + datapath + '/' + experiment + '/HET/' + fname2)
+                wget.download(url,fullpath2)
+                print("Downloaded file --> " + fullpath2)
+                filenames2.append(os.path.join(experiment,'HET',fname2))
             except urllib.request.HTTPError:
                 sys.exit("Cannot access " + experiment + " file at " + url +
                     ". Please check that selected spacecraft covers date range.")
 
+        month += 1
 
     return filenames1, filenames2
 
@@ -1652,6 +1872,9 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
     all_fluxes = []
     west_detector = [] #place holder, will be filled if needed
 
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+
     if (experiment == "GOES-08" or experiment == "GOES-09" or
         experiment == "GOES-10" or experiment == "GOES-11" or
         experiment == "GOES-12"):
@@ -1718,7 +1941,9 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             
         
         print('Reading in file ' + datapath + '/' + filenames1[i])
-        with open(datapath + '/' + filenames1[i]) as csvfile:
+        fullpath1 = os.path.join(cfg.datapath, filenames1[i])
+        file_dates = []
+        with open(fullpath1) as csvfile:
             #GOES data has very large headers; figure out where the data
             #starts inside the file and skip the required number of lines
             readCSV = csv.reader(csvfile, delimiter=',')
@@ -1731,6 +1956,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                 date = datetime.datetime.strptime(row[0][0:19],
                                                 "%Y-%m-%d %H:%M:%S")
                 dates.append(date)
+                file_dates.append(date) #only dates in current file
 
             if (experiment == "GOES-13" or experiment == "GOES-14"
                 or experiment == "GOES-15"):
@@ -1761,7 +1987,8 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
 
         #SECOND set of files for higher energy hepad
         nhead, nrow = find_goes_data_dimensions(filenames2[i])
-        with open(datapath + '/' + filenames2[i]) as csvfile:
+        fullpath2 = os.path.join(cfg.datapath,filenames2[i])
+        with open(fullpath2) as csvfile:
             readCSV = csv.reader(csvfile, delimiter=',')
             for k in range(nhead):
                 next(readCSV)  #to start of data
@@ -1776,6 +2003,10 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                 count = count + 1
         csvfile.close()
 
+        #Update file completeness
+        df = file_completeness(df, experiment, flux_type, fullpath1, file_dates)
+        df = file_completeness(df, experiment, flux_type, fullpath2, file_dates)
+
         #If reading in multiple files, then combine all data into one array
         if len(all_fluxes) == 0:
             all_fluxes = fluxes
@@ -1786,7 +2017,9 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
     
     if all_dates == []:
         print("read_in_goes: Did not find the data you were looking for.")
-        
+   
+    write_data_manager(df)
+    
     return all_dates, all_fluxes, west_detector
 
 
@@ -1840,12 +2073,16 @@ def read_in_goesR(experiment, flux_type, filenames1):
     all_fluxes = []
     west_detector = [] #place holder, will be filled if needed
 
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+
     #GOES-R times are wrt reference time of 2000-01-01 12:00:00
     ref_date = datetime.datetime(year=2000, month=1, day=1, hour=12)
     
     #Read in fluxes from files
     for i in range(NFILES):
-        infile = os.path.expanduser(datapath + "/" + filenames1[i])
+        fullpath = os.path.join(cfg.datapath, filenames1[i])
+        infile = os.path.expanduser(fullpath)
         data = netCDF4.Dataset(infile)
         
         if "v3-0" in filenames1[i]:
@@ -1856,7 +2093,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         #13 differential channels, one integral channel
         #5 minute time steps
         fluxes = np.zeros(shape=(ndiff_chan+1,ntstep))
-        
+        file_dates = []
         for j in range(ntstep):
             if "v3-0" in filenames1[i]:
                 time_sec = float(data.variables["time"][j].data)
@@ -1865,6 +2102,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
             td = datetime.timedelta(seconds=time_sec)
             date = ref_date + td
             all_dates.append(date)
+            file_dates.append(date)
             
             #Orientation flag
             if "v3-0" in filenames1[i]:
@@ -1893,12 +2131,16 @@ def read_in_goesR(experiment, flux_type, filenames1):
             if flux < 0:
                 flux = badval
             fluxes[-1][j] = flux
-                
+
+        #Update file completeness
+        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+
         if len(all_fluxes) == 0:
             all_fluxes = fluxes
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes),axis=1)
 
+    write_data_manager(df)
 
     return all_dates, all_fluxes, west_detector
 
@@ -1985,10 +2227,14 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
     all_fluxes = []
     west_detector = [] #place holder, will be filled if needed
 
+    #Read in file that identified data files as complete
+    df = read_data_manager()
     
     #Read in fluxes from files
     for i in range(NFILES):
-        with open(os.path.join(datapath, filenames1[i])) as infile:
+        file_dates = []
+        fullpath = os.path.join(datapath, filenames1[i])
+        with open(fullpath) as infile:
         
             #6 integral channels
             #5 minute time steps up to 00:00 of the next day
@@ -2008,6 +2254,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
                 ztime = row[0]
                 date = zulu_to_time(ztime)
                 all_dates.append(date)
+                file_dates.append(date)
                 
                 for k in range(n_chan):
                     flux = float(row[1+k])
@@ -2017,10 +2264,15 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
                 
                 j = j+1 #count dates
         
+        #Update file completeness
+        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+        
         if len(all_fluxes) == 0:
             all_fluxes = fluxes
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes[:,0:len(all_dates)]),axis=1)
+
+    write_data_manager(df)
 
     return all_dates, all_fluxes, west_detector
 
@@ -2141,13 +2393,17 @@ def read_in_ephin(experiment, flux_type, filenames1):
     """
     NFILES = len(filenames1)
 
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+
     datecols = [0,1,2,4,5] #yr, mth, dy, hr, min
     fluxcols = [8,9,10,11]
     ncol= len(fluxcols)
 
     for i in range(NFILES):
-        print('Reading in file ' + datapath + '/' + filenames1[i])
-        with open(datapath + '/' + filenames1[i]) as csvfile:
+        fullpath = os.path.join(cfg.datapath, filenames1[i])
+        print('Reading in file ' + fullpath)
+        with open(fullpath) as csvfile:
             #Count header lines indicated by hash #
             nhead = 0
             for line in csvfile:
@@ -2187,6 +2443,9 @@ def read_in_ephin(experiment, flux_type, filenames1):
                     fluxes[j][count] = flux
                 count = count + 1
 
+        #Update file completeness
+        df = file_completeness(df, experiment, flux_type, fullpath, dates)
+
         #If reading in multiple files, then combine all data into one array
         if i==0:
             all_fluxes = fluxes
@@ -2194,6 +2453,8 @@ def read_in_ephin(experiment, flux_type, filenames1):
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes),axis=1)
             all_dates = all_dates + dates
+
+    write_data_manager(df)
 
     return all_dates, all_fluxes
 
@@ -2438,22 +2699,31 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     NFILESL = len(filenames1) #LET, daily
     NFILESH = len(filenames2) #HET, yearly
 
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+
     print(f"read_in_stereo: Reading in {NFILESL} LET files going from {filenames1[0]} to {filenames1[-1]}.")
     print(f"read_in_stereo: Reading in {NFILESH} HET files going from {filenames2[0]} to {filenames2[-1]}.")
 
     datecolsL = [0,1,2,3,4] #yr, doy (frac), hour, min, sec - not used
     fluxcolsL = [7,8,9] #1.8-3.6, 4-6, 6-10, 10-15 <-- always empty
     ncolL = len(fluxcolsL)
+    colL = ['fluxL' + str(kk) for kk in range(ncolL) ]
+    colL = ['dates'] + colL
+    dfL = pd.DataFrame(columns=colL)
 
     datecolsH = [1,2,3,4] #yr, doy, dy, hr, min - not used
     fluxcolsH = [11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31]
     ncolH = len(fluxcolsH)
-
+    colH = ['fluxH' + str(kk) for kk in range(ncolH) ]
+    colH = ['dates'] + colH
+    dfH = pd.DataFrame(columns=colH)
     
     #READ IN LET
     for i in range(NFILESL):
-        print('Reading in file ' + datapath + '/' + filenames1[i])
-        with open(datapath + '/' + filenames1[i]) as infile:
+        fullpathL = os.path.join(cfg.datapath,filenames1[i])
+        print('Reading in file ' + fullpathL)
+        with open(fullpathL) as infile:
             #Count header lines up until "BEGIN DATA"
             #Count remaining lines of data
             nhead = 0
@@ -2471,17 +2741,16 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 if not is_header and line != '': #empty line at end of file
                     nrowL = nrowL + 1
             
-            #print("LET data header rows: " + str(nhead) + ", data rows: " + str(nrowL))
             #Define arrays that hold dates and fluxes
             datesL = []
-            fluxesL = np.zeros(shape=(ncolL,nrowL))
-
+ 
             infile.seek(0) #back to beginning of file
             for k in range(nhead):
                 infile.readline()  # Skip header rows.
 
             count = 0
             for line in infile:
+                rowL = [] #row for dataframe
                 line = line.lstrip()
                 if line == '': continue
                 if line[0] == "#": continue
@@ -2497,34 +2766,29 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                     + str(minute)
                 date = datetime.datetime.strptime(str_date,"%Y %j %H %M")
                 
-                #doy_date = datetime.datetime(year=year,month=1,day=1) + datetime.timedelta(days=doy-1)
-                #month = doy_date.month
-                #day = doy_date.day
-                
-                #date = datetime.datetime(year=year,month=month,day=day,
-                #        hour=hour,minute=minute,second=0)  #ignore seconds to match with HET
                 datesL.append(date)
+                rowL.append(date)
                 
                 for j in range(ncolL):
                     flux = float(row[fluxcolsL[j]])
                     if flux < 0:
                         flux = badval
-                    fluxesL[j][count] = flux
+
+                    rowL.append(flux)
+                
+                dfLrow = pd.DataFrame([rowL], columns=colL)
+                dfL = pd.concat([dfL,dfLrow],ignore_index=True)
                 count = count + 1
-        
-        #If reading in multiple files, then combine all data into one array
-        if i==0:
-            all_fluxesL = fluxesL
-            all_datesL = datesL
-        else:
-            all_fluxesL = np.concatenate((all_fluxesL,fluxesL),axis=1)
-            all_datesL = all_datesL + datesL
-            
+
+        #Update file completeness
+        df = file_completeness(df, experiment, flux_type, fullpathL, datesL)
+
     print("read_in_stereo: Finished reading LET data.")
     #READ IN HET
     for i in range(NFILESH):
-        print('Reading in file ' + datapath + '/' + filenames2[i])
-        with open(datapath + '/' + filenames2[i]) as infile:
+        fullpath2 = os.path.join(datapath,filenames2[i])
+        print('Reading in file ' + fullpath2)
+        with open(fullpath2) as infile:
             #Count header lines up until "BEGIN DATA"
             #Count remaining lines of data
             nhead = 0
@@ -2542,10 +2806,8 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 if not is_header and line != '': #empty line at end of file
                     nrowH = nrowH + 1
             
-            #print("HET data header rows: " + str(nhead) + ", data rows: " + str(nrowH))
             #Define arrays that hold dates and fluxes
             datesH = []
-            fluxesH = np.zeros(shape=(ncolH,nrowH))
 
             infile.seek(0) #back to beginning of file
             for k in range(nhead):
@@ -2553,6 +2815,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 
             count = 0
             for line in infile:
+                rowH = []
                 line = line.lstrip()
                 if line == '': continue
                 if line[0] == "#": continue
@@ -2564,28 +2827,26 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 str_month = row[2] #str
                 day = int(row[3])
                 str_hr_min = row[4]
-               # hr = int(str_hr_min[0:2])
-               # min = int(str_hr_min[2:4])
-                
+
                 str_date = str(year) + " " + str_month + " " + str(day) + " " + str_hr_min
                 date = datetime.datetime.strptime(str_date, '%Y %b %d %H%M') #2001 Jan 1 1545
  
                 datesH.append(date)
+                rowH.append(date)
                 
                 for j in range(ncolH):
                     flux = float(row[fluxcolsH[j]])
                     if flux < 0:
                         flux = badval
-                    fluxesH[j][count] = flux
+
+                    rowH.append(flux)
+
+                dfHrow = pd.DataFrame([rowH], columns=colH)
+                dfH = pd.concat([dfH,dfHrow],ignore_index=True)
                 count = count + 1
-        
-        #If reading in multiple files, then combine all data into one array
-        if i==0:
-            all_fluxesH = fluxesH
-            all_datesH = datesH
-        else:
-            all_fluxesH = np.concatenate((all_fluxesH,fluxesH),axis=1)
-            all_datesH = all_datesH + datesH
+
+        #Update file completeness
+        df = file_completeness(df, experiment, flux_type, fullpath2, datesH)
 
     print("read_in_stereo: Finished reading HET data.")
     #Now we have the LET and HET data for every minute in different arrays.
@@ -2597,59 +2858,63 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     #Easiest approach is to trim both to the minimum overlapping date range
     #and hopefully this will include the dates requested by the user.
     #This approach may need updating.
-    first_date = max(all_datesL[0],all_datesH[0])
-    last_date = min(all_datesL[-1],all_datesH[-1])
-    datesL_trim, fluxesL_trim = extract_date_range(first_date, last_date,
-                                    all_datesL, all_fluxesL)
-    datesH_trim, fluxesH_trim = extract_date_range(first_date, last_date,
-                                    all_datesH, all_fluxesH)
+    first_date = max(dfL['dates'].min(),dfH['dates'].min())
+    last_date = min(dfL['dates'].max(),dfH['dates'].max())
 
+    #Trim to the overlapping date range
+    dfL = dfL.loc[(dfL['dates'] >= first_date) & (dfL['dates'] <= last_date)]
+    dfH = dfH.loc[(dfH['dates'] >= first_date) & (dfH['dates'] <= last_date)]
 
-    print("There are " + str(len(datesL_trim)) + " LET time points and " + str(len(datesH_trim)) + " HET time points between " + str(first_date) + " and " + str(last_date))
+    print("There are " + str(len(dfL)) + " LET time points and " + str(len(dfH)) + " HET time points between " + str(first_date) + " and " + str(last_date))
     
- 
-#    all_dates = datesL_trim
-#    all_fluxes = np.concatenate((fluxesL_trim,fluxesH_trim), axis=0)
- 
-    print("read_in_stereo: There may be data gaps in the LET and HET data sets, so make a time point for "
-        "every minute between the first_date and last_date, then fill in with the appropriate data.")
+    print(f"read_in_stereo: There may be missing timestamps in the LET and HET data sets. "
+        "Make a time point for every minute between {first_date} and {last_date}, then fill "
+        "in with bad value.")
+    badL = [badval]*ncolL
+    badH = [badval]*ncolH
     nmins = math.ceil((last_date - first_date).total_seconds()/60.) + 1
-    dates_all_min = []
-    fluxes_all_min = np.zeros(shape=(ncolL+ncolH,nmins))
-    for ii in range(nmins):
-        time = first_date + datetime.timedelta(minutes = ii)
-        dates_all_min.append(time)
+    if (len(dfL) == nmins) and (len(dfH) == nmins):
+        pass
+    else:
+        for ii in range(nmins):
+            time = first_date + datetime.timedelta(minutes = ii)
+            have_timeL = dfL['dates'].isin([time]).any()
+            have_timeH = dfH['dates'].isin([time]).any()
 
-        #CHECK FOR FLUX AT TIME IN LET
-        try:
-            idx_LET = datesL_trim.index(time)
-            for kk in range(ncolL):
-                fluxes_all_min[kk][ii] = fluxesL_trim[kk][idx_LET]
-        except:
-            for kk in range(ncolL):
-                fluxes_all_min[kk][ii] = badval
+            if not have_timeL:
+                badrowL = [time] + badL
+                dfLbad = pd.DataFrame([badrowL],columns=colL)
+                dfL = pd.concat([dfL,dfLbad],ignore_index=True)
+                print(f"read_in_stereo: Time point missing in LET at {time}. Filled with {badval}.")
+                
+            if not have_timeH:
+                badrowH = [time] + badH
+                dfHbad = pd.DataFrame([badrowH], columns=colH)
+                dfH = pd.concat([dfH,dfHbad],ignore_index=True)
+                print(f"read_in_stereo: Time point missing in HET at {time}. Filled with {badval}.")
 
-        #CHECK FOR FLUX AT TIME IN HET
-        try:
-            idx_HET = datesH_trim.index(time)
-            for kk in range(ncolH):
-                fluxes_all_min[ncolL + kk][ii] = fluxesH_trim[kk][idx_HET]
-        except:
-            for kk in range(ncolH):
-                fluxes_all_min[ncolL + kk][ii] = badval
 
-    print("read_in_stereo: Filled in flux values for all minutes between:")
-    print(dates_all_min[0])
-    print(dates_all_min[-1])
-    print("Final flux array " + str(fluxes_all_min[:,0].size) + " " + str(fluxes_all_min[0,:].size) +
-    " dates size " + str(len(dates_all_min)))
+    #After bad times have been filled in, sort dataframes to be in time order again
+    dfL = dfL.sort_values(by=['dates'], ascending=True)
+    dfL = dfL.reset_index(drop = True)
+ 
+    dfH = dfH.sort_values(by=['dates'], ascending=True)
+    dfH = dfH.reset_index(drop = True)
 
-    all_dates = dates_all_min
-    all_fluxes = fluxes_all_min
-    
+    #Check if the timestamps across the two data sets are the same
+    if not dfL['dates'].equals(dfH['dates']):
+        sys.exit("read_in_stereo: The LET and HET data contain different timestamps even after trimming "
+            "and filling in missing time points (1 minute cadence). Exiting.")
+
+    df_all = dfL.merge(dfH, on='dates')
+    allcol = df_all.columns.to_list()
+
+    all_dates = df_all['dates'].to_list()
+    all_fluxes = df_all[allcol[1:]].values.T
+
+    write_data_manager(df)
+
     return all_dates, all_fluxes
-
-
 
     
 
