@@ -20,6 +20,7 @@ import requests
 from bs4 import BeautifulSoup
 import tarfile
 import ssl
+import subprocess
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -293,6 +294,11 @@ def file_completeness(df, experiment, flux_type, filename, dates):
     
     complete = check_completeness(experiment, flux_type, filename, df=df)
     if complete:
+        return df
+
+    #If dates happens to be empty
+    if not dates:
+        print(f"file_completeness: The dates array passed for {filename} is empty. Returning with no action.")
         return df
 
     #If complete is False or None
@@ -698,6 +704,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
             print('Downloading GOES data: ' + url)
             try:
                 urllib.request.urlopen(url)
+                
+                if os.path.exists(fullpath1):
+                    os.remove(fullpath1) # if exist, remove it directly
+                
                 wget.download(url, fullpath1)
             except urllib.request.HTTPError:
                 print("Cannot access file at " + url +
@@ -714,6 +724,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
             print('Downloading GOES data: ' + url)
             try:
                 urllib.request.urlopen(url)
+                
+                if os.path.exists(fullpath2):
+                    os.remove(fullpath2) # if exist, remove it directly
+                
                 wget.download(url, fullpath2)
             except urllib.request.HTTPError:
                 print("Cannot access file at " + url +
@@ -728,6 +742,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                 print('Downloading GOES data: ' + url)
                 try:
                     urllib.request.urlopen(url)
+                
+                    if os.path.exists(fullpath_orien):
+                        os.remove(fullpath_orien) # if exist, remove it directly
+                    
                     wget.download(url, fullpath_orien)
                 except urllib.request.HTTPError:
                     print("Cannot access orientation file at "
@@ -795,12 +813,13 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
     #SPECIAL FILE FOR 2017-09-10 SEP EVENTS
     if experiment == "GOES-16" and styear == 2017:
         fname1 = 'se_sgps-l2-avg5m_g16_s20172440000000_e20172732355000_v2_0_0.nc'
-        exists1 = os.path.isfile(datapath + '/GOES-R/' + fname1)
+        fullpath1 = os.path.join(cfg.datapath,'GOES',fname1)
+        exists1 = os.path.isfile(fullpath1)
         if not exists1:
             url=('https://www.ngdc.noaa.gov/stp/space-weather/satellite-data/satellite-systems/goesr/solar_proton_events/sgps_sep2017_event_data/%s' % (fname1))
             try:
                 urllib.request.urlopen(url)
-                wget.download(url, datapath + '/GOES-R/' + fname1)
+                wget.download(url, fullpath1)
             except urllib.request.HTTPError:
                 print("Cannot access SEP event file at " + url +
                ". Please check that the url is still active.")
@@ -857,6 +876,10 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                 url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
                 try:
                     urllib.request.urlopen(url)
+                
+                    if os.path.exists(fullpath):
+                        os.remove(fullpath) # if exist, remove it directly
+          
                     wget.download(url, os.path.join(datapath,'GOES',fname_data))
                     foundfile = fname_data
                     break
@@ -1198,6 +1221,10 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
             print('Downloading EPHIN data: ' + url)
             try:
                 urllib.request.urlopen(url)
+                
+                if os.path.exists(svfile):
+                    os.remove(svfile) # if exist, remove it directly
+  
                 wget.download(url, svfile)
             except urllib.request.HTTPError:
                 sys.exit("Cannot access EPHIN file at " + url +
@@ -1465,6 +1492,10 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
             url=(let_url_prefix + '%i/Summed/H/%s' % (year,fname1))
             try:
                 urllib.request.urlopen(url)
+                
+                if os.path.exists(fullpath1):
+                    os.remove(fullpath1) # if exist, remove it directly
+  
                 wget.download(url, fullpath1)
                 print("Downloaded file --> " + fullpath1)
                 filenames1.append(os.path.join(experiment,'LET',fname1))
@@ -1503,6 +1534,10 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
             url=het_url_prefix + fname2
             try:
                 urllib.request.urlopen(url)
+                
+                if os.path.exists(fullpath2):
+                    os.remove(fullpath2) # if exist, remove it directly
+  
                 wget.download(url,fullpath2)
                 print("Downloaded file --> " + fullpath2)
                 filenames2.append(os.path.join(experiment,'HET',fname2))
@@ -2722,7 +2757,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     #READ IN LET
     for i in range(NFILESL):
         fullpathL = os.path.join(cfg.datapath,filenames1[i])
-        print('Reading in file ' + fullpathL)
+        print(f"{datetime.datetime.now()} Reading in file {fullpathL}")
         with open(fullpathL) as infile:
             #Count header lines up until "BEGIN DATA"
             #Count remaining lines of data
@@ -2783,12 +2818,12 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
         #Update file completeness
         df = file_completeness(df, experiment, flux_type, fullpathL, datesL)
 
-    print("read_in_stereo: Finished reading LET data.")
+    print(f"{datetime.datetime.now()} read_in_stereo: Finished reading LET data.")
     #READ IN HET
     for i in range(NFILESH):
-        fullpath2 = os.path.join(datapath,filenames2[i])
-        print('Reading in file ' + fullpath2)
-        with open(fullpath2) as infile:
+        fullpathH = os.path.join(datapath,filenames2[i])
+        print(f"{datetime.datetime.now()} Reading in file {fullpathH}")
+        with open(fullpathH) as infile:
             #Count header lines up until "BEGIN DATA"
             #Count remaining lines of data
             nhead = 0
@@ -2844,11 +2879,11 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 dfHrow = pd.DataFrame([rowH], columns=colH)
                 dfH = pd.concat([dfH,dfHrow],ignore_index=True)
                 count = count + 1
-
+        
         #Update file completeness
-        df = file_completeness(df, experiment, flux_type, fullpath2, datesH)
+        df = file_completeness(df, experiment, flux_type, fullpathH, datesH)
 
-    print("read_in_stereo: Finished reading HET data.")
+    print(f"{datetime.datetime.now()} read_in_stereo: Finished reading HET data.")
     #Now we have the LET and HET data for every minute in different arrays.
     #The HET rows must be appended at the end of the LET rows (to go up
     #in energy bin)
@@ -2913,6 +2948,8 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     all_fluxes = df_all[allcol[1:]].values.T
 
     write_data_manager(df)
+
+    print(f"{datetime.datetime.now()} read_in_stereo: Finished reading STEREO data.")
 
     return all_dates, all_fluxes
 
