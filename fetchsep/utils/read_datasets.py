@@ -372,6 +372,8 @@ def file_completeness(df, experiment, flux_type, filename, dates):
     else:
         df.at[index[0],'Complete'] = complete
 
+    print(f"file_completeness: {filename} determined to be complete {complete}.")
+
     return df
 
                         
@@ -2819,6 +2821,8 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
         df = file_completeness(df, experiment, flux_type, fullpathL, datesL)
 
     print(f"{datetime.datetime.now()} read_in_stereo: Finished reading LET data.")
+    write_data_manager(df)
+
     #READ IN HET
     for i in range(NFILESH):
         fullpathH = os.path.join(datapath,filenames2[i])
@@ -2884,6 +2888,8 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
         df = file_completeness(df, experiment, flux_type, fullpathH, datesH)
 
     print(f"{datetime.datetime.now()} read_in_stereo: Finished reading HET data.")
+    write_data_manager(df)
+    
     #Now we have the LET and HET data for every minute in different arrays.
     #The HET rows must be appended at the end of the LET rows (to go up
     #in energy bin)
@@ -2899,45 +2905,55 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     #Trim to the overlapping date range
     dfL = dfL.loc[(dfL['dates'] >= first_date) & (dfL['dates'] <= last_date)]
     dfH = dfH.loc[(dfH['dates'] >= first_date) & (dfH['dates'] <= last_date)]
-
-    print("There are " + str(len(dfL)) + " LET time points and " + str(len(dfH)) + " HET time points between " + str(first_date) + " and " + str(last_date))
     
     print(f"read_in_stereo: There may be missing timestamps in the LET and HET data sets. "
-        "Make a time point for every minute between {first_date} and {last_date}, then fill "
+        f"Make a time point for every minute between {first_date} and {last_date}, then fill "
         "in with bad value.")
     badL = [badval]*ncolL
     badH = [badval]*ncolH
     nmins = math.ceil((last_date - first_date).total_seconds()/60.) + 1
-    if (len(dfL) == nmins) and (len(dfH) == nmins):
+    print(f"There are {len(dfL)} LET time points and {len(dfH)} HET time points between "
+        f"{first_date} and {last_date}. There should be {nmins} minutes.")
+        
+    isgoodL = (len(dfL) == nmins)
+    isgoodH = (len(dfH) == nmins)
+    if isgoodL and isgoodH:
         pass
     else:
         for ii in range(nmins):
             time = first_date + datetime.timedelta(minutes = ii)
-            have_timeL = dfL['dates'].isin([time]).any()
-            have_timeH = dfH['dates'].isin([time]).any()
 
-            if not have_timeL:
-                badrowL = [time] + badL
-                dfLbad = pd.DataFrame([badrowL],columns=colL)
-                dfL = pd.concat([dfL,dfLbad],ignore_index=True)
-                print(f"read_in_stereo: Time point missing in LET at {time}. Filled with {badval}.")
-                
-            if not have_timeH:
-                badrowH = [time] + badH
-                dfHbad = pd.DataFrame([badrowH], columns=colH)
-                dfH = pd.concat([dfH,dfHbad],ignore_index=True)
-                print(f"read_in_stereo: Time point missing in HET at {time}. Filled with {badval}.")
+            if not isgoodL:
+                have_timeL = dfL['dates'].isin([time]).any()
+                if not have_timeL:
+                    badrowL = [time] + badL
+                    dfLbad = pd.DataFrame([badrowL],columns=colL)
+                    dfL = pd.concat([dfL,dfLbad],ignore_index=True)
+                    print(f"{datetime.datetime.now()} read_in_stereo: Time point missing in LET at {time}. Filled with {badval}.")
+
+            if not isgoodH:
+                have_timeH = dfH['dates'].isin([time]).any()
+                if not have_timeH:
+                    badrowH = [time] + badH
+                    dfHbad = pd.DataFrame([badrowH], columns=colH)
+                    dfH = pd.concat([dfH,dfHbad],ignore_index=True)
+                    print(f"{datetime.datetime.now()} read_in_stereo: Time point missing in HET at {time}. Filled with {badval}.")
 
 
     #After bad times have been filled in, sort dataframes to be in time order again
+    #and remove any duplicated time points
     dfL = dfL.sort_values(by=['dates'], ascending=True)
+    dfL.drop_duplicates(subset='dates', inplace=True)
     dfL = dfL.reset_index(drop = True)
  
     dfH = dfH.sort_values(by=['dates'], ascending=True)
+    dfH.drop_duplicates(subset='dates', inplace=True)
     dfH = dfH.reset_index(drop = True)
 
     #Check if the timestamps across the two data sets are the same
     if not dfL['dates'].equals(dfH['dates']):
+        dfL.to_csv("output/idsep/STEREO_LET.csv")
+        dfH.to_csv("output/idsep/STEREO_HET.csv")
         sys.exit("read_in_stereo: The LET and HET data contain different timestamps even after trimming "
             "and filling in missing time points (1 minute cadence). Exiting.")
 
@@ -2946,8 +2962,6 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 
     all_dates = df_all['dates'].to_list()
     all_fluxes = df_all[allcol[1:]].values.T
-
-    write_data_manager(df)
 
     print(f"{datetime.datetime.now()} read_in_stereo: Finished reading STEREO data.")
 

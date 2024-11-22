@@ -1,6 +1,6 @@
 {
    "sep_forecast_submission": {
-       "notes": [ { "note": "produced by fetchsep/opsep.py"} ],
+       "notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],
        "model": { "short_name": "", "spase_id": ""},
        "source_info": {"native_flux_type": ""},
        "options": "",

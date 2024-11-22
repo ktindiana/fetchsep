@@ -10,6 +10,9 @@ from astropy import units as u
 import os
 import sys
 import pandas as pd
+import git
+#import process
+#import re
 
 __version__ = "2.0"
 __author__ = "Katie Whitman"
@@ -355,7 +358,18 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
     template[key]['options'] = options
     template[key]['issue_time'] = issue_time
 
-    template[key]['notes'].append({'note':"opsep v" + str(opsep_version)})
+    #Git repo version info code provided by the one and only
+    #Luke Stegeman, coding genius
+    #Get the hash of the git repo on the local computer and the
+    #latest
+#    git_repo = git.Repo(search_parent_directories=True)
+#    git_repo_url = 'https://github.com/ktindiana/fetchsep'
+#    git_commit_sha = git_repo.head.object.hexsha
+#    git_is_dirty = git_repo.is_dirty()
+#    
+#    template[key]['notes'].append({'note':f"version, git hash: {git_commit_sha}"})
+#    template[key]['notes'].append({'note':f"Link, if commit pushed to repo: {git_repo_url}/tree/{git_commit_sha}"})
+#    template[key]['notes'].append({'note': f"Uncommitted changes present on user's computer: {git_is_dirty}."})
 
     #####FILL THRESHOLDS#############
     nthresh = len(energy_thresholds)
