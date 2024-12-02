@@ -10,7 +10,7 @@ from astropy import units as u
 import os
 import sys
 import pandas as pd
-#import git
+#import git #GitPython package
 #import process
 #import re
 
@@ -174,12 +174,13 @@ def about_ccmc_json_handler():
     """
 
 
-def read_in_json_template(type):
+def read_in_json_template(type, fname=''):
     """Read in appropriate json file template for model or observations.
         
         INPUTS:
         
         :type: (string) = "model" or "observations"
+        :fname: (string) optional filename for a custom template
         
         OUTPUTS:
         
@@ -190,15 +191,22 @@ def read_in_json_template(type):
         sys.exit("json_handler: read_in_template: type may be \"model\" "
                 "or \"observations\". You entered " + str(type))
     
-    templatedir = os.path.join(os.path.dirname(__file__), 'templates')
+    #User can provide a template file stored in templatepath
+    if fname:
+        with open(os.path.join(cfg.templatepath, fname)) as f:
+            template=json.load(f)
     
-    if type == "model":
-        with open(os.path.join(templatedir, 'model_template.json')) as f:
-            template=json.load(f)
+    #Otherwise use default templates
+    else:
+        templatedir = os.path.join(os.path.dirname(__file__), 'templates')
+        
+        if type == "model":
+            with open(os.path.join(templatedir, 'model_template.json')) as f:
+                template=json.load(f)
 
-    if type == "observations":
-        with open(os.path.join(templatedir, 'observations_template.json')) as f:
-            template=json.load(f)
+        if type == "observations":
+            with open(os.path.join(templatedir, 'observations_template.json')) as f:
+                template=json.load(f)
 
     return template
 

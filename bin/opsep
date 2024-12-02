@@ -42,6 +42,9 @@ parser.add_argument("--JSONType", type=str, choices=['model',
         help=("For user-input files, specify whether they are observations "
         "or model predictions to generate a JSON file in the correct format. "
         "Choices are \"model\" or \"observations\" Default is model."))
+parser.add_argument("--Template", type=str, default='',
+        help=("Specify name of user json template in templatepath directory. "
+            "If no filename is specified, a default template will be used."))
 parser.add_argument("--spase_id", type=str, default='', help=("If your "
         "model or data source has an associated Spase ID, specify here. "
         "Enter the full Spase ID for the CCMC system, including url, "
@@ -122,6 +125,7 @@ flux_type = args.FluxType
 model_name = args.ModelName
 user_file = args.UserFile
 json_type = args.JSONType
+templatename = args.Template
 spase_id = args.spase_id
 str_thresh = args.Threshold
 doBGSub = args.SubtractBG
@@ -138,9 +142,8 @@ nointerp = args.NoInterp
 
 
 sep_year, sep_month, sep_day, jsonfname = fetchsep.opsep.run_all(str_startdate,
-    str_enddate, experiment,
-    flux_type, model_name, user_file, json_type, spase_id, showplot, saveplot,
-    detect_prev_event, two_peaks, umasep, str_thresh, options, doBGSub,
-    str_bgstartdate, str_bgenddate, nointerp)
+    str_enddate, experiment, flux_type, model_name, user_file, json_type, spase_id,
+    showplot, saveplot, detect_prev_event, two_peaks, umasep, str_thresh, options,
+    doBGSub, str_bgstartdate, str_bgenddate, nointerp, templatename=templatename)
 
 if showplot: plt.show()

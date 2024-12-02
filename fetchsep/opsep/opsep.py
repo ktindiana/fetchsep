@@ -3221,7 +3221,7 @@ def write_info_to_file(experiment, flux_type, json_type, options,
         crossing_time, onset_peak, onset_date, peak_flux, peak_time,
         rise_time, event_end_time, duration, all_threshold_fluences,
         all_fluence, plot_diff_thresh,
-        umasep, umasep_times, umasep_fluxes):
+        umasep, umasep_times, umasep_fluxes, templatename=''):
     """ Write information to csv and json file.
         Writes all of the derived information for all the
         energy-threshold combinations to file.
@@ -3232,6 +3232,8 @@ def write_info_to_file(experiment, flux_type, json_type, options,
         :flux_type: (string) differential or integral
         :json_type: (string) model or observations, indicates which json
             template to use if the experiment is "user"
+        :templatename: (string) optional name of user template file stored in
+            cfg.templatepath directory
             
         The remaining inputs here are the same as the outputs produced by
         append_differential_thresholds() or have been described in other
@@ -3263,7 +3265,7 @@ def write_info_to_file(experiment, flux_type, json_type, options,
     type = "observations"
     if experiment == "user":
         type = json_type
-    template = ccmc_json.read_in_json_template(type)
+    template = ccmc_json.read_in_json_template(type, fname=templatename)
 
     modifier = ''
     if options[0] != '':
@@ -3355,7 +3357,7 @@ def write_info_to_file(experiment, flux_type, json_type, options,
 def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         user_file, json_type, spase_id, showplot, saveplot, detect_prev_event,
         two_peaks, umasep, str_thresh, options, doBGSub, str_bgstartdate,
-        str_bgenddate, nointerp=False):
+        str_bgenddate, nointerp=False, templatename=''):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3389,6 +3391,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
             separated by semi-colon.
         :nointerp: (boolean) - set to true to fill in negative fluxes with None
             value rather than filling in via linear interpolation in time
+        :templatename: (string) optional name of user json template located in
+            cfg.templatepath directory
         
         OUTPUTS:
         
@@ -3540,7 +3544,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         crossing_time, onset_peak, onset_date, peak_flux, peak_time,
         rise_time, event_end_time, duration, all_threshold_fluences,
         all_fluence, plot_diff_thresh,
-        umasep, umasep_times, umasep_fluxes)
+        umasep, umasep_times, umasep_fluxes, templatename=templatename)
 
 
     
