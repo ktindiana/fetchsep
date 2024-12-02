@@ -3,6 +3,7 @@ data/
 output/
 plots/
 lists/
+templates/
 
 fetchsep.cfg
 

@@ -136,57 +136,51 @@ def check_paths():
         print('check_paths: Directory containing fluxes, ' + datapath +
         ', does not exist. Creating.')
         os.mkdir(datapath);
-    if not os.path.isdir(datapath + '/GOES'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/GOES, does not exist. Creating.')
-        os.mkdir(datapath + '/GOES');
-    if not os.path.isdir(datapath + '/GOES_RT'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/GOES_RT, does not exist. Creating.')
-        os.mkdir(datapath + '/GOES_RT');
-    if not os.path.isdir(datapath + '/SEPEM'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/SEPEM, does not exist. Creating.')
-        os.mkdir(datapath + '/SEPEM');
-    if not os.path.isdir(datapath + '/SEPEMv3'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/SEPEMv3, does not exist. Creating.')
-        os.mkdir(datapath + '/SEPEMv3');
-    if not os.path.isdir(datapath + '/EPHIN'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/EPHIN, does not exist. Creating.')
-        os.mkdir(datapath + '/EPHIN');
-    if not os.path.isdir(datapath + '/ERNE'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/ERNE, does not exist. Creating.')
-        os.mkdir(datapath + '/ERNE');
-    if not os.path.isdir(datapath + '/ERNE/export.srl.utu.fi'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/ERNE/export.srl.utu.fi, does not exist. Creating.')
-        os.mkdir(datapath + '/ERNE/export.srl.utu.fi');
-    if not os.path.isdir(datapath + '/CalGOES'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/CalGOES, does not exist. Creating.')
-        os.mkdir(datapath + '/CalGOES');
-    if not os.path.isdir(datapath + '/STEREO-A'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/STEREO-A, does not exist. Creating.')
-        os.mkdir(datapath + '/STEREO-A');
-        os.mkdir(datapath + '/STEREO-A/LET');
-        os.mkdir(datapath + '/STEREO-A/HET');
-    if not os.path.isdir(datapath + '/STEREO-B'):
-        print('check_paths: Directory containing fluxes, ' + datapath +
-        '/STEREO-B, does not exist. Creating.')
-        os.mkdir(datapath + '/STEREO-B');
-        os.mkdir(datapath + '/STEREO-B/LET');
-        os.mkdir(datapath + '/STEREO-B/HET');
-    if not os.path.isdir(outpath):
-        print('check_paths: Directory to store output information, ' + outpath
-            + ', does not exist. Creating.')
-        os.mkdir(outpath);
-    if not os.path.isdir(plotpath):
-        print('check_paths: Directory to store plots does not exist. Creating.')
-        os.mkdir(plotpath);
+    if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
+        print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + datapath + '/GOES')
+        os.mkdir(os.path.join(cfg.datapath, 'GOES'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
+        print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + datapath + '/GOES_RT')
+        os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'SEPEM')):
+        print('check_paths: Directory containing SEPEM fluxes does not exist. Creating ' + datapath + '/SEPEM')
+        os.mkdir(os.path.join(cfg.datapath,'SEPEM'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'SEPEMv3')):
+        print('check_paths: Directory containing SEPEMv3 fluxes does not exist. Creating ' + datapath + '/SEPEMv3')
+        os.mkdir(os.path.join(cfg.datapath,'SEPEMv3'));
+    if not os.path.isdir(os.path.join(cfg.datapath, 'EPHIN')):
+        print('check_paths: Directory containing EPHIN fluxes does not exist. Creating ' + datapath + '/EPHIN')
+        os.mkdir(os.path.join(cfg.datapath, 'EPHIN'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
+        print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + datapath + '/ERNE')
+        os.mkdir(os.path.join(cfg.datapath,'ERNE'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
+        print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + datapath + '/ERNE/export.srl.utu.fi')
+        os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'CalGOES')):
+        print('check_paths: Directory containing CalGOES fluxes does not exist. Creating ' + cfg.datapath + '/CalGOES')
+        os.mkdir(os.path.join(cfg.datapath,'CalGOES'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A')):
+        print('check_paths: Directory containing STEREO-A fluxes does not exist. Creating ' + cfg.datapath +
+        '/STEREO-A')
+        os.mkdir(os.path.join(cfg.datapath,'STEREO-A'));
+        os.mkdir(os.path.join(cfg.datapath,'STEREO-A','LET'));
+        os.mkdir(os.path.join(cfg.datapath,'STEREO-A','HET'));
+    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B')):
+        print('check_paths: Directory containing STEREO-B fluxes does not exist. Creating ' + cfg.datapath +
+        '/STEREO-B')
+        os.mkdir(os.path.join(cfg.datapath,'STEREO-B'));
+        os.mkdir(os.path.join(cfg.datapath,'STEREO-B','LET'));
+        os.mkdir(os.path.join(cfg.datapath,'STEREO-B','HET'));
+    if not os.path.isdir(cfg.outpath):
+        print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
+        os.mkdir(cfg.outpath);
+    if not os.path.isdir(cfg.plotpath):
+        print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
+        os.mkdir(cfg.plotpath);
+    if not os.path.isdir(cfg.templatepath):
+        print('check_paths: Directory to store user json templates for opsep does not exist. Creating.')
+        os.mkdir(cfg.templatepath);
 
 
 def read_data_manager():
