@@ -10,7 +10,7 @@ from astropy import units as u
 import os
 import sys
 import pandas as pd
-import git
+#import git
 #import process
 #import re
 
