@@ -314,7 +314,9 @@ for i in range(Nsep):
     detect_prev_event = detect_prev_event_default
     two_peaks = two_peaks_default
     doBGSub = False
-    nointerp = False #if true, will not do interpolation in time
+    nointerp = True #if true, will not do interpolation in time
+    if dointerp: nointerp = False
+    
     if "DetectPreviousEvent" in flag:
         detect_prev_event = True
     if "TwoPeak" in flag:

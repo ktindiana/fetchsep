@@ -2019,6 +2019,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
         #SECOND set of files for higher energy hepad
         nhead, nrow = find_goes_data_dimensions(filenames2[i])
         fullpath2 = os.path.join(cfg.datapath,filenames2[i])
+        print('Reading in file ' + fullpath2)
         with open(fullpath2) as csvfile:
             readCSV = csv.reader(csvfile, delimiter=',')
             for k in range(nhead):
@@ -2027,7 +2028,13 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             count = 0
             for row in readCSV:
                 for j in range(nhcol):
-                    flux = float(row[hepad_columns[j]])
+                    #Sometimes GOES datafiles have an incomplete row,
+                    #e.g. g13_hepad_ap_5m_20101201_20101231.csv
+                    #If so, rather than crash, set the flux to badval
+                    try:
+                        flux = float(row[hepad_columns[j]])
+                    except:
+                        flux = badval
                     if flux < 0:
                         flux = badval
                     fluxes[ncol+j][count] = flux

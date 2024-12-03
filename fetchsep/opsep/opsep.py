@@ -2152,6 +2152,14 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds,
                 + str(energy_thresholds[i]) + " MeV =====")
         print('Best Fit Ip: ' + str(best_Ip) + ', a: ' + str(best_a) + ', b: ' + str(best_b))
         
+        if pd.isnull(best_Ip) or pd.isnull(best_a) or pd.isnull(best_b):
+            print("calculate_onset_peak_from_fit: Fit failed for "
+                f"{energy_thresholds[i]}. Setting onset peak to NaN.")
+            onset_date[i] = None
+            onset_peak[i] = np.nan
+            continue
+
+        
         ####FIND ONSET PEAK USING MAXIMUM CURVATURE ON WEIBULL FIT
         max_curve_idx = find_max_curvature(trim_times, best_fit,
                             energy_thresholds[i], crossing_time[i],

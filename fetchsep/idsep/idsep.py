@@ -615,8 +615,7 @@ def run_all(str_startdate, str_enddate, experiment,
     #first dates of the timeseries are not accurate
     if not plot_timeseries_only:
         #Extend timeseries to have a buffer in beginning
-        #4 months works well, but extend if use larger sliding window
-        ndays = max(27*4,sliding_win*4)
+        ndays = max(27*2,sliding_win*2)
         eff_startdate = startdate - datetime.timedelta(days=ndays)
 
         #Extend timeseries to cover init_win
