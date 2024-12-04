@@ -2809,8 +2809,9 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
 
      
     if len(dates) <= 1:
-        sys.exit("The specified start and end dates were not present in the "
-                "specified input file. Exiting.")
+        print("read_in_flux_files: The specified start and end dates were not "
+            f"present in the specified input file. Exiting. {startdate} to {enddate}")
+        sys.exit()
     
     return dates, fluxes, energy_bins
       

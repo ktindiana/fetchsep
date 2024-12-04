@@ -2226,6 +2226,8 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
         the 1 day json files for the primary GOES spacecraft.
         These files are archived on the CCMC website.
         
+        iSWA may have time gaps that exceed 1 day.
+        
         The >500 MeV fluxes are in the last row of the csv file for 
         GOES-R time periods.
         
@@ -2274,7 +2276,14 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
     for i in range(NFILES):
         file_dates = []
         fullpath = os.path.join(datapath, filenames1[i])
-        df_in = pd.read_csv(fullpath, header=None)
+        
+        try:
+            df_in = pd.read_csv(fullpath, header=None)
+        except:
+            #Sometimes files may be empty if there is a data gap > 1 day
+            print(f"read_in_GOES_RT: Could not open {fullpath}. Skipping.")
+            continue
+
         df_in[0] = df_in[0].str.replace('T',' ')
         df_in[0] = df_in[0].str.replace('Z','')
         df_in[0] = pd.to_datetime(df_in[0])
