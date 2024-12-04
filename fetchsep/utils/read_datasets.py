@@ -3299,6 +3299,8 @@ def do_interpolation(i,dates,flux):
        
     """
     ndates = len(dates)
+    preflux = badval
+    postflux = badval
     
 #    print("ndates: " + str(ndates) + ", i: " + str(i))
 
@@ -3337,9 +3339,11 @@ def do_interpolation(i,dates,flux):
 #                    + str(dates[j]) + ' with value ' + str(flux[j]))
                 break
             if j == 0:
-                sys.exit('There is a data gap at the beginning of the '
+                print('There is a data gap at the beginning of the '
                         'selected time period. Program cannot estimate '
-                        'flux in data gap.')
+                        f'flux in data gap. Setting to {badval}.')
+                preflux = badval
+                predate = None
 
         #search for first previous good value after to the gap
         for j in range(i,ndates-1):
@@ -3362,14 +3366,18 @@ def do_interpolation(i,dates,flux):
 #                        + str(postdate) + ' with value ' + str(postflux))
 
             
-
-    if preflux == postflux:
-        interp_flux = preflux
-    if preflux != postflux:
-        interp_flux = preflux + (dates[i] - predate).total_seconds()\
-             *(postflux - preflux)/(postdate - predate).total_seconds()
-#    print('Filling gap at time ' + str(dates[i])
-#            + ' with interpolated flux ' + str(interp_flux))
+    if preflux == badval or postflux == badval:
+        interp_flux = badval
+        print(f'do_interpolation could not interpolate flux at {i}. Setting to {badval}.')
+    
+    else:
+        if preflux == postflux:
+            interp_flux = preflux
+        if preflux != postflux:
+            interp_flux = preflux + (dates[i] - predate).total_seconds()\
+                 *(postflux - preflux)/(postdate - predate).total_seconds()
+    #    print('Filling gap at time ' + str(dates[i])
+    #            + ' with interpolated flux ' + str(interp_flux))
     return interp_flux
 
 
