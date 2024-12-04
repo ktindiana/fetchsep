@@ -2768,6 +2768,7 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
     if experiment == "user":
         all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
         west_detector = []
+
     #Define energy bins
     if experiment == "ERNE":
         version = datasets.which_erne(startdate, enddate)
@@ -2776,6 +2777,7 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
     else:
         energy_bins = datasets.define_energy_bins(experiment, flux_type, \
                                 west_detector, options)
+
 
     if len(all_dates) <= 1:
         sys.exit(f"read_in_flux_files: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
