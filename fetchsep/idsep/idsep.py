@@ -140,7 +140,8 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     else:
         energy_bins = datasets.define_energy_bins(experiment, flux_type,
                                 west_detector, options)
-    
+
+
     if energy_bins == None:
         sys.exit("Could not identify energy bins for experiment " + experiment
                 + " and fluxtype " + flux_type)

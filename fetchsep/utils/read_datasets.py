@@ -2226,8 +2226,8 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
         the 1 day json files for the primary GOES spacecraft.
         These files are archived on the CCMC website.
         
-        The >500 MeV fluxes are in the differential files. This
-        file contains fluxes up to >100 MeV.
+        The >500 MeV fluxes are in the last row of the csv file for 
+        GOES-R time periods.
         
         Reading in Level 2 data.
         Flux fill value = -100000.0
@@ -2268,47 +2268,37 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
     #Read in file that identified data files as complete
     df = read_data_manager()
     
+    df_data = pd.DataFrame()
+    cols_to_drop = [7,8,9,10] #Not fluxes
     #Read in fluxes from files
     for i in range(NFILES):
         file_dates = []
         fullpath = os.path.join(datapath, filenames1[i])
-        with open(fullpath) as infile:
-        
-            #6 integral channels
-            #5 minute time steps up to 00:00 of the next day
-            #Exclude last time step at midnight of next day or will
-            #end up with repeat entries for the same time.
-            fluxes = np.zeros(shape=(n_chan,288))
-            j = 0 #counter for number of time steps in file
-        
-            for row in infile:
-                if row[0] == "#": continue
-                if row[0] == ":": continue
-                if j == 288: continue
-                
-                row = row.split(",")
-                
-                #Get Date
-                ztime = row[0]
-                date = zulu_to_time(ztime)
-                all_dates.append(date)
-                file_dates.append(date)
-                
-                for k in range(n_chan):
-                    flux = float(row[1+k])
-                    if flux < 0:
-                        flux = badval
-                    fluxes[k][j] = flux
-                
-                j = j+1 #count dates
-        
+        df_in = pd.read_csv(fullpath, header=None)
+        df_in[0] = df_in[0].str.replace('T',' ')
+        df_in[0] = df_in[0].str.replace('Z','')
+        df_in[0] = pd.to_datetime(df_in[0])
+ 
         #Update file completeness
+        file_dates = df_in[0].to_list()
         df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+ 
+        for col in cols_to_drop:
+            df_in = df_in.drop(col,axis=1)
         
-        if len(all_fluxes) == 0:
-            all_fluxes = fluxes
-        else:
-            all_fluxes = np.concatenate((all_fluxes,fluxes[:,0:len(all_dates)]),axis=1)
+
+        #Replace bad data with badval
+        df_in = df_in.replace(to_replace=-100000,value=badval)
+
+        df_data = pd.concat([df_data,df_in],ignore_index=True)
+        
+        
+
+    #These final dates and fluxes may have time gaps that were not filled in
+    all_dates = df_data[0].to_list()
+    cols = df_data.columns.to_list()
+    all_fluxes = df_data[cols[1:]].values.T
+
 
     write_data_manager(df)
 
@@ -3339,9 +3329,9 @@ def do_interpolation(i,dates,flux):
 #                    + str(dates[j]) + ' with value ' + str(flux[j]))
                 break
             if j == 0:
-                print('There is a data gap at the beginning of the '
-                        'selected time period. Program cannot estimate '
-                        f'flux in data gap. Setting to {badval}.')
+#                print('There is a data gap at the beginning of the '
+#                        'selected time period. Program cannot estimate '
+#                        f'flux in data gap. Setting to {badval}.')
                 preflux = badval
                 predate = None
 
@@ -3368,7 +3358,7 @@ def do_interpolation(i,dates,flux):
             
     if preflux == badval or postflux == badval:
         interp_flux = badval
-        print(f'do_interpolation could not interpolate flux at {i}. Setting to {badval}.')
+ #       print(f'do_interpolation could not interpolate flux at {i}. Setting to {badval}.')
     
     else:
         if preflux == postflux:
@@ -3719,7 +3709,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options):
 
     if experiment == "GOES_RT":
         if flux_type == "integral":
-            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1]]
+            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[500,-1]]
     
     
     if experiment == "STEREO-A" or experiment == "STEREO-B":
