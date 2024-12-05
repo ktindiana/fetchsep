@@ -344,6 +344,14 @@ def write_sep_lists(jsonfname, combos):
     '''
     
     data = ccmc_json.read_in_json(jsonfname)
+    
+    #Check if observations present. May be empty if data was bad for full
+    #time period evaluated
+    main_key = ccmc_json.return_main_key(data)
+    type_key = ccmc_json.return_type_key(data)
+    if not data[main_key][type_key]:
+        return False
+    
     exp_name = ccmc_json.return_json_value_by_index(data,keys.id_short_name)
     options = ccmc_json.return_json_value_by_index(data,keys.id_options)
     if isinstance(options,list):
