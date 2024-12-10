@@ -612,15 +612,18 @@ def run_all(str_startdate, str_enddate, experiment,
     #If the user entered a date range shorter than required for the
     #initial window used to identify the background, extend the date
     #range
-    #Add padding of n*sliding_win, because the background solution in the
-    #first dates of the timeseries are not accurate
+    #Note that the user should consider adding up to two months prior to the dates
+    #of interest because the background solution for the first dates of the
+    #timeseries are not accurate
     if not plot_timeseries_only:
         #Extend timeseries to have a buffer in beginning
-        ndays = max(27*2,sliding_win*2)
-        eff_startdate = startdate - datetime.timedelta(days=ndays)
+        #Initially included, but hard to control starting date with this
+        #added to the code
+#        ndays = max(27*2,sliding_win*2)
+ #       eff_startdate = startdate - datetime.timedelta(days=ndays)
 
         #Extend timeseries to cover init_win
-        diff = (enddate - eff_startdate).days
+        diff = (enddate - startdate).days
         if diff < init_win*2:
             eff_startdate = enddate - datetime.timedelta(days=init_win*2)
         
