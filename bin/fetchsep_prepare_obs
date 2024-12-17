@@ -21,7 +21,7 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 
 #Helper
-def septimes_fname(experiment, flux_type, options, energy_bin):
+def septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=""):
     """ Create the filename of the file output by
         SEPAutoID (idsep) that contains the SEP start and
         end times of interest.
@@ -36,29 +36,20 @@ def septimes_fname(experiment, flux_type, options, energy_bin):
         
     """
     #Additions to titles and filenames according to user-selected options
-    modifier = ''
-    title_mod = ''
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
+    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
-    prename = 'SEPTimes_' + experiment + '_' + flux_type + modifier
+
+    prename = (f"SEPTimes_{experiment}_{flux_type}{modifier}")
     if experiment == 'user' and exp_name != '':
-        prename = 'SEPTimes_' + exp_name + '_' + flux_type + modifier
-
-    fname = cfg.outpath + "/idsep/" + prename + '_' + str(energy_bin[0]) + '_to_' + str(energy_bin[1]) + '.txt'
+        prename = (f"SEPTimes_{exp_name}_{flux_type}{modifier}")
+ 
+    fname = os.path.join(cfg.outpath,"idsep", f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
     
     if not os.path.isfile(fname):
-        fname = cfg.outpath + "/idsep/" + prename + '_' + str(int(energy_bin[0])) + '_to_' + str(energy_bin[1]) + '.txt'
+        bin0 = int(energy_bin[0])
+        bin1 = int(energy_bin[1])
+        fname = os.path.join(cfg.outpath,"idsep", f"{prename}_{bin0}_to_{bin1}.txt")
+        
         if not os.path.isfile(fname):
             sys.exit("septimes_fname: Cannot find file: " + fname)
     
@@ -90,8 +81,8 @@ parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Are these integral or differential fluxes?"))
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
-        'secondary'], default='primary',
-        help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
+        'secondary'], default='',
+        help=("If GOES_RT is selected, choose the primary or secondary spacecraft."))
 parser.add_argument("--ExperimentName", type=str, default='',
         help=("If you chose user for experiment, specify the "
                 "name of the model or experiment that you are "
@@ -227,7 +218,7 @@ energy_bin = cfg.ref_energy_bin
 batchfile = 'batch_event_list.txt'
 
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    septimes_file = septimes_fname(experiment, flux_type, options, energy_bin)
+    septimes_file = septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=spacecraft)
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
@@ -292,7 +283,7 @@ start_dates, end_dates, experiments, flux_types, flags,  \
     bgend = batch.read_sep_dates(sep_filename)
 
 #Prepare output file listing events and flags
-fout = open(cfg.listpath + "/opsep/" + statusfname,"w+")
+fout = open(os.path.join(cfg.listpath,"opsep",statusfname),"w+")
 fout.write('#Experiment,SEP Date,Exception\n')
 
 #---RUN ALL SEP EVENTS---
@@ -311,6 +302,7 @@ for i in range(Nsep):
     option = options[i]
     bgstartdate = bgstart[i]
     bgenddate = bgend[i]
+    spacecraft = spacecraft #TO BE UPDATED
 
     spase_id = ''
 
@@ -336,7 +328,7 @@ for i in range(Nsep):
             experiment, flux_type, model_name, user_file, json_type,
             spase_id, showplot, saveplot, detect_prev_event,
             two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
-            bgenddate, nointerp)
+            bgenddate, nointerp, spacecraft=spacecraft)
 
         sep_date = datetime.datetime(year=sep_year, month=sep_month,
                         day=sep_day)

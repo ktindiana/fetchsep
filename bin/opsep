@@ -31,7 +31,7 @@ parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Do you want to use integral or differential fluxes?"))
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
-        'secondary'], default='primary',
+        'secondary'], default='',
         help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
 parser.add_argument("--ModelName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "

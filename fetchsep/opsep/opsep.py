@@ -1290,7 +1290,7 @@ def calculate_fluence(dates, flux):
 def get_fluence_spectrum(experiment, flux_type, options, doBGSub,
                 model_name, energy_threshold,
                 flux_threshold, sep_dates, sep_fluxes, energy_bins,
-                diff_thresh, save_file):
+                diff_thresh, save_file, spacecraft=""):
     """ Calculate the fluence spectrum for each of the energy channels in the
         user selected data set. If the user selected differential fluxes, then
         the fluence values correspond to each energy bin. If the user selected
@@ -1347,21 +1347,15 @@ def get_fluence_spectrum(experiment, flux_type, options, doBGSub,
             mod1 = ''
             mod2 = 'differential energy bin with low edge '
             unit = flux_units_differential #'1/[MeV cm^2 s sr]'
-        modifier = ''
-        if options[0] != '':
-            for opt in options:
-                modifier = modifier + '_' + opt
-        if doBGSub:
-            modifier = modifier + '_bgsub'
-        foutname = outpath + '/fluence_' + str(experiment) + modifier + '_' \
-                    + str(flux_type) + '_' + mod1 + str(energy_threshold) \
-                    + '_' +str(year) + '_' + str(month) + '_' + str(day) +'.csv'
+
+        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
+        foutname = (f"fluence_{experiment}{modifier}_{flux_type}_{mod1}{energy_threshold}_{year}_{month}_{day}.csv")
+ 
         if experiment == 'user' and model_name != '':
-            foutname = outpath + '/fluence_' + model_name + modifier + '_' \
-                        + str(flux_type) + '_' + mod1 + str(energy_threshold) \
-                        + '_' +str(year) + '_' + str(month) + '_' + str(day) \
-                        +'.csv'
-        fout = open(foutname,"w+")
+            foutname = (f"fluence_{model_name}{modifier}_{flux_type}_{mod1}{energy_threshold}_{year}_{month}_{day}.csv")
+ 
+        fout = open(os.path.join(outpath,foutname),"w+")
 
         fout.write('\"#Event defined by ' + mod2 + str(energy_threshold) \
                     + ' '+ energy_units + ', ' + str(flux_threshold) \
@@ -1930,7 +1924,7 @@ def func_residual(params, *args):
 
 
 def find_max_curvature(x, y, energy_threshold, crossing_time,
-        experiment, showplot, saveplot):
+        experiment, showplot, saveplot, spacecraft=""):
     """ Calculate the curvature along a curve
         and find the maximum curvature location.
         
@@ -1960,6 +1954,9 @@ def find_max_curvature(x, y, energy_threshold, crossing_time,
         tzulu = tzulu.replace(":","")
         figname = tzulu + "_" + "SecondDerivative_" + experiment + "_"\
                 + str(energy_threshold) + "MeV"
+        if spacecraft:
+            figname = tzulu + "_" + "SecondDerivative_" + experiment + "_"\
+                + spacecraft + "_" + str(energy_threshold) + "MeV"
         fig = plt.figure(figname,figsize=(9,5))
         plt.plot(xarr,yarr,label="orig")
         plt.plot(xarr[max_k_idx+2], yarr[max_k_idx+2],"o",label="Min 2nd Derivative on Fit")
@@ -2006,7 +2003,7 @@ def get_thresh_cross_time(dates,fluxes,thresh):
 
 def calculate_onset_peak_from_fit(experiment, energy_thresholds,
     flux_thresholds, dates, integral_fluxes, crossing_time, event_end_time,
-    showplot, saveplot):
+    showplot, saveplot, spacecraft=""):
     """ Calculate the peak associated with the initial SEP onset. This subroutine
         searches for the rollover that typically occurs after the SEP onset.
         The peak value will be specified as the flux value at the rollover
@@ -2163,7 +2160,8 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds,
         ####FIND ONSET PEAK USING MAXIMUM CURVATURE ON WEIBULL FIT
         max_curve_idx = find_max_curvature(trim_times, best_fit,
                             energy_thresholds[i], crossing_time[i],
-                            experiment, showplot, saveplot)
+                            experiment, showplot, saveplot,
+                            spacecraft=spacecraft)
 
         max_curve_model_time = trim_times[max_curve_idx]
         max_curve_model_date = trim_dates[max_curve_idx]
@@ -2210,6 +2208,9 @@ def calculate_onset_peak_from_fit(experiment, energy_thresholds,
             tzulu = tzulu.replace(":","")
             figname = tzulu + "_profile_fit_"+ experiment + "_" \
                     + str(energy_thresholds[i]) + "MeV"
+            if spacecraft:
+                figname = tzulu + "_profile_fit_"+ experiment + "_" \
+                    + spacecraft + "_" + str(energy_thresholds[i]) + "MeV"
             fig = plt.figure(figname,figsize=(9,5))
             label = ">" + str(energy_thresholds[i]) + " MeV"
             plt.plot(trim_times,trim_fluxes,label=label)
@@ -2325,7 +2326,8 @@ def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
 
 
 def report_threshold_fluences(experiment, flux_type, model_name,
-                energy_thresholds, energy_bins, sep_dates, sep_fluxes):
+                energy_thresholds, energy_bins, sep_dates, sep_fluxes,
+                spacecraft=""):
     """ Report fluences for specified thresholds, typically >10, >100 MeV.
         These values are interesting to use for comparison with literature and
         for quantifying event severity.
@@ -2389,7 +2391,7 @@ def report_threshold_fluences(experiment, flux_type, model_name,
     integral_fluence, integral_energies = get_fluence_spectrum(experiment,
                     "integral", '', False, #Filler values for filename b/c file not saved
                     model_name, 0, 0,sep_dates, sep_integral_fluxes,
-                    tmp_energy_bins, False, False) #diff_thresh; savefile
+                    tmp_energy_bins, False, False,spacecraft=spacecraft) #diff_thresh; savefile
 
     return integral_fluence
 
@@ -2491,7 +2493,7 @@ def print_values_to_file(experiment, flux_type, options, doBGSub,
                 flux_thresholds, crossing_time, onset_peak, onset_date,
                 peak_flux, peak_time, rise_time, event_end_time, duration,
                 threshold_fluences, is_diff_thresh, umasep, umasep_times,
-                umasep_fluxes):
+                umasep_fluxes, spacecraft=""):
     """ Write all calculated values to file for all thresholds. Event-integrated
         fluences for >10, >100 MeV (and user-defined threshold) will also be
         included. Writes out file with name e.g.
@@ -2579,20 +2581,14 @@ def print_values_to_file(experiment, flux_type, options, doBGSub,
             "writing out a csv file.")
         return year, month, day, False
 
-    modifier = ''
-    if options[0] != '':
-        for opt in options:
-            modifier = modifier + '_' + opt
-    if doBGSub:
-        modifier = modifier + '_bgsub'
+    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
-    foutname = outpath + '/sep_values_' + experiment + modifier + '_' \
-                + flux_type + '_' + str(year) + '_' + str(month) + '_' \
-                + str(day) +'.csv'
+    foutname = os.path.join(outpath,f"sep_values_{experiment}{modifier}_{flux_type}_{year}_{month}_{day}.csv")
+
     if experiment == 'user' and model_name != '':
-        foutname = outpath + '/sep_values_' + model_name + modifier + '_' \
-                    + flux_type + '_' + str(year) + '_' + str(month) + '_' \
-                    + str(day) +'.csv'
+        foutname = os.path.join(outpath,f"sep_values_{model_name}{modifier}_{flux_type}_{year}_{month}_{day}.csv")
+
+
     print('Writing SEP values to file --> ' + foutname)
     fout = open(foutname,"w+")
     #Write header
@@ -2874,7 +2870,7 @@ def calculate_integral_fluences(experiment, flux_type, options,
         energy_thresholds, flux_thresholds, dates, fluxes,
         integral_fluxes,
         crossing_time, event_end_time, all_threshold_fluences,
-        all_fluence, all_energies):
+        all_fluence, all_energies, spacecraft=""):
     """ Calculate fluence values for all integral energy thresholds
         between start and end times determined in each channel.
         This subroutine is only called for the thresholds applied
@@ -2959,7 +2955,8 @@ def calculate_integral_fluences(experiment, flux_type, options,
         fluence, energies = get_fluence_spectrum(experiment, flux_type,
                          options, doBGSub,
                          model_name, energy_thresholds[i], flux_thresholds[i],
-                         sep_dates, sep_fluxes, energy_bins, False, True)
+                         sep_dates, sep_fluxes, energy_bins, False, True,
+                         spacecraft=spacecraft)
                          #diff_thresh; savefile
                          #Only thresholds applied to integral flux
                          #channels are specified so far
@@ -2979,7 +2976,7 @@ def calculate_integral_fluences(experiment, flux_type, options,
         if flux_type == "integral":
             integral_fluence = report_threshold_fluences(experiment, flux_type,
                         model_name, energy_thresholds, energy_bins,
-                        sep_dates, sep_fluxes)
+                        sep_dates, sep_fluxes, spacecraft=spacecraft)
             
         if flux_type == "differential":
             #Extract the estimated integral fluxes in the SEP event date range
@@ -3233,7 +3230,8 @@ def write_info_to_file(experiment, flux_type, json_type, options,
         crossing_time, onset_peak, onset_date, peak_flux, peak_time,
         rise_time, event_end_time, duration, all_threshold_fluences,
         all_fluence, plot_diff_thresh,
-        umasep, umasep_times, umasep_fluxes, templatename=''):
+        umasep, umasep_times, umasep_fluxes, templatename='',
+        spacecraft=''):
     """ Write information to csv and json file.
         Writes all of the derived information for all the
         energy-threshold combinations to file.
@@ -3270,7 +3268,8 @@ def write_info_to_file(experiment, flux_type, json_type, options,
                     model_name, startdate, energy_thresholds, flux_thresholds,
                     crossing_time, onset_peak, onset_date, peak_flux, peak_time,
                     rise_time, event_end_time, duration, all_threshold_fluences,
-                    plot_diff_thresh, umasep, umasep_times, umasep_fluxes)
+                    plot_diff_thresh, umasep, umasep_times, umasep_fluxes,
+                    spacecraft=spacecraft)
     
     
     #SAVE TO JSON FILE
@@ -3279,13 +3278,10 @@ def write_info_to_file(experiment, flux_type, json_type, options,
         type = json_type
     template = ccmc_json.read_in_json_template(type, fname=templatename)
 
-    modifier = ''
-    if options[0] != '':
-        options = sorted(options) #to always make consistent filenames
-        for opt in options:
-            modifier = modifier + '_' + opt
+    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
+
     if doBGSub:
-        modifier = modifier + '_bgsub'
         options.append("BGSubtracted")
         
         
@@ -3313,7 +3309,7 @@ def write_info_to_file(experiment, flux_type, json_type, options,
         if model_name != '':
             fnameprefix = model_name + "_" + flux_type + modifier + "." + zstdate.replace(":","") 
             
-    jsonfname = outpath +'/' + fnameprefix + ".json"
+    jsonfname = os.path.join(outpath, fnameprefix + ".json")
     
     #filenames for time profiles
     proffnames = []
@@ -3339,7 +3335,8 @@ def write_info_to_file(experiment, flux_type, json_type, options,
                     plot_diff_thresh, all_fluence,
                     umasep, umasep_times, umasep_fluxes, proffnames,
                     energy_units, flux_units_integral, fluence_units_integral,
-                    flux_units_differential, fluence_units_differential,__version__)
+                    flux_units_differential, fluence_units_differential,__version__,
+                    spacecraft=spacecraft)
     
     filled_json = ccmc_json.clean_json(filled_json,experiment,type)
     isgood = ccmc_json.write_json(filled_json, jsonfname)
@@ -3369,7 +3366,7 @@ def write_info_to_file(experiment, flux_type, json_type, options,
 def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         user_file, json_type, spase_id, showplot, saveplot, detect_prev_event,
         two_peaks, umasep, str_thresh, options, doBGSub, str_bgstartdate,
-        str_bgenddate, nointerp=False, templatename='', spacecraft="primary"):
+        str_bgenddate, nointerp=False, templatename='', spacecraft=""):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3481,7 +3478,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     #Calculate onset peak for all thresholds
     onset_date, onset_peak = calculate_onset_peak_from_fit(experiment,
         energy_thresholds, flux_thresholds, dates, integral_fluxes, crossing_time,
-        event_end_time, showplot, saveplot)
+        event_end_time, showplot, saveplot, spacecraft=spacecraft)
         
         
     #If onset_date is after peak_time, then set the onset peak to the max flux point
@@ -3513,7 +3510,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
             energy_thresholds, flux_thresholds, dates, fluxes,
             integral_fluxes, crossing_time, event_end_time,
             all_threshold_fluences,
-            all_fluence, all_energies)
+            all_fluence, all_energies, spacecraft=spacecraft)
     
     #Save to file the integral fluxes for all integral channels
     #where thresholds were applied - multiple fluxes in a single file
@@ -3563,7 +3560,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         crossing_time, onset_peak, onset_date, peak_flux, peak_time,
         rise_time, event_end_time, duration, all_threshold_fluences,
         all_fluence, plot_diff_thresh,
-        umasep, umasep_times, umasep_fluxes, templatename=templatename)
+        umasep, umasep_times, umasep_fluxes, templatename=templatename,
+        spacecraft=spacecraft)
 
 
     
@@ -3582,7 +3580,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
                     "crossings.")
 
         #Additions to titles and filenames according to user-selected options
-        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub)
+        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
         #plot integral fluxes (either input or estimated)
         nthresh = len(flux_thresholds)
