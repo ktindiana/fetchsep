@@ -72,7 +72,8 @@ dwell_pts = 0 #number of points that can be missed after SEP starts
 
 
 def read_in_flux_files(experiment, flux_type, user_file, startdate,
-        enddate, options, dointerp, is_unixtime, write_fluxes=False):
+        enddate, options, dointerp, is_unixtime, write_fluxes=False,
+        spacecraft="primary"):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
         points with linear interpolation in time unless nointerp True.
@@ -106,10 +107,10 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     
     if experiment == "GOES":
         filenames1, filenames2, filenames_orien, detector = \
-                datasets.check_data(startdate, enddate, experiment, flux_type, user_file)
+                datasets.check_data(startdate, enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
     else:
         filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
-                                enddate, experiment, flux_type, user_file)
+                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
                                     
     #read in flux files
     if experiment != "user":
@@ -139,7 +140,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
                                 west_detector, options)
     else:
         energy_bins = datasets.define_energy_bins(experiment, flux_type,
-                                west_detector, options)
+                                west_detector, options,spacecraft=spacecraft)
 
 
     if energy_bins == None:
@@ -594,13 +595,14 @@ def make_dirs():
 def run_all(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-        write_fluxes=True):
+        write_fluxes=True, spacecraft="primary"):
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
         
         :write_fluxes: (bool) Write fluxes to csv file after read in and processed 
             for bad points
+        :spacecraft: (string) primary or secondary if exp_name = GOES_RT
 
     
     """
@@ -638,7 +640,7 @@ def run_all(str_startdate, str_enddate, experiment,
     print("TIMESTAMP: Reading in flux files " + str(datetime.datetime.now()))
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
         flux_type, user_file, eff_startdate, enddate, options, dointerp, is_unixtime,
-        write_fluxes=write_fluxes)
+        write_fluxes=write_fluxes, spacecraft=spacecraft)
             
             
     if plot_timeseries_only:

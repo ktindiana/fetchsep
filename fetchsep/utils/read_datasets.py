@@ -915,7 +915,8 @@ def rerequest(url, tries=0):
         return rerequest(url, tries + 1)
 
 
-def check_goes_RTdata(startdate, enddate, experiment, flux_type):
+def check_goes_RTdata(startdate, enddate, experiment, flux_type,
+    spacecraft="primary"):
     """Check that GOES Real Time data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         GOES real time integral files are saved daily in txt format.
@@ -942,6 +943,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
         :enddate: (datetime) end of time period entered by user
         :experiment: (string) name of native experiment or "user"
         :flux_type: (string) "integral" or "differential"
+        :spacecraft: 9string) 
         
         OUTPUTS:
         
@@ -959,7 +961,10 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
         sys.exit("check_goes_RTdata: This subroutine is only valid for GOES real time "
                 "integral fluxes. Please set the FluxType (flux_type) to integral and try "
                 "again.")
-    
+
+    if spacecraft != "primary" and spacecraft != "secondary":
+        sys.exit(f"check_goes_RTdata: spacecraft must be primary or secondary. You specified {spacecraft}. Please correct and try again.")
+
     styear = startdate.year
     stmonth = startdate.month
     stday = startdate.day
@@ -997,7 +1002,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
  
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
-        fname1 = date_suffix + prefix + '.csv'
+        fname1 = date_suffix + prefix + '_' + spacecraft + '.csv'
         fullpath1 = os.path.join(datapath, 'GOES_RT', fname1)
         exists1 = os.path.isfile(fullpath1)
         
@@ -1012,7 +1017,11 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
             #data isn't present yet. This can cause idsep or opsep to think the data is
             #already present on the computer and leave it as an empty file.
 
-            url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
+            if spacecraft == "primary":
+                url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
+            elif spacecraft == "secondary":
+                url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goess_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
+            
             print("Trying to download url: " + url)
             response = rerequest(url)
             if response.status_code == 200:
@@ -1029,7 +1038,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type):
     return filenames1, filenames2, filenames_orien, date
 
 
-def check_all_goes_data(startdate, enddate, experiment, flux_type):
+def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="primary"):
     """ If the user specifies only "GOES" for the experiment, then
         read in any of the GOES experiments and string them together.
         This will allow the creation of a long flux timeseries
@@ -1053,7 +1062,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
     #the requested time range
 
     goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
-            "GOES-09", "GOES-08","GOES-16","GOES-17","GOES-18"]
+            "GOES-09", "GOES-08", "GOES_RT"]
             
             
     filenames1_all = []
@@ -1123,14 +1132,10 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type):
                 filenames1, filenames2, filenames_orien, date = \
                      check_goes_data(stdate, enddt, goes[i], flux_type)
                 
-            if (goes[i] in goes_R) and flux_type == "integral":
+            if goes[i]=="GOES_RT" and flux_type == "integral":
                 filenames1, filenames2, filenames_orien, date = \
-                 check_goes_RTdata(stdate, enddt, goes[i], flux_type)
+                 check_goes_RTdata(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
                  
-#            if (goes[i] == "GOES-16" or goes[i] == "GOES-17") and \
-#                flux_type == "differential":
-#                filenames1, filenames2, filenames_orien, date = \
-#                 check_goesR_data(stdate, enddt, goes[i], flux_type)
         
             if filenames1 != [] and filenames1 != None:
                 filenames1_all.extend(filenames1)
@@ -1547,7 +1552,8 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_data(startdate, enddate, experiment, flux_type, user_file):
+def check_data(startdate, enddate, experiment, flux_type, user_file,
+    spacecraft="primary"):
     """Check that the files containing the data are in the data directory. If
         the files for the requested dates aren't present, they will be
         downloaded from the NOAA website. For SEPEM (RSDv2) data, if missing,
@@ -1619,7 +1625,8 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
     #Try all GOES experiments
     if experiment == "GOES":
         filenames1, filenames2, filenames_orien, detector = \
-         check_all_goes_data(startdate, enddate, experiment, flux_type)
+         check_all_goes_data(startdate, enddate, experiment, flux_type,
+         spacecraft=spacecraft)
         return filenames1, filenames2, filenames_orien, detector
 
     #Specific GOES prior to GOES-R, e.g. GOES-13 or GOES-08
@@ -1645,7 +1652,7 @@ def check_data(startdate, enddate, experiment, flux_type, user_file):
         
     if (experiment == "GOES_RT") and flux_type == "integral":
         filenames1, filenames2, filenames_orien, date =\
-            check_goes_RTdata(startdate,enddate, experiment, flux_type)
+            check_goes_RTdata(startdate,enddate, experiment, flux_type, spacecraft=spacecraft)
         return filenames1, filenames2, filenames_orien
         
 
@@ -2293,8 +2300,9 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
         df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
  
         for col in cols_to_drop:
-            df_in = df_in.drop(col,axis=1)
-        
+            if col in df_in.columns:
+                df_in = df_in.drop(col,axis=1)
+                        
 
         #Replace bad data with badval
         df_in = df_in.replace(to_replace=-100000,value=badval)
@@ -3523,7 +3531,8 @@ def which_erne(startdate, enddate):
 
 
 
-def define_energy_bins(experiment,flux_type,west_detector,options):
+def define_energy_bins(experiment,flux_type,west_detector,options,
+    spacecraft="primary"):
     """ Define the energy bins for the selected spacecraft or data set.
         If the user inputs their own file, they must set the
         user_energy_bins variable in config/config_opsep.py.
@@ -3540,6 +3549,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options):
             detector is facing westward for each time point
         :options: (string array) possible options to apply to data
             (GOES)
+            :spacecraft: (string) primary or secondary if experiment is GOES_RT
         
         OUTPUTS:
         
@@ -3718,8 +3728,11 @@ def define_energy_bins(experiment,flux_type,west_detector,options):
 
     if experiment == "GOES_RT":
         if flux_type == "integral":
-            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[500,-1]]
-    
+            if spacecraft == "primary":
+                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[500,-1]]
+            if spacecraft == "secondary":
+                 energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1]]
+
     
     if experiment == "STEREO-A" or experiment == "STEREO-B":
         #Uses the SUMMED LET bins with the HET bins

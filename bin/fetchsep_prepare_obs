@@ -89,6 +89,9 @@ parser.add_argument("--Experiment", type=str,
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Are these integral or differential fluxes?"))
+parser.add_argument("--Spacecraft", type=str, choices=['primary',
+        'secondary'], default='primary',
+        help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
 parser.add_argument("--ExperimentName", type=str, default='',
         help=("If you chose user for experiment, specify the "
                 "name of the model or experiment that you are "
@@ -174,6 +177,7 @@ str_startdate = args.StartDate
 str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
+spacecraft = args.Spacecraft
 exp_name = args.ExperimentName
 user_file = args.UserFile
 is_unixtime = args.Unixtime
@@ -199,7 +203,7 @@ if startpoint == "IDSEP":
     fetchsep.idsep.run_all(str_startdate, str_enddate,
         experiment, flux_type, exp_name, user_file, is_unixtime,
         options, doBGSub, dointerp, remove_above, for_inclusive,
-        plot_timeseries_only, showplot, saveplot)
+        plot_timeseries_only, showplot, saveplot, spacecraft=spacecraft)
 
     if plot_timeseries_only:
         sys.exit("User selected to only plot the timeseries. Exiting.")

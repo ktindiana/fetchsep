@@ -2720,7 +2720,7 @@ def str_to_datetime(date):
 
 def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
         enddate, str_startdate, str_enddate, str_bgstartdate, str_bgenddate,
-        options, doBGSub, nointerp, showplot, saveplot):
+        options, doBGSub, nointerp, showplot, saveplot, spacecraft="primary"):
     """ Read in the appropriate data or user files. Performs
         background subtraction, if requested. Trims to dates
         between start time and end time. Interpolates bad
@@ -2759,7 +2759,7 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
     """
     
     filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
-                                    enddate, experiment, flux_type, user_file)
+                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
                                     
     #read in flux files
     if experiment != "user":
@@ -2776,7 +2776,7 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
                                 west_detector, options)
     else:
         energy_bins = datasets.define_energy_bins(experiment, flux_type, \
-                                west_detector, options)
+                                west_detector, options, spacecraft=spacecraft)
 
 
     if len(all_dates) <= 1:
@@ -2790,7 +2790,8 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
         #sepfluxes are background subtracted fluxes
         bgfluxes, sepfluxes, bgdates = bgsub.derive_background(str_startdate, \
                     str_enddate, str_bgstartdate, str_bgenddate, experiment, \
-                    flux_type, model_name,user_file, showplot, saveplot,options)
+                    flux_type, model_name,user_file, showplot, saveplot,options,
+                    spacecraft=spacecraft)
         #Extract the date range specified by the user
         dates, fluxes = datasets.extract_date_range(startdate, enddate,
                                     bgdates, sepfluxes)
@@ -3368,7 +3369,7 @@ def write_info_to_file(experiment, flux_type, json_type, options,
 def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         user_file, json_type, spase_id, showplot, saveplot, detect_prev_event,
         two_peaks, umasep, str_thresh, options, doBGSub, str_bgstartdate,
-        str_bgenddate, nointerp=False, templatename=''):
+        str_bgenddate, nointerp=False, templatename='', spacecraft="primary"):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3404,6 +3405,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
             value rather than filling in via linear interpolation in time
         :templatename: (string) optional name of user json template located in
             cfg.templatepath directory
+        :spacecraft: (string) primary or secondary is experiment is GOES_RT
         
         OUTPUTS:
         
@@ -3422,6 +3424,11 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter a valid date range. Exiting.')
+    
+    if experiment == "GOES_RT":
+        if spacecraft != "primary" and spacecraft != "secondary":
+            sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
+        
 
     #PROCESS INPUTS
     options = options.split(";")
@@ -3448,7 +3455,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
         flux_type, user_file, model_name, startdate,
         enddate, str_startdate, str_enddate, str_bgstartdate,
-        str_bgenddate, options, doBGSub, nointerp, showplot, saveplot)
+        str_bgenddate, options, doBGSub, nointerp, showplot, saveplot,
+        spacecraft=spacecraft)
     
     #Define ONLY INTEGRAL thresholds to use for start and end of event
     #Will tack on differential thresholds later on
