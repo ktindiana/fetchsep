@@ -554,7 +554,7 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units):
 
 
 
-def setup_modifiers(options, doBGSub):
+def setup_modifiers(options, doBGSub, spacecraft=""):
     """ Add modifier strings according to options.
     
     """
@@ -573,6 +573,9 @@ def setup_modifiers(options, doBGSub):
     if "Bruno2017" in options:
         modifier = modifier + '_Bruno2017'
         title_mod = title_mod + 'Bruno2017 '
+    if spacecraft:
+        modifier = modifier + '_' + spacecraft
+        title_mod = title_mod + spacecraft + ' '
 
     return modifier, title_mod
 
@@ -592,7 +595,7 @@ def setup_energy_bin_label(energy_bin):
 
 def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,
-        threshold, doBGSub, showplot, saveplot, disable_sigma=False):
+        threshold, doBGSub, showplot, saveplot, disable_sigma=False, spacecraft=""):
     """ Make multiple plots with 3 vertical subplots representing individual energy
         channels.
         
@@ -628,7 +631,8 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub)
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
 
     figname = (f"{experiment}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
     if experiment == 'user' and exp_name != '':
@@ -679,10 +683,12 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
 
 
 def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot):
+        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
+        spacecraft=""):
 
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub)
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
 
     figname = (f"{experiment}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
     if experiment == 'user' and exp_name != '':
@@ -723,10 +729,10 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
 
 def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             dates, fluxes_bg, fluxes_sep, energy_bins, doBGSub,
-            showplot, saveplot):
+            showplot, saveplot, spacecraft=""):
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub)
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
     figname = (f"{experiment}_{flux_type}{modifier}_SEP_BG_{unique_id}")
     if experiment == 'user' and exp_name != '':

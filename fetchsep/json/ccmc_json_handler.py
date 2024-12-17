@@ -335,7 +335,7 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
                 umasep, umasep_times, umasep_fluxes, profile_filenames,
                 energy_units, flux_units_integral, fluence_units_integral,
                 flux_units_differential, fluence_units_differential,
-                opsep_version):
+                opsep_version, spacecraft=""):
     """ Add all the appropriate values to the json template for model or
         observations.
         
@@ -357,6 +357,8 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
         type_key = keys.obs_type
         win_key = keys.obs_win
         template[key][keys.obs_exp]['short_name'] = experiment
+        if experiment == "GOES_RT" and spacecraft:
+            template[key][keys.obs_exp]['short_name'] = experiment + " " + spacecraft
         if experiment == "user" and model_name != "":
                 template[key][keys.obs_exp]['short_name'] = model_name
         template[key]['source_info']['native_flux_type'] = flux_type

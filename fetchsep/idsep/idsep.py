@@ -73,7 +73,7 @@ dwell_pts = 0 #number of points that can be missed after SEP starts
 
 def read_in_flux_files(experiment, flux_type, user_file, startdate,
         enddate, options, dointerp, is_unixtime, write_fluxes=False,
-        spacecraft="primary"):
+        spacecraft=""):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
         points with linear interpolation in time unless nointerp True.
@@ -165,7 +165,8 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
                 "specified input file. Exiting.")
 
     if write_fluxes:
-        tools.write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, "idsep")
+        tools.write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, "idsep",
+            spacecraft=spacecraft)
 
     return dates, fluxes, energy_bins
 
@@ -294,7 +295,7 @@ def get_bg_high(threshold, dates, fluxes):
 
 def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
                     str_stdate, str_enddate, remove_above, SEPstart, SEPend,
-                    doBGSub, for_inclusive=False):
+                    doBGSub, for_inclusive=False, spacecraft=""):
     """ Write out SEP start and end times to file.
         
         INPUTS:
@@ -327,7 +328,8 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     one_sec = datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub)
+    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
 
     prename = (f"SEPTimes_{experiment}_{flux_type}{modifier}")
     if experiment == 'user' and exp_name != '':
@@ -375,7 +377,7 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
 
 def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
                     str_stdate, str_enddate, remove_above, dates, fluxes_high,
-                    doBGSub, for_inclusive=False):
+                    doBGSub, for_inclusive=False, spacecraft=""):
     """ Write out SEP start and end times to file.
         
         INPUTS:
@@ -410,7 +412,8 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     if for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub)
+    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
 
     prename = (f"HighPoints_{experiment}_{flux_type}{modifier}")
     if experiment == 'user' and exp_name != '':
@@ -471,7 +474,7 @@ def separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding):
 
 
 def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experiment,
-        flux_type, exp_name, options, doBGSub, showplot, saveplot):
+        flux_type, exp_name, options, doBGSub, showplot, saveplot, spacecraft=""):
     """ Remove fluxes above remove_above.
         Group fluxes into time periods of init_win.
         For each time period, calculate the mean background and sigma.
@@ -506,10 +509,10 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
     
     if showplot or saveplot:
-        plt_tools.idsep_make_plots(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, doBGSub, showplot, saveplot)
+        plt_tools.idsep_make_plots(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, doBGSub, showplot, saveplot, spacecraft=spacecraft)
         
         plt_tools.idsep_make_bg_sep_plot(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins, doBGSub,
-            showplot, saveplot)
+            showplot, saveplot, spacecraft=spacecraft)
 
     
     return fluxes_bg, fluxes_high
@@ -595,7 +598,7 @@ def make_dirs():
 def run_all(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-        write_fluxes=True, spacecraft="primary"):
+        write_fluxes=True, spacecraft=""):
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
@@ -655,7 +658,7 @@ def run_all(str_startdate, str_enddate, experiment,
     print("TIMESTAMP: Creating rough cut first guess at threshold " + str(datetime.datetime.now()))
     fluxes_bg_init, fluxes_high_init = rough_cut(init_win, dates, fluxes, nsigma,
         remove_above, energy_bins, experiment, flux_type, exp_name, options, doBGSub,
-        False, saveplot)
+        False, saveplot, spacecraft=spacecraft)
     
     
     #ITERATE over the identification of background and SEP periods
@@ -686,17 +689,18 @@ def run_all(str_startdate, str_enddate, experiment,
 
 
         if showplot or saveplot:
-            plt_tools.idsep_make_plots(str(sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, doBGSub, False, saveplot)
+            plt_tools.idsep_make_plots(str(sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, doBGSub, False, saveplot,
+                spacecraft=spacecraft)
             
             plt_tools.idsep_make_plots(str(sliding_win)+"window_nosigma" + post,
                 experiment, flux_type,
                 exp_name, options, dates, fluxes_bg_init, energy_bins, dates,
                 ave_background, ave_sigma, dates, threshold, doBGSub, showplot,
-                saveplot, True) #disable_sigma
+                saveplot, True, spacecraft=spacecraft) #disable_sigma
             
-            plt_tools.idsep_make_bg_sep_plot(str(sliding_win)+"window" + post, experiment, flux_type,
-                exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins,
-                doBGSub, showplot, saveplot)
+            plt_tools.idsep_make_bg_sep_plot(str(sliding_win)+"window" + post, experiment,
+                flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins,
+                doBGSub, showplot, saveplot, spacecraft=spacecraft)
 
 
         #Identify SEP events in full time range
@@ -706,7 +710,7 @@ def run_all(str_startdate, str_enddate, experiment,
         if showplot or saveplot:
             plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
                 exp_name, options, dates, fluxes, fluxes_sep, energy_bins, doBGSub,
-                showplot, saveplot)
+                showplot, saveplot, spacecraft=spacecraft)
 
 
         #Taking the estimated background flux and remove SEP periods
@@ -736,15 +740,15 @@ def run_all(str_startdate, str_enddate, experiment,
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins,
                     options, str_startdate, str_enddate, remove_above,
-                    SEPstart, SEPend, doBGSub, for_inclusive)
+                    SEPstart, SEPend, doBGSub, for_inclusive, spacecraft=spacecraft)
     write_all_high_points(experiment, exp_name, flux_type, energy_bins,
                     options, str_startdate, str_enddate, remove_above,
-                    dates, fluxes_high, doBGSub, for_inclusive)
+                    dates, fluxes_high, doBGSub, for_inclusive, spacecraft=spacecraft)
 
  
     if showplot or saveplot:
         plt_tools.idsep_make_bg_sep_plot("FINALSEP", experiment, flux_type, exp_name, options,
-            trim_dates, trim_fluxes, final_fluxes_sep, energy_bins, doBGSub, showplot, saveplot)
+            trim_dates, trim_fluxes, final_fluxes_sep, energy_bins, doBGSub, showplot, saveplot, spacecraft=spacecraft)
  
         
         if showplot: plt.show()

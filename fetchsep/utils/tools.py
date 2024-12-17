@@ -84,7 +84,8 @@ def determine_time_resolution(dates):
     return time_resolution
 
 
-def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, module):
+def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, module,
+    spacecraft=""):
     """ Write dates, fluxes to a standard format csv file with datetime in the 
         first column and fluxes in the remaining column. The energy bins will 
         be indicated in the file comments.
@@ -105,7 +106,7 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
             csv file written to outpath
                  
     """
-    modifier, title_modifier = plt_tools.setup_modifiers(options,False)
+    modifier, title_modifier = plt_tools.setup_modifiers(options,False,spacecraft=spacecraft)
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
     fname = (f"fluxes_{experiment}_{flux_type}{modifier}_{stdate}_{enddate}.csv")

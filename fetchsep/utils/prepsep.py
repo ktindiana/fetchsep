@@ -508,7 +508,7 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
 
 
 def update_observations(target_dir, start_date, end_date, experiment,
-    flux_type, threshold, nointerp=False, two_peaks=False):
+    flux_type, threshold, nointerp=False, two_peaks=False, spacecraft=""):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -558,5 +558,5 @@ def update_observations(target_dir, start_date, end_date, experiment,
         experiment, flux_type, model_name, user_file, json_type,
         spase_id, showplot, saveplot, detect_prev_event,
         two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
-        bgenddate, nointerp)
+        bgenddate, nointerp, spacecraft=spacecraft)
 
