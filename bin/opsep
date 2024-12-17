@@ -30,6 +30,9 @@ parser.add_argument("--Experiment", type=str, choices=['GOES-08',
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Do you want to use integral or differential fluxes?"))
+parser.add_argument("--Spacecraft", type=str, choices=['primary',
+        'secondary'], default='primary',
+        help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
 parser.add_argument("--ModelName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
@@ -122,6 +125,7 @@ str_startdate = args.StartDate
 str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
+spacecraft = args.Spacecraft
 model_name = args.ModelName
 user_file = args.UserFile
 json_type = args.JSONType
@@ -144,6 +148,7 @@ nointerp = args.NoInterp
 sep_year, sep_month, sep_day, jsonfname = fetchsep.opsep.run_all(str_startdate,
     str_enddate, experiment, flux_type, model_name, user_file, json_type, spase_id,
     showplot, saveplot, detect_prev_event, two_peaks, umasep, str_thresh, options,
-    doBGSub, str_bgstartdate, str_bgenddate, nointerp, templatename=templatename)
+    doBGSub, str_bgstartdate, str_bgenddate, nointerp, templatename=templatename,
+    spacecraft=spacecraft)
 
 if showplot: plt.show()

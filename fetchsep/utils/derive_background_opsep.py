@@ -455,7 +455,8 @@ def plot_fluxes(experiment, flux_type, options, fluxes, dates,
 
 def derive_background(str_startdate, str_enddate, str_bgstartdate,
             str_bgenddate, experiment, flux_type, model_name,
-            user_file, showplot, saveplot, options):
+            user_file, showplot, saveplot, options,
+            spacecraft="primary"):
     """ Derive the background using fluxes in the time period between
         background start and end dates specified by the user. Derive the
         mean background value along with an expected level of variation (sigma)
@@ -583,8 +584,8 @@ def derive_background(str_startdate, str_enddate, str_bgstartdate,
                 "specified input file. Exiting.")
 
     #Get energy bins associated with the fluxes
-    energy_bins = datasets.define_energy_bins(experiment, flux_type, \
-                                west_detector, options)
+    energy_bins = datasets.define_energy_bins(experiment, flux_type,
+                    west_detector, options, spacecraft=spacecraft)
     #Remove bad data points (negative fluxes) with linear interpolation in time
     #set bad values to None rather than perform a linear interpolation in time
     dointerp = False
