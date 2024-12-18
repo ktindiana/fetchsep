@@ -6,7 +6,8 @@ import sys
 """ Check inputs and options for errors and incompatabilities."""
 
 
-def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None):
+def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None,
+    spacecraft=""):
     """ Make sure the selected options make sense for the experiment.
         
         INPUTS:
@@ -57,7 +58,8 @@ def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None
         sys.exit("The options you have selected are only applicable to GOES "
                 "data. Please remove these options and run again: "
                 "uncorrected, S14, or Bruno2017.")
-
+    if spacecraft and experiment != "GOES_RT":
+        sys.exit("The --Spacecraft option should only be used when selecting GOES_RT. Please remove the option and run again.")
 
 
 def error_check_inputs(startdate, enddate, experiment, flux_type,
