@@ -2397,7 +2397,8 @@ def report_threshold_fluences(experiment, flux_type, model_name,
 
 
 def save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
-        model_name, energy_thresholds, crossing_time, dates, integral_fluxes):
+        model_name, energy_thresholds, crossing_time, dates, integral_fluxes,
+        spacecraft=""):
     """Output the time series of integral fluxes to a file. If the input
         data set was in integral channels, then this file will contain exactly
         the same values in the time series.
@@ -2447,20 +2448,14 @@ def save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
         return
 
     #e.g. integral_fluxes_GOES-13_differential_2012_3_7.csv
-    modifier = ''
-    if options[0] != '':
-        for opt in options:
-            modifier = modifier + '_' + opt
-    if doBGSub:
-        modifier = modifier + '_bgsub'
+    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
-    foutname = outpath + '/integral_fluxes_' + experiment + modifier + '_' \
-                 + flux_type + '_' + str(year) + '_' + str(month) \
-                 + '_' + str(day) + '.csv'
+
+    foutname = f"integral_fluxes_{experiment}{modifier}_{flux_type}_{year}_{month}_{day}.csv"
+
     if experiment == 'user' and model_name != '':
-        foutname = outpath + '/integral_fluxes_' + model_name + modifier + '_' \
-                     + flux_type + '_' + str(year) + '_' + str(month) \
-                     + '_' + str(day) + '.csv'
+        foutname = f"integral_fluxes_{model_name}{modifier}_{flux_type}_{year}_{month}_{day}.csv"
+    foutname = os.path.join(outpath,foutname)
     print('Writing integral flux time series to file --> ' + foutname)
     fout = open(foutname,"w+")
     if flux_type == "integral":
@@ -3516,7 +3511,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     #where thresholds were applied - multiple fluxes in a single file
     save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
                 model_name, energy_thresholds, crossing_time, dates,
-                integral_fluxes)
+                integral_fluxes, spacecraft=spacecraft)
 
     #------APPEND INFO FOR DIFFERENTIAL THRESHOLDS------
     #I'm sorry. This is a mess. I will rewrite eventually
