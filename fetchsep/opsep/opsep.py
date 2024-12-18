@@ -3439,7 +3439,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     enddate = str_to_datetime(str_enddate)
 
     #PERFORM CHECKS AND VALIDATE INPUTS
-    error_check.error_check_options(experiment, flux_type, options, doBGSub)
+    error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type, json_type, is_diff_thresh)
     datasets.check_paths()
     

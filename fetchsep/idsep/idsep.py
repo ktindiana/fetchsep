@@ -633,7 +633,7 @@ def run_all(str_startdate, str_enddate, experiment,
             eff_startdate = enddate - datetime.timedelta(days=init_win*2)
         
     
-    error_check.error_check_options(experiment, flux_type, options, doBGSub)
+    error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
         subroutine='idsep')
     datasets.check_paths()
