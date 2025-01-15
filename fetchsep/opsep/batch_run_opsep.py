@@ -40,8 +40,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 
 datapath = cfg.datapath
-outpath = cfg.outpath + "/opsep"
-listpath = cfg.listpath + "/opsep"
+outpath = os.path.join(cfg.outpath, "opsep")
+listpath = os.path.join(cfg.listpath, "opsep")
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('opsep')
@@ -153,6 +153,7 @@ def read_sep_dates(sep_filename):
     bgstartdate = [] #row 8
     bgenddate = [] #row 9
     json_types = [] #row 10 (if user experiment)
+    spacecrafts = [] #row 11, primary or secondary for GOES_RT
 
     with open(sep_filename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
@@ -179,51 +180,55 @@ def read_sep_dates(sep_filename):
             experiments.append(row[2])
             flux_types.append(row[3])
 
-            if len(row) > 4:
-                flags.append(row[4])
-            else:
-                flags.append('')
-
-            if len(row) > 5:
-                model_names.append(row[5])
-            else:
-                model_names.append('')
-
-            if len(row) > 6:
-                user_files.append(row[6])
-            else:
-                user_files.append('')
-
-            if len(row) > 7:
-                options.append(row[7])
-            else:
-                options.append('')
-
-            if len(row) > 8:
-                bgstartdate.append(row[8])
-            else:
-                bgstartdate.append('')
-
-            if len(row) > 9:
-                bgenddate.append(row[9])
-            else:
-                bgenddate.append('')
-            
-            if len(row) > 10:
-                json_types.append(row[10])
-            else:
-                json_types.append('')
-
-
             if row[1] == 'user':
                 if len(row) < 7:
                     sys.exit("For a user file, you must specify model name and "
                             "input filename in the list.")
 
+            if len(row) > 4:
+                flags.append(row[4].strip())
+            else:
+                flags.append('')
+
+            if len(row) > 5:
+                model_names.append(row[5].strip())
+            else:
+                model_names.append('')
+
+            if len(row) > 6:
+                user_files.append(row[6].strip())
+            else:
+                user_files.append('')
+
+            if len(row) > 7:
+                options.append(row[7].strip())
+            else:
+                options.append('')
+
+            if len(row) > 8:
+                bgstartdate.append(row[8].strip())
+            else:
+                bgstartdate.append('')
+
+            if len(row) > 9:
+                bgenddate.append(row[9].strip())
+            else:
+                bgenddate.append('')
+            
+            if len(row) > 10:
+                json_types.append(row[10].strip())
+            else:
+                json_types.append('')
+
+            if len(row) > 11:
+                spacecrafts.append(row[11].strip())
+            else:
+                spacecrafts.append('')
+
 
     return start_dates, end_dates, experiments, flux_types, flags,\
         model_names, user_files, json_types, options, bgstartdate,\
-        bgenddate
+        bgenddate, spacecrafts
 
 
 
@@ -459,120 +464,121 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-#def run_all_events(sep_filename, outfname, threshold, umasep):
-#    """ Run all of the time periods and experiments in the list
-#        file. Extract the values of interest and compile them
-#        in event lists, one list per energy channel and threshold
-#        combination.
-#
-#        INPUTS:
-#
-#        :sep_filename: (string) file containing list of events
-#            and experiments to run
-#        :outfname: (string) name of a file that will report any
-#            errors encountered when running each event in the list
-#        :threshold: (string) any additional thresholds to run
-#            beyond >10 MeV, 10 pfu and >100 MeV, 1 pfu. Specify
-#            in same way as called for by operational_sep_quantities.py
-#        :umasep: (boolean) set to true to calculate values related to
-#            the UMASEP model
-#
-#        OUTPUTS:
-#
-#        None except for:
-#
-#            * Output file listing each run and any errors encountered
-#            * Output files containing event lists for each unique energy
-#                channel and threshold combination
-#
-#    """
-#
-#    check_list_path()
-#
-#    #READ IN SEP DATES AND experiments
-#    start_dates, end_dates, experiments, flux_types, flags, \
-#        model_names, user_files, json_types, options, bgstart, \
-#        bgend = read_sep_dates(sep_filename)
-#
-#    #Prepare output file listing events and flags
-#    fout = open(outfname,"w+")
-#    fout.write('#Experiment,SEP Date,Exception\n')
-#
-#    #---RUN ALL SEP EVENTS---
-#    Nsep = len(start_dates)
-#    combos = {}
-#    print('Read in ' + str(Nsep) + ' SEP events.')
-#    for i in range(Nsep):
-#        start_date = start_dates[i]
-#        end_date = end_dates[i]
-#        experiment = experiments[i]
-#        flux_type = flux_types[i]
-#        flag = flags[i]
-#        model_name = model_names[i]
-#        user_file = user_files[i]
-#        json_type = json_types[i]
-#        option = options[i]
-#        bgstartdate = bgstart[i]
-#        bgenddate = bgend[i]
-#
-#        spase_id = ''
-#
-#        flag = flag.split(';')
-#        detect_prev_event = detect_prev_event_default
-#        two_peaks = two_peaks_default
-#        doBGSub = False
-#        nointerp = False #if true, will not do interpolation in time
-#        if "DetectPreviousEvent" in flag:
-#            detect_prev_event = True
-#        if "TwoPeak" in flag:
-#            two_peaks = True
-#        if "SubtractBG" in flag:
-#            doBGSub = True
-#
-#        print('\n-------RUNNING SEP ' + start_date + '---------')
-#        #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
-#        try:
-#            sep_year, sep_month, \
-#            sep_day, jsonfname = opsep.run_all(start_date, end_date, experiment, flux_type, model_name, user_file, json_type,
-#                spase_id, showplot, saveplot, detect_prev_event,
-#                two_peaks, umasep, threshold, option, doBGSub,
-#                bgstartdate, bgenddate, nointerp)
-#
-#            sep_date = datetime.datetime(year=sep_year, month=sep_month,
-#                            day=sep_day)
-#            if experiment == 'user' and model_name != '':
-#                fout.write(model_name + ',')
-#            if experiment != 'user':
-#                fout.write(experiment + ',')
-#            fout.write(str(sep_date) + ', ')
-#            fout.write('Success\n')
-#
-#            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE
-#            #LIST FOR EACH THRESHOLD
-#            if not combos:
-#                combos = initialize_files(jsonfname)
-#            success=write_sep_lists(jsonfname,combos)
-#            if not success:
-#                print('Could not write values to file for ' + jsonfname)
-#
-#            plt.close('all')
-#            opsep = reload(opsep)
-#            cfg = reload(cfg)
-#
-#        except SystemExit as e:
-#            # this log will include traceback
-#            logger.exception('opsep failed with exception')
-#            # this log will just include content in sys.exit
-#            logger.error(str(e))
-#            if experiment == 'user' and model_name != '':
-#                fout.write(model_name + ',')
-#            if experiment != 'user':
-#                fout.write(experiment + ',')
-#            fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
-#            fout.write('\n')
-#            opsep = reload(opsep)
-#            cfg = reload(cfg)
-#            continue
-#
-#    fout.close()
-#
+def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
+    showplot=False, saveplot=True, detect_prev_event=False, two_peaks=False):
+    """ Run all of the time periods and experiments in the list
+        file. Extract the values of interest and compile them
+        in event lists, one list per energy channel and threshold
+        combination.
+
+        INPUTS:
+
+        :sep_filename: (string) file containing list of events
+            and experiments to run
+        :outfname: (string) name of a file that will report any
+            errors encountered when running each event in the list
+        :threshold: (string) any additional thresholds to run
+            beyond >10 MeV, 10 pfu and >100 MeV, 1 pfu. Specify
+            in same way as called for by operational_sep_quantities.py
+        :umasep: (boolean) set to true to calculate values related to
+            the UMASEP model
+        :dointerp: (bool) if set to true will do interpolation of bad points
+            with time
+
+        OUTPUTS:
+
+        None except for:
+
+            * Output file listing each run and any errors encountered
+            * Output files containing event lists for each unique energy
+                channel and threshold combination
+
+    """
+    check_list_path()
+
+    #READ IN SEP DATES AND experiments
+    start_dates, end_dates, experiments, flux_types, flags,  \
+        model_names, user_files, json_types, options, bgstart,\
+        bgend, spacecrafts = read_sep_dates(sep_filename)
+
+    #Prepare output file listing events and flags
+    fout = open(os.path.join(cfg.listpath,"opsep",outfname),"w+")
+    fout.write('#Experiment,SEP Date,Exception\n')
+
+    #---RUN ALL SEP EVENTS---
+    Nsep = len(start_dates)
+    combos = {}
+    print(f"Read in {Nsep} SEP events.")
+    for i in range(Nsep):
+        start_date = start_dates[i]
+        end_date = end_dates[i]
+        experiment = experiments[i]
+        flux_type = flux_types[i]
+        flag = flags[i]
+        model_name = model_names[i]
+        user_file = user_files[i]
+        json_type = json_types[i]
+        option = options[i]
+        bgstartdate = bgstart[i]
+        bgenddate = bgend[i]
+        spacecraft = spacecrafts[i]
+
+        spase_id = ''
+
+        flag = flag.split(';')
+        doBGSub = False
+        nointerp = True #if true, will not do interpolation in time
+        if dointerp: nointerp = False
+        
+        if "DetectPreviousEvent" in flag:
+            detect_prev_event = True
+        if "TwoPeak" in flag:
+            two_peaks = True
+        if "SubtractBG" in flag:
+            doBGSub = True
+
+        print('\n-------RUNNING SEP ' + start_date + '---------')
+        #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
+        try:
+            sep_year, sep_month, \
+            sep_day, jsonfname = opsep.run_all(start_date, end_date,
+                experiment, flux_type, model_name, user_file, json_type,
+                spase_id, showplot, saveplot, detect_prev_event,
+                two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
+                bgenddate, nointerp=nointerp, spacecraft=spacecraft)
+
+            sep_date = datetime.datetime(year=sep_year, month=sep_month,
+                            day=sep_day)
+            if experiment == 'user' and model_name != '':
+                fout.write(model_name + ',')
+            if experiment != 'user':
+                fout.write(experiment + ',')
+            fout.write(str(sep_date) + ', ')
+            fout.write('Success\n')
+
+            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
+            #EACH THRESHOLD
+            if not combos:
+                combos = initialize_files(jsonfname)
+            success = write_sep_lists(jsonfname,combos)
+            if not success:
+                print('Could not write values to file for ' + jsonfname)
+
+            plt.close('all')
+            reload(opsep)
+
+        except SystemExit as e:
+            # this log will include traceback
+            logger.exception('opsep failed with exception')
+            # this log will just include content in sys.exit
+            logger.error(str(e))
+            if experiment == 'user' and model_name != '':
+                fout.write(model_name + ',')
+            if experiment != 'user':
+                fout.write(experiment + ',')
+            fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
+            fout.write('\n')
+            reload(opsep)
+            continue
+
+    fout.close()

@@ -1128,7 +1128,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
                 if goes[i] in goes_R:
                     continue
         
-            if goes[i] not in goes_R:
+            if goes[i] not in goes_R and goes[i] != "GOES_RT":
                 filenames1, filenames2, filenames_orien, date = \
                      check_goes_data(stdate, enddt, goes[i], flux_type)
                 

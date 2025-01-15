@@ -740,6 +740,7 @@ def about_opsep(): #only for documentation purposes
         accordingly by hand)
         
     """
+    print("The docstring in about_opsep describes the full code in detail.")
 
 
 def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
