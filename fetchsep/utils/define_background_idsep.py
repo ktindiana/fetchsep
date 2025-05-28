@@ -463,6 +463,7 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
 
     means = []
     sigmas = []
+    ave_dates = []
     df_thresholds = pd.DataFrame()
     for i in range(Ntd):
         starttime = firstdate + i*td
@@ -472,6 +473,7 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
         #Number of dates in this range - need for threshold later
         ndates = len(sub)
         selected_dates = sub['dates'].to_list()
+        ave_date = sub['dates'].mean
 
         #Replace all zero values
         sub = sub.replace(0,np.nan)
@@ -503,6 +505,7 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
         #One mean and sigma per averaged time period
         means.append(mean)
         sigmas.append(sigma)
+        ave_dates.append(ave_date)
 
         #Threshold for every date in the original data set
         #Make small dataframes and concatenate for each averaged timeframe
@@ -514,7 +517,7 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
     df_means = pd.DataFrame(means)
     df_sigmas = pd.DataFrame(sigmas)
 
-    ave_dates = df_means['dates'].to_list()
+    #ave_dates = df_means['dates'].to_list()
     ave_fluxes = df_means[cols].T.to_numpy()
     ave_sigma = df_sigmas[cols].T.to_numpy()
 

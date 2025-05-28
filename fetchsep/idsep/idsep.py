@@ -106,8 +106,8 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     detector= []
     
     if experiment == "GOES":
-        filenames1, filenames2, filenames_orien, detector = \
-                datasets.check_data(startdate, enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
+        filenames1, filenames2, filenames_orien, detector = datasets.check_data(startdate,
+                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
     else:
         filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
                 enddate, experiment, flux_type, user_file, spacecraft=spacecraft)

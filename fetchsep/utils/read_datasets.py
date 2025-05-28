@@ -2267,7 +2267,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
         user time period of interest.
         
     """
-    n_chan = 6
+    n_chan = 8 #>1, >5, >10, >30, >50, >100, >60, >500 possible
     
     NFILES = len(filenames1)
     all_dates = []
@@ -2278,7 +2278,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
     df = read_data_manager()
     
     df_data = pd.DataFrame()
-    cols_to_drop = [7,8,9,10] #Not fluxes
+    cols_to_drop = [7,8,9,12,13] #Not fluxes
     #Read in fluxes from files
     for i in range(NFILES):
         file_dates = []
@@ -3729,7 +3729,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
     if experiment == "GOES_RT":
         if flux_type == "integral":
             if spacecraft == "primary":
-                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[500,-1]]
+                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]]
             if spacecraft == "secondary":
                  energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1]]
 
