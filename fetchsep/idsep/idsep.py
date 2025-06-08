@@ -111,16 +111,17 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     else:
         filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
                 enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
-                                    
+                            
     #read in flux files
     if experiment != "user":
         #Combine integral channels for all GOES spacecraft together into
         #a long time series. Only works for integral channels, since
         #GOES differential channels differ across experiments.
         if experiment == "GOES":
-            all_dates, all_fluxes, west_detector = \
+            all_dates, all_fluxes, west_detector, energy_bins = \
                 datasets.read_in_files(experiment, flux_type,
-                filenames1, filenames2, filenames_orien, options, detector)
+                filenames1, filenames2, filenames_orien, options, detector,
+                spacecraft=spacecraft)
         else:
             all_dates, all_fluxes, west_detector = \
                 datasets.read_in_files(experiment, flux_type,
@@ -130,6 +131,9 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
         all_dates, all_fluxes = datasets.read_in_user_files(filenames1,is_unixtime)
         west_detector = []
     
+    if len(all_fluxes) == 0:
+        sys.exit("Could not read in flux files. Check for bad date ranges or missing files.")
+    
     #Define energy bins
     #ERNE energy bins depend on the time period of the experiment.
     #For idsep, it is acceptable to include fluxes across slightly
@@ -138,7 +142,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
         version = datasets.which_erne(startdate, enddate)
         energy_bins = datasets.define_energy_bins(version, flux_type,
                                 west_detector, options)
-    else:
+    elif experiment != "GOES":
         energy_bins = datasets.define_energy_bins(experiment, flux_type,
                                 west_detector, options,spacecraft=spacecraft)
 
@@ -146,7 +150,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     if energy_bins == None:
         sys.exit("Could not identify energy bins for experiment " + experiment
                 + " and fluxtype " + flux_type)
-    
+
     all_fluxes, energy_bins = tools.sort_bin_order(all_fluxes, energy_bins)
 
 

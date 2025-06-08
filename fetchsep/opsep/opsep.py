@@ -2749,14 +2749,29 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
         :energy_bins: (array nx2 for n thresholds)
         
     """
+
+    detector= []
     
-    filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
+    if experiment == "GOES":
+        filenames1, filenames2, filenames_orien, detector = datasets.check_data(startdate,
                 enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
+    else:
+        filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
+                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
+
+#    filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
+#                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
                                     
     #read in flux files
     if experiment != "user":
-        all_dates, all_fluxes, west_detector =datasets.read_in_files(experiment,
-                    flux_type, filenames1, filenames2, filenames_orien, options)
+        if experiment == "GOES":
+            all_dates, all_fluxes, west_detector, energy_bins = datasets.read_in_files(experiment,
+                        flux_type, filenames1, filenames2, filenames_orien, options,
+                        detector=detector, spacecraft=spacecraft)
+        else:
+            all_dates, all_fluxes, west_detector =datasets.read_in_files(experiment,
+                        flux_type, filenames1, filenames2, filenames_orien, options,
+                        detector=detector, spacecraft=spacecraft)
     if experiment == "user":
         all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
         west_detector = []
@@ -2766,7 +2781,7 @@ def read_in_flux_files(experiment, flux_type, user_file, model_name, startdate,
         version = datasets.which_erne(startdate, enddate)
         energy_bins = datasets.define_energy_bins(version, flux_type, \
                                 west_detector, options)
-    else:
+    elif experiment != "GOES":
         energy_bins = datasets.define_energy_bins(experiment, flux_type, \
                                 west_detector, options, spacecraft=spacecraft)
 
