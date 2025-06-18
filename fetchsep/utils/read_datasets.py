@@ -587,7 +587,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date <= enddate):
+    while (test_date < enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -745,7 +745,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date <= enddate):
+    while (test_date < enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -1221,9 +1221,30 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     #GOES-13 for most recent data, then looks at GOES-16 and GOES-17
     #Then continues backwards in time to find a GOES that covers
     #the requested time range
+    #GOES_RT goes back to 2010 or 2011 on CCMC servers, where they
+    #archived the primary and secondary integral real time streams.
+    #Best to use the NOAA archived integral fluxes for those
+    #time periods. However, for GOES-16 forward, the CCMC GOES_RT
+    #real time stream is the only accessible archive of GOES
+    #integral fluxes (as of June 2025).
+    
+    goes = []
+    if flux_type == "integral":
+        if startdate >= datetime.datetime(year=2020,month=3,day=8):
+            goes = ["GOES_RT"]
+        else:
+            goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
+                    "GOES-09", "GOES-08", "GOES-07", "GOES-06",
+                    "GOES-05"]
 
-    goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
-            "GOES-09", "GOES-08", "GOES_RT"]
+    if flux_type == "differential":
+        if startdate >= datetime.datetime(year=2020,month=3,day=8):
+            goes = ["GOES-16","GOES-18", "GOES-19", "GOES-17"]
+                
+        else:
+            goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
+                    "GOES-09", "GOES-08", "GOES-07", "GOES-06",
+                    "GOES-05"]
             
             
     filenames1_all = []
@@ -1246,12 +1267,13 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     
     
     #GOES data is stored in monthly data files
+    #GOES-R is stored in daily files, but use monthly cadence
     get_years = []
     get_months = []
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date <= enddate):
+    while (test_date < enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -1273,31 +1295,32 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
         
         stdate = datetime.datetime(year=year,month=month, day=1)
         enddt = datetime.datetime(year=year,month=month, day=last_day)
-        print("======Date: " + str(stdate))
+        print(f"======Date: {stdate} to {enddt}")
         
         for i in range(len(goes)):
-            print("Testing " + goes[i])
+            print(f"Testing {goes[i]}")
             
             filenames1 = []
             filenames2 = []
             filenames_orien = []
-            
-            #Real time integral fluxes for GOES-16 are not available
-            #until 2020-03-08. The real time fluxes archived at CCMC
-            #prior to that date are from other GOES spacecraft.
-            if stdate < datetime.datetime(year=2020,month=3,day=8):
-                if goes[i] in goes_R:
-                    continue
-        
-            if goes[i] not in goes_R and goes[i] != "GOES_RT":
+
+            if goes[i] in old_goes_sc:
+                filenames1, filenames2 = \
+                     check_old_goes_data(stdate, enddt, goes[i], flux_type)
+
+            if goes[i] in goes_sc:
                 filenames1, filenames2, filenames_orien, date = \
                      check_goes_data(stdate, enddt, goes[i], flux_type)
-                
+                                     
             if goes[i]=="GOES_RT" and flux_type == "integral":
                 filenames1, filenames2, filenames_orien, date = \
                  check_goes_RTdata(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
                  
-        
+            if goes[i] in goes_R and flux_type == "differential":
+                filenames1, filenames2, filenames_orien, date = \
+                     check_goesR_data(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
+
+
             if filenames1 != [] and filenames1 != None:
                 filenames1_all.extend(filenames1)
                 detector.extend([goes[i]]*len(filenames1))
@@ -1313,7 +1336,8 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
                     filenames_orien_all.extend([None]*len(filenames1))
                 else:
                     filenames_orien_all.extend(filenames_orien)
-                
+
+                print(f"Downloaded {goes[i]}")
                 break #don't test other spacecraft if found one
     
     outfile.close()
@@ -1399,7 +1423,8 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
         OF MISMATCHING ENERGY BINS.
         
     """
-
+    #Identify the primary or secondary GOES spacecraft during the time
+    #period of interest
     starttimes, endtimes, goes = identify_which_goes_spacecraft(startdate,
             enddate, spacecraft=spacecraft)
 
@@ -1408,6 +1433,14 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
     filenames_orien_all = []
     detector = []
     
+    #Write dates and experiment used for those dates
+    #This is meant to allow the user to know which
+    #spacecraft is available for which time period
+    outfname = os.path.join(outpath, "idsep", "goes_experiments_dates.txt")
+    outfile = open(outfname,'w')
+
+    #Check for and download (if needed) the data for the primary/secondary
+    #spacecraft on a monthly basis.
     for startdate, enddate, goes_i in zip(starttimes, endtimes, goes):
         filenames1 = []
         filenames2 = []
@@ -1419,12 +1452,6 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
         endyear = enddate.year
         endmonth = enddate.month
         endday = enddate.day
-
-        #Write dates and experiment used for those dates
-        #This is meant to allow the user to know which
-        #spacecraft is available for which time period
-        outfname = os.path.join(outpath, "idsep", "goes_experiments_dates.txt")
-        outfile = open(outfname,'w')
         
         print(f"======Date: {startdate} to {enddate}")
 
@@ -1444,7 +1471,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
             filenames1, filenames2, filenames_orien, date = check_goes_RTdata(startdate,
                 enddate, goes_i, flux_type, spacecraft=spacecraft)
             goes_i = "GOES_RT"
-    
+
         if len(filenames1) != 0 and filenames1 != None:
             filenames1_all.extend(filenames1)
             detector.extend([goes_i]*len(filenames1))
@@ -1475,7 +1502,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
                     test_year = test_year + 1
                 test_date = datetime.datetime(year=test_year, month=test_month, day=1)
         
-            #Read in data one month at a time
+            #Write out the year, month, GOES spacecraft
             for k in range(len(get_months)):
                 year = get_years[k]
                 month = get_months[k]
@@ -2842,18 +2869,15 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
 
         df_data = pd.concat([df_data,df_in],ignore_index=True)
         
-        
-
+    if not df_data.empty:
     #These final dates and fluxes may have time gaps that were not filled in
-    all_dates = df_data[0].to_list()
-    cols = df_data.columns.to_list()
-    all_fluxes = df_data[cols[1:]].values.T
+        all_dates = df_data[0].to_list()
+        cols = df_data.columns.to_list()
+        all_fluxes = df_data[cols[1:]].values.T
 
-
-    write_data_manager(df)
+        write_data_manager(df)
 
     return all_dates, all_fluxes, west_detector
-
 
 
 def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
@@ -3614,7 +3638,9 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         :detector: (string array) if experiment = "GOES",
             will contain which specific spacecraft is needed
             (will be used instead of experiment)
-        
+        :spacecraft: (string) FOR GOES ONLY. "primary" or "secondary" 
+            to specify which GOES spacecraft to read in.
+
         OUTPUTS:
         
         :all_dates: (datetime 1xm array) time points for every time in
@@ -3641,8 +3667,8 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
 
     #All GOES data
     elif experiment == "GOES":
-        all_dates, all_fluxes, west_detector, energy_bins = read_in_all_goes(experiment, \
-                    flux_type, filenames1, filenames2, filenames_orien,\
+        all_dates, all_fluxes, west_detector, energy_bins = read_in_all_goes(experiment,
+                    flux_type, filenames1, filenames2, filenames_orien,
                     options, detector, spacecraft=spacecraft)
         return all_dates, all_fluxes, west_detector, energy_bins
                     
@@ -4251,16 +4277,25 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
 
 
     if experiment == "GOES-06":
+        #The highest energy bin is >685 MeV. For the
+        #purposes of this code, it will be labeled as
+        #>700 MeV and treated as consistent with the
+        #other GOES spacecraft that specify >700 MeV
+        print("define_energy_bins: Note that GOES-06 highest energy channel "
+            "is >685 MeV. Setting to >700 MeV here to enable combining with other "
+            "GOES spacecraft if selecting --Experiment GOES option.")
         if flux_type == "differential":
             energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
                            [39.0,82.0],[84.0,200.0],[110.0,500.0],
-                           [375, 375],[465,465],[605,605], [685,-1]]
+                           [375, 375],[465,465],[605,605], [700,-1]]
         if (flux_type == "integral"):
              energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1], [685,-1]]
+                            [50.0,-1],[60.0,-1],[100.0,-1], [700,-1]]
 
 
     if experiment == "GOES-07":
+        print("define_energy_bins: Note that no HEPAD data is available at NCEI "
+            "for GOES-07.")
         if flux_type == "differential":
             energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
                            [39.0,82.0],[84.0,200.0],[110.0,500.0]]
@@ -4269,8 +4304,9 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                             [50.0,-1],[60.0,-1],[100.0,-1]]
 
 
-    if (experiment == "GOES-08" or experiment == "GOES-10" or
-        experiment == "GOES-11" or experiment == "GOES-12"):
+    if (experiment == "GOES-08" or experiment == "GOES-09"
+        or experiment == "GOES-10" or experiment == "GOES-11"
+        or experiment == "GOES-12"):
         if (flux_type == "integral"):
              energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
                             [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
