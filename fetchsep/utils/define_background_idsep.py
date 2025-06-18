@@ -452,7 +452,6 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
     Ntd = int((dates[-1] - firstdate)/td) + 1
     nextdate = firstdate + td
 
-
     #Put dates and fluxes into a dataframe
     dict = {'dates': dates}
     cols = []
@@ -473,7 +472,10 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
         #Number of dates in this range - need for threshold later
         ndates = len(sub)
         selected_dates = sub['dates'].to_list()
-        ave_date = sub['dates'].mean
+        ave_date = sub['dates'].mean()
+        
+        #Remove dates column to calculate mean and standard deviation of fluxes
+        sub = sub.drop('dates', axis=1)
 
         #Replace all zero values
         sub = sub.replace(0,np.nan)
@@ -501,7 +503,6 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
             sigma = sub.std()
             threshold = mean[cols] + sigma[cols]*nsigma
 
-
         #One mean and sigma per averaged time period
         means.append(mean)
         sigmas.append(sigma)
@@ -523,6 +524,9 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
 
     threshold_dates = df_thresholds['dates'].to_list()
     threshold = df_thresholds[cols].T.to_numpy()
+
+    df_means.insert(0,'dates',ave_dates)
+    df_sigmas.insert(0,'dates',ave_dates)
 
     #Write fluxes to file for testing and use
     write_df(df_means,'mean_background_fluxes_ndays_optimized')
@@ -642,6 +646,10 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
         #Replace all zero values with nan
         #nan values are ignored by pd.mean and pd.sigma
         sub = sub.replace(0,np.nan)
+        
+        #TESTING
+        #PLOT HISTOGRAMS OF THE DATA TO INVESTIGATE
+        
         #print(f"Start Time: {starttime}, End Time: {endtime}, All points: {len(sub)}, Required: {cfg.percent_points*nwin_pts}")
         #For each column of fluxes, calculate the mean and sigma.
         #Check that there are enough points in the selected data to calculate

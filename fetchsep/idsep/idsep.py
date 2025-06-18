@@ -508,7 +508,6 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
                 defbg.ndays_average_optimized(init_win, dates, fluxes, nsigma, remove_above)
     
-    
     #INITIAL SEPARATION OF BG AND HIGHER THAN BG
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
     
@@ -644,7 +643,7 @@ def run_all(str_startdate, str_enddate, experiment,
     make_dirs()
     
     #READ IN FLUXES
-    print("TIMESTAMP: Reading in flux files " + str(datetime.datetime.now()))
+    print("TIMESTAMP: Reading in flux files at time " + str(datetime.datetime.now()))
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
         flux_type, user_file, eff_startdate, enddate, options, dointerp, is_unixtime,
         write_fluxes=write_fluxes, spacecraft=spacecraft)
@@ -659,7 +658,7 @@ def run_all(str_startdate, str_enddate, experiment,
         sys.exit("Time series plot completed. Exiting.")
     
     #ITERATION 1: DEFINE AN INITIAL "MOVING" THRESHOLD W/DATE
-    print("TIMESTAMP: Creating rough cut first guess at threshold " + str(datetime.datetime.now()))
+    print("TIMESTAMP: Creating rough cut first guess at threshold at time " + str(datetime.datetime.now()))
     fluxes_bg_init, fluxes_high_init = rough_cut(init_win, dates, fluxes, nsigma,
         remove_above, energy_bins, experiment, flux_type, exp_name, options, doBGSub,
         False, saveplot, spacecraft=spacecraft)
