@@ -2,6 +2,7 @@ from ..utils import config as cfg
 from . import date_handler as dateh
 import datetime
 import numpy as np
+from scipy import stats
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
@@ -422,6 +423,129 @@ def write_df(df, name, verbose=True):
             print('Wrote ' + filepath)
 
 
+def set_above_threshold_to_nan(df, thresh, col):
+    """ Set points in df[col] that are > thresh to nan
+    
+    """
+    df.loc[(df[col] > thresh),col] = np.nan
+    return df
+    
+
+def test_for_normality(hist):
+    """ Check column of dataframe for normal distribution. """
+    res = stats.normaltest(hist, nan_policy='omit')
+    return res
+
+
+def check_bg_for_normality(df, col):
+    """ Check whether histogram is normal-like enough distribution to 
+        calculate background mean and sigma.
+        
+    """
+    #20 flux bins in log space
+    min_val = math.log10(df[col].min())
+    max_val = math.log10(df[col].max())
+    nbins = 20
+    step = (max_val-min_val)/nbins
+    bins = []
+    for i in range(20):
+        bins.append(10**(min_val+i*step))
+
+    counts, bins = np.histogram(df[col].dropna(), bins=bins)
+    res = test_for_normality(counts)
+    
+#    print(f"check_bg_for_normality: {df['dates'].iloc[0]} to {df['dates'].iloc[-1]}, pvalue: {res.pvalue}")
+    
+    if pd.isnull(res.pvalue):
+        is_good = False
+    elif res.pvalue < 1e-4:
+        is_good = False
+    else:
+        is_good = True
+        
+    return is_good
+
+
+def check_for_floor(df, col):
+    #Sometimes, particle analysis routines will set flux levels to
+    #a minimum value or floor. Check if there is a minimum value
+    #for a very large number of points. If so, remove them and see if
+    #enough good points remain to apply the background estimation algorithm
+    bad_bg = False
+    min_val = df[col].min()
+    if not pd.isnull(min_val):
+        test_sub = df[col].loc[df[col] == min_val]
+        if col == "fluxes2" or col == "fluxes5":
+            print(f"Points equal to min {min_val} are {len(test_sub)}")
+            print(f"This is a ratio of {len(test_sub)/len(df[col].dropna())}")
+        if len(test_sub) >= 0.1*len(df[col].dropna()) and len(df[col].dropna()) > 0:
+            bad_bg = True
+
+    return bad_bg
+
+def calc_bg_stats(df, nsigma, col):
+    """ Calculate mean, sigma, threshold 
+        If col is specified as a string, will return values for single column
+        and mean, sigma, and threshold will be floats.
+        If col is specified as a list, will return lists.
+    
+    """
+    mean = np.nan
+    sigma = np.nan
+    threshold = np.nan
+
+    if isinstance(col, str):
+        mean = df[col].mean()
+        sigma = df[col].std(ddof=0) #1/N
+        threshold = mean + sigma*nsigma
+
+    if isinstance(col, list):
+        mean = df.mean()
+        sigma = df.std()
+        threshold = mean[col] + sigma[col]*nsigma
+
+    return mean, sigma, threshold
+
+
+#TESTING
+def plot_dist_hist(df, iteration):
+    """ PLOT HISTOGRAMS OF THE DATA TO INVESTIGATE distribution. """
+    if iteration != 0: return
+
+    firstdate = df['dates'].iloc[0]
+    lastdate = df['dates'].iloc[-1]
+
+    cols = df.columns.to_list()
+    for col in cols:
+        if col == "dates": continue
+        #bins = [1e-3, 2e-3, 3e-3, 4e-3, 5e-3, 6e-3, 7e-3, 8e-3, 9e-3,
+        #        1e-2, 2e-2, 3e-2, 4e-2, 5e-2, 6e-2, 7e-2, 8e-2, 9e-2,
+        #        1e-1, 2e-1, 3e-1, 4e-1, 5e-1, 6e-1, 7e-1, 8e-1, 9e-1,
+        #        1,2,3,4,5,6,7,8,9,10]
+        min_val = math.log10(df[col].min())
+        max_val = math.log10(df[col].max())
+        nbins = 20
+        step = (max_val-min_val)/nbins
+        bins = []
+        for i in range(20):
+            bins.append(10**(min_val+i*step))
+        fig = plt.figure()  # Creates a new figure
+        ax = fig.add_subplot(111)
+        #ax.set_ylim(0,1000)
+        counts, bins = np.histogram(df[col].dropna(), bins=bins)
+        res = test_for_normality(counts)
+        hist = df[col].hist(bins=bins, figsize=(8, 6), ax=ax)
+        fig.suptitle(f"{firstdate} to {lastdate}", fontsize=14, fontweight='bold')
+        plt.title(f"Distribution of {col}")
+        plt.xlabel('pfu')
+        plt.xscale("log")
+        plt.ylabel('Frequency')
+        ax.text(0.01, 0.95, f"statistic: {res.statistic}\np_value: {res.pvalue}",
+                verticalalignment='top', horizontalalignment='left',
+                transform=ax.transAxes, fontsize=12)
+        figname = os.path.join(cfg.plotpath,'idsep','hist',f"hist_{col}_{firstdate.year}_{firstdate.month}_{firstdate.day}_it{iteration}.jpg")
+        plt.savefig(figname)
+
 
 #####################################
 #OPTIMIZED ALGORITHM
@@ -481,8 +605,7 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
         sub = sub.replace(0,np.nan)
         #Replace all values above remove_above
         for col in cols:
-            sub.loc[(sub[col] > remove_above)] = np.nan
-
+            sub = set_above_threshold_to_nan(sub, remove_above, col)
 
         if sub.empty:
             if not means: #No good data encountered yet
@@ -499,9 +622,7 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
                 threshold = thresholds[-1]
         else:
             #Take the mean and standard deviation
-            mean = sub.mean()
-            sigma = sub.std()
-            threshold = mean[cols] + sigma[cols]*nsigma
+            mean, sigma, threshold = calc_bg_stats(sub, nsigma, cols)
 
         #One mean and sigma per averaged time period
         means.append(mean)
@@ -534,8 +655,6 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
     write_df(df_thresholds,'threshold_ndays_optimized')
 
     return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
-
-
 
 
 #####################################
@@ -634,7 +753,7 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
         selected_dates = sub['dates'].to_list()
         #All dates in the current time step (e.g. 1 day) get assigned the same mean
         #and threshold values
-        #Getting background value for the last day in the 27 day window*****
+        #Getting background value for the last day in the N day window*****
         current_dates = df['dates'].loc[(df['dates'] >= endtime-td_step) & (df['dates'] < endtime)].to_list()
         
         insert_dates = []
@@ -647,10 +766,9 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
         #nan values are ignored by pd.mean and pd.sigma
         sub = sub.replace(0,np.nan)
         
-        #TESTING
-        #PLOT HISTOGRAMS OF THE DATA TO INVESTIGATE
-        
+
         #print(f"Start Time: {starttime}, End Time: {endtime}, All points: {len(sub)}, Required: {cfg.percent_points*nwin_pts}")
+
         #For each column of fluxes, calculate the mean and sigma.
         #Check that there are enough points in the selected data to calculate
         #reliable background and sigma values
@@ -658,35 +776,54 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
         sigmas = []
         thresholds = []
         for col in cols:
-            #Set points above the previous threshold to nan
+            #Don't use time period if too many of a single value (non-Gaussian distribution)
+#            print(f"===DATE {endtime-td_step} to {endtime}, FLUX {col}, Iteration {iteration}")
+#            small_sub = sub.loc[(sub['dates'] >= endtime-td_step) & (sub['dates'] < endtime)]
+#            is_good_bg = check_bg_for_normality(sub, col)
+#
+#            if not is_good_bg:
+#                #If no good points yet, then set to zero
+#                if df_means.empty:
+#                    mean = 0
+#                    sigma = 0
+#                    threshold = 0
+#                else:
+#                    mean = df_means[col].iloc[-1]
+#                    sigma = df_sigmas[col].iloc[-1]
+#                    threshold = df_thresholds[col].iloc[-1]
+#
+#            else:
             if not df_thresholds.empty:
                 prev_thresh = df_thresholds[col].iloc[-1]
                 #print(f"Column: {col}, Start Time: {starttime}, End Time: {endtime}, Previous Threshold: {prev_thresh}")
                 if not pd.isnull(prev_thresh) and prev_thresh != 0:
-                    sub.loc[(sub[col] > prev_thresh),col] = np.nan
+                    sub = set_above_threshold_to_nan(sub, prev_thresh, col)
 
+            is_good_bg = check_bg_for_normality(sub, col)
             ngood = len(sub[col].dropna())
             #print(f"Start Time: {starttime}, End Time: {endtime}, Number of good points: {ngood}, Required: {cfg.percent_points*nwin_pts}")
-            if ngood < cfg.percent_points*nwin_pts:
+            if ngood < cfg.percent_points*nwin_pts or not is_good_bg:
                 #If no good points yet, then set to zero
                 if df_means.empty:
-                    mean = 0
+                    mean = 1e6
                     sigma = 0
-                    threshold = 0
+                    threshold = 1e6
                 else:
                     mean = df_means[col].iloc[-1]
                     sigma = df_sigmas[col].iloc[-1]
                     threshold = df_thresholds[col].iloc[-1]
 
             else:
-                mean = sub[col].mean()
-                sigma = sub[col].std(ddof=0) #1/N
-                threshold = mean + sigma*nsigma
-
+                #Recalculate the background using the refined data and save
+                mean, sigma, threshold = calc_bg_stats(sub, nsigma, col)
             
             means.append(mean)
             sigmas.append(sigma)
             thresholds.append(threshold)
+
+        #TESTING FLUX FLOOR
+#        small_sub = sub.loc[(sub['dates'] >= endtime-td_step) & (sub['dates'] < endtime)]
+#        plot_dist_hist(sub, iteration)
 
         smean = pd.Series(means,index=cols)
         ssigma = pd.Series(sigmas,index=cols)
