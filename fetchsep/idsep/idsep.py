@@ -558,6 +558,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
 
     return fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold
 
+
 def write_sep_fluxes(dates, fluxes, fluxes_bg):
     """ Write out final SEP fluxes and bg-subtracted fluxes.
         Subtract fluxes (e.g. SEP fluxes subtracted by the mean background).
@@ -721,7 +722,7 @@ def run_all(str_startdate, str_enddate, experiment,
         if iter == niter-2: #Final round
             fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding)
         if iter < niter-2:
-            fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes_bg, SEPstart, SEPend, padding)
+            fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding)
 
     print(f"TIMESTAMP: Completed background and SEP event separation, {datetime.datetime.now()}")
     
