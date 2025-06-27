@@ -583,7 +583,7 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg):
     df[cols] = df[cols] - df_bg[cols]
     df[df[cols] < 0][cols] = 0
     
-    defbg.write_df(df,'background_subtracted_SEP_fluxes_FINAL')
+    defbg.write_df(df,'SEP_fluxes_background-subtracted_FINAL')
 
 
 
