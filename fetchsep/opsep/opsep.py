@@ -6,6 +6,7 @@ from ..utils import error_check
 from ..utils import tools
 from ..utils import plotting_tools as plt_tools
 import matplotlib.pyplot as plt
+from matplotlib.dates import DateFormatter
 import math
 import numpy as np
 import sys
@@ -3377,7 +3378,8 @@ def write_info_to_file(experiment, flux_type, json_type, options,
 def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         user_file, json_type, spase_id, showplot, saveplot, detect_prev_event,
         two_peaks, umasep, str_thresh, options, doBGSub, str_bgstartdate,
-        str_bgenddate, nointerp=False, templatename='', spacecraft=""):
+        str_bgenddate, nointerp=False, templatename='', spacecraft="",
+        use_bg_thresholds=False):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3414,6 +3416,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         :templatename: (string) optional name of user json template located in
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
+        :use_bg_thresholds: (bool) Set to true to use the threshold
         
         OUTPUTS:
         
@@ -3477,7 +3480,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     #Pull out or estimate only the integral flux channels for which a
     #threshold will be applied
     integral_fluxes = extract_integral_fluxes(fluxes, experiment, flux_type,
-                    flux_thresholds, energy_thresholds, energy_bins, options, doBGSub)
+                flux_thresholds, energy_thresholds, energy_bins, options, doBGSub)
 
     #Calculate SEP event quantities for energy and flux threshold combinations
     #integral fluxes are used to define event start and stop
@@ -3680,7 +3683,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         if experiment == 'user' and model_name != '':
             figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
                     + '_' + 'All_Bins'
-        fig = plt.figure(figname,figsize=(9,4))
+        fig = plt.figure(figname,figsize=(13.5,6))
         ax = plt.subplot(111)
         nbins = len(energy_bins)
         for i in range(nbins):
@@ -3729,12 +3732,16 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
                 plt.title(model_name + ' ' + title_mod + '\n' \
                         + "Differential Energy Bins with Threshold Crossings")
         plt.xlabel('Date')
+        ax.xaxis_date()
+        ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
         plt.yscale("log")
         #plt.grid(which="major", axis="both", linestyle="dotted")
         chartBox = ax.get_position()
         ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                          chartBox.height])
         ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+            item.set_fontsize(14)
         if saveplot:
             fig.savefig(plotpath + '/' +figname + '.png')
         if not showplot:

@@ -113,7 +113,7 @@ def revise_sep_times(startdate, enddate, sep_sttimes, sep_endtimes):
 
 
 def get_detector(date, detector_dates, detector):
-    """ For a given date, find the right GOES detector
+    """ For a given date, find the right GOES detector.
 
     """
     year = date.year
@@ -121,7 +121,18 @@ def get_detector(date, detector_dates, detector):
     checkdate = datetime.datetime(year=year,month=month,day=1)
     
     try:
-        idx = detector_dates.index(checkdate)
+        indices = [i for i,dt in enumerate(detector_dates) if dt == checkdate]
+        #If only one spacecraft for the specified date, return that.
+        idx = indices[0]
+        #If more than one spacecraft for that date, if GOES primary or seconday,
+        #return the experiment "GOES" so that the correct one will be selected
+        #by OpSEP. Otherwise, return the first detector.
+        if len(indices) > 1:
+            det = [detector[i] for i in indices]
+            for name in det:
+                if "GOES" in name:
+                    return "GOES"
+
     except:
         print("get_detector: Requested date not in list.")
         return None
@@ -130,8 +141,8 @@ def get_detector(date, detector_dates, detector):
 
 
 def make_event_list(str_startdate, str_enddate, septimes_file,
-            detector_list, experiment, flux_type, options, outfile,
-            revise=False):
+            detector_list, experiment, flux_type, options, json_type,
+            outfile, revise=False, spacecraft="", use_bg_thresholds=False):
     """ Read in SEP times and detector list, if applicable,
         and create a file in the appropriate format to run
         operational_sep_quantities.py in batch mode.
@@ -163,9 +174,9 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
 
     header = "#Start Time,End Time,Experiment,Flux Type,Flags," \
             + "User Experiment Name,User Filename,Options,"\
-            +"BGStart,BGEnd\n"
+            +"BGStart,BGEnd,JSON Type,Spacecraft,Use BG Thresholds\n"
     
-    out = open(cfg.outpath + "/idsep/" + outfile,'w')
+    out = open(os.path.join(cfg.outpath, "idsep", outfile),'w')
     out.write(header)
     
     if detector_list != '':
@@ -186,12 +197,12 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
     if detector_list != '':
         det = get_detector(startdate, detector_dates, detector)
         if det != None:
-            line = str_startdate + "," + str(sep_sttimes[0])\
-                + "," + det + "," + flux_type + ",,,," + options + ",,\n"
+            line = (f"{str_startdate},{sep_sttimes[0]},{det},{flux_type},,,,"
+                    f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
     else:
-        line = str_startdate + "," + str(sep_sttimes[0]) + "," \
-            + experiment + "," + flux_type + ",,,," + options + ",,\n"
-    
+        line = (f"{str_startdate},{sep_sttimes[0]},{experiment},{flux_type},,,,"
+                f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
+
     out.write(line)
     
     ###SEP Times
@@ -200,11 +211,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
         if detector_list != '':
             det = get_detector(sep_sttimes[i], detector_dates, detector)
             if det == None: continue
-            line = str(sep_sttimes[i]) + "," + str(sep_endtimes[i]) + ","\
-                + det + "," + flux_type + ",,,," + options + ",,\n"
+            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{det},{flux_type},,,,"
+                 f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
         else:
-            line = str(sep_sttimes[i]) + "," + str(sep_endtimes[i]) + "," \
-                + experiment + "," + flux_type + ",,,," + options + ",,\n"
+            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{experiment},{flux_type},,,,"
+                f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
             
         out.write(line)
         
@@ -215,11 +226,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
             det = get_detector(sep_endtimes[i], detector_dates,
                     detector)
             if det == None: continue
-            line = str(sep_endtimes[i]) + "," + str(sep_sttimes[i+1])\
-                + "," + det + "," + flux_type + ",,,," + options + ",,\n"
+            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{det},{flux_type},,,,"\
+                f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
         else:
-            line = str(sep_endtimes[i]) + "," + str(sep_sttimes[i+1]) + ","\
-                + experiment + "," + flux_type + ",,,," + options + ",,\n"
+            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{experiment},{flux_type},,,,"\
+                f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
         
         out.write(line)
 
@@ -229,11 +240,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
     if detector_list != '':
         det = get_detector(enddate, detector_dates, detector)
         if det != None:
-            line = str(sep_endtimes[-1]) + "," + str_enddate\
-                + "," + det + "," + flux_type + ",,,," + options + ",,\n"
+            line = (f"{sep_endtimes[-1]},{str_enddate},{det},{flux_type},,,,"\
+                f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
     else:
-        line = str(sep_endtimes[-1]) + "," + str_enddate + "," \
-            + experiment + "," + flux_type + ",,,," + options + ",,\n"
+        line = (f"{sep_endtimes[-1]},{str_enddate},{experiment},{flux_type},,,," \
+            f"{options},,{json_type},{spacecraft},{use_bg_thresholds}\n")
     
     out.write(line)
         
