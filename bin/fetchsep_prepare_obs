@@ -5,6 +5,7 @@ import fetchsep.idsep.make_event_list as event_list
 import fetchsep.opsep as opsep
 import fetchsep.opsep.batch_run_opsep as batch
 import fetchsep.utils.config as cfg
+import fetchsep.utils.plotting_tools as plt_tools
 import argparse
 import matplotlib.pyplot as plt
 import datetime
@@ -44,7 +45,7 @@ def septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=""):
         prename = (f"SEPTimes_{exp_name}_{flux_type}{modifier}")
  
     fname = os.path.join(cfg.outpath,"idsep", f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
-    
+ 
     if not os.path.isfile(fname):
         bin0 = int(energy_bin[0])
         bin1 = int(energy_bin[1])
@@ -66,43 +67,44 @@ def septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=""):
 ##################################
 parser = argparse.ArgumentParser()
 parser.add_argument("--StartDate", type=str, default='',
-        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
-               " with quotes"))
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\" with quotes"))
+
 parser.add_argument("--EndDate", type=str, default='',
-        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
-                " with quotes"))
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\" with quotes"))
+
 parser.add_argument("--Experiment", type=str,
         choices=['GOES', 'GOES-05', 'GOES-06', 'GOES-07', 'GOES-08', 'GOES-10',
                 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
                 'GOES-16','GOES-17','GOES-18','GOES_RT', 'SEPEM', 'SEPEMv3',
                 'EPHIN', 'EPHIN_REleASE', 'CalGOES','user'],
         default='', help="Enter name of spacecraft or dataset")
-parser.add_argument("--FluxType", type=str, choices=['integral',
-        'differential'], default='',
-        help=("Are these integral or differential fluxes?"))
-parser.add_argument("--Spacecraft", type=str, choices=['primary',
-        'secondary'], default='',
-        help=("If GOES_RT is selected, choose the primary or secondary spacecraft."))
+
+parser.add_argument("--FluxType", type=str, choices=['integral', 'differential'],
+        default='', help=("Are these integral or differential fluxes?"))
+
+parser.add_argument("--Spacecraft", type=str, choices=['primary', 'secondary'],
+        default='', help=("If GOES_RT is selected, choose the primary or secondary spacecraft."))
+
 parser.add_argument("--ExperimentName", type=str, default='',
-        help=("If you chose user for experiment, specify the "
-                "name of the model or experiment that you are "
-                "analyzing (no spaces)."))
+        help=("If you chose user for experiment, specify the  name of the "
+                "model or experiment that you are analyzing (no spaces)."))
+
 parser.add_argument("--UserFile", type=str, default='tmp.txt',
-        help=("If you chose user for experiment, specify the "
-                "filename containing the fluxes. "
+        help=("If you chose user for experiment, specify the filename containing the fluxes. "
                 "Specify energy bins and delimeter in the config "
                 "file (idsep/config.py). Default is tmp.txt."))
+
 parser.add_argument("--Unixtime",
-        help=("Flag to indicate first column in user file is "
-                "in unixtime"), action="store_true")
+        help=("Flag to indicate first column in user file is in unixtime"),
+                action="store_true")
+
 parser.add_argument("--options", type=str, default='',
         help=("You may specify a series of options as a semi-colon "
                 "separated list surrounded by quotations.\n"
                 "\"uncorrected\" for GOES uncorrected differential "
                 " fluxes with nominal GOES energy bins,\n "
                 "\"S14\" to apply Sandberg et al. (2014) "
-                "effective energies to GOES uncorrected fluxes for "
-                "P2-P6,\n "
+                "effective energies to GOES uncorrected fluxes for P2-P6,\n "
                 "\"Bruno2017\" to apply Bruno (2017) effective "
                 "energies to GOES-13 or GOES-15 P6-P11 channels "
                 "for either corrected or uncorrected GOES fluxes.\n"
@@ -111,9 +113,11 @@ parser.add_argument("--options", type=str, default='',
                 "P2-P5 and Bruno2017 bins will be applied to P6-P11 "
                 "for uncorrected fluxes.\n"
                 "e.g. \"uncorrected;S14;Bruno2017\""))
+
 parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
+
 parser.add_argument("--SubtractBG",
         help="Set to calculate the background and subtract from the "\
                 "SEP flux. Must define start and end dates for the background.",
@@ -131,6 +135,10 @@ parser.add_argument("--PlotTimeSeriesOnly",
         help="Only plot the flux timeseries without calculating "
                 "background and SEP events.", action="store_true")
 
+parser.add_argument("--UseBackgroundThresholds",
+        help="Pass the mean+nsigma thresholds found by IDSEP as thresholds in OpSEP "
+            "to identify when SEP events increase above background.", action="store_true")
+
 parser.add_argument("--showplot",
         help="Flag to display plots in IDSEP.", action="store_true")
 
@@ -142,17 +150,23 @@ parser.add_argument("--Threshold", type=str, default="",
                 ">100 MeV fluxes crossing 1 pfu (1/[cm^2 s sr]). "
                 "Multiple thresholds may be written as \"30,1;50,1\" "
                 "separated by a semi-colon."))
+
 parser.add_argument("--UMASEP",
         help=("Set flag to calculate flux values and thresholds "
                 "specific to the UMASEP model. Thresholds for >10, >30, "
                 ">50, >100 MeV and flux values at 3, 4, 5, 6, 7 hours "
                 "after crossing thresholds."), action="store_true")
 
+parser.add_argument("--JSONType", type=str, choices=['model',
+        'observations'], default='observations',
+        help=("For user-input files, specify whether they are observations "
+        "or model predictions to generate a JSON file in the correct format. "
+        "Choices are \"model\" or \"observations\" Default is observations."))
+
 #WHERE TO START IN THE WORKFLOW
 parser.add_argument("--StartPoint", type=str, default="IDSEP",
         choices=['IDSEP','MAKEFILE','BATCH'],
-        help=("Indicate where in the workflow you want to "
-                "start.\n"
+        help=("Indicate where in the workflow you want to start.\n"
                 "IDSEP will start at the beginning.\n"
                 "MAKEFILE will start at the point of converting "
                 "the IDSEP output into a file to batch run OpSEP.\n"
@@ -180,12 +194,14 @@ dointerp = args.DoInterp
 remove_above = args.RemoveAbove
 for_inclusive = args.ForInclusive
 plot_timeseries_only = args.PlotTimeSeriesOnly
+use_bg_thresholds = args.UseBackgroundThresholds
 
 showplot = args.showplot
 saveplot = True #args.saveplot #Always saveplot for this script
 
 threshold = args.Threshold
 umasep = args.UMASEP
+json_type = args.JSONType
 
 startpoint = args.StartPoint
     
@@ -202,11 +218,10 @@ if startpoint == "IDSEP":
 
 
 #If user selected "GOES", then list of GOES detectors with time
-#will be stored here. Written out in
-#fetchsep/utils/read_dataset_auto_id.py > check_all_goes_data()
+#will be stored here.
 goesfname = ''
 if experiment == "GOES":
-    goesfname = cfg.outpath + "/idsep/goes_experiments_dates.txt"
+    goesfname = os.path.join(cfg.outpath, "idsep", "goes_experiments_dates.txt")
 
 
 #SECOND ########################
@@ -222,10 +237,10 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
-        septimes_file, detector_list,experiment, flux_type,options,
-        batchfile, revise)
+        septimes_file, detector_list,experiment, flux_type,options, json_type,
+        batchfile, revise, spacecraft=spacecraft, use_bg_thresholds=use_bg_thresholds)
 
-
+sys.exit("Finished makefile test")
 
 #THIRD #########################
 #Batch run OpSEP using the input file created above
@@ -234,9 +249,7 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
 #Identify SEP events that increase above thresholds.
 ################################
 
-#if startpoint == "BATCH" or startpoint == "MAKEFILE" \
-#    or startpoint == "IDSEP":
-#    continue
+#### BATCH startpoint
 
 ############## SET DEFAULTS ##################
 showplot = False

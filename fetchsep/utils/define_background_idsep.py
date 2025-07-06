@@ -637,7 +637,8 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
 #####################################
 ##OPTIMIZED AGLORITHM
 #####################################
-def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
+def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0,
+    is_final=False):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -823,10 +824,12 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0):
     threshold = df_thresholds[cols].T.to_numpy()
 
     #Write fluxes to file for testing and use
-    write_df(df_means,'background_mean_fluxes_optimized_it'+str(iteration))
-    write_df(df_sigmas,'background_sigma_optimized_it'+str(iteration))
-    write_df(df_thresholds,'background_threshold_optimized_it'+str(iteration))
-    write_df(df_stats1,'kurtosis_it'+str(iteration))
+    appx = '_it'+str(iteration)
+    if is_final: appx = '_FINAL'
+    write_df(df_means,'background_mean_fluxes_optimized'+appx)
+    write_df(df_sigmas,'background_sigma_optimized'+appx)
+    write_df(df_thresholds,'background_threshold_optimized'+appx)
+    write_df(df_stats1,'kurtosis'+appx)
 
     return mean_background, ave_sigma, threshold
 

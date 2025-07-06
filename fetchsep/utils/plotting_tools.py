@@ -269,7 +269,7 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
 
     plt.style.use('seaborn-whitegrid')
 
-    fig = plt.figure(figsize=(10,6))
+    fig = plt.figure(figsize=(13,8))
     ax = plt.subplot(111)
     
     #colors = plt.cm.tab10(np.linspace(0,1,len(values)+1))
@@ -336,10 +336,12 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
         ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d'))
     if date_format == "day" or date_format == "Day":
         ax.xaxis_date()
-        ax.xaxis.set_major_formatter(DateFormatter('%m-%d\n%H:%M'))
+        ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
     
     plt.setp(ax.get_xticklabels(), rotation = 15)
     ax.set_title(title)
+#    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+ #       item.set_fontsize(24)
     if uselog_x:
         ax.set_xscale('log')
     if uselog_y:

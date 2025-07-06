@@ -522,7 +522,7 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
 
 
 def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
-    iteration=0):
+    iteration=0, is_final=False):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
         by applying a sliding window of sliding_win days to get a background
@@ -548,7 +548,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
     """
     ave_background, ave_sigma, threshold =\
             defbg.backward_window_background_optimized(sliding_win, dates, fluxes_bg_in,
-            nsigma, iteration)
+            nsigma, iteration, is_final)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -676,11 +676,13 @@ def run_all(str_startdate, str_enddate, experiment,
     ave_sigma = []
     threshold = []
     print(f"TIMESTAMP: Starting background and SEP event identification for {niter} iterations, {datetime.datetime.now()}.")
+    is_final = False
     for iter in range(niter):
         print(f"TIMESTAMP: Performing iteration {iter}, {datetime.datetime.now()}")
         post = "_iter" + str(iter)
         if iter == niter-1:
             post += "_FINAL"
+            is_final = True
         #Separate high and low flux by applying a sliding smoothing window to the background
         #fluxes_bg_init is used to get the mean, sigma, and threshold, then fluxes is split
         #into fluxes_bg and fluxes_high
@@ -688,7 +690,7 @@ def run_all(str_startdate, str_enddate, experiment,
         print(f"TIMESTAMP: Starting sliding window background calculation, {datetime.datetime.now()}")
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
             apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, nsigma,
-            iteration=iter)
+            iteration=iter, is_final=is_final)
         print(f"TIMESTAMP: Completed sliding window background calculation, {datetime.datetime.now()}")
 
 
