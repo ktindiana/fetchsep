@@ -1,4 +1,5 @@
 from . import config as cfg
+from ..json import ccmc_json_handler as ccmc_json
 import numpy as np
 import matplotlib.pylab as plt
 import seaborn as sns
@@ -29,161 +30,6 @@ __email__ = "philip.r.quinn@nasa.gov"
 #Changes in 0.5: correlation_plot subroutine added by K. Whitman
 #2021-09-03, changes in 0.6: Set a limiting value or 1e-4 on the
 #   axes in correlation_plot
-
-
-def plot_marginals(y_true, y_pred, scale="linear",
-        x_label="Observations", y_label="Forecast", thresh=None,
-        save="marginal_plot", showplot=False, closeplot=False):
-    """
-    Plots model forecast against observations
-    in a scatter plot with marginals. Includes an
-    option for displaying thresholds use when discretizing
-    into a categorical forecast
-
-    Parameters
-    ----------
-    y_true : array-like
-        Observed (true) values
-
-    y_pred : array-like
-        Forecasted (estimated) values
-
-    scale : string
-        Numeric scale to display results on
-        Accepts "linear" or "log"
-        Optional. Defaults to "linear"
-
-    x_label : string
-        Label for x-axis
-        Optional. Defaults to "Observations"
-
-    y_label : string
-        Label for y-axis
-        Optional. Defaults to "Forecast"
-
-    thresh : float
-        Value of threshold when displaying discretization
-        Option. Defaults to None
-
-    save : string
-        Name to save PNG as (should not include ".png")
-        Optional. Defaults to "marginal_plot"
-
-    showplot : boolean
-        Indicator for displaying the plot on screen or not
-        Optional. Defaults to False
-
-    closeplot : boolean
-        Indicator for clearing the figure from memory
-        Optional. Defaults to False
-
-    Returns
-    -------
-    None
-    """
-
-    check_consistent_length(y_true, y_pred)
-
-    y_true = check_array(y_true, force_all_finite=True, ensure_2d=False)
-    y_pred = check_array(y_pred, force_all_finite=True, ensure_2d=False)
-
-    if (scale == "log") and ((y_true < 0).any() or (y_pred < 0).any()):
-        raise ValueError("Values cannot be negative on a logarithmic scale")
-
-    if scale not in ("linear", "log"):
-        raise ValueError("Scale must either be 'linear' or 'log'")
-
-    #plt.style.use('dark_background')
-
-    fig = plt.figure(figsize=(8, 8))
-    gs = gridspec.GridSpec(3, 3)
-    ax_main = plt.subplot(gs[1:3, :2])
-    ax_xDist = plt.subplot(gs[0, :2], sharex=ax_main)
-    ax_yDist = plt.subplot(gs[1:3, 2], sharey=ax_main)
-
-    color_data = '#0339f8'
-    color_thresh = '#02c14d'
-    color_unity_line = '#fc2647'
-    color_mean = '#aa23ff'
-
-    ax_main.scatter(y_true, y_pred, marker='.', color=color_data)
-    ax_main.set(xlabel=x_label, ylabel=y_label)
-
-    # getting max and min of x and y
-    if scale == "log":
-        xmax = 10**(math.ceil(np.log10(np.max(y_true))))
-        ymax = 10**(math.ceil(np.log10(np.max(y_pred))))
-        xymax = max(xmax, ymax)
-        xmin = 10**(math.floor(np.log10(np.min(y_true))))
-        ymin = 10**(math.floor(np.log10(np.min(y_pred))))
-        xymin = min(xmin, ymin)
-    elif scale == "linear":
-        xmax = np.max(y_true)
-        ymax = np.max(y_pred)
-        xymax = max(xmax, ymax)
-        xmin = np.min(y_true)
-        ymin = np.min(y_pred)
-        xymin = min(xmin, ymin)
-
-    ax_main.set_xlim(xymin, xymax)
-    ax_main.set_ylim(xymin, xymax)
-
-    ax_main.grid(True, linestyle=':', alpha=0.5)
-
-    ax_main.set_xscale(scale)
-    ax_main.set_yscale(scale)
-
-    # creating bins for histograms
-    if scale == "log":
-        hbins = np.logspace(np.log10(xymin), np.log10(xymax), 100)
-    elif scale == "linear":
-        hbins = np.linspace(xymin, xymax, 100)
-
-    # histogram for x-axis
-    ax_xDist.hist(y_true, bins=hbins, align='mid', color=color_data, zorder=0)
-    ax_xDist.set(ylabel='Counts')
-
-    # histogram for y-axis
-    ax_yDist.hist(y_pred, bins=hbins, orientation='horizontal', align='mid', \
-                  color=color_data, zorder=0)
-    ax_yDist.set(xlabel='Counts')
-
-    # drawing the unity line
-    ax_main.plot([xymin, xymax], [xymin, xymax], linestyle='--', linewidth=1.5, \
-                 color=color_unity_line, zorder=2)
-
-    # plotting the mean value and line from the unity line to the mean value
-    meanx = np.mean(y_true)
-    meany = np.mean(y_pred)
-    #ax_main.plot(meanx, meany, marker='o', color=color_mean, zorder=1)
-    #ax_main.plot([meanx, meany], [meany, meany], linestyle='-', linewidth=2.5, \
-    #             color=color_mean, zorder=1)
-
-    if thresh != None:
-        # drawing threshold lines for contingency table info
-        ax_main.plot([thresh, thresh], [xymin, xymax], [xymin, xymax], \
-                     [thresh, thresh], linestyle='-', linewidth=1.5, \
-                     color=color_thresh, zorder=2)
-        # printing contingency table labels
-        plt.text(0.98, 0.98, 'Hits', fontsize=12, color=color_thresh, \
-                 horizontalalignment='right', verticalalignment='top', \
-                 transform=ax_main.transAxes)
-        plt.text(0.02, 0.98, 'False Alarms', fontsize=12, color=color_thresh, \
-                 horizontalalignment='left', verticalalignment='top', \
-                 transform=ax_main.transAxes)
-        plt.text(0.02, 0.02, 'Correct Negatives', fontsize=12, \
-                 color=color_thresh, horizontalalignment='left', \
-                 verticalalignment='bottom', transform=ax_main.transAxes)
-        plt.text(0.98, 0.02, 'Misses', fontsize=12, color=color_thresh, horizontalalignment='right', verticalalignment='bottom', \
-                 transform=ax_main.transAxes)
-
-    if showplot: plt.show()
-
-    fig.savefig('plots/MarginalPlots/'+save+'.png', dpi=300, bbox_inches='tight')
-
-    if closeplot: plt.close(fig)
-
-    return
 
 
 
@@ -525,37 +371,7 @@ def box_plot(values, labels, x_label="Model", y_label="Metric",
     return fig
 
 
-############ IDSEP PLOTS ##############
-def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units):
-    """ Set up figure and axes for idsep 3 row plots.
-    
-    """
-    nrow = 3 #number of rows of subplots
-    
-    plt.rcParams.update({'font.size': 16})
-    fig, ax = plt.subplots(nrow, 1, sharex=True, figsize=(13,8), gridspec_kw={'height_ratios' : [1, 1, 1], 'hspace' : 0.4})
-    fig.canvas.manager.set_window_title(figname)
-    fig.suptitle((f"{experiment} {title_mod} {unique_id}"))
-    
-    #Formatting of axes
-    ax[1].set_ylabel((f"Flux ({flux_units})"))
-    ax[2].set_xlabel("Date")
-    
-    #Apply tight layout and suppress warnings
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', category=UserWarning)
-        plt.tight_layout()
-
-    for iax in range(nrow):
-        ax[iax].set_yscale('log')
-        ax[iax].grid(axis='both')
-    
-    fig.autofmt_xdate(rotation=45)
-
-    return fig, ax
-
-
-
+##### NAMING SCHEMA #####
 def setup_modifiers(options, doBGSub, spacecraft=""):
     """ Add modifier strings according to options.
     
@@ -593,6 +409,189 @@ def setup_energy_bin_label(energy_bin):
         label = (f">{energy_bin[0]} {cfg.energy_units}")
 
     return label
+
+
+############ OPSEP PLOTS ##############
+def opsep_plot_bgfluxes(experiment, flux_type, options, model_name, fluxes, dates,
+                energy_bins, means, sigmas, saveplot, spacecraft=''):
+    """Plot fluxes with time for all of the energy bins on the same plot. The
+        estimated mean background levels are plotted as dashed lines.
+        Zero values are masked, which is useful when make plots of the
+        background and SEP flux separately.
+        
+        INPUTS:
+        
+        :experiment: (string) name of experiment
+        :flux_type: (string) "integral" or "differential"
+        :options: (string array) array of options that can be applied
+        :model_name: (string) name of data source is user input file
+        :fluxes: (float nxm array) flux time profiles for n energy channels and
+            m time points
+        :dates: (datetime 1xm array) m time points for flux time profile
+        :energy_bins: (float nx2 array) energy bins for n energy channels
+        :means: (float 1xn array) mean values of histogram for n energy channels
+        :sigmas: (float 1xn array) sigma of histograms for n energy channels
+        :saveplot: (bool) True to save plot automatically
+        
+        OUTPUTS:
+        
+        Plot to screen and plot saved to file
+        
+    """
+    #All energy channels in specified date range with event start and stop
+    #Plot all channels of user specified data
+    #Additions to titles and filenames according to user-selected options
+    doBGSub = True
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
+    strdate = f"{dates[0].year}_{dates[0].month}_{dates[0].day}"
+
+    figname = f"{strdate}_Fluxes_{experiment}{modifier}_{flux_type}_{All_Bins}"
+
+    if experiment == 'user' and model_name != '':
+        figname = f"{strdate}_Fluxes_{model_name}{modifier}_{flux_type}_{All_Bins}"
+
+
+    fig = plt.figure(figname,figsize=(13.5,6))
+    ax = plt.subplot(111)
+    nbins = len(energy_bins)
+    for i in range(nbins):
+        #Don't want to plot zero values, particularly in background-subtracted plots
+        maskfluxes = np.ma.masked_where(fluxes[i] == 0, fluxes[i])
+        
+        legend_label = setup_energy_bin_label(energy_bins[i])
+        p = ax.plot_date(dates,maskfluxes,'-',label=legend_label)
+        color = p[0].get_color()
+        if i==0:
+            plt.axhline(means[i],color=color,linestyle=':',\
+                        label="Mean Background")
+        else:
+            plt.axhline(means[i],color=color,linestyle=':')
+
+
+    if flux_type == "integral": flux_units = cfg.flux_units_integral
+    if flux_type == "differential": flux_units = cfg.flux_units_differential
+
+    fig.suptitle((f"{experiment} {title_mod}"))
+    
+    #Formatting of axes
+    ax.set_ylabel((f"Flux ({flux_units})"))
+    ax.set_xlabel("Date")
+
+    plt.yscale("log")
+    chartBox = ax.get_position()
+    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+                     chartBox.height])
+    ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
+    if saveplot:
+        fig.savefig(os.path.join(cfg.plotpath, figname + '.png'))
+
+
+
+def plot_weibull_fit(energy_bin, threshold, experiment, sep_start_time, trim_times, trim_fluxes,
+    best_pars, best_fit, max_time, max_val, max_meas_time, max_meas,
+    max_curve_model_time, max_curve_model_peak, max_curve_meas_time, max_curve_meas_peak,
+    saveplot, showplot, spacecraft=''):
+    """ Plot Weibull fit used to get onset peak """
+
+    best_a = best_pars['alpha']
+    best_b = best_pars['beta']
+    best_Ip = best_pars['peak_intensity']
+
+    tzulu = ccmc_json.make_ccmc_zulu_time(sep_start_time)
+    tzulu = tzulu.replace(":","")
+    figname = f"{tzulu}_Weibull_profile_fit_{experiment}_{energy_bin[0]}MeV"
+    if spacecraft:
+        figname = f"{tzulu}_Weibull_profile_fit_{experiment}_{spacecraft}_{energy_bin[0]}MeV"
+    fig = plt.figure(figname,figsize=(9,5))
+    label = f"{energy_bin[0]} - {energy_bin[1]} MeV"
+    if energy_bin[1] == -1:
+        label = f">{energy_bin[0]} MeV"
+    plt.plot(trim_times,trim_fluxes,label=label)
+    label_fit = "Fit\n Ip: " + str(best_Ip) \
+                + "\n alpha: " + str(best_a) \
+                +"\n beta: " + str(best_b)
+    plt.plot(trim_times,best_fit,label=label_fit)
+    plt.plot(max_time, max_val,"o",label="max fit")
+    plt.plot(max_meas_time, max_meas,">",label="measured peak near fit max")
+    plt.plot(max_curve_model_time, max_curve_model_peak,"D",label="Min 2nd Derivative")
+    plt.plot(max_curve_meas_time, max_curve_meas_peak,"^",label="measured peak near min 2nd Derivative")
+    #plt.plot(onset_time, onset_peak[i],">",label="onset Weibull")
+    plt.legend(loc='lower right')
+    plt.title(f"Onset Peak Weibull Fit for {experiment}, {sep_start_time}")
+    plt.xlabel("Hours")
+    plt.ylabel("Intensity")
+    plt.yscale("log")
+    plt.ylim(1e-4,1e6)
+    
+    if saveplot:
+        fig.savefig(os.path.join(cfg.plotpath, figname + '.png'))
+    if not showplot:
+        plt.close(fig)
+
+
+####PLOT STUFF FOR find_max_curvature in tools.py
+#    if showplot or saveplot:
+#        tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time)
+#        tzulu = tzulu.replace(":","")
+#        figname = tzulu + "_" + "SecondDerivative_" + experiment + "_"\
+#                + str(energy_threshold) + "MeV"
+#        if spacecraft:
+#            figname = tzulu + "_" + "SecondDerivative_" + experiment + "_"\
+#                + spacecraft + "_" + str(energy_threshold) + "MeV"
+#        fig = plt.figure(figname,figsize=(9,5))
+#        plt.plot(xarr,yarr,label="orig")
+#        plt.plot(xarr[max_k_idx+2], yarr[max_k_idx+2],"o",label="Min 2nd Derivative on Fit")
+#        plt.plot(xarr[max_y_idx], yarr[max_y_idx],"o",label="max Fit")
+#        plt.plot(xarr[2:],k_x,label="2nd Derivative")
+#        plt.plot(xarr[max_k_idx+2],k_x[max_k_idx],"o",label="Min 2nd Derivative")
+#        plt.legend(loc='lower left')
+#        plt.xlabel("Hours")
+#        plt.ylabel("Y")
+#        #plt.yscale("log")
+#        #plt.ylim(1e-4,1e6)
+#        if saveplot:
+#            fig.savefig(plotpath + '/' + figname + '.png')
+#        if not showplot:
+#            plt.close(fig)
+
+
+
+
+def opsep_plot_fluence_spectrum():
+    """ Plot the fluence spectrum calculated by OpSEP. """
+
+  
+
+
+############ IDSEP PLOTS ##############
+def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units):
+    """ Set up figure and axes for idsep 3 row plots.
+    
+    """
+    nrow = 3 #number of rows of subplots
+    
+    plt.rcParams.update({'font.size': 16})
+    fig, ax = plt.subplots(nrow, 1, sharex=True, figsize=(13,8), gridspec_kw={'height_ratios' : [1, 1, 1], 'hspace' : 0.4})
+    fig.canvas.manager.set_window_title(figname)
+    fig.suptitle((f"{experiment} {title_mod} {unique_id}"))
+    
+    #Formatting of axes
+    ax[1].set_ylabel((f"Flux ({flux_units})"))
+    ax[2].set_xlabel("Date")
+    
+    #Apply tight layout and suppress warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', category=UserWarning)
+        plt.tight_layout()
+
+    for iax in range(nrow):
+        ax[iax].set_yscale('log')
+        ax[iax].grid(axis='both')
+    
+    fig.autofmt_xdate(rotation=45)
+
+    return fig, ax
 
 
 def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,

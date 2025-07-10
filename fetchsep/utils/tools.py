@@ -123,3 +123,341 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
     df = pd.DataFrame(dict)
     df.to_csv(fname, index=False)
     print("Wrote " + fname + " to file.")
+    
+    
+def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
+    fluxes, bruno2017=False):
+    """ If user selected differential fluxes, convert to integral fluxes to
+        caluculate operational threshold crossings (>10 MeV protons exceed 10
+        pfu, >100 MeV protons exceed 1 pfu).
+        Assume that the measured fluxes correspond to the center of the energy
+        bin and use power law interpolation to extrapolate integral fluxes
+        above user input min_energy.
+        The intent is to calculate >10 MeV and >100 MeV fluxes, but leaving
+        flexibility for user to define the minimum energy for the integral flux.
+        An integral flux will be provided for each timestamp (e.g. every 5 mins).
+        
+        Note that if bad values were not interpolated in previous steps,
+        they will have been set to None in check_for_bad_data, which translated
+        to NaN in numpy arrays.
+       
+       If GOES-13, -14, -15, then the 110 - 900 MeV bin is not included when
+       estimating the integral fluxes (unless Bruno2017 is selected).
+       This bin's energy appears to be unreliable and the other energy
+       bins cover this range.
+       
+        INPUTS:
+        
+        :experiment: (string)
+        :min_energy: (float) - bottom energy for integral flux calculation
+        :energy_bins: (float nx2 array) - bins for each energy channel
+            [[Emin1, Emax1], [Emin2, Emax2], [], ...]
+        :fluxes: (float nxm array) - fluxes with time for each energy channel
+        :bruno2017: (bool) - apply Bruno 2017 correction to GOES energy bins?
+        
+        OUTPUTS:
+        
+        :integral_fluxes: (float 1xm array) - estimate integral flux for >min_energy
+            (Returns all zero values if no energy bins above min_energy)
+            
+    """
+    print(f"Converting differential flux to integral flux for >{min_energy} MeV.")
+    nbins = len(energy_bins)
+    nflux = len(fluxes[0])
+    #Check requested min_energy inside data energy range
+    if min_energy < energy_bins[0][0] or min_energy >= energy_bins[nbins-1][0]:
+        print(f"The selected minimum energy {min_energy} to create "
+               + "integral fluxes is outside of the range of the data: "
+                + f"{energy_bins[0][0]}  - {max(energy_bins[nbins-1][0],energy_bins[nbins-1][1])}")
+        print(f"Setting all >{min_energy} fluxes to zero.")
+        integral_fluxes = [0]*nflux
+        return integral_fluxes
+
+    #Calculate bin center in log space for each energy bin
+    bin_center = []
+    for i in range(nbins):
+        if energy_bins[i][1] != -1:
+            centerE = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
+        else:
+            centerE = -1
+        bin_center.append(centerE)
+
+    #The highest energy EPEAD bin overlaps with all of the HEPAD bins
+    #For this reason, excluding the highest energy EPEAD bin in
+    #integral flux estimation, 110 - 900 MeV
+    if (experiment == "GOES-13" or experiment == "GOES-14" or
+        experiment == "GOES-15") and not bruno2017:
+        remove_bin = -1
+        for i in range(nbins):
+            if energy_bins[i][0] == 110 and energy_bins[i][1] == 900:
+                remove_bin = i
+        if remove_bin == -1:
+            sys.exit("Attempting to remove 110 - 900 MeV bin for "
+                    + experiment + '. Cannot locate bin. Please check '
+                    'define_energy_bins to see if GOES-13 to GOES-15 bins '
+                    'include 110 - 900 MeV. if not please comment out this '
+                    'section in tools.py from_differential_to_integral_flux.')
+        fluxes = np.delete(fluxes,remove_bin,0)
+        energy_bins = np.delete(energy_bins,remove_bin,0)
+        bin_center = np.delete(bin_center,remove_bin,0)
+        nbins = nbins-1
+
+    #integrate by power law interpolation; assume spectrum the shape of a
+    #power law from one bin center to the next. This accounts for the case
+    #where the minimum energy falls inside of a bin or there are overlapping
+    #energy bins or gaps between bins.
+    #An energy bin value of -1 (e.g. [700,-1]) indicates infinity - already an
+    #integral channel. This happens for HEPAD. If the integral channel is the
+    #last channel, then the flux will be added. If it is a middle bin, it will
+    #be skipped.
+    integral_fluxes = []
+    integral_fluxes_check = []
+    for j in range(nflux):  #flux at each time
+        sum_flux = 0
+        ninc = 0 #number of energy bins included in integral flux estimate
+        for i in range(nbins-1):
+            if bin_center[i+1] < min_energy:
+                continue
+            else:
+                if energy_bins[i][1] == -1 or energy_bins[i+1][1] == -1:
+                    #bin is already an integral flux, e.g. last HEPAD bin
+                    continue
+                if pd.isnull(fluxes[i,j]) or pd.isnull(fluxes[i+1,j]): #data gap
+                    continue
+                
+                if fluxes[i,j] < 0 or fluxes[i+1,j] < 0: #bad data
+                    sys.exit("from_differential_to_integral_flux: "
+                            + f"Bad flux data value of {fluxes[i,j]} and "
+                            + f"{fluxes[i+1,j]} found for bin {i}, {j}. "
+                            + "This should not happen. Did you call check_for_bad_data() first?")
+
+
+                if fluxes[i,j] == 0 or fluxes[i+1,j] == 0: #add 0 flux
+                    ninc = ninc + 1
+                    continue
+
+                F1 = fluxes[i,j]
+                F2 = fluxes[i+1,j]
+                if F1 == 0 or pd.isnull(F1):
+                    sys.exit("from_differential_to_integral_flux: found bin flux of "
+                            + f"{fluxes[i,j]}. Should not happen here, "
+                            + f"bin [i,j] [{i},{j}]." )
+
+                if F2 == 0 or pd.isnull(F2):
+                    sys.exit("from_differential_to_integral_flux: found bin flux of "
+                            + f"{fluxes[i+1,j]}. Should not happen here, "
+                            + f"bin [i+1,j] [{i+1},{j}]." )
+                
+                logF1 = np.log(F1)
+                logF2 = np.log(F2)
+                logE1 = np.log(bin_center[i])
+                logE2 = np.log(bin_center[i+1])
+                endE = bin_center[i+1]
+                if i+1 == nbins-1:
+                    endE = energy_bins[nbins-1][1] #extend to edge of last bin
+
+                f = lambda x:exp(logF1
+                            + (np.log(x)-logE1)*(logF2-logF1)/(logE2-logE1))
+                startE = max(bin_center[i],min_energy)
+                fint = scipy.integrate.quad(f,startE,endE)
+                if math.isnan(fint[0]):
+                    print("from_differential_to_integral_flux: flux integral"
+                        "across bins is NaN. Setting to zero. Bin values are "
+                        + str(F1) + ' and ' + str(F2))
+                    fint = [0]
+                if fint[0] < 1e-10:
+                    fint = [0]
+                sum_flux = sum_flux + fint[0]
+                ninc = ninc + 1
+
+        #if last bin is integral, add (HEPAD)
+        if energy_bins[nbins-1][1] == -1 and fluxes[nbins-1,j] >= 0:
+            intflx = fluxes[nbins-1,j]
+            sum_flux = sum_flux + intflx
+            ninc = ninc + 1
+
+        if ninc == 0:
+            sum_flux = -1
+        integral_fluxes.append(sum_flux)
+
+    return integral_fluxes
+
+
+def initialize_event_info_dict():
+    """ Initialize dictionary that contains SEP event info
+        calculated by OpSEP. One dictionary per event definition.
+        Used to save information that will fill Observation or 
+        Forecast objects.
+        
+    """
+    
+    dict = {'experiment': None, #Experiment or model name; GOES-13
+            'flux_type': None, #ORIGINAL input data - integral or differential
+            'startdate': pd.NaT, #Start of analyzed time period
+            'enddate': pd.NaT, #End of analyzed time period
+            'all_energy_bins': [], #All original and estimated energy bins for input data
+           # 'event_definition': None, #Dictionary of Energy Channel and Threshold obj
+            'energy_channel': {}, #{'min': 10, 'max': -1, 'units': 'MeV'}
+            'energy_units': None, #str
+            'threshold': {}, #{'threshold': 10, 'threshold_units': 'pfu'}
+            'flux_units': None, #str
+            'background_subtraction': None, #bool doBGSub
+            'options': [], #options applied to data
+            'sep_start_time': pd.NaT, #SEP start time
+            'sep_end_time': pd.NaT, #SEP end time
+            'onset_peak': np.nan, #Onset peak
+            'onset_peak_time': pd.NaT, #Time of onset peak
+            'onset_rise_time': np.nan, #Time from sep_start_time to sep_onset_peak_time
+            'max_flux': np.nan, #Maximum flux during SEP event
+            'max_flux_time': pd.NaT, #Time of maximum flux
+            'max_rise_time': np.nan, #Time from sep_start_time to sep_max_flux_time
+            'duration': np.nan, #sep_end_time - sep_start_time
+            'fluence': np.nan, #fluence in single energy channel summed between sep_start_time and sep_end_time
+            'fluence_spectrum': [], #fluence in all_energy_bins summed between sep_start_time and sep_end_time
+            'fluence_units': None #str
+        
+    }
+
+    return dict
+
+
+def fill_event_info(experiment, flux_type, event_definition, startdate, enddate,
+    all_energy_bins, doBGSub, options, sep_start_time, sep_end_time,  onset_peak,
+    onset_peak_time, onset_rise_time, max_flux, max_flux_time, max_rise_time,
+    duration, fluence, fluence_spectrum):
+    """ Fill dictionary with event info for a single event definition. """
+
+    energy_channel_dict = {'min': event_definition['energy_channel'].min,
+                            'max': event_definition['energy_channel'].max,
+                            'units': event_definition['energy_channel'].units
+                            }
+    energy_units = event_definition['energy_channel'].units
+    
+    threshold_dict = {'threshold': event_definition['threshold'].threshold,
+                    'threshold_units': event_definition['threshold'].threshold_units
+                    }
+    flux_units = event_definition['threshold'].threshold_units
+    
+    fluence_units = None
+    if flux_type == 'differential': fluence_units = cfg.fluence_units_differential
+    if flux_type == 'integral': fluence_units = cfg.fluence_units_integral
+
+    dict = initialize_event_info_dict()
+    dict['experiment'] = experiment
+    dict['flux_type'] = flux_type
+    dict['startdate'] = startdate
+    dict['enddate'] = enddate
+    dict['all_energy_bins'] = all_energy_bins
+    dict['energy_channel'] = energy_channel_dict
+    dict['energy_units'] = energy_units
+    dict['threshold'] = threshold_dict
+    dict['flux_units'] = flux_units
+    dict['background_subtraction'] = doBGSub
+    dict['options'] = options
+    dict['sep_start_time'] = sep_start_time
+    dict['sep_end_time'] = sep_end_time
+    dict['onset_peak'] = onset_peak
+    dict['onset_peak_time'] = onset_peak_time
+    dict['onset_rise_time'] = onset_rise_time
+    dict['max_flux'] = max_flux
+    dict['max_flux_time'] = max_flux_time
+    dict['max_rise_time'] = max_rise_time
+    dict['duration'] = duration
+    dict['fluence'] = fluence
+    dict['fluence_spectrum'] = fluence_spectrum
+    dict['fluence_units'] = fluence_units
+
+    return dict
+
+
+
+######### Functions for calculating the onset peak ########
+def residual(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    resid = []
+    for i in range(len(fit)):
+        resid.append(data[i] - fit[i])
+    
+    return resid
+
+
+def modified_weibull(times, Ip, a, b):
+    """ Create a Weibull for times in seconds since first
+        date with params a and b.
+        
+    """
+    
+    weibull = []
+    for t in times:
+        W = Ip*(-a/b)*(t/b)**(a-1)*math.exp(-(t/b)**a)
+        weibull.append(W)
+        
+    return weibull
+
+
+def lognormal(times, Ip, a, b):
+    """ Create a lognormal fit for times in seconds since first
+        date with params a and b. (a=sigma and b=mu)
+        
+    """
+    
+    func = []
+    for t in times:
+        LN = Ip/(t*a*(2.*math.pi)**0.5) * math.exp(-((math.log(t)-b)**2)/(2*a**2))
+        func.append(LN)
+        
+    return func
+
+
+def func_residual(params, *args):
+    """ Caluate the residual of the Weibull fit
+        compared to data.
+        
+    """
+    
+    pars = params.valuesdict()
+    a = pars['alpha']
+    b = pars['beta']
+    Ip = pars['peak_intensity']
+    
+    times = args[0]
+    data = args[1]
+    
+    fit = modified_weibull(times, Ip, a, b)
+#    fit = lognormal(times, Ip, a, b)
+    
+    resid = residual(fit, data)
+
+    return resid
+    
+
+
+def find_max_curvature(x, y):
+    """ Calculate the curvature along a curve
+        and find the maximum curvature location.
+        
+        https://undergroundmathematics.org/glossary/curvature
+        
+        INPUTS:
+        
+        :y: (float 1xn array) weibull fit points
+    
+    """
+    xarr = np.array(x)
+    yarr = np.array(y)
+    yderiv = yarr[1:] - yarr[:-1]
+    yderiv2 = yderiv[1:] - yderiv[:-1]
+    
+    k_x = yderiv2 #/((1 + yderiv[1:]**2))**(3./2.)
+    
+    max_k_idx= np.argmin(k_x)
+    
+    #rescale the curvature to overplot
+    max_y = np.max(yarr)
+    max_y_idx = np.argmax(yarr)
+    k_x = (np.max(yarr)/np.max(k_x))*k_x
+            
+    return max_k_idx+2

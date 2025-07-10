@@ -3724,7 +3724,7 @@ def convert_decimal_hour(decimal_hours):
     return hours, minutes, seconds
 
 
-def read_in_user_files(filenames1, is_unixtime=False):
+def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
     """ Read in file containing flux time profile information that
         was specified by the user.
         The first column MUST contain the date in YYYY-MM-DD HH:MM:SS
@@ -3762,6 +3762,14 @@ def read_in_user_files(filenames1, is_unixtime=False):
        
     """
     print('Reading in user-specified files.')
+
+    if delim != "":
+        global user_delim = delim
+        
+    if flux_col:
+        global user_col = flux_col
+
+
     if cfg.time_shift != 0:
         print("!!!!!!!Shifting times by time_shift in global_vars.py: "
             + str(cfg.time_shift) + " hours. Set to zero if do "
@@ -3903,7 +3911,7 @@ def extract_date_range(startdate,enddate,all_dates,all_fluxes):
     if all_dates[nst] < startdate:
         nst = nst + 1 #move one step past the start time if no
                     #time point on exactly the start time
-    nst = min(nst,ndates) #make sure nst is not psat the length of the array
+    nst = min(nst,ndates) #make sure nst is not past the length of the array
     nend = min(nend+1, ndates)  #add 1 to include nend in date range
     
     if nst == nend and nend < ndates:
@@ -4166,7 +4174,7 @@ def which_erne(startdate, enddate):
 
 
 def define_energy_bins(experiment,flux_type,west_detector,options,
-    spacecraft="primary"):
+    spacecraft="primary", user_bins=[]):
     """ Define the energy bins for the selected spacecraft or data set.
         If the user inputs their own file, they must set the
         user_energy_bins variable in config/config_opsep.py.
@@ -4427,6 +4435,9 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
     if experiment == "user":
         #modify to match your energy bins or integral channels
         #use -1 in the second edge of the bin for integral channel (infinity)
-        energy_bins = user_energy_bins
+        if user_bins:
+            energy_bins = user_bins #input into subroutine
+        else:
+            energy_bins = user_energy_bins #global from cfg
 
     return energy_bins
