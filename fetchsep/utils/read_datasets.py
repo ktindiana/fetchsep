@@ -3762,12 +3762,14 @@ def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
        
     """
     print('Reading in user-specified files.')
+    global user_delim
+    global user_col
 
     if delim != "":
-        global user_delim = delim
+        user_delim = delim
         
     if flux_col:
-        global user_col = flux_col
+        user_col = flux_col
 
 
     if cfg.time_shift != 0:

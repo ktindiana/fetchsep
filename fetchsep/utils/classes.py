@@ -161,6 +161,10 @@ class Data:
         self.evaluated_dates = []
         self.evaluated_fluxes = []
 
+        #Collect the results as individual Analyze objects for
+        #each event definition
+        self.results = []
+
         return
 
 
@@ -674,6 +678,10 @@ class Data:
         return
 
 
+    def add_results(self, analyze):
+        """ Append Analyze object to Data object """
+        self.results.append(analyze)
+        return
 
 
 ################################################################
@@ -701,10 +709,6 @@ class Analyze:
             
         """
         self.event_definition = event_definition
-        self.data = data
-        
-        self.showplot = self.data.showplot
-        self.saveplot = self.data.saveplot
         
         #Derived values
         self.sep_start_time = pd.NaT
@@ -725,21 +729,21 @@ class Analyze:
         self.fluence_units = None
         self.fluence_spectrum_units = None
 
-        self.check_event_definition()
+        self.check_event_definition(data)
 
 
  
-    def check_event_definition(self):
+    def check_event_definition(self, data):
         """ Check if the energy channels in the data correspond to  
             the requested event definition. Exit if not.
             
         """
         energy_bin = self.make_energy_bin()
         try:
-            self.data.evaluated_energy_bins.index(energy_bin)
+            data.evaluated_energy_bins.index(energy_bin)
         except:
             sys.exit(f"Analyze init: Requested energy bin in the event definition {energy_bin} "
-                f"is not present in the data: {self.data.evaluated_energy_bins}. Exiting.")
+                f"is not present in the data: {data.evaluated_energy_bins}. Exiting.")
         
         print(f"Analyze init: Applying event definition: "
             f"[{self.event_definition['energy_channel'].min}, "
@@ -778,7 +782,7 @@ class Analyze:
 
 
 
-    def calculate_threshold_crossing(self, event_definition):
+    def calculate_threshold_crossing(self, data, event_definition):
         """ Calculate the threshold crossing times for a given energy bin
             and flux threshold. 
 
@@ -802,6 +806,7 @@ class Analyze:
         
             INPUT:
             
+                :data: (Data object) contains flux information
                 :event_definition: (dict) dict of EnergyBin and Threshold objects
                 
             OUTPUT:
@@ -810,21 +815,21 @@ class Analyze:
         
         """
         energy_bin = [event_definition['energy_channel'].min,
-            event_definition['energy_channel'].max]
+                        event_definition['energy_channel'].max]
         threshold = event_definition['threshold'].threshold
         
         npoints = 3 #require 3 points above threshold
-        if self.data.time_resolution/60. > 15:
+        if data.time_resolution/60. > 15:
             npoints = 1 #time resolution >15 mins, require one point above threshold
             
-        if energy_bin not in self.data.evaluated_energy_bins:
+        if energy_bin not in data.evaluated_energy_bins:
             print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
                 "specified in event definitions or not present in data. Skipping.")
             return
 
-        idx = self.data.evaluated_energy_bins.index(energy_bin)
-        fluxes = self.data.evaluated_fluxes[idx]
-        dates = self.data.evaluated_dates
+        idx = data.evaluated_energy_bins.index(energy_bin)
+        fluxes = data.evaluated_fluxes[idx]
+        dates = data.evaluated_dates
         
         threshold_crossed = False
         event_ended = False
@@ -881,7 +886,7 @@ class Analyze:
 
 
 
-    def calculate_max_flux(self):
+    def calculate_max_flux(self, data):
         """ Identify maximum flux value and time during SEP event. """
  
         max_flux = np.nan
@@ -889,14 +894,14 @@ class Analyze:
         
         energy_bin = self.make_energy_bin()
  
-        if energy_bin not in self.data.evaluated_energy_bins:
+        if energy_bin not in data.evaluated_energy_bins:
             print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
                 "specified in event definitions or not present in data. Skipping.")
             return
 
-        idx = self.data.evaluated_energy_bins.index(energy_bin)
-        fluxes = self.data.evaluated_fluxes[idx]
-        dates = self.data.evaluated_dates
+        idx = data.evaluated_energy_bins.index(energy_bin)
+        fluxes = data.evaluated_fluxes[idx]
+        dates = data.evaluated_dates
         
         #If there is a SEP EVENT, extract between start and end times.
         #If NO EVENT, don't trim and take the maximum of the full timeseries
@@ -920,7 +925,7 @@ class Analyze:
         return max_flux, max_flux_time
 
 
-    def calculate_onset_peak_from_fit(self):
+    def calculate_onset_peak_from_fit(self, data):
         """Calculate the peak associated with the initial SEP onset. This subroutine
             searches for the rollover that typically occurs after the SEP onset.
             The peak value will be specified as the flux value at the rollover
@@ -968,8 +973,8 @@ class Analyze:
         onset_peak = np.nan
         onset_peak_time = pd.NaT
 
-        if energy_bin not in self.data.evaluated_energy_bins:
-            print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
+        if energy_bin not in data.evaluated_energy_bins:
+            print(f"calculated_onset_peak_from_fit: Requested energy bin {energy_bin} not "
                 "specified in event definitions or not present in data. Skipping.")
             self.onset_peak = onset_peak
             self.onset_peak_time = onset_peak_time
@@ -981,9 +986,9 @@ class Analyze:
             self.onset_peak_time = onset_peak_time
             return onset_peak, onset_peak_time
 
-        idx = self.data.evaluated_energy_bins.index(energy_bin)
-        fluxes = self.data.evaluated_fluxes[idx]
-        dates = self.data.evaluated_dates
+        idx = data.evaluated_energy_bins.index(energy_bin)
+        fluxes = data.evaluated_fluxes[idx]
+        dates = data.evaluated_dates
 
         #Do a fit of the Weibull function for each time profile
         params_fit = Parameters()
@@ -1010,9 +1015,9 @@ class Analyze:
             ratio = [0.1, 0.2, 0.3, 0.4, 0.5]
             for rat in ratio:
                 low_thresh = rat*threshold
-                low_evdef = self.data.create_event_definition(energy_bin[0],energy_bin[1],
+                low_evdef = data.create_event_definition(energy_bin[0],energy_bin[1],
                     energy_units, low_thresh, thresh_units)
-                low_start_time, low_end_time = calculate_threshold_crossing(low_evdef)
+                low_start_time, low_end_time = calculate_threshold_crossing(data, low_evdef)
                 if low_start_time > dates[0] and low_start_time < start_fit_time:
                     start_fit_time = low_start_time
                     break
@@ -1095,12 +1100,12 @@ class Analyze:
 
         
         #PLOT
-        if self.saveplot or self.showplot:
-            plt_tools.plot_weibull_fit(energy_bin, threshold, self.data.experiment,
+        if data.saveplot or data.showplot:
+            plt_tools.plot_weibull_fit(energy_bin, threshold, data.experiment,
                 self.sep_start_time,trim_times, trim_fluxes, best_pars, best_fit, max_time,
                 max_val, max_meas_time, max_meas, max_curve_model_time, max_curve_model_peak,
                 max_curve_meas_time, max_curve_meas_peak,
-                self.data.saveplot, self.data.showplot, spacecraft=self.data.spacecraft)
+                data.saveplot, data.showplot, spacecraft=data.spacecraft)
 
         self.onset_peak = onset_peak
         self.onset_peak_time = onset_peak_time
@@ -1130,36 +1135,36 @@ class Analyze:
         return onset_rise_time, max_rise_time, duration
 
 
-    def calculate_fluence(self,fluxes):
+    def calculate_fluence(self,fluxes, time_resolution):
         """ Calculate fluence for one energy bin of fluxes already trimmed
             to the time period of interest. Sum all the fluxes in the 
             array in time and return a single fluence value.
             
         """
         clean_flux = [fx for fx in fluxes if not pd.isnull(fx) and fx >=0]
-        fluence = sum(clean_flux)*self.data.time_resolution*4.0*math.pi #multiply 4pi steradians
+        fluence = sum(clean_flux)*time_resolution*4.0*math.pi #multiply 4pi steradians
     
         return fluence
  
  
-    def calculate_channel_fluence(self):
+    def calculate_channel_fluence(self, data):
         """  Calculate the fluence for the specified event definition
         """
         energy_bin = self.make_energy_bin()
-        idx = self.data.evaluated_energy_bins.index(energy_bin)
+        idx = data.evaluated_energy_bins.index(energy_bin)
 
-        flux = self.data.evaluated_fluxes[idx]
-        dates = self.data.evaluated_dates
+        flux = data.evaluated_fluxes[idx]
+        dates = data.evaluated_dates
 
         trim_flux = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, dates, flux)
-        fluence = self.calculate_fluence(trim_flux)
+        fluence = self.calculate_fluence(trim_flux, data.time_resolution)
         self.fluence = fluence
         
         return fluence
 
 
 
-    def calculate_fluence_spectrum(self):
+    def calculate_fluence_spectrum(self, data):
         """ Calculate the spectrum between the start and end times 
             for a specific event definition.
             
@@ -1173,15 +1178,15 @@ class Analyze:
             
         """
         
-        fluxes = self.data.fluxes #all fluxes for all energy bins in input data
-        dates = self.data.dates
+        fluxes = data.fluxes #all fluxes for all energy bins in input data
+        dates = data.dates
         
         #Trim to the SEP start and end times
         sep_dates, sep_fluxes = datasets.extract_date_range(self.sep_start_time,
                                 self.sep_end_time, dates, fluxes)
         fluence_spectrum = []
         for flux in sep_fluxes:
-            fluence = self.calculate_fluence(flux)
+            fluence = self.calculate_fluence(flux, data.time_resolution)
             fluence_spectrum.append(fluence)
             
         self.fluence_spectrum = fluence_spectrum
@@ -1190,7 +1195,7 @@ class Analyze:
 
 
 
-    def calculate_event_info(self):
+    def calculate_event_info(self, data):
         """ Calculate SEP event characteristics for a single event
             definition. Calculate from the fluxes and energy bins 
             that have been extracted for evaluation for the specified
@@ -1212,9 +1217,9 @@ class Analyze:
         
         #calculate event values and fill in a dictionary that will
         #save info needed for Observation or Forecast objects
-        self.calculate_threshold_crossing(self.event_definition)
-        self.calculate_max_flux()
-        self.calculate_onset_peak_from_fit()
+        self.calculate_threshold_crossing(data, self.event_definition)
+        self.calculate_max_flux(data)
+        self.calculate_onset_peak_from_fit(data)
         self.derived_timing_values()
 
         #If the onset peak time is AFTER the max flux time, set the onset peak
@@ -1224,8 +1229,8 @@ class Analyze:
             self.onset_peak_time = self.max_flux_time
 
         #Fluence
-        self.calculate_channel_fluence()
-        self.calculate_fluence_spectrum()
+        self.calculate_channel_fluence(data)
+        self.calculate_fluence_spectrum(data)
 
         energy_label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
         if energy_bin[1] == -1:
@@ -1243,8 +1248,8 @@ class Analyze:
         print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_units}")
 
         #Create a dictionary containing all of the calculated values
-        dict = tools.fill_event_info(self.data.experiment, self.data.flux_type, self.event_definition,
-            self.data.startdate, self.data.enddate, self.data.energy_bins, self.data.doBGSub, self.data.options,
+        dict = tools.fill_event_info(data.experiment, data.flux_type, self.event_definition,
+            data.startdate, data.enddate, data.energy_bins, data.doBGSub, data.options,
             self.sep_start_time, self.sep_end_time,  self.onset_peak, self.onset_peak_time, self.onset_rise_time,
             self.max_flux, self.max_flux_time, self.max_rise_time, self.duration, self.fluence, self.fluence_spectrum)
         
@@ -1299,7 +1304,32 @@ class Analyze:
 
 
 
+class Output:
+    def __init__(self):
+        """Output the data generated by OpSEP and write out the data
+            files. Multiple Analyze objects with individual event 
+            definitions are combined to create summary text files,
+            plots, CCMC SEP Scoreboard and SPHINX jsons, and SPHINX
+            Observation or Forecast objects.
+           
+           INPUT:
+                
+                None - Output object must be loaded up with 
+                    Analyze objects
+                
+            OUTPUT:
+            
+                various output files including CCMC JSONs and 
+                Forecast or Observation objects used by SPHINX.
+        
+        """
 
+        self.results = [] #append Analyze objects for each event definition
+        self.event_definitions = [] #collect again in case more were somehow
+                                    #added in the interim, like via command line
+        #There should be one Analyze object per event definition
+
+        
 
 
 

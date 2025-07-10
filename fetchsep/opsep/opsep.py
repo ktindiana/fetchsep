@@ -3222,8 +3222,11 @@ def calculate_event_info(flux_data):
     """
 
     for evdef in flux_data.event_definitions:
-        analyze = cl.Analyze(flux_data,evdef)
-        event_dict = analyze.calculate_event_info()
+        analyze = cl.Analyze(flux_data, evdef)
+        #Calculate all SEP characteristics
+        event_dict = analyze.calculate_event_info(flux_data)
+        #Add to the flux_data object
+        flux_data.add_results(analyze)
         print(event_dict)
         
 
@@ -3303,15 +3306,14 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
 
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes
-    input_data = load_input_data(str_startdate, str_enddate, experiment,
+    flux_data = load_input_data(str_startdate, str_enddate, experiment,
         flux_type, model_name, user_file, showplot, saveplot, two_peaks,
         str_thresh, options, doBGSub, str_bgstartdate, str_bgenddate,
         nointerp, spacecraft, use_bg_thresholds)
 
 
-    #Calculate SEP info for each event definition and create
-    #Observation or Forecast objects.
-    calculate_event_info(input_data)
+    #Calculate SEP info for each event definition and create Analyze objects.
+    calculate_event_info(flux_data)
 
     if showplot: plt.show()
 
