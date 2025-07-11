@@ -173,44 +173,6 @@ def about_ccmc_json_handler():
         
     """
 
-
-def read_in_json_template(type, fname=''):
-    """Read in appropriate json file template for model or observations.
-        
-        INPUTS:
-        
-        :type: (string) = "model" or "observations"
-        :fname: (string) optional filename for a custom template
-        
-        OUTPUTS:
-        
-        :template: (dict) - appropiate template is read in and returned
-        
-    """
-    if type != "model" and type != "observations":
-        sys.exit("json_handler: read_in_template: type may be \"model\" "
-                "or \"observations\". You entered " + str(type))
-    
-    #User can provide a template file stored in templatepath
-    if fname:
-        with open(os.path.join(cfg.templatepath, fname)) as f:
-            template=json.load(f)
-    
-    #Otherwise use default templates
-    else:
-        templatedir = os.path.join(os.path.dirname(__file__), 'templates')
-        
-        if type == "model":
-            with open(os.path.join(templatedir, 'model_template.json')) as f:
-                template=json.load(f)
-
-        if type == "observations":
-            with open(os.path.join(templatedir, 'observations_template.json')) as f:
-                template=json.load(f)
-
-    return template
-
-
 def make_ccmc_zulu_time(dt):
     """ Make a datetime string in the format YYYY-MM-DDTHH:MM:SSZ
         
@@ -223,6 +185,8 @@ def make_ccmc_zulu_time(dt):
         :zuludate: (string) in the format YYYY-MM-DDTHH:MM:SSZ
     
     """
+    if dt == '':
+        return ''
     if dt == None:
         return None
     if dt is pd.NaT:
@@ -324,10 +288,217 @@ def id_unique_energy_channels(energy_thresholds):
     
     return len(unique), unique
 
+
+
 ###############FILL AND WRITE JSONS##############
-def fill_json(template, issue_time, experiment, flux_type, json_type,
-                energy_bins,
-                model_name, spase_id, startdate, enddate, options,
+def set_keys(json_type):
+    """ Choose the appropriate keys for the top levels of the observation
+        or model jsons. Refers to keys.py
+        
+        #KEYS FOR OBSERVATIONS
+        obs_main = 'sep_observation_submission'
+        obs_exp = 'observatory'
+        obs_type = 'observations'
+        obs_win = 'observation_window'
+
+        #KEYS FOR MODELS
+        model_main = 'sep_forecast_submission'
+        model_exp = 'model'
+        model_type = 'forecasts'
+        model_win = 'prediction_window'
+        
+    """
+    if json_type == "model":
+        key = keys.model_main
+        type_key = keys.model_type
+        win_key = keys.model_win
+        exp_key = keys.model_exp
+    else:
+        key = keys.obs_main
+        type_key = keys.obs_type
+        win_key = keys.obs_win
+        exp_key = keys.obs_exp
+
+    return key, type_key, win_key, exp_key
+
+
+def forecast_json():
+    """ header for forecast json """
+
+    template = {"sep_forecast_submission": {"notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],
+       "model": { "short_name": "", "spase_id": ""},
+       "source_info": {"native_flux_type": ""},
+       "options": "",
+       "issue_time": "",
+       "mode": "historical",
+       "forecasts": []
+        }}
+        
+    return template
+
+
+def observation_json():
+    """ header for observation json """
+    
+    template = {
+       "sep_observation_submission": {
+           "notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],
+           "observatory": { "short_name": "", "spase_id": ""},
+           "source_info": {"native_flux_type": ""},
+           "options": "",
+           "issue_time": "",
+           "mode": "measurement",
+           "observations": []
+       }
+    }
+    return template
+
+
+
+def fill_json_header(json_type, issue_time, experiment,
+    flux_type, spase_id, model_name=None, mode=None):
+    """ Fill in top level header information in json """
+    
+    short_name = experiment
+    if model_name:
+        short_name = model_name
+    
+    #If mode not specified, guess
+    if not mode or mode='':
+        if json_type == "observation":
+            mode = 'measurement'
+        else:
+            mode = 'historical'
+
+    template = {}
+    if json_type == "observation":
+        template = observation_json()
+    elif json_type == "forecast":
+        template = forecast_json
+
+    key, type_key, win_key, exp_key = set_keys(json_type)
+
+    template[key][exp_key]['short_name'] = short_name
+    if spacecraft and spacecraft != '':
+        template[key][keys.obs_exp]['short_name'] = f"{short_name} {spacecraft}"
+    template[key]['source_info']['native_flux_type'] = flux_type
+    if spase_id and spase_id != "":
+        template[key][exp_key]['spase_id'] = spase_id
+    template[key]['mode'] = mode
+
+    template[key]['options'] = options
+    template[key]['issue_time'] = issue_time
+
+    return template
+
+
+def new_block():
+    """ dict containing observation or forecast block """
+
+    block = {"energy_channel": { "min": "", "max": "", "units": ""},
+            "species": "",
+            "location": "",
+            "observation_window": { "start_time": "", "end_time": "" },
+            "peak_intensity": { "intensity": "", "units": "", "time": ""},
+            "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
+            "event_lengths":[ { "start_time": "",  "end_time": "", "threshold_start": "", "threshold_end": "", "threshold_units": ""  }],
+            "fluences": [{"fluence": "", "units": ""}],
+            "fluence_spectra": [{"start_time": "", "end_time": "","threshold_start":"", "threshold_end":"", "threshold_units":"",
+            "fluence_units": "",
+            "fluence_spectrum":[{"energy_min": "", "energy_max":"", "fluence": ""}]}],
+            "threshold_crossings": [ { "crossing_time": "", "threshold": "", "threshold_units": "" } ],
+            "all_clear": { "all_clear_boolean": "", "threshold": "", "threshold_units": ""},
+            "sep_profile": ""}
+
+    return block
+
+
+def fill_json_block(template, energy_channel, startdate, enddate,
+    sep_start_time, sep_end_time, onset_peak, onset_peak_time,
+    max_flux, max_flux_time,
+    location="earth", species="proton"):
+    """ Fill values in a single block for a single energy channel.
+        A single block may contain multiple event definitions, which means 
+        multiple Analyze objects.
+        
+        Checks if a block of the appropriate energy channel already
+        exists in the json. If not, a block is added and values filled in.
+        If so, values are appended.
+        
+    """
+    key, type_key, win_key, exp_key = set_keys(json_type)
+
+    #Process times into the correct format
+    zst = make_ccmc_zulu_time(startdate)
+    zend = make_ccmc_zulu_time(enddate)
+    zodate = make_ccmc_zulu_time(onset_peak_time)
+    zpdate = make_ccmc_zulu_time(max_flux_time)
+    zct = make_ccmc_zulu_time(sep_start_time)
+    zeet = make_ccmc_zulu_time(sep_end_time)
+
+    #Evaluate All Clear
+    all_clear = None #will be string unless specific conditions met
+
+    #Threshold WAS crossed
+    if not pd.isnull(sep_start_time):
+        #For >10 MeV and >100 MeV, only the 10 pfu and 1 pfu thresholds
+        #are applied for all clear as they are operational definitions.
+        #>10 MeV, 10 pfu - NOAA SWPC and SRAG operations
+        #>100 MeV, 1 pfu - SRAG operations
+        #For all other energy channels, the all clear will be True or
+        #False with respect to the thresholds applied in the event
+        #definitions. e.g. 
+        
+        
+        
+        if bin[0] == 10 and bin[1] == -1:
+            if flux_thresholds[i] == 10:
+                all_clear = False
+        elif bin[0] == 100 and bin[1] == -1:
+            if flux_thresholds[i] == 1:
+                all_clear = False
+#           elif bin[0] == 30 and bin[1] == -1:
+#               if flux_thresholds[i] == 1:
+#                   all_clear = False
+#           elif bin[0] == 50 and bin[1] == -1:
+#               if flux_thresholds[i] == 1:
+#                   all_clear = False
+        else:
+            #Allow other flux & threshold combinations for other energy channels
+            all_clear = False
+
+    #####CREATE (if necessary) AND FILL BLOCK ####
+    #Check if template contains the energy channel for this event definition
+    blocks = template[key][type_key]
+
+    #Creating a new block or adding to an existing one?
+    new_block = True
+
+    #Identify the index of the required block
+    ix = -1
+    for i, block in enumerate(blocks):
+        if block['energy_channel']  == energy_channel:
+            ix = i
+            new_block = False
+
+    #If no block found, create new one
+    if ix == -1:
+        n = len(blocks)
+        ix = n
+        template[key][type_key].append(new_block())
+        template[key][type_key][n]['energy_channel'] = energy_channel
+
+    #If added a new block, initialize all the values
+    if new_block:
+        template[key][type_key][ix]['species'] = species
+        template[key][type_key][ix]['location'] = location
+        template[key][type_key][ix][win_key]['start_time'] = zst
+        template[key][type_key][ix][win_key]['end_time'] = zend
+
+
+
+def fill_json(template, json_type,
+                energy_bins, startdate, enddate, options,
                 energy_thresholds, flux_thresholds, crossing_time,
                 onset_peak, onset_date, peak_flux, peak_time, rise_time,
                 event_end_time, duration, all_threshold_fluences,
@@ -342,31 +513,31 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
         The inputs here are mainly the same as the outputs in
         operational_sep_quantities.append_differential_thresholds()
     """
-    #For now, assume a user-input file is model output
-    #This is not generic and should be modified in the future
-    if experiment == "user" and json_type == "model":
-        key = keys.model_main
-        type_key = keys.model_type
-        win_key = keys.model_win
-        template[key]['model']['short_name'] = model_name
-        template[key]['source_info']['native_flux_type'] = flux_type
-        template[key]['model']['spase_id'] = spase_id
-                        
-    else:
-        key = keys.obs_main
-        type_key = keys.obs_type
-        win_key = keys.obs_win
-        template[key][keys.obs_exp]['short_name'] = experiment
-        if experiment == "GOES_RT" and spacecraft:
-            template[key][keys.obs_exp]['short_name'] = experiment + " " + spacecraft
-        if experiment == "user" and model_name != "":
-                template[key][keys.obs_exp]['short_name'] = model_name
-        template[key]['source_info']['native_flux_type'] = flux_type
-        if spase_id != "":
-            template[key]['observatory']['spase_id'] = spase_id
-
-    template[key]['options'] = options
-    template[key]['issue_time'] = issue_time
+#    #For now, assume a user-input file is model output
+#    #This is not generic and should be modified in the future
+#    if experiment == "user" and json_type == "model":
+#        key = keys.model_main
+#        type_key = keys.model_type
+#        win_key = keys.model_win
+#        template[key]['model']['short_name'] = model_name
+#        template[key]['source_info']['native_flux_type'] = flux_type
+#        template[key]['model']['spase_id'] = spase_id
+#                        
+#    else:
+#        key = keys.obs_main
+#        type_key = keys.obs_type
+#        win_key = keys.obs_win
+#        template[key][keys.obs_exp]['short_name'] = experiment
+#        if experiment == "GOES_RT" and spacecraft:
+#            template[key][keys.obs_exp]['short_name'] = experiment + " " + spacecraft
+#        if experiment == "user" and model_name != "":
+#                template[key][keys.obs_exp]['short_name'] = model_name
+#        template[key]['source_info']['native_flux_type'] = flux_type
+#        if spase_id != "":
+#            template[key]['observatory']['spase_id'] = spase_id
+#
+#    template[key]['options'] = options
+#    template[key]['issue_time'] = issue_time
 
     #Git repo version info code provided by the one and only
     #Luke Stegeman, coding genius
@@ -380,57 +551,57 @@ def fill_json(template, issue_time, experiment, flux_type, json_type,
 #    template[key]['notes'].append({'note':f"version, git hash: {git_commit_sha}"})
 #    template[key]['notes'].append({'note':f"Link, if commit pushed to repo: {git_repo_url}/tree/{git_commit_sha}"})
 #    template[key]['notes'].append({'note': f"Uncommitted changes present on user's computer: {git_is_dirty}."})
-
-    #####FILL THRESHOLDS#############
-    nthresh = len(energy_thresholds)
-    
-    #if template doesn't contain enough energy channel entries, add more
-    #Only one block per energy channel
-    nunique, energy_unique = id_unique_energy_channels(energy_thresholds)
-    print("fill_json: Number of unique energy channels that have had thresholds "
-        "applied " + str(nunique))
-    nent = len(template[key][type_key])
-    if nent < nunique:
-        for j in range(nent,nunique):
-            add_entry = copy.deepcopy(template[key][type_key][nent-1])
-            template[key][type_key].append(add_entry)
-            template[key][type_key][j]['energy_channel']['min'] = energy_unique[j]
-            
-    #Fill in the unique energy channels
-    for i in range(nthresh):
-        bin = [energy_thresholds[i], -1] #default assume integral
-        if diff_thresh[i]:
-            bin = find_energy_bin(energy_thresholds[i], energy_bins)
-        
-        energy_dict = {"min":bin[0], "max": bin[1], "units":energy_units}
-            
-        for j in range(nunique):
-            template_dict = template[key][type_key][j]['energy_channel']
-            if template_dict['min'] == energy_dict['min']:
-                template[key][type_key][j]['energy_channel'].update(energy_dict)
-            
-
-    #Fill in the info for each energy channel and threshold
-    tidx = 0 #index of block in json template
-    for i in range(nthresh):
-        if not diff_thresh[i]: #integral channel
-            flux_units = flux_units_integral #"pfu"
-            fluence_units = fluence_units_integral #'cm^-2'
-        if diff_thresh[i]: #differential channel
-            flux_units = flux_units_differential #"[MeV/n cm^2 s sr]^(-1)"
-            fluence_units = fluence_units_differential #'MeV^-1*cm^-2'
-            
-        bin = [energy_thresholds[i], -1] #default assume integral
-        if diff_thresh[i]:
-            bin = find_energy_bin(energy_thresholds[i], energy_bins)
-        
-        
-        #ENERGY CHANNEL
-        energy_dict = {"min":bin[0], "max": bin[1], "units":energy_units}
-        #Identify the correct block in the json template
-        for j in range(nunique):
-            if energy_dict == template[key][type_key][j]['energy_channel']:
-                tidx = j
+#
+#    #####FILL THRESHOLDS#############
+#    nthresh = len(energy_thresholds)
+#    
+#    #if template doesn't contain enough energy channel entries, add more
+#    #Only one block per energy channel
+#    nunique, energy_unique = id_unique_energy_channels(energy_thresholds)
+#    print("fill_json: Number of unique energy channels that have had thresholds "
+#        "applied " + str(nunique))
+#    nent = len(template[key][type_key])
+#    if nent < nunique:
+#        for j in range(nent,nunique):
+#            add_entry = copy.deepcopy(template[key][type_key][nent-1])
+#            template[key][type_key].append(add_entry)
+#            template[key][type_key][j]['energy_channel']['min'] = energy_unique[j]
+#            
+#    #Fill in the unique energy channels
+#    for i in range(nthresh):
+#        bin = [energy_thresholds[i], -1] #default assume integral
+#        if diff_thresh[i]:
+#            bin = find_energy_bin(energy_thresholds[i], energy_bins)
+#        
+#        energy_dict = {"min":bin[0], "max": bin[1], "units":energy_units}
+#            
+#        for j in range(nunique):
+#            template_dict = template[key][type_key][j]['energy_channel']
+#            if template_dict['min'] == energy_dict['min']:
+#                template[key][type_key][j]['energy_channel'].update(energy_dict)
+#            
+#
+#    #Fill in the info for each energy channel and threshold
+#    tidx = 0 #index of block in json template
+#    for i in range(nthresh):
+#        if not diff_thresh[i]: #integral channel
+#            flux_units = flux_units_integral #"pfu"
+#            fluence_units = fluence_units_integral #'cm^-2'
+#        if diff_thresh[i]: #differential channel
+#            flux_units = flux_units_differential #"[MeV/n cm^2 s sr]^(-1)"
+#            fluence_units = fluence_units_differential #'MeV^-1*cm^-2'
+#            
+#        bin = [energy_thresholds[i], -1] #default assume integral
+#        if diff_thresh[i]:
+#            bin = find_energy_bin(energy_thresholds[i], energy_bins)
+#        
+#        
+#        #ENERGY CHANNEL
+#        energy_dict = {"min":bin[0], "max": bin[1], "units":energy_units}
+#        #Identify the correct block in the json template
+#        for j in range(nunique):
+#            if energy_dict == template[key][type_key][j]['energy_channel']:
+#                tidx = j
         
         zst = make_ccmc_zulu_time(startdate)
         zend = make_ccmc_zulu_time(enddate)

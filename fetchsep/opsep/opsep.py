@@ -1303,96 +1303,96 @@ def make_dirs():
 #    return fluence
 
 
-def get_fluence_spectrum(experiment, flux_type, options, doBGSub,
-                model_name, energy_threshold,
-                flux_threshold, sep_dates, sep_fluxes, energy_bins,
-                diff_thresh, save_file, spacecraft=""):
-    """ Calculate the fluence spectrum for each of the energy channels in the
-        user selected data set. If the user selected differential fluxes, then
-        the fluence values correspond to each energy bin. If the user selected
-        integral fluxes, then the fluence values correspond to each integral bin.
-        Writes fluence values to file according to boolean save_file.
-        If the user input a threshold for a differential energy bin,
-        is_diff_thresh will be true and the filename will not contain "gt".
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral or differential
-        :options: (string array) - bg subtraction, effective energies for
-            GOES channels
-        :model_name: (string) - name of model or user experiment, if relevant
-        :energy_threshold: (float) - energy channel to which the
-            flux threshold value is applied
-        :flux_threshold: (float) - flux threshold value
-        :sep_dates: (datetime 1xm array) - dates trimmed between SEP start and
-            end times
-        :sep_fluxes: (float nxm array) - flux time profiles for each energy channel
-            trimmed between SEP start and end times
-        :energy_bins: (float 1xn array) - bins for each energy channel
-        :diff_thresh: (boolean) - indicates if the energy_threshold and
-            flux_threshold refer to a differential channel (True)
-        :save_file: (boolean) - set True to save fluence values to file
-        
-        OUTPUTS:
-        
-        :fluence: (float 1xn array) - fluence value in each energy bin
-        :energies: (float 1xn array) - bin centers for each energy bin
-        
-    """
-    nenergy = len(energy_bins)
-    fluence = np.zeros(shape=(nenergy))
-    energies = np.zeros(shape=(nenergy))
-    for i in range(nenergy):
-        #Multiplied by 4pi sr (units of e.g. 1/[cm^2] or 1/[MeV cm^2])
-        fluence[i] = calculate_fluence(sep_dates, sep_fluxes[i,:])
-        if energy_bins[i][1] != -1:
-            energies[i] = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
-        else:
-            energies[i] = energy_bins[i][0]
-
-    if save_file:
-        #Write fluence to file
-        year = sep_dates[0].year
-        month = sep_dates[0].month
-        day = sep_dates[0].day
-        mod1 = 'gt'
-        mod2 = '>'
-        unit = flux_units_integral #'pfu'
-        if diff_thresh:
-            mod1 = ''
-            mod2 = 'differential energy bin with low edge '
-            unit = flux_units_differential #'1/[MeV cm^2 s sr]'
-
-        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-
-        foutname = (f"fluence_{experiment}{modifier}_{flux_type}_{mod1}{energy_threshold}_{year}_{month}_{day}.csv")
- 
-        if experiment == 'user' and model_name != '':
-            foutname = (f"fluence_{model_name}{modifier}_{flux_type}_{mod1}{energy_threshold}_{year}_{month}_{day}.csv")
- 
-        fout = open(os.path.join(outpath,foutname),"w+")
-
-        fout.write('\"#Event defined by ' + mod2 + str(energy_threshold) \
-                    + ' '+ energy_units + ', ' + str(flux_threshold) \
-                    +' '+ unit + '; start time '
-                    + str(sep_dates[0]) + ', end time '
-                    + str(sep_dates[len(sep_dates)-1]) + '\"\n')
-        if flux_type == "differential":
-            fout.write("#Elow,Emid,Ehigh,Fluence " +
-                        fluence_units_differential + "\n")
-        if flux_type == "integral":
-            fout.write("#>Elow,Fluence " + fluence_units_integral + "\n")
-
-        for i in range(nenergy):
-            if flux_type == "differential":
-                fout.write("{0},{1},{2},{3}\n".format(energy_bins[i][0],
-                        energies[i], energy_bins[i][1], fluence[i]))
-            if flux_type == "integral":
-                fout.write("{0},{1}\n".format(energy_bins[i][0], fluence[i]))
-        fout.close()
-
-    return fluence, energies
+#def get_fluence_spectrum(experiment, flux_type, options, doBGSub,
+#                model_name, energy_threshold,
+#                flux_threshold, sep_dates, sep_fluxes, energy_bins,
+#                diff_thresh, save_file, spacecraft=""):
+#    """ Calculate the fluence spectrum for each of the energy channels in the
+#        user selected data set. If the user selected differential fluxes, then
+#        the fluence values correspond to each energy bin. If the user selected
+#        integral fluxes, then the fluence values correspond to each integral bin.
+#        Writes fluence values to file according to boolean save_file.
+#        If the user input a threshold for a differential energy bin,
+#        is_diff_thresh will be true and the filename will not contain "gt".
+#        
+#        INPUTS:
+#        
+#        :experiment: (string)
+#        :flux_type: (string) - integral or differential
+#        :options: (string array) - bg subtraction, effective energies for
+#            GOES channels
+#        :model_name: (string) - name of model or user experiment, if relevant
+#        :energy_threshold: (float) - energy channel to which the
+#            flux threshold value is applied
+#        :flux_threshold: (float) - flux threshold value
+#        :sep_dates: (datetime 1xm array) - dates trimmed between SEP start and
+#            end times
+#        :sep_fluxes: (float nxm array) - flux time profiles for each energy channel
+#            trimmed between SEP start and end times
+#        :energy_bins: (float 1xn array) - bins for each energy channel
+#        :diff_thresh: (boolean) - indicates if the energy_threshold and
+#            flux_threshold refer to a differential channel (True)
+#        :save_file: (boolean) - set True to save fluence values to file
+#        
+#        OUTPUTS:
+#        
+#        :fluence: (float 1xn array) - fluence value in each energy bin
+#        :energies: (float 1xn array) - bin centers for each energy bin
+#        
+#    """
+#    nenergy = len(energy_bins)
+#    fluence = np.zeros(shape=(nenergy))
+#    energies = np.zeros(shape=(nenergy))
+#    for i in range(nenergy):
+#        #Multiplied by 4pi sr (units of e.g. 1/[cm^2] or 1/[MeV cm^2])
+#        fluence[i] = calculate_fluence(sep_dates, sep_fluxes[i,:])
+#        if energy_bins[i][1] != -1:
+#            energies[i] = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
+#        else:
+#            energies[i] = energy_bins[i][0]
+#
+#    if save_file:
+#        #Write fluence to file
+#        year = sep_dates[0].year
+#        month = sep_dates[0].month
+#        day = sep_dates[0].day
+#        mod1 = 'gt'
+#        mod2 = '>'
+#        unit = flux_units_integral #'pfu'
+#        if diff_thresh:
+#            mod1 = ''
+#            mod2 = 'differential energy bin with low edge '
+#            unit = flux_units_differential #'1/[MeV cm^2 s sr]'
+#
+#        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+#
+#        foutname = (f"fluence_{experiment}{modifier}_{flux_type}_{mod1}{energy_threshold}_{year}_{month}_{day}.csv")
+# 
+#        if experiment == 'user' and model_name != '':
+#            foutname = (f"fluence_{model_name}{modifier}_{flux_type}_{mod1}{energy_threshold}_{year}_{month}_{day}.csv")
+# 
+#        fout = open(os.path.join(outpath,foutname),"w+")
+#
+#        fout.write('\"#Event defined by ' + mod2 + str(energy_threshold) \
+#                    + ' '+ energy_units + ', ' + str(flux_threshold) \
+#                    +' '+ unit + '; start time '
+#                    + str(sep_dates[0]) + ', end time '
+#                    + str(sep_dates[len(sep_dates)-1]) + '\"\n')
+#        if flux_type == "differential":
+#            fout.write("#Elow,Emid,Ehigh,Fluence " +
+#                        fluence_units_differential + "\n")
+#        if flux_type == "integral":
+#            fout.write("#>Elow,Fluence " + fluence_units_integral + "\n")
+#
+#        for i in range(nenergy):
+#            if flux_type == "differential":
+#                fout.write("{0},{1},{2},{3}\n".format(energy_bins[i][0],
+#                        energies[i], energy_bins[i][1], fluence[i]))
+#            if flux_type == "integral":
+#                fout.write("{0},{1}\n".format(energy_bins[i][0], fluence[i]))
+#        fout.close()
+#
+#    return fluence, energies
 
 
 #def calculate_event_info(energy_thresholds,flux_thresholds,dates,
@@ -2223,75 +2223,75 @@ def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
 
 
 
-def report_threshold_fluences(experiment, flux_type, model_name,
-                energy_thresholds, energy_bins, sep_dates, sep_fluxes,
-                spacecraft=""):
-    """ Report fluences for specified thresholds, typically >10, >100 MeV.
-        These values are interesting to use for comparison with literature and
-        for quantifying event severity.
-        
-        Assumes that energy_thresholds are referring to integral energy
-        channels.
-        Assumes that sep_fluxes are integral or estimated integral
-        fluxes for each energy channel in energy_thresholds.
-        If the input fluxes were differential, then this subroutine only
-        works correctly for integral energy_thresholds and matching sep_fluxes
-        that were estimated for each integral channel in energy_thresholds.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral or differential
-        :model_name: (string) - name of model or experiment if experiment = "user"
-        :energy_thresholds: (float 1xn array) - integral energy channels for
-            which a threshold has been applied
-        :energy_bins: (float 2xm array) - energy bins for input fluxes
-        :sep_dates: (datetime 1xp array) - time profile dates trimmed to
-            start and stop of SEP event
-        :sep_fluxes: (float mxp array) - flux time profiles for each energy
-            channel trimmed to start and end dates
-            
-        OUTPUTS:
-        
-        :integral_fluence: (float 1xn array) - event fluence for all
-            integral energy channels for which a threshold was applied
-            
-    """
-    tmp_energy_bins = []
-    nthresh = len(energy_thresholds)
-    ndates = len(sep_dates)
-    sep_integral_fluxes = np.zeros(shape=(nthresh,ndates))
-    for i in range(nthresh):
-        tmp_energy_bins.append([energy_thresholds[i],-1])
-        if flux_type == "differential":
-            #integral fluxes were estimated for only the threshold energies
-            #so the indices in the fluxes match the order of the thresholds
-            sep_integral_fluxes[i,:] = sep_fluxes[i,:]
-        if flux_type == "integral":
-            #Pull out the integral fluxes from the correct energy channels
-            #corresponding to the thresholds that were applied
-            #This is selecting from all integral channels in the input flux file
-            for j in range(len(energy_bins)):
-                if energy_bins[j][0] == energy_thresholds[i]:
-                    sep_integral_fluxes[i,:] = sep_fluxes[j,:]
-
-    #Generate integral fluence spectrum for only the integral channels
-    #If input fluxes in sep_fluxes are differential, convert them to
-    #estimated integral fluxes in get_fluence_spectrum
-    #that were specified with thresholds and in the same index order
-    #Returns fluences multiplied by 4pi
-    #get_fluence_spectrum(experiment, flux_type, options, doBGSub,
-    #            model_name, energy_threshold,
-    #            flux_threshold, sep_dates, sep_fluxes, energy_bins,
-    #            diff_thresh, save_file)
-    #No output file is written, so only the sep_dates, sep_integral_fluxes,
-    #and tmp_energy_bins arguments are used for anything
-    integral_fluence, integral_energies = get_fluence_spectrum(experiment,
-                    "integral", '', False, #Filler values for filename b/c file not saved
-                    model_name, 0, 0,sep_dates, sep_integral_fluxes,
-                    tmp_energy_bins, False, False,spacecraft=spacecraft) #diff_thresh; savefile
-
-    return integral_fluence
+#def report_threshold_fluences(experiment, flux_type, model_name,
+#                energy_thresholds, energy_bins, sep_dates, sep_fluxes,
+#                spacecraft=""):
+#    """ Report fluences for specified thresholds, typically >10, >100 MeV.
+#        These values are interesting to use for comparison with literature and
+#        for quantifying event severity.
+#        
+#        Assumes that energy_thresholds are referring to integral energy
+#        channels.
+#        Assumes that sep_fluxes are integral or estimated integral
+#        fluxes for each energy channel in energy_thresholds.
+#        If the input fluxes were differential, then this subroutine only
+#        works correctly for integral energy_thresholds and matching sep_fluxes
+#        that were estimated for each integral channel in energy_thresholds.
+#        
+#        INPUTS:
+#        
+#        :experiment: (string)
+#        :flux_type: (string) - integral or differential
+#        :model_name: (string) - name of model or experiment if experiment = "user"
+#        :energy_thresholds: (float 1xn array) - integral energy channels for
+#            which a threshold has been applied
+#        :energy_bins: (float 2xm array) - energy bins for input fluxes
+#        :sep_dates: (datetime 1xp array) - time profile dates trimmed to
+#            start and stop of SEP event
+#        :sep_fluxes: (float mxp array) - flux time profiles for each energy
+#            channel trimmed to start and end dates
+#            
+#        OUTPUTS:
+#        
+#        :integral_fluence: (float 1xn array) - event fluence for all
+#            integral energy channels for which a threshold was applied
+#            
+#    """
+#    tmp_energy_bins = []
+#    nthresh = len(energy_thresholds)
+#    ndates = len(sep_dates)
+#    sep_integral_fluxes = np.zeros(shape=(nthresh,ndates))
+#    for i in range(nthresh):
+#        tmp_energy_bins.append([energy_thresholds[i],-1])
+#        if flux_type == "differential":
+#            #integral fluxes were estimated for only the threshold energies
+#            #so the indices in the fluxes match the order of the thresholds
+#            sep_integral_fluxes[i,:] = sep_fluxes[i,:]
+#        if flux_type == "integral":
+#            #Pull out the integral fluxes from the correct energy channels
+#            #corresponding to the thresholds that were applied
+#            #This is selecting from all integral channels in the input flux file
+#            for j in range(len(energy_bins)):
+#                if energy_bins[j][0] == energy_thresholds[i]:
+#                    sep_integral_fluxes[i,:] = sep_fluxes[j,:]
+#
+#    #Generate integral fluence spectrum for only the integral channels
+#    #If input fluxes in sep_fluxes are differential, convert them to
+#    #estimated integral fluxes in get_fluence_spectrum
+#    #that were specified with thresholds and in the same index order
+#    #Returns fluences multiplied by 4pi
+#    #get_fluence_spectrum(experiment, flux_type, options, doBGSub,
+#    #            model_name, energy_threshold,
+#    #            flux_threshold, sep_dates, sep_fluxes, energy_bins,
+#    #            diff_thresh, save_file)
+#    #No output file is written, so only the sep_dates, sep_integral_fluxes,
+#    #and tmp_energy_bins arguments are used for anything
+#    integral_fluence, integral_energies = get_fluence_spectrum(experiment,
+#                    "integral", '', False, #Filler values for filename b/c file not saved
+#                    model_name, 0, 0,sep_dates, sep_integral_fluxes,
+#                    tmp_energy_bins, False, False,spacecraft=spacecraft) #diff_thresh; savefile
+#
+#    return integral_fluence
 
 
 def save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
@@ -2642,135 +2642,135 @@ def print_values_to_file(experiment, flux_type, options, doBGSub,
 #    return energy_thresholds, flux_thresholds
                                     
 
-def calculate_integral_fluences(experiment, flux_type, options,
-        model_name, doBGSub, startdate, enddate, energy_bins,
-        energy_thresholds, flux_thresholds, dates, fluxes,
-        integral_fluxes,
-        crossing_time, event_end_time, all_threshold_fluences,
-        all_fluence, all_energies, spacecraft=""):
-    """ Calculate fluence values for all integral energy thresholds
-        between start and end times determined in each channel.
-        This subroutine is only called for the thresholds applied
-        to integral channels.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral, differential
-        :options: (string array) - options that could be applied
-        :model_name: (string) - model name or experiment if experiment = "user"
-        :doBGSub: (bool) - indicate if background subtraction to be performed
-        :startdate: (datetime) - start date of time period entered by user
-        :enddate: (datetime) - end date of time period entered by user
-        :energy_bins: (float 2xp array) - energy bins for all of the flux channels
-        :energy_thresholds: (float 1xn array) - energy channels for which a
-            threshold is applied (at this point, only the integral ones)
-        :flux_thresholds: (float 1xn array) - flux thresholds applied to
-            the energy channels in energy_thresholds
-        :dates: (datetime 1xm array) - time points for the flux time profiles
-        :fluxes: (float pxm array) - flux time profiles for p energy bins and m
-            time steps
-        :integral_fluxes: (float nxm array) - flux time profiles of integral
-            or estimated integral fluxes for n energy channels and m time steps
-        :crossing_time: (datetime 1xn array) - SEP event start times for each
-            energy channel with an applied threshold
-        :event_end_time: (datetime 1xn array) - SEP event end times for each
-            energy channel with an applied threshold
-        :all_threshold_fluences: (float 1xn array) - fluence values for integral
-            or estimated integral fluxes in the n energy channels for which
-            thresholds were applied
-        :all_fluence: (float nxp array) - fluence spectrum in the original
-            integral or differential energy channels associated with
-            energy_bins. Fluence calculated between crossing_time and
-            event_end_time, so this is the fluence spectrum associated with
-            the events defined by the thresholds applied to each energy channel
-        :all_energies: (float 1xp array) - effective energies for energy_bins,
-            defined by sqrt(low bin edge*high bin edge)
-        
-        
-        OUTPUTS:
-        
-        Arrays filled in for the integral thresholds:
-        
-        :all_threshold_fluences: (float 1xn array) - fluence values for integral
-            or estimated integral fluxes in the n energy channels for which
-            thresholds were applied
-        :all_fluence: (float nxp array) - fluence spectrum in the original
-            integral or differential energy channels associated with
-            energy_bins. Fluence calculated between crossing_time and
-            event_end_time, so this is the fluence spectrum associated with
-            the events defined by the thresholds applied to each energy channel
-        :all_energies: (float 1xp array) - effective energies for energy_bins,
-            defined by sqrt(low bin edge*high bin edge)
-        
-    """
-    nthresh = len(energy_thresholds)
-    for i in range(nthresh):
-        #If no threshold was crossed during specified date range
-        if crossing_time[i] == 0:
-            print("The >" + str(energy_thresholds[i]) + " "
-                    + energy_units + " " + energy_units + " threshold was "
-                     "not crossed during the specified date range. No SEP "
-                     "event. Continuing.")
-            continue
-
-        #Extract the original fluxes trimmed for the SEP start and stop times
-        sep_dates, sep_fluxes = datasets.extract_date_range(crossing_time[i],
-                             event_end_time[i],dates,fluxes)
-
-        #Calculate fluence spectrum for the SEP event.
-        #Fluence spectrum will be of integral fluxes if the original
-        #data set read in was integral; fluence spectrum will be of
-        #differential fluxes if original data set was differential
-        print('=====Calculating event fluence for event defined by >'
-                + str(energy_thresholds[i]) + ' ' + energy_units + ', for '
-                + str(crossing_time[i]) + ' to ' + str(event_end_time[i]))
-        if crossing_time[i] == event_end_time[i]:
-            sys.exit("Event start and end time the same (did you set "
-            "--DetectPreviousEvent? May not work in this case). Exiting.")
-
-        fluence, energies = get_fluence_spectrum(experiment, flux_type,
-                         options, doBGSub,
-                         model_name, energy_thresholds[i], flux_thresholds[i],
-                         sep_dates, sep_fluxes, energy_bins, False, True,
-                         spacecraft=spacecraft)
-                         #diff_thresh; savefile
-                         #Only thresholds applied to integral flux
-                         #channels are specified so far
-                         #The False indicates the threshold is associated
-                         #with integral channels and has nothing to do
-                         #with whether the fluxes themselves are integral
-                         #or differential
-
-        all_fluence[i] = fluence #in native units of experiment
-        all_energies[i] = energies
-
-        #Always calculate fluences for integral fluxes >10, >100 MeV and
-        #any user input thresholds applied to integral channels
-        #The fluences produced here are only for integral flux channels
-        #that have had a threshold applied and the fluence is only
-        #for that channel (not a spectrum as calculated above)
-        if flux_type == "integral":
-            integral_fluence = report_threshold_fluences(experiment, flux_type,
-                        model_name, energy_thresholds, energy_bins,
-                        sep_dates, sep_fluxes, spacecraft=spacecraft)
-            
-        if flux_type == "differential":
-            #Extract the estimated integral fluxes in the SEP event date range
-            sep_integral_dates, sep_integral_fluxes = \
-                            datasets.extract_date_range(\
-                            crossing_time[i],event_end_time[i],
-                            dates, integral_fluxes)
-
-            integral_fluence = report_threshold_fluences(experiment, flux_type,
-                         model_name, energy_thresholds, energy_bins,
-                         sep_integral_dates, sep_integral_fluxes)
-
-        #integral_fluence produced by report_threshold_fluences has fluences in the
-        #same index order as the energies specified in energy_thresholds
-        all_threshold_fluences[i] = integral_fluence[i]
-
-    return all_threshold_fluences, all_fluence, all_energies
+#def calculate_integral_fluences(experiment, flux_type, options,
+#        model_name, doBGSub, startdate, enddate, energy_bins,
+#        energy_thresholds, flux_thresholds, dates, fluxes,
+#        integral_fluxes,
+#        crossing_time, event_end_time, all_threshold_fluences,
+#        all_fluence, all_energies, spacecraft=""):
+#    """ Calculate fluence values for all integral energy thresholds
+#        between start and end times determined in each channel.
+#        This subroutine is only called for the thresholds applied
+#        to integral channels.
+#        
+#        INPUTS:
+#        
+#        :experiment: (string)
+#        :flux_type: (string) - integral, differential
+#        :options: (string array) - options that could be applied
+#        :model_name: (string) - model name or experiment if experiment = "user"
+#        :doBGSub: (bool) - indicate if background subtraction to be performed
+#        :startdate: (datetime) - start date of time period entered by user
+#        :enddate: (datetime) - end date of time period entered by user
+#        :energy_bins: (float 2xp array) - energy bins for all of the flux channels
+#        :energy_thresholds: (float 1xn array) - energy channels for which a
+#            threshold is applied (at this point, only the integral ones)
+#        :flux_thresholds: (float 1xn array) - flux thresholds applied to
+#            the energy channels in energy_thresholds
+#        :dates: (datetime 1xm array) - time points for the flux time profiles
+#        :fluxes: (float pxm array) - flux time profiles for p energy bins and m
+#            time steps
+#        :integral_fluxes: (float nxm array) - flux time profiles of integral
+#            or estimated integral fluxes for n energy channels and m time steps
+#        :crossing_time: (datetime 1xn array) - SEP event start times for each
+#            energy channel with an applied threshold
+#        :event_end_time: (datetime 1xn array) - SEP event end times for each
+#            energy channel with an applied threshold
+#        :all_threshold_fluences: (float 1xn array) - fluence values for integral
+#            or estimated integral fluxes in the n energy channels for which
+#            thresholds were applied
+#        :all_fluence: (float nxp array) - fluence spectrum in the original
+#            integral or differential energy channels associated with
+#            energy_bins. Fluence calculated between crossing_time and
+#            event_end_time, so this is the fluence spectrum associated with
+#            the events defined by the thresholds applied to each energy channel
+#        :all_energies: (float 1xp array) - effective energies for energy_bins,
+#            defined by sqrt(low bin edge*high bin edge)
+#        
+#        
+#        OUTPUTS:
+#        
+#        Arrays filled in for the integral thresholds:
+#        
+#        :all_threshold_fluences: (float 1xn array) - fluence values for integral
+#            or estimated integral fluxes in the n energy channels for which
+#            thresholds were applied
+#        :all_fluence: (float nxp array) - fluence spectrum in the original
+#            integral or differential energy channels associated with
+#            energy_bins. Fluence calculated between crossing_time and
+#            event_end_time, so this is the fluence spectrum associated with
+#            the events defined by the thresholds applied to each energy channel
+#        :all_energies: (float 1xp array) - effective energies for energy_bins,
+#            defined by sqrt(low bin edge*high bin edge)
+#        
+#    """
+#    nthresh = len(energy_thresholds)
+#    for i in range(nthresh):
+#        #If no threshold was crossed during specified date range
+#        if crossing_time[i] == 0:
+#            print("The >" + str(energy_thresholds[i]) + " "
+#                    + energy_units + " " + energy_units + " threshold was "
+#                     "not crossed during the specified date range. No SEP "
+#                     "event. Continuing.")
+#            continue
+#
+#        #Extract the original fluxes trimmed for the SEP start and stop times
+#        sep_dates, sep_fluxes = datasets.extract_date_range(crossing_time[i],
+#                             event_end_time[i],dates,fluxes)
+#
+#        #Calculate fluence spectrum for the SEP event.
+#        #Fluence spectrum will be of integral fluxes if the original
+#        #data set read in was integral; fluence spectrum will be of
+#        #differential fluxes if original data set was differential
+#        print('=====Calculating event fluence for event defined by >'
+#                + str(energy_thresholds[i]) + ' ' + energy_units + ', for '
+#                + str(crossing_time[i]) + ' to ' + str(event_end_time[i]))
+#        if crossing_time[i] == event_end_time[i]:
+#            sys.exit("Event start and end time the same (did you set "
+#            "--DetectPreviousEvent? May not work in this case). Exiting.")
+#
+#        fluence, energies = get_fluence_spectrum(experiment, flux_type,
+#                         options, doBGSub,
+#                         model_name, energy_thresholds[i], flux_thresholds[i],
+#                         sep_dates, sep_fluxes, energy_bins, False, True,
+#                         spacecraft=spacecraft)
+#                         #diff_thresh; savefile
+#                         #Only thresholds applied to integral flux
+#                         #channels are specified so far
+#                         #The False indicates the threshold is associated
+#                         #with integral channels and has nothing to do
+#                         #with whether the fluxes themselves are integral
+#                         #or differential
+#
+#        all_fluence[i] = fluence #in native units of experiment
+#        all_energies[i] = energies
+#
+#        #Always calculate fluences for integral fluxes >10, >100 MeV and
+#        #any user input thresholds applied to integral channels
+#        #The fluences produced here are only for integral flux channels
+#        #that have had a threshold applied and the fluence is only
+#        #for that channel (not a spectrum as calculated above)
+#        if flux_type == "integral":
+#            integral_fluence = report_threshold_fluences(experiment, flux_type,
+#                        model_name, energy_thresholds, energy_bins,
+#                        sep_dates, sep_fluxes, spacecraft=spacecraft)
+#            
+#        if flux_type == "differential":
+#            #Extract the estimated integral fluxes in the SEP event date range
+#            sep_integral_dates, sep_integral_fluxes = \
+#                            datasets.extract_date_range(\
+#                            crossing_time[i],event_end_time[i],
+#                            dates, integral_fluxes)
+#
+#            integral_fluence = report_threshold_fluences(experiment, flux_type,
+#                         model_name, energy_thresholds, energy_bins,
+#                         sep_integral_dates, sep_integral_fluxes)
+#
+#        #integral_fluence produced by report_threshold_fluences has fluences in the
+#        #same index order as the energies specified in energy_thresholds
+#        all_threshold_fluences[i] = integral_fluence[i]
+#
+#    return all_threshold_fluences, all_fluence, all_energies
 
 
 
@@ -3390,28 +3390,28 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         umasep_times, umasep_fluxes = calculate_umasep_info(energy_thresholds,
                         flux_thresholds, dates, integral_fluxes, crossing_time)
 
-    #Arrays for event-integrated fluences for all thresholds, both
-    #integral and differential
-    nthresh = len(energy_thresholds)
-    all_threshold_fluences = [0]*nthresh #fluences corresponding to >10, >100 MeV and other thresholded bins
-    all_fluence = np.zeros(shape=(nthresh,len(energy_bins))) #fluence spectrum
-    all_energies = np.zeros(shape=(nthresh,len(energy_bins))) #corresponding energy bin centers
-
-    #------INTEGRAL THRESHOLD FLUENCES------
-    #Fill in fluence arrays for the integral channels
-    all_threshold_fluences, all_fluence, all_energies = \
-        calculate_integral_fluences(experiment, flux_type, options,
-            model_name, doBGSub, startdate, enddate, energy_bins,
-            energy_thresholds, flux_thresholds, dates, fluxes,
-            integral_fluxes, crossing_time, event_end_time,
-            all_threshold_fluences,
-            all_fluence, all_energies, spacecraft=spacecraft)
-    
-    #Save to file the integral fluxes for all integral channels
-    #where thresholds were applied - multiple fluxes in a single file
-    save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
-                model_name, energy_thresholds, crossing_time, dates,
-                integral_fluxes, spacecraft=spacecraft)
+#    #Arrays for event-integrated fluences for all thresholds, both
+#    #integral and differential
+#    nthresh = len(energy_thresholds)
+#    all_threshold_fluences = [0]*nthresh #fluences corresponding to >10, >100 MeV and other thresholded bins
+#    all_fluence = np.zeros(shape=(nthresh,len(energy_bins))) #fluence spectrum
+#    all_energies = np.zeros(shape=(nthresh,len(energy_bins))) #corresponding energy bin centers
+#
+#    #------INTEGRAL THRESHOLD FLUENCES------
+#    #Fill in fluence arrays for the integral channels
+#    all_threshold_fluences, all_fluence, all_energies = \
+#        calculate_integral_fluences(experiment, flux_type, options,
+#            model_name, doBGSub, startdate, enddate, energy_bins,
+#            energy_thresholds, flux_thresholds, dates, fluxes,
+#            integral_fluxes, crossing_time, event_end_time,
+#            all_threshold_fluences,
+#            all_fluence, all_energies, spacecraft=spacecraft)
+#    
+#    #Save to file the integral fluxes for all integral channels
+#    #where thresholds were applied - multiple fluxes in a single file
+#    save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
+#                model_name, energy_thresholds, crossing_time, dates,
+#                integral_fluxes, spacecraft=spacecraft)
 
 #    #------APPEND INFO FOR DIFFERENTIAL THRESHOLDS------
 #    #I'm sorry. This is a mess. I will rewrite eventually
