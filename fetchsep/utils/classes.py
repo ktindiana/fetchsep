@@ -152,6 +152,7 @@ class Data:
         self.idsep_threshold = None
 
         #The flux timeseries after interpolation and any background subtraction
+        self.energy_bin_objects = [] #include bin centers
         self.energy_bins = []
         self.dates = []
         self.fluxes = []
@@ -556,9 +557,10 @@ class Data:
         
         ####Save original fluxes with bad points set to None
         #Extract date range that covers any background-subtraction periods
+        print("Reading in original fluxes with no interpolation including any background subtraction periods.")
         orig_dates, orig_fluxes = datasets.extract_date_range(startdate, enddate,
                                         all_dates, all_fluxes)
-        orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,False)
+        orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,self.do_interpolation)
         self.original_dates = orig_dates
         self.original_fluxes = orig_fluxes
 
@@ -578,8 +580,8 @@ class Data:
             self.bgdates = all_dates
             #Extract the date range specified by the user for the
             #background-subtracted fluxes
-            dates, fluxes = datasets.extract_date_range(startdate, enddate,
-                                        all_dates, sepfluxes)
+            dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
+                                    all_dates, sepfluxes)
 
         #NO BACKGROUND SUBTRACTION
         if not self.doBGSub:
@@ -588,7 +590,8 @@ class Data:
                                     all_dates, all_fluxes)
         
         #Handle bad data points
-        fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins,self.do_interpolation)
+        print("Removing bad points from final fluxes after any background subtraction and trimming.")
+        fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins, self.do_interpolation)
          
         if len(dates) <= 1:
             print("read_in_flux_files: The specified start and end dates were not "
@@ -757,7 +760,7 @@ class Analyze:
         
         print(f"Analyze init: Applying event definition: "
             f"[{self.event_definition['energy_channel'].min}, "
-            f"{self.event_definition['energy_channel'].min} exceeds "
+            f"{self.event_definition['energy_channel'].max}] exceeds "
             f"{self.event_definition['threshold'].threshold} {self.event_definition['threshold'].threshold_units}")
  
  
@@ -1281,13 +1284,12 @@ class Analyze:
         print(f"Rise time to Max: {self.max_rise_time} {self.rise_time_units}")
         print(f"Duration: {self.duration} {self.duration_units}")
         print(f"Channel Fluence: {self.fluence} {self.fluence_units}")
-        print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_units}")
+        print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_spectrum_units}")
         print(f"Fluence Energy Bins: {data.energy_bins}")
         
 
         return
         
-
 
 
 class Output:
@@ -1461,6 +1463,48 @@ class Output:
         return dict
 
 
+    def event_info_dict_for_csv(self, analyze):
+        """ Create a flat dictionary with all event info with the
+            dictionary keys labeled according to energy channel
+            and threshold information.
+            
+            Useful to ultimately export to csv.
+            
+        """
+        energy_bin = analyze.make_energy_bin()
+        energy_units = analyze.event_definition['energy_channel'].units
+        threshold = analyze.event_definition['threshold'].threshold
+        threshold_units = analyze.event_definition['threshold'].threshold_units
+
+        if energy_bin[1] == -1:
+            channel_label = f">{energy_bin[0]} {energy_units}"
+        else:
+            channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+    
+        threshold_label = f"{threshold} {threshold_units}"
+
+        fluence_spectrum_str = str(analyze.fluence_spectrum)
+        fluence_spectrum_str = fluence_spectrum_str.replace(",", ";")
+        fluence_spectrum_energy_bins = str(self.data.energy_bins)
+        fluence_spectrum_energy_bins = fluence_spectrum_energy_bins.replace(",", ";")
+
+        dict = {f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time.strftime("%Y-%m-%d %H:%M:%S"),
+                f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time.strftime("%Y-%m-%d %H:%M:%S"),
+                f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
+                f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
+                f"{channel_label} {threshold_label} Onset Peak Time": analyze.onset_peak_time.strftime("%Y-%m-%d %H:%M:%S"),
+                f"{channel_label} {threshold_label} Rise Time to Onset ({analyze.rise_time_units})": analyze.onset_rise_time,
+                f"{channel_label} {threshold_label} Max Flux ({analyze.flux_units})": analyze.max_flux,
+                f"{channel_label} {threshold_label} Max Flux Time": analyze.max_flux_time.strftime("%Y-%m-%d %H:%M:%S"),
+                f"{channel_label} {threshold_label} Rise Time to Max ({analyze.rise_time_units})": analyze.max_rise_time,
+                f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
+                f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": fluence_spectrum_str,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins
+            }
+
+        return dict
+
+
     def fill_event_info_list(self, analyze):
         """ Return a list that contains SEP event info
             saved in a single Analyze object combined with Data. 
@@ -1560,7 +1604,7 @@ class Output:
     def write_json(self):
         filename = os.path.join(cfg.outpath, 'opsep', self.json_filename)
         is_good = ccmc_json.write_json(self.json_dict, filename)
-        return
+        return filename
 
 
     def write_ccmc_json(self):
@@ -1581,11 +1625,116 @@ class Output:
             self.data.results[i] = analyze
             
         self.clean_json()
-        self.write_json()
+        filename = self.write_json()
 
-        return
+        return filename
 
 
+    def create_csv_dict(self):
+        """ A flat dictionary of values for all event definitions. """
+
+        exp_name = self.data.experiment
+        if not pd.isnull(self.data.model_name) and self.data.model_name != "":
+            exp_name = model_name
+            
+        dict = {"Experiment": exp_name,
+                "Flux Type": self.data.flux_type,
+                "Options": self.data.options,
+                "Background Subtraction": self.data.doBGSub,
+                "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
+                "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S")
+                }
+        
+        for analyze in self.data.results:
+            analyze_dict = self.event_info_dict_for_csv(analyze)
+            dict.update(analyze_dict)
+            
+        print(dict)
+        
+        header = ''
+        row = ''
+        for key in dict.keys():
+            header += key + ","
+            row += str(dict[key]) + ","
+        
+        header = header[:-1] + "\n"
+        row = row[:-1] + "\n"
+        
+        filename = self.json_filename
+        filename = filename.replace(".json",".csv")
+        filename = os.path.join(cfg.outpath,"opsep",filename)
+        fout = open(filename,"w+")
+        fout.write(header)
+        fout.write(row)
+        fout.close()
+        
+        return dict
+
+
+
+    def extract_analyze_lists(self):
+        """ Pull out the SEP start and end times, onset peaks,
+            max fluxes, fluences, and fluence spectra for plotting.
+        
+        """
+        event_definitions = []
+        sep_start_times = []
+        sep_end_times = []
+        onset_peaks = []
+        onset_peak_times = []
+        max_fluxes = []
+        max_flux_times = []
+        fluences = []
+        fluence_spectra = []
+        fluence_spectra_units = []
+
+        for analyze in self.data.results:
+            event_definitions.append(analyze.event_definition)
+            sep_start_times.append(analyze.sep_start_time)
+            sep_end_times.append(analyze.sep_end_time)
+            onset_peaks.append(analyze.onset_peak)
+            onset_peak_times.append(analyze.onset_peak_time)
+            max_fluxes.append(analyze.max_flux)
+            max_flux_times.append(analyze.max_flux_time)
+            fluences.append(analyze.fluence)
+            fluence_spectra.append(analyze.fluence_spectrum)
+            fluence_spectra_units.append(analyze.fluence_spectrum_units)
+
+        return event_definitions, sep_start_times, sep_end_times, onset_peaks,\
+            onset_peak_times, max_fluxes, max_flux_times, fluences, fluence_spectra,\
+            fluence_spectra_units
+
+
+    def plot_event_definitions(self):
+        """ Plot the fluxes used for event definitions with threshold,
+            start and end times, onset peak and max flux.
+        
+        """
+        #Collect calculated values from Analyze objects
+        event_definitions, sep_start_times, sep_end_times, onset_peaks,\
+        onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
+        
+        plt_tools.opsep_plot_event_definitions(self.data.experiment,
+            self.data.flux_type, self.data.model_name, self.data.options,
+            self.data.doBGSub, self.data.evaluated_dates, self.data.evaluated_fluxes,
+            self.data.evaluated_energy_bins, event_definitions,
+            sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
+            max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
+            spacecraft=self.data.spacecraft)
+    
+
+    def plot_fluence_spectra(self):
+        """ Plots the fluence spectra from all event definitions """
+
+        #Collect calculated values from Analyze objects
+        event_definitions, sep_start_times, sep_end_times, onset_peaks,\
+        onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
+        
+        
+        
+        
 
 ###############################################
 ######### CLASSES FOR SEP VALUES ##############

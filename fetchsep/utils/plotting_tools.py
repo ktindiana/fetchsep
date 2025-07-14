@@ -1,6 +1,7 @@
 from . import config as cfg
 from ..json import ccmc_json_handler as ccmc_json
 import numpy as np
+import pandas as pd
 import matplotlib.pylab as plt
 import seaborn as sns
 import matplotlib.gridspec as gridspec
@@ -484,7 +485,7 @@ def opsep_plot_bgfluxes(experiment, flux_type, options, model_name, fluxes, date
                      chartBox.height])
     ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, figname + '.png'))
+        fig.savefig(os.path.join(cfg.plotpath, 'opsep', figname + '.png'))
 
 
 
@@ -525,7 +526,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, sep_start_time, trim_tim
     plt.ylim(1e-4,1e6)
     
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, figname + '.png'))
+        fig.savefig(os.path.join(cfg.plotpath, 'opsep', figname + '.png'))
     if not showplot:
         plt.close(fig)
 
@@ -556,10 +557,207 @@ def plot_weibull_fit(energy_bin, threshold, experiment, sep_start_time, trim_tim
 #            plt.close(fig)
 
 
+def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doBGSub,
+    evaluated_dates, evaluated_fluxes, evaluated_energy_bins, event_definitions,
+    sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
+    max_fluxes, max_flux_times, showplot, saveplot, spacecraft=None):
+    """ Plot the fluxes used for event definitions with threshold,
+        start and end times, onset peak and max flux.
+        
+        INPUT:
+        
+            :experiment: (str) e.g. "GOES-13" or "user" for user input
+            :flux_type: (str) integral or differential
+            :model_name: (str) if user input or if specified, will be used
+                instead of experiments
+            :options: (arr of str) any options applied to fluxes/energy bings
+            :doBGSub: (bool) was background subtraction applied?
+            :evaluated_dates: (arr) dates for the fluxes that were evaluated
+                using event definitions, called evaluated_dates in Data obj
+            :evaluated_fluxes: (2D arr, probably numpy) all fluxes that were
+                evaluted with event definitions, called evaluated_fluxes in Data obj
+            :event_definitions: (2D list of dict) Dictionaries of EnergBin and 
+                Threshold objects that identify the applied event definitions
+            :sep_start_dates: (list of datetime) start of SEP events
+                in the same order of the event_definitions list 
+            :sep_end_dates: (list of datetime) end of SEP events
+                in the same order of the event_definitions list
+            :spacecraft: (str) primary or secondary if specified
+            
+        OUTPUT:
+        
+            Multi-pane plot showing event definitions
+    
+    """
+    stzulu = ccmc_json.make_ccmc_zulu_time(evaluated_dates[0])
+    stzulu = stzulu.replace(":","")
+    #Plot selected results
+    #Event definition from integral fluxes
+    if flux_type == "differential":
+        print("Generating figure of estimated integral fluxes with "
+               "threshold crossings.")
+    if flux_type == "integral":
+        print("Generating figure of integral fluxes with threshold "
+                "crossings.")
+
+    #Additions to titles and filenames according to user-selected options
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
+    #plot integral fluxes (either input or estimated)
+    nthresh = len(event_definitions)
+    energy_units = event_definitions[0]['energy_channel'].units
+    
+    exp_name = experiment
+    if not pd.isnull(model_name) and model_name != '':
+        exp_name = model_name
+    
+    figname = f"{stzulu}_{exp_name}_{flux_type}{modifier}_Event_Def"
+    if not pd.isnull(spacecraft) and spacecraft != "":
+        figname = f"{stzulu}_{exp_name}_{spacecraft}_{flux_type}{modifier}_Event_Def"
+
+    if nthresh > 4:
+        fig = plt.figure(figname,figsize=(13,13))
+    else:
+        fig = plt.figure(figname,figsize=(13,10))
+        
+    plot_title = f"Event Definitions for {exp_name} {title_mod} {flux_type} Fluxes"
+        
+    for i in range(nthresh):
+        #Get energy bin
+        energy_bin = [event_definitions[i]['energy_channel'].min,
+                    event_definitions[i]['energy_channel'].max]
+        threshold = event_definitions[i]['threshold'].threshold
+        flux_units = event_definitions[i]['threshold'].threshold_units
+                    
+        #Extract correct fluxes (could apply multiple event definitions to
+        #same energy channels, so event_definitions and evaluated_fluxes
+        #not necessarily the same size or in the same order.
+        ix = evaluated_energy_bins.index(energy_bin)
+        dates = evaluated_dates #for ease
+        fluxes = evaluated_fluxes[ix]
+        
+        #Create labels
+        ylabel = f"Flux [{flux_units}]"
+        if energy_bin[1] == -1 and flux_type == "integral":
+            data_label = f"{exp_name} >{energy_bin[0]} {energy_units}"
+        elif energy_bin[1] == -1 and flux_type == "differential":
+            data_label = f"{exp_name} Estimated >{energy_bin[0]} {energy_units}"
+        else:
+            data_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}"
+
+    
+        ax = plt.subplot(nthresh, 1, i+1)
+        #Don't want to plot negative values, particularly in background-subtracted plots
+        if doBGSub:
+            maskfluxes = np.ma.masked_where(fluxes <0, fluxes)
+            plt.plot_date(dates,maskfluxes,'-',label=data_label)
+        else:
+            plt.plot_date(dates,fluxes,'-',label=data_label)
+
+        if not pd.isnull(sep_start_times[i]):
+            plt.axvline(sep_start_times[i],color='black',linestyle=':')
+            plt.axvline(sep_end_times[i],color='black',linestyle=':',
+                        label="Start, End")
+        plt.axhline(threshold,color='red',linestyle=':', label="Threshold")
+        if not pd.isnull(onset_peaks[i]) and not pd.isnull(onset_peak_times[i]):
+            plt.plot_date(onset_peak_times[i],onset_peaks[i],'o',color="black",
+                    label="Onset Peak")
+        if not pd.isnull(max_fluxes[i]) and not pd.isnull(max_flux_times[i]):
+            plt.plot_date(max_flux_times[i],max_fluxes[i],'ro',mfc='none',
+                    label="Max Flux")
 
 
-def opsep_plot_fluence_spectrum():
+        if i == nthresh-1: ax.set_xlabel('Date')
+        plt.ylabel(ylabel)
+        plt.suptitle(plot_title)
+        if sum(fluxes) > 0:
+            plt.yscale("log")
+        #ymin = max(1e-6, min(integral_fluxes[i]))
+        # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
+        ax.legend(loc='upper right')
+    if saveplot:
+        fig.savefig(os.path.join(cfg.plotpath,'opsep', figname + '.png'))
+    if not showplot:
+        plt.close(fig)
+
+
+def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBGSub,
+    event_definitions, fluence_spectra, fluence_energy_bins, fluence_spectra_units,
+    showplot, saveplot, spacecraft=None):
     """ Plot the fluence spectrum calculated by OpSEP. """
+    
+    #Event-integrated fluence for energy channels
+    print("Generating figure of event-integrated fluence spectrum.")
+    
+    stzulu = ccmc_json.make_ccmc_zulu_time(evaluated_dates[0])
+    stzulu = stzulu.replace(":","")
+ 
+    #Additions to titles and filenames according to user-selected options
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+
+    #plot integral fluxes (either input or estimated)
+    nthresh = len(event_definitions)
+    energy_units = event_definitions[0]['energy_channel'].units
+    
+    exp_name = experiment
+    if not pd.isnull(model_name) and model_name != '':
+        exp_name = model_name
+    
+    figname = f"{stzulu}_{exp_name}_{flux_type}{modifier}_Fluence"
+    if not pd.isnull(spacecraft) and spacecraft != "":
+        figname = f"{stzulu}_{exp_name}_{spacecraft}_{flux_type}{modifier}_Fluence"
+ 
+    ylabel = "Fluence"
+ 
+    ncross = 0 #Check if any thresholds were crossed, if not no need plot
+
+    fig = plt.figure(figname,figsize=(12,10))
+    ax = plt.subplot(111)
+    markers = ['o','P','D','v','^','<','>','*','d','+','8','p','h','1','X','x']
+    for i in range(nthresh):
+        energy_bin = [event_definitions[i]['energy_channel'].min,
+                    event_definitions[i]['energy_channel'].max]
+    
+        if len(fluence_spectra[i]) == 0:
+            continue
+        ncross = ncross + 1
+
+        flspec_units = fluence_spectra_units[i]
+        threshold_label = f"{event_definitions[i]['threshold'].threshold} {event_definitions[i]['threshold'].threshold_units}"
+        #Create labels
+        if energy_bin[1] == -1 and flux_type == "integral":
+            legend_label = f"{exp_name} >{energy_bin[0]} {energy_units}, {threshold_label}"
+        elif energy_bin[1] == -1 and flux_type == "differential":
+            legend_label = f"{exp_name} Estimated >{energy_bin[0]} {energy_units}, {threshold_label}"
+        else:
+            legend_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}, {threshold_label}"
+
+        ax.plot(all_energies[j,:],all_fluence[j,:],markers[j],
+                color=colors[j],mfc='none',label=legend_label)
+
+
+    plt.grid(which="both", axis="both")
+    plt.title(experiment + ' ' + title_mod + '\n Event-Integrated Fluences '
+                'for All Event Definitions')
+    if experiment == 'user' and model_name != '':
+        plt.title(model_name + ' ' + title_mod + '\n Event-Integrated '
+                'Fluences for All Event Definitions')
+    plt.xlabel('Energy [' + energy_units +']')
+    if flux_type == "integral":
+        plt.ylabel('Integral Fluence [' + fluence_units_integral + ']')
+    if flux_type == "differential":
+        plt.ylabel('Differential Fluence [' + fluence_units_differential + ']')
+    plt.xscale("log")
+    plt.yscale("log")
+    ax.legend(loc='upper right')
+
+    if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
+
+    if saveplot:
+        fig.savefig(plotpath + '/' + figname + '.png')
+    if not showplot:
+        plt.close(fig)
+
 
   
 

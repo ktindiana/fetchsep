@@ -843,405 +843,6 @@ def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
 
 
 
-
-def save_integral_fluxes_to_file(experiment, flux_type, options, doBGSub,
-        model_name, energy_thresholds, crossing_time, dates, integral_fluxes,
-        spacecraft=""):
-    """Output the time series of integral fluxes to a file. If the input
-        data set was in integral channels, then this file will contain exactly
-        the same values in the time series.
-        If the input data set was in differential energy bins, then this file
-        contains the estimated integral fluxes calculated in this program.
-        
-        Writes out csv file with dates in first column and integral fluxes
-        for which a threshold was applied in the remaining columns. Writes
-        fluxes for full time period specified by user.
-        Any differential channels for which a threshold was applied are not
-        included in this file.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral or differential
-        :options: (string array) - S14, Bruno2017, uncorrected options for GOES data
-        :doBGSub: (boolean) - indicates if background subtration is performed
-        :model_name: (string) - name of model or user experiment, if relevant
-        :energy_thresholds: (float 1xn array) - energy channels for which
-            flux thresholds are applied
-        :crossing_time: (datetime 1xn array) - start times of sep event for each
-            energy channel (energy_thresolds) for which a threshold was applied
-        :dates: (datetime 1xm array) - dates for flux time profile
-        :integral_fluxes: (float nxm array) - flux time profiles for each energy channel
-            for which a threshold was applied; assumed to be (estimated)integral fluxes
-        
-        OUTPUTS:
-        
-        No outputs except output file named e.g.
-            integral_fluxes_GOES-13_differential_2012_3_7.csv
-            
-    """
-    nthresh = len(energy_thresholds)
-    ndates = len(dates)
-    year = 0
-    month = 0
-    day = 0
-    for i in range(nthresh):
-        if crossing_time[i] != 0 and year == 0:
-            year = crossing_time[i].year
-            month = crossing_time[i].month
-            day = crossing_time[i].day
-    if year == 0:
-        print("No thresholds were crossed during this time period. "
-                "Integral flux time profiles not written to file. Exiting.")
-        return
-
-    #e.g. integral_fluxes_GOES-13_differential_2012_3_7.csv
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-
-
-    foutname = f"integral_fluxes_{experiment}{modifier}_{flux_type}_{year}_{month}_{day}.csv"
-
-    if experiment == 'user' and model_name != '':
-        foutname = f"integral_fluxes_{model_name}{modifier}_{flux_type}_{year}_{month}_{day}.csv"
-    foutname = os.path.join(outpath,foutname)
-    print('Writing integral flux time series to file --> ' + foutname)
-    fout = open(foutname,"w+")
-    if flux_type == "integral":
-        fout.write('#Integral fluxes in units of '
-                    + flux_units_integral + '\n')
-    if flux_type == "differential":
-        fout.write('#Estimated integral fluxes in units of '
-                    +flux_units_differential + '\n')
-
-    fout.write('#Columns headers indicate low end of integral channels in '
-                    + energy_units + ';'
-                    ' e.g. >10 ' + energy_units +'\n')
-    fout.write('#Date')
-    for thresh in energy_thresholds: #build header
-        fout.write(',' + str(thresh))
-    fout.write('\n')
-    for i in range(ndates):
-        fout.write(str(dates[i]))
-        for j in range(nthresh):
-            fout.write(',' + str(integral_fluxes[j][i]))
-        fout.write('\n')
-
-    fout.close()
-
-
-
-
-def print_values_to_file(experiment, flux_type, options, doBGSub,
-                model_name, startdate, energy_thresholds,
-                flux_thresholds, crossing_time, onset_peak, onset_date,
-                peak_flux, peak_time, rise_time, event_end_time, duration,
-                threshold_fluences, is_diff_thresh, umasep, umasep_times,
-                umasep_fluxes, spacecraft=""):
-    """ Write all calculated values to file for all thresholds. Event-integrated
-        fluences for >10, >100 MeV (and user-defined threshold) will also be
-        included. Writes out file with name e.g.
-        output/sep_values_experiment_fluxtype_YYYY_M_D.csv
-        If the UMASEP option was selected, add on the proton values calculated
-        at the UMASEP Ts + Xhr time points.
-        is_diff_thresh indicates whether the user input a differential
-        threshold. If so, the user threshold bin(s) will refer to differential
-        fluxes.
-        
-        Writes all values out to a csv file. These values and more are also
-        written out to json file in a different subroutine.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral or differential
-        :options: (string array) - can be S14, Bruno2017, uncorrected and apply
-            to GOES data
-        :doBGSub: (boolean) - indicates if background subtraction performed
-        :model_name: (string) - model or experiment name if experiment = "user"
-        :startdate: (datetime) - start date of time period entered by user
-        :energy_thresholds: (float 1xn array) - all energy channels for which
-            a flux threshold was applied (both integral and differential)
-        :flux_thresholds: (float 1xn array) - flux thresholds for each of the
-            energy channels in energy_thresholds
-        :crossing_time: (datetime 1xn array) - SEP event start time for each
-            applied threshold
-        :onset_peak: (float 1xn array) - onset peak for each applied threshold
-        :onset_date: (datetime 1xn array) - onset peak time for each applied
-            threshold
-        :peak_flux: (float 1xn array) - maximum flux for each applied threshold
-        :peak_time: (datetime 1xn array) - time of maximum flux for each applied
-            threshold
-        :rise_time: (timedelta 1xn array) - start time to max flux
-        :event_end_time: (datetime 1xn array) - end time for each applied threshold
-        :duration: (timedelta 1xn array) - end time minus start time
-        :threshold_fluences: (float 1xn array) - event fluence for each energy
-            channel in energy_thresholds
-        :is_diff_thresh: (bool 1xn array) - indicates if threshold applied to
-            integral or differential channel, e.g. if channel in energy_thresholds
-            is an integral or differential channel
-        :umasep: (boolean) - indicate if user called UMASEP flag
-        :umasep_times: (datetime 5xn array) - times 3, 4, 5, 6, 7, 9 hours after
-            crossing time for each applied threshold
-        :umasep_fluxes: (float 5xn) - fluxes at each of those times for each
-            applied threshold
-            
-        OUTPUTS:
-        
-        :year: (integer) - year of either SEP event or startdate (if no
-            thresholds crossed)
-        :month: (integer) - month of either SEP event or startdate (if no
-            thresholds crossed)
-        :day: (integer) - day of either SEP event or startdate (if no
-            thresholds crossed)
-        :Output file: named e.g.
-            output/sep_values_experiment_fluxtype_YYYY_M_D.csv
-        
-        
-    """
-    nthresh = len(energy_thresholds)
-    numa = 0
-    if umasep:
-        for i in range(nthresh):
-            if umasep_times[i] == 0:
-                continue
-            if len(umasep_times[i]) > numa:
-                numa = len(umasep_times[i])
-
-    year = 0
-    month = 0
-    day = 0
-    for i in range(nthresh):
-        if crossing_time[i] != 0 and year == 0:
-            year = crossing_time[i].year
-            month = crossing_time[i].month
-            day = crossing_time[i].day
-    if year == 0:
-        year = startdate.year
-        month = startdate.month
-        day = startdate.day
-        print("No thresholds were crossed during this time period. "
-            "Using starting date of time period for json file and not "
-            "writing out a csv file.")
-        return year, month, day, False
-
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-
-    foutname = os.path.join(outpath,f"sep_values_{experiment}{modifier}_{flux_type}_{year}_{month}_{day}.csv")
-
-    if experiment == 'user' and model_name != '':
-        foutname = os.path.join(outpath,f"sep_values_{model_name}{modifier}_{flux_type}_{year}_{month}_{day}.csv")
-
-
-    print('Writing SEP values to file --> ' + foutname)
-    fout = open(foutname,"w+")
-    #Write header
-    fout.write('#For thresholds that depend on integral fluxes (annotated '
-            'with >) Flux Threshold, Onset Peak Flux, and Max Peak Flux '
-            'have units of [' + flux_units_integral
-            +'] and Bin Fluence has units of ['
-            + fluence_units_integral + '].\n')
-    fout.write('#For thresholds that depend on differential fluxes (no '
-            '>) Flux Threshold, Onset Peak Flux and Max Peak Flux '
-            'have units of [' + flux_units_differential
-            + '] and Bin Fluence has units of ['
-            + fluence_units_differential + '].\n')
-    if flux_type == "differential":
-        fout.write('#For thresholds that depend on integral fluxes (annotated '
-                    'with >) - differential fluxes were converted '
-                    'to integral fluxes. Onset Peak Flux and Max Flux are '
-                    'estimated integral flux values.\n')
-        if True in is_diff_thresh:
-            fout.write('#The bottom threshold(s) are differential thresholds '
-                        'using the energy bin with low edge specified in the '
-                        'Energy Threshold column and differential flux in the '
-                        'Flux Threshold column to define the SEP quantities.\n')
-            
-    fout.write('#Energy Threshold [' + energy_units
-            + '],Flux Threshold,Start Time,Onset Peak Flux,Onset Time,'
-            'Max Flux,Max Time,Rise Time,End Time,Duration, Bin Fluence')
-
-    if umasep:
-        for jj in range(numa):
-            fout.write(',UMASEP Delay [hr],Flux ['
-                        + flux_units_integral + ']')
-    fout.write('\n')
-    nthresh = len(energy_thresholds)
-
-    for i in range(nthresh):
-        if crossing_time[i] == 0: #no threshold crossed
-            continue
-        if is_diff_thresh[i]:
-            fout.write(str(energy_thresholds[i]) + ',')
-        else:
-            fout.write('>' + str(energy_thresholds[i]) + ',')
-        fout.write(str(flux_thresholds[i]) + ',')
-        fout.write(str(crossing_time[i]) + ',')
-        fout.write(str(onset_peak[i]) + ',')
-        fout.write(str(onset_date[i]) + ',')
-        fout.write(str(peak_flux[i]) + ',')
-        fout.write(str(peak_time[i]) + ',')
-        str_rise_time = str(rise_time[i]).split(',')
-        for k in range(len(str_rise_time)):
-            fout.write(str_rise_time[k] + ' ')
-        fout.write(',')
-        fout.write(str(event_end_time[i]) + ',')
-        str_duration = str(duration[i]).split(',')
-        for k in range(len(str_duration)):
-            fout.write(str_duration[k] + ' ')
-        fout.write(',' + str(threshold_fluences[i])) #units of flux*time
-        if umasep:
-            for jj in range(numa):
-                fout.write(',' + str(umasep_times[i][jj] - crossing_time[i]) \
-                    + ',' + str(umasep_fluxes[i][jj]))
-        fout.write('\n')
-
-    fout.close()
-    return year, month, day, True
-
-
-
-
-####TOOLS#####
-def write_info_to_file(experiment, flux_type, json_type, options,
-        doBGSub, energy_bins, model_name, spase_id, startdate, enddate,
-        energy_thresholds, flux_thresholds, dates, integral_fluxes,
-        crossing_time, onset_peak, onset_date, peak_flux, peak_time,
-        rise_time, event_end_time, duration, all_threshold_fluences,
-        all_fluence, plot_diff_thresh,
-        umasep, umasep_times, umasep_fluxes, templatename='',
-        spacecraft=''):
-    """ Write information to csv and json file.
-        Writes all of the derived information for all the
-        energy-threshold combinations to file.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) differential or integral
-        :json_type: (string) model or observations, indicates which json
-            template to use if the experiment is "user"
-        :templatename: (string) optional name of user template file stored in
-            cfg.templatepath directory
-            
-        The remaining inputs here are the same as the outputs produced by
-        append_differential_thresholds() or have been described in other
-        subroutine. Please see the list
-        of those outputs for detailed explanations of these inputs.
-        
-        OUTPUTS:
-        
-        No outputs except files are written:
-            
-            * fluence spectra files for each energy channel for which a threshold was applied
-            * integral fluxes in csv file for which a threshold was applied
-            * flux time profiles in txt files for each energy channel for which a threshold was applied
-            * json file in CCMC format containing blocks of information for each energy channel for which a threshold was applied
-            * csv file containing all timing and peak flux values
-            
-    """
-    
-    #Save all calculated values for all threshold definitions to csv file
-    sep_year, sep_month, sep_day, IsCrossed = print_values_to_file(experiment,
-                    flux_type, options, doBGSub,
-                    model_name, startdate, energy_thresholds, flux_thresholds,
-                    crossing_time, onset_peak, onset_date, peak_flux, peak_time,
-                    rise_time, event_end_time, duration, all_threshold_fluences,
-                    plot_diff_thresh, umasep, umasep_times, umasep_fluxes,
-                    spacecraft=spacecraft)
-    
-    
-    #SAVE TO JSON FILE
-    type = "observations"
-    if experiment == "user":
-        type = json_type
-    template = ccmc_json.read_in_json_template(type, fname=templatename)
-
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-
-
-    if doBGSub:
-        options.append("BGSubtracted")
-        
-        
-    #Get issue time of forecast (now)
-    now = datetime.datetime.now()
-    issue_time = ccmc_json.make_ccmc_zulu_time(now)
-    
-    #Generate filenames in CCMC preferred format
-    #issue time in CCMC format YYYY-MM-DDTHH:MM:SSZ
-    zstdate = ccmc_json.make_ccmc_zulu_time(startdate)
-    #For native data set which is an observation, don't include issue time
-    #in the filename since nothing should change in the measurements
-    if experiment != "user":
-        fnameprefix = experiment + "_" + flux_type + modifier + "." + zstdate.replace(":","")
-    
-    #For a user data set or model, include issue time
-    if experiment == "user" and json_type == "model":
-        fnameprefix = experiment + "_" + flux_type + modifier + "." + zstdate.replace(":","") + "." + issue_time.replace(":","")
-        if model_name != '':
-            fnameprefix = model_name + "_" + flux_type + modifier + "." + zstdate.replace(":","") + "." + issue_time.replace(":","")
-            
-    #For a user data set that is an observation
-    if experiment == "user" and json_type == "observations":
-        fnameprefix = experiment + "_" + flux_type + modifier + "." + zstdate.replace(":","")
-        if model_name != '':
-            fnameprefix = model_name + "_" + flux_type + modifier + "." + zstdate.replace(":","") 
-            
-    jsonfname = os.path.join(outpath, fnameprefix + ".json")
-    
-    #filenames for time profiles
-    proffnames = []
-    for j in range(len(energy_thresholds)):
-        energy = energy_thresholds[j]
-        if (not plot_diff_thresh[j] and flux_type == "differential")\
-            or flux_type == "integral":
-            profname = fnameprefix + "." + str(energy) \
-                        + energy_units + ".txt"
-        else:
-            bin = ccmc_json.find_energy_bin(energy, energy_bins)
-            profname = fnameprefix + "." + str(bin[0]) + "-" + str(bin[1])\
-                        + energy_units + ".txt"
-        proffnames.append(profname)
-    
-    ##### WRITE JSON FILE #######
-    filled_json = ccmc_json.fill_json(template, issue_time,
-                    experiment, flux_type, type,
-                    energy_bins, model_name, spase_id, startdate, enddate,
-                    options, energy_thresholds, flux_thresholds, crossing_time,
-                    onset_peak, onset_date, peak_flux, peak_time, rise_time,
-                    event_end_time, duration, all_threshold_fluences,
-                    plot_diff_thresh, all_fluence,
-                    umasep, umasep_times, umasep_fluxes, proffnames,
-                    energy_units, flux_units_integral, fluence_units_integral,
-                    flux_units_differential, fluence_units_differential,__version__,
-                    spacecraft=spacecraft)
-    
-    filled_json = ccmc_json.clean_json(filled_json,experiment,type)
-    isgood = ccmc_json.write_json(filled_json, jsonfname)
-    if not isgood:
-        print("WARNING: ccmc_json_handler: write_json could not write your " \
-                "file "+ str(jsonfname))
-    
-    ##### WRITE INDIVIDUAL FLUX FILES #####
-    #Note that integral_fluxes actually contains time profiles for all
-    #the energy channels for which a threshold was applied, including
-    #for any differential channels
-    for j in range(len(energy_thresholds)):
-        profnm = proffnames[j]
-        write_zulu_time_profile(profnm, dates, integral_fluxes[j])
-        
-    #IF NO THRESHOLDS CROSSED, EXIT PROGRAM. ONLY PLOTTING REMAINS.
-   # if not IsCrossed:
-    #    sys.exit("No thresholds were crossed during this time period. "
-    #            "Max flux has been written to json file in onset peak in file "
-    #            + jsonfname + ". Exiting. ")
-
-
-    return sep_year, sep_month, sep_day, jsonfname
-
-
-
-
 def load_input_data(str_startdate, str_enddate, experiment,
     flux_type, model_name, user_file, showplot, saveplot, two_peaks,
     str_thresh, options, doBGSub, str_bgstartdate, str_bgenddate,
@@ -1332,6 +933,8 @@ def calculate_event_info(flux_data):
     return flux_data
 
 
+
+
 ######## MAIN PROGRAM #########
 def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     user_file, json_type, spase_id, showplot, saveplot, detect_prev_event,
@@ -1416,255 +1019,121 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     #Create Output object to write out results
     output_data = cl.Output(flux_data, json_type, spase_id=spase_id,
                             location=location, species=species)
-    output_data.write_ccmc_json()
+    jsonfname = output_data.write_ccmc_json()
+    output_data.create_csv_dict()
+    output_data.plot_event_definitions()
 
     if showplot: plt.show()
 
-    sys.exit()
+    return sep_year, sep_month, sep_day, jsonfname
 
 
 
     ####NOT YET REPRODUCED IN CLASS
     #Calculate times used in UMASEP
-    umasep_times =[]
-    umasep_fluxes=[]
-    if umasep:
-        umasep_times, umasep_fluxes = calculate_umasep_info(energy_thresholds,
-                        flux_thresholds, dates, integral_fluxes, crossing_time)
+#    umasep_times =[]
+#    umasep_fluxes=[]
+#    if umasep:
+#        umasep_times, umasep_fluxes = calculate_umasep_info(energy_thresholds,
+#                        flux_thresholds, dates, integral_fluxes, crossing_time)
 
 
 
-    #####################################################################
-    #Write information to csv and json files
-    #Note that, at this point in the code, integral_fluxes contains
-    #both the integral flux time profiles for which thresholds were applied
-    #and any differential flux channel time profiles for which
-    #thresholds were applied
-    sep_year, sep_month, sep_day, jsonfname\
-        = write_info_to_file(experiment, flux_type, json_type, options,
-        doBGSub, energy_bins, model_name, spase_id,  startdate, enddate,
-        energy_thresholds, flux_thresholds, dates, integral_fluxes,
-        crossing_time, onset_peak, onset_date, peak_flux, peak_time,
-        rise_time, event_end_time, duration, all_threshold_fluences,
-        all_fluence, plot_diff_thresh,
-        umasep, umasep_times, umasep_fluxes, templatename=templatename,
-        spacecraft=spacecraft)
 
 
-    
-    #####################################################################
-    #===============PLOTS==================
-    if saveplot or showplot:
-        stzulu = ccmc_json.make_ccmc_zulu_time(startdate)
-        stzulu = stzulu.replace(":","")
-        #Plot selected results
-        #Event definition from integral fluxes
-        if flux_type == "differential":
-            print("Generating figure of estimated integral fluxes with "
-                   "threshold crossings.")
-        if flux_type == "integral":
-            print("Generating figure of integral fluxes with threshold "
-                    "crossings.")
-
-        #Additions to titles and filenames according to user-selected options
-        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-
-        #plot integral fluxes (either input or estimated)
-        nthresh = len(flux_thresholds)
-        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
-                + '_' + 'Event_Def'
-        if experiment == 'user' and model_name != '':
-            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
-                    + '_' + 'Event_Def'
-        if umasep or nthresh > 4:
-            fig = plt.figure(figname,figsize=(9,9))
-        else:
-            fig = plt.figure(figname,figsize=(9,7))
-        for i in range(nthresh):
-            data_label = (experiment + ' >'+ plt_energy[i] + ' '
-                            + energy_units)
-            plot_title = 'Threshold crossings for ' + experiment + '\n ' \
-                            + title_mod + ' ' + flux_type + ' Fluxes '
-            if experiment == 'user' and model_name != '':
-                data_label = (model_name + ' >' + plt_energy[i] + ' '
-                            + energy_units)
-                plot_title = 'Threshold crossings for ' + model_name + '\n ' \
-                                + title_mod + ' ' + flux_type + ' Fluxes '
-
-            if flux_type == 'differential':
-                data_label = (experiment + ' Estimated >' + plt_energy[i] \
-                                + ' ' + energy_units)
-                if experiment == 'user' and model_name != '':
-                    data_label = (model_name + ' Estimated >' + plt_energy[i] \
-                                + ' ' + energy_units)
-
-            if plot_diff_thresh[i]: #differential threshold tacked on to end
-                data_label = (experiment + ' ' + plt_energy[i] + ' '
-                                + energy_units)
-                if experiment == 'user' and model_name != '':
-                    data_label = (model_name + ' ' + plt_energy[i] + ' '
-                                + energy_units)
-            ax = plt.subplot(nthresh, 1, i+1)
-            #Don't want to plot negative values, particularly in background-subtracted plots
-            if doBGSub:
-                maskfluxes = np.ma.masked_where(integral_fluxes[i] <0, \
-                                integral_fluxes[i])
-                plt.plot_date(dates,maskfluxes,'-',label=data_label)
-            else:
-                plt.plot_date(dates,integral_fluxes[i],'-',label=data_label)
-
-            if crossing_time[i] != 0:
-                plt.axvline(crossing_time[i],color='black',linestyle=':')
-                plt.axvline(event_end_time[i],color='black',linestyle=':',
-                            label="Start, End")
-            plt.axhline(flux_thresholds[i],color='red',linestyle=':',
-                        label="Threshold")
-            if onset_peak[i] != None and onset_date[i] != None:
-                plt.plot_date(onset_date[i],onset_peak[i],'o',color="black",
-                        label="Onset Peak")
-            if peak_time[i] != None and peak_flux[i] != None:
-                plt.plot_date(peak_time[i],peak_flux[i],'ro',mfc='none',
-                        label="Max Flux")
-            if umasep:
-                for k in range(len(umasep_times[i])):
-                    plt.plot_date(umasep_times[i][k],umasep_fluxes[i][k],'bo')
-
-            plt.xlabel('Date')
-            plt.ylabel('Integral Flux\n' + '[' + flux_units_integral + ']')
-            plt.suptitle(plot_title)
-            if plot_diff_thresh[i]:
-                plt.ylabel('Differential Flux\n' + '['
-                        + flux_units_differential + ']')
-            if sum(integral_fluxes[i]) > 0:
-                plt.yscale("log")
-            #ymin = max(1e-6, min(integral_fluxes[i]))
-            # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
-            ax.legend(loc='upper right')
-        if saveplot:
-            fig.savefig(plotpath + '/' + figname + '.png')
-        if not showplot:
-            plt.close(fig)
-
-
-        #All energy channels in specified date range with event start and stop
-        print("Generating figure of fluxes in original energy bins. Any bad data "
-              "points were interpolated. Lines indicate event start and stop for "
-              "thresholds.")
-        #Plot all channels of user specified data
-        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
-                + '_' + 'All_Bins'
-        if experiment == 'user' and model_name != '':
-            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
-                    + '_' + 'All_Bins'
-        fig = plt.figure(figname,figsize=(13.5,6))
-        ax = plt.subplot(111)
-        nbins = len(energy_bins)
-        for i in range(nbins):
-            legend_label = ""
-            if energy_bins[i][1] != -1:
-                legend_label = str(energy_bins[i][0]) + '-' \
-                               + str(energy_bins[i][1]) + ' ' + energy_units
-            else:
-                legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
-
-            if doBGSub:
-                maskfluxes = np.ma.masked_where(fluxes[i] <0, fluxes[i])
-                ax.plot_date(dates,maskfluxes,'-',label=legend_label)
-            else:
-                ax.plot_date(dates,fluxes[i],'-',label=legend_label)
-
-        colors = ['black','red','blue','green','cyan','magenta','violet',\
-                'orange','brown','darkred','deepskyblue','mediumseagreen',
-                'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
-                'navy','palevioletred','saddlebrown']
-        for j in range(len(energy_thresholds)):
-            #if crossing_time[j] == 0:
-            #    continue
-            line_label = '>' + plt_energy[j] + ' MeV, ' \
-                        + plt_flux[j] + ' pfu'
-            if plot_diff_thresh[j]: #tacked on to end
-                line_label = (plt_energy[j] + ' MeV, ' + plt_flux[j] + \
-                            '\n' + flux_units_differential)
-            
-            if crossing_time[j] != 0:
-                ax.axvline(crossing_time[j],color=colors[j],linestyle=':',
-                            label=line_label)
-                ax.axvline(event_end_time[j],color=colors[j],linestyle=':')
-        if flux_type == "integral":
-            plt.ylabel('Integral Flux [' + flux_units_integral + ']')
-            plt.title(experiment + ' '+ title_mod + '\n'\
-                        + "Integral Energy Bins with Threshold Crossings")
-            if experiment == 'user' and model_name != '':
-                plt.title(model_name + ' '+ title_mod + '\n'\
-                        + "Integral Energy Bins with Threshold Crossings")
-        if flux_type == "differential":
-            plt.ylabel('Flux [' + flux_units_differential + ']')
-            plt.title(experiment + ' ' + title_mod + '\n'\
-                        + "Differential Energy Bins with Threshold Crossings")
-            if experiment == 'user' and model_name != '':
-                plt.title(model_name + ' ' + title_mod + '\n' \
-                        + "Differential Energy Bins with Threshold Crossings")
-        plt.xlabel('Date')
-        ax.xaxis_date()
-        ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
-        plt.yscale("log")
-        #plt.grid(which="major", axis="both", linestyle="dotted")
-        chartBox = ax.get_position()
-        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-                         chartBox.height])
-        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
-        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-            item.set_fontsize(14)
-        if saveplot:
-            fig.savefig(plotpath + '/' +figname + '.png')
-        if not showplot:
-            plt.close(fig)
-
-
-        #Event-integrated fluence for energy channels
-        print("Generating figure of event-integrated fluence spectrum.")
-        ncross = 0 #Check if any thresholds were crossed, if not no need plot
-        #Plot fluence spectrum summed between SEP start and end dates
-        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
-                + '_' + 'Fluence'
-        if experiment == 'user' and model_name != '':
-            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
-                    + '_' + 'Fluence'
-        fig = plt.figure(figname,figsize=(6,5))
-        ax = plt.subplot(111)
-        markers = ['o','P','D','v','^','<','>','*','d','+','8','p','h','1','X','x']
-        for j in range(len(energy_thresholds)):
-            if crossing_time[j] == 0:
-                continue
-            ncross = ncross + 1
-            
-            legend_label = '>' + plt_energy[j] + ' ' + energy_units + ', '\
-                        + plt_flux[j] + ' ' + flux_units_integral
-            if plot_diff_thresh[j]: #tacked on to end
-                legend_label = (plt_energy[j] + ' ' + energy_units + ',\n'
-                            + plt_flux[j] + '\n' + flux_units_differential)
-            ax.plot(all_energies[j,:],all_fluence[j,:],markers[j],
-                    color=colors[j],mfc='none',label=legend_label)
-        plt.grid(which="both", axis="both")
-        plt.title(experiment + ' ' + title_mod + '\n Event-Integrated Fluences '
-                    'for All Event Definitions')
-        if experiment == 'user' and model_name != '':
-            plt.title(model_name + ' ' + title_mod + '\n Event-Integrated '
-                    'Fluences for All Event Definitions')
-        plt.xlabel('Energy [' + energy_units +']')
-        if flux_type == "integral":
-            plt.ylabel('Integral Fluence [' + fluence_units_integral + ']')
-        if flux_type == "differential":
-            plt.ylabel('Differential Fluence [' + fluence_units_differential + ']')
-        plt.xscale("log")
-        plt.yscale("log")
-        ax.legend(loc='upper right')
-        
-        if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
-        
-        if saveplot:
-            fig.savefig(plotpath + '/' + figname + '.png')
-        if not showplot:
-            plt.close(fig)
-
-    return sep_year, sep_month, sep_day, jsonfname
+#    ###TO BE CONVERTED
+#    #####################################################################
+#    #===============PLOTS==================
+#    if saveplot or showplot:
+#        stzulu = ccmc_json.make_ccmc_zulu_time(startdate)
+#        stzulu = stzulu.replace(":","")
+#        #Plot selected results
+#        #Event definition from integral fluxes
+#        if flux_type == "differential":
+#            print("Generating figure of estimated integral fluxes with "
+#                   "threshold crossings.")
+#        if flux_type == "integral":
+#            print("Generating figure of integral fluxes with threshold "
+#                    "crossings.")
+#
+#        #Additions to titles and filenames according to user-selected options
+#        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+#
+#        #plot integral fluxes (either input or estimated)
+#        nthresh = len(flux_thresholds)
+#
+#        #All energy channels in specified date range with event start and stop
+#        print("Generating figure of fluxes in original energy bins. Any bad data "
+#              "points were interpolated. Lines indicate event start and stop for "
+#              "thresholds.")
+#        #Plot all channels of user specified data
+#        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
+#                + '_' + 'All_Bins'
+#        if experiment == 'user' and model_name != '':
+#            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
+#                    + '_' + 'All_Bins'
+#        fig = plt.figure(figname,figsize=(13.5,6))
+#        ax = plt.subplot(111)
+#        nbins = len(energy_bins)
+#        for i in range(nbins):
+#            legend_label = ""
+#            if energy_bins[i][1] != -1:
+#                legend_label = str(energy_bins[i][0]) + '-' \
+#                               + str(energy_bins[i][1]) + ' ' + energy_units
+#            else:
+#                legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
+#
+#            if doBGSub:
+#                maskfluxes = np.ma.masked_where(fluxes[i] <0, fluxes[i])
+#                ax.plot_date(dates,maskfluxes,'-',label=legend_label)
+#            else:
+#                ax.plot_date(dates,fluxes[i],'-',label=legend_label)
+#
+#        colors = ['black','red','blue','green','cyan','magenta','violet',\
+#                'orange','brown','darkred','deepskyblue','mediumseagreen',
+#                'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
+#                'navy','palevioletred','saddlebrown']
+#        for j in range(len(energy_thresholds)):
+#            #if crossing_time[j] == 0:
+#            #    continue
+#            line_label = '>' + plt_energy[j] + ' MeV, ' \
+#                        + plt_flux[j] + ' pfu'
+#            if plot_diff_thresh[j]: #tacked on to end
+#                line_label = (plt_energy[j] + ' MeV, ' + plt_flux[j] + \
+#                            '\n' + flux_units_differential)
+#            
+#            if crossing_time[j] != 0:
+#                ax.axvline(crossing_time[j],color=colors[j],linestyle=':',
+#                            label=line_label)
+#                ax.axvline(event_end_time[j],color=colors[j],linestyle=':')
+#        if flux_type == "integral":
+#            plt.ylabel('Integral Flux [' + flux_units_integral + ']')
+#            plt.title(experiment + ' '+ title_mod + '\n'\
+#                        + "Integral Energy Bins with Threshold Crossings")
+#            if experiment == 'user' and model_name != '':
+#                plt.title(model_name + ' '+ title_mod + '\n'\
+#                        + "Integral Energy Bins with Threshold Crossings")
+#        if flux_type == "differential":
+#            plt.ylabel('Flux [' + flux_units_differential + ']')
+#            plt.title(experiment + ' ' + title_mod + '\n'\
+#                        + "Differential Energy Bins with Threshold Crossings")
+#            if experiment == 'user' and model_name != '':
+#                plt.title(model_name + ' ' + title_mod + '\n' \
+#                        + "Differential Energy Bins with Threshold Crossings")
+#        plt.xlabel('Date')
+#        ax.xaxis_date()
+#        ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
+#        plt.yscale("log")
+#        #plt.grid(which="major", axis="both", linestyle="dotted")
+#        chartBox = ax.get_position()
+#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+#                         chartBox.height])
+#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
+#        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+#            item.set_fontsize(14)
+#        if saveplot:
+#            fig.savefig(plotpath + '/' +figname + '.png')
+#        if not showplot:
+#            plt.close(fig)
+#
+#

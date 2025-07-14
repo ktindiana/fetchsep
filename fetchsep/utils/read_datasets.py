@@ -4059,17 +4059,17 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
         print('Checking for bad data values and filling with linear '
               'interpolation with time.')
     else:
-        print('Checking for bad data values and filling with None values. ')
+        print('Checking for bad data values and filling with NaN values. ')
 
     ndates = len(dates)
     nbins = len(energy_bins)
 
     for j in range(ndates):  #flux at each time
         for i in range(nbins):
-            if fluxes[i,j] == None: #bad data
+            if pd.isnull(fluxes[i,j]): #bad data
                 #estimate flux with interpolation in time
                 if dointerp:
-#                    print('There is a data gap for time ' + str(dates[j])
+#                    print('There is bad data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
 #                            + str(energy_bins[i][1]) + '.'
 #                            + ' Filling in missing value with linear '
@@ -4077,16 +4077,16 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
                 else:
-#                    print('There is a data gap for time ' + str(dates[j])
+#                    print('There is bad data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
 #                            + str(energy_bins[i][1]) + '.'
-#                            + ' Filling in missing value with None ')
-                    fluxes[i,j] = None
+#                            + ' Filling in missing value with NaN ')
+                    fluxes[i,j] = np.nan
 
             elif fluxes[i,j] < 0:
                 #estimate flux with interpolation in time
                 if dointerp:
-#                    print('There is a data gap for time ' + str(dates[j])
+#                    print('There is bad data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
 #                            + str(energy_bins[i][1]) + '.'
 #                            + ' Filling in missing value with linear '
@@ -4094,11 +4094,11 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
                 else:
-#                    print('There is a data gap for time ' + str(dates[j])
+#                    print('There is bad data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
 #                            + str(energy_bins[i][1]) + '.'
-#                            + ' Filling in missing value with None ')
-                    fluxes[i,j] = None #results in NaN value in np array
+#                            + ' Filling in missing value with NaN ')
+                    fluxes[i,j] = np.nan #results in NaN value in np array
 
     
     print('Finished checking for bad data.')
