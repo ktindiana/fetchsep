@@ -6,6 +6,8 @@ import os
 import math
 import numpy as np
 from statistics import mode
+import scipy
+from numpy import exp
 
 def sort_bin_order(all_fluxes, energy_bins):
     """Check the order of the energy bins. Usually, bins go from
@@ -281,93 +283,6 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
         integral_fluxes.append(sum_flux)
 
     return integral_fluxes
-
-
-def initialize_event_info_dict():
-    """ Initialize dictionary that contains SEP event info
-        calculated by OpSEP. One dictionary per event definition.
-        Used to save information that will fill Observation or 
-        Forecast objects.
-        
-    """
-    
-    dict = {'experiment': None, #Experiment or model name; GOES-13
-            'flux_type': None, #ORIGINAL input data - integral or differential
-            'startdate': pd.NaT, #Start of analyzed time period
-            'enddate': pd.NaT, #End of analyzed time period
-            'all_energy_bins': [], #All original and estimated energy bins for input data
-           # 'event_definition': None, #Dictionary of Energy Channel and Threshold obj
-            'energy_channel': {}, #{'min': 10, 'max': -1, 'units': 'MeV'}
-            'energy_units': None, #str
-            'threshold': {}, #{'threshold': 10, 'threshold_units': 'pfu'}
-            'flux_units': None, #str
-            'background_subtraction': None, #bool doBGSub
-            'options': [], #options applied to data
-            'sep_start_time': pd.NaT, #SEP start time
-            'sep_end_time': pd.NaT, #SEP end time
-            'onset_peak': np.nan, #Onset peak
-            'onset_peak_time': pd.NaT, #Time of onset peak
-            'onset_rise_time': np.nan, #Time from sep_start_time to sep_onset_peak_time
-            'max_flux': np.nan, #Maximum flux during SEP event
-            'max_flux_time': pd.NaT, #Time of maximum flux
-            'max_rise_time': np.nan, #Time from sep_start_time to sep_max_flux_time
-            'duration': np.nan, #sep_end_time - sep_start_time
-            'fluence': np.nan, #fluence in single energy channel summed between sep_start_time and sep_end_time
-            'fluence_spectrum': [], #fluence in all_energy_bins summed between sep_start_time and sep_end_time
-            'fluence_units': None #str
-        
-    }
-
-    return dict
-
-
-def fill_event_info(experiment, flux_type, event_definition, startdate, enddate,
-    all_energy_bins, doBGSub, options, sep_start_time, sep_end_time,  onset_peak,
-    onset_peak_time, onset_rise_time, max_flux, max_flux_time, max_rise_time,
-    duration, fluence, fluence_spectrum):
-    """ Fill dictionary with event info for a single event definition. """
-
-    energy_channel_dict = {'min': event_definition['energy_channel'].min,
-                            'max': event_definition['energy_channel'].max,
-                            'units': event_definition['energy_channel'].units
-                            }
-    energy_units = event_definition['energy_channel'].units
-    
-    threshold_dict = {'threshold': event_definition['threshold'].threshold,
-                    'threshold_units': event_definition['threshold'].threshold_units
-                    }
-    flux_units = event_definition['threshold'].threshold_units
-    
-    fluence_units = None
-    if flux_type == 'differential': fluence_units = cfg.fluence_units_differential
-    if flux_type == 'integral': fluence_units = cfg.fluence_units_integral
-
-    dict = initialize_event_info_dict()
-    dict['experiment'] = experiment
-    dict['flux_type'] = flux_type
-    dict['startdate'] = startdate
-    dict['enddate'] = enddate
-    dict['all_energy_bins'] = all_energy_bins
-    dict['energy_channel'] = energy_channel_dict
-    dict['energy_units'] = energy_units
-    dict['threshold'] = threshold_dict
-    dict['flux_units'] = flux_units
-    dict['background_subtraction'] = doBGSub
-    dict['options'] = options
-    dict['sep_start_time'] = sep_start_time
-    dict['sep_end_time'] = sep_end_time
-    dict['onset_peak'] = onset_peak
-    dict['onset_peak_time'] = onset_peak_time
-    dict['onset_rise_time'] = onset_rise_time
-    dict['max_flux'] = max_flux
-    dict['max_flux_time'] = max_flux_time
-    dict['max_rise_time'] = max_rise_time
-    dict['duration'] = duration
-    dict['fluence'] = fluence
-    dict['fluence_spectrum'] = fluence_spectrum
-    dict['fluence_units'] = fluence_units
-
-    return dict
 
 
 

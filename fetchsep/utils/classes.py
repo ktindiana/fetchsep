@@ -364,7 +364,7 @@ class Data:
                 evdef = evdef.strip().split(",")
                 if "-" in evdef[0]:
                     bin_edge = evdef[0].strip().split("-")
-                    bins.append([float(bin_edge[0]), float(bins_edge[1])])
+                    bins.append([float(bin_edge[0]), float(bin_edge[1])])
                 else:
                     bins.append([float(evdef[0]), -1])
                     
@@ -711,6 +711,11 @@ class Analyze:
         """
         self.event_definition = event_definition
         
+        #Specific dates and fluxes for this event definition
+        #Flux in a single energy channel
+        self.dates = []
+        self.flux = []
+        
         #Derived values
         self.sep_start_time = pd.NaT
         self.sep_end_time = pd.NaT
@@ -724,11 +729,15 @@ class Analyze:
         self.fluence = np.nan
         self.fluence_spectrum = []
 
+        self.energy_units = event_definition['energy_channel'].units
         self.flux_units = None
         self.rise_time_units = 'minutes'
         self.duration_units = 'hours'
         self.fluence_units = None
         self.fluence_spectrum_units = None
+
+        self.sep_profile = None #name of output file continaining
+            #datetime column and flux column for this event definition
 
         self.check_event_definition(data)
 
@@ -762,7 +771,7 @@ class Analyze:
         """
         energy_channel = {'min':self.event_definition['energy_channel'].min,
                             'max':self.event_definition['energy_channel'].max,
-                            'units': elf.event_definition['energy_channel'].units}
+                            'units': self.event_definition['energy_channel'].units}
         return energy_channel
 
 
@@ -782,6 +791,36 @@ class Analyze:
         return energy_bin
 
 
+    def select_fluxes(self, data, event_definition):
+        """ Pull out the specific fluxes in the energy 
+            channel being analyzed. 
+        
+        """
+        energy_bin = [event_definition['energy_channel'].min,
+                        event_definition['energy_channel'].max]
+        idx = data.evaluated_energy_bins.index(energy_bin)
+        fluxes = data.evaluated_fluxes[idx]
+        dates = data.evaluated_dates
+        
+        self.dates = dates
+        self.flux = fluxes
+
+        #check this energy bin to determine units
+        if energy_bin[1] == -1:
+            self.flux_units = cfg.flux_units_integral
+            self.fluence_units = cfg.fluence_units_integral
+        else:
+            self.flux_units = cfg.flux_units_differential
+            self.fluence_units = cfg.fluence_units_differential
+
+        #Check original input data to determine fluence spectrum units
+        if data.flux_type == "integral":
+            self.fluence_spectrum_units = cfg.fluence_units_integral
+        if data.flux_type == "differential":
+            self.fluence_spectrum_units = cfg.fluence_units_differential
+
+        return
+        
 
     def calculate_threshold_crossing(self, data, event_definition):
         """ Calculate the threshold crossing times for a given energy bin
@@ -828,9 +867,8 @@ class Analyze:
                 "specified in event definitions or not present in data. Skipping.")
             return
 
-        idx = data.evaluated_energy_bins.index(energy_bin)
-        fluxes = data.evaluated_fluxes[idx]
-        dates = data.evaluated_dates
+        fluxes = self.flux
+        dates = self.dates
         
         threshold_crossed = False
         event_ended = False
@@ -900,9 +938,8 @@ class Analyze:
                 "specified in event definitions or not present in data. Skipping.")
             return
 
-        idx = data.evaluated_energy_bins.index(energy_bin)
-        fluxes = data.evaluated_fluxes[idx]
-        dates = data.evaluated_dates
+        fluxes = self.flux
+        dates = self.dates
         
         #If there is a SEP EVENT, extract between start and end times.
         #If NO EVENT, don't trim and take the maximum of the full timeseries
@@ -987,9 +1024,8 @@ class Analyze:
             self.onset_peak_time = onset_peak_time
             return onset_peak, onset_peak_time
 
-        idx = data.evaluated_energy_bins.index(energy_bin)
-        fluxes = data.evaluated_fluxes[idx]
-        dates = data.evaluated_dates
+        fluxes = self.flux
+        dates = self.dates
 
         #Do a fit of the Weibull function for each time profile
         params_fit = Parameters()
@@ -1151,11 +1187,9 @@ class Analyze:
     def calculate_channel_fluence(self, data):
         """  Calculate the fluence for the specified event definition
         """
-        energy_bin = self.make_energy_bin()
-        idx = data.evaluated_energy_bins.index(energy_bin)
-
-        flux = data.evaluated_fluxes[idx]
-        dates = data.evaluated_dates
+ 
+        flux = self.flux
+        dates = self.dates
 
         trim_flux = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, dates, flux)
         fluence = self.calculate_fluence(trim_flux, data.time_resolution)
@@ -1218,6 +1252,7 @@ class Analyze:
         
         #calculate event values and fill in a dictionary that will
         #save info needed for Observation or Forecast objects
+        self.select_fluxes(data, self.event_definition) #Load fluxes to obj
         self.calculate_threshold_crossing(data, self.event_definition)
         self.calculate_max_flux(data)
         self.calculate_onset_peak_from_fit(data)
@@ -1247,16 +1282,11 @@ class Analyze:
         print(f"Duration: {self.duration} {self.duration_units}")
         print(f"Channel Fluence: {self.fluence} {self.fluence_units}")
         print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_units}")
-
-        #Create a dictionary containing all of the calculated values
-        dict = tools.fill_event_info(data.experiment, data.flux_type, self.event_definition,
-            data.startdate, data.enddate, data.energy_bins, data.doBGSub, data.options,
-            self.sep_start_time, self.sep_end_time,  self.onset_peak, self.onset_peak_time, self.onset_rise_time,
-            self.max_flux, self.max_flux_time, self.max_rise_time, self.duration, self.fluence, self.fluence_spectrum)
+        print(f"Fluence Energy Bins: {data.energy_bins}")
         
 
-        return dict
-
+        return
+        
 
 
 
@@ -1283,12 +1313,14 @@ class Output:
 
         self.data = data
     
-        self.spase_id = None
-        self.json_type = None #observation or forecast
+        self.spase_id = spase_id
+        self.json_type = json_type #observation or forecast
         self.json_dict = {} #json dictionary from template
+        self.json_filename = None #output path and filename
         self.location = location #earth, mars, etc
         self.species = species #protons, electrons
-        
+        self.issue_time = pd.NaT
+
 
     def set_json_type(self, json_type):
         self.json_type = json_type
@@ -1300,21 +1332,185 @@ class Output:
         return
 
 
-    def intialize_json(self, type):
-        """ Construct the main components of the json files """
-        dict = ccmc_json.initialize_json(self.json_type)
-        self.json_dict = dict
+    def set_json_filename(self):
+        """ Filename in CCMC SEP Scoreboard format. 
+            Set filenames and set issue time.
+            
+        """
+
+        modifier, title_mod = plt_tools.setup_modifiers(self.data.options, self.data.doBGSub, spacecraft=self.data.spacecraft)
+
+        #Get issue time of forecast (now)
+        now = datetime.datetime.now()
+        self.issue_time = now
         
-        return template
+        issue_time = ccmc_json.make_ccmc_zulu_time(now)
+        issue_time = issue_time.replace(":","")
+        zstdate = ccmc_json.make_ccmc_zulu_time(self.data.startdate)
+        zstdate = zstdate.replace(":","")
+
+        #Filenames for observations don't include issue time
+        fnameprefix = ""
+        if self.json_type == "observations":
+            fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}"
+            if not pd.isnull(self.data.model_name) and self.data.model_name != "":
+                fnameprefix = f"{self.data.model_name}_{self.data.flux_type}{modifier}.{zstdate}"
+
+        #Filenames for model output do include issue time
+        if self.json_type == "model":
+            fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
+            if not pd.isnull(self.data.model_name) and self.data.model_name != "":
+                fnameprefix = f"{self.data.model_name}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
+
+        ####JSON FILE
+        self.json_filename = fnameprefix + ".json"
+    
+        return
+
+    
+    def set_sep_profile_filename(self, analyze):
+
+        fnameprefix = self.json_filename.strip().split(".json")
+        fnameprefix = fnameprefix[0]
+        
+        ####TIME PROFILE
+        energy_bin = analyze.make_energy_bin()
+        if energy_bin[1] == -1: #integral
+           profname = f"{fnameprefix}.{energy_bin[0]}.{analyze.energy_units}.txt"
+        else:
+           profname = f"{fnameprefix}.{energy_bin[0]}-{energy_bin[1]}.{analyze.energy_units}.txt"
+        analyze.sep_profile = profname
+        
+        return analyze
+
+
+    def write_zulu_time_profile(self, analyze):
+        """ Write out the time profile with the date in the
+            first column as the ISO standard and flux in the
+            second column as:
+            
+            YYYY-MM-DDTHH:MM:SSZ    Float
+            
+            INPUTS:
+            
+            :Filename: (string) - name of file to write
+            :date: (datetime 1xn array) - list of dates
+            :fluxes: (float 1xn array) - corresponding fluxes
+            
+            OUTPUTS:
+            
+            None but writes output file with filename
+            
+        """
+
+        fname = os.path.join(cfg.outpath,'opsep', analyze.sep_profile)
+        outfile = open(fname, "w")
+        for i in range(len(analyze.dates)):
+            zdate = ccmc_json.make_ccmc_zulu_time(analyze.dates[i])
+            outfile.write(zdate + "    " + str(analyze.flux[i]) + "\n")
+            
+        outfile.close()
+
+        print("write_zulu_time_profile: Wrote file --> " + fname)
+
+        return
+
+
+    def fill_event_info_dict(self, analyze):
+        """ Initialize dictionary that contains SEP event info
+            saved in a single Analyze object combined with Data. 
+            
+            This dictionary contains the derived values and 
+            supporting contextual information for a single
+            event definition.
+            
+        """
+        
+        dict = {'experiment': self.data.experiment, #Experiment or model name; GOES-13
+                'flux_type': self.data.flux_type, #ORIGINAL input data - integral or differential
+                'startdate': self.data.startdate, #Start of analyzed time period
+                'enddate': self.data.enddate, #End of analyzed time period
+                'background_subtraction': self.data.doBGSub, #bool doBGSub
+                'options': self.data.options, #options applied to data
+                'original_energy_bins': self.data.energy_bins, #All original energy bins for input data
+               # 'event_definition': None, #Dictionary of Energy Channel and Threshold obj
+                'energy_channel': analyze.make_energy_channel_dict(), #{'min': 10, 'max': -1, 'units': 'MeV'}
+                'energy_bin': analyze.make_energy_bin(), #[Emin, Emax]
+                'threshold_dict': analyze.make_threshold_dict(), #{'threshold': 10, 'threshold_units': 'pfu'}
+                'threshold': analyze.event_definition['threshold'].threshold, #float
+                'sep_start_time': analyze.sep_start_time, #SEP start time
+                'sep_end_time': analyze.sep_end_time, #SEP end time
+                'onset_peak': analyze.onset_peak, #Onset peak
+                'onset_peak_time': analyze.onset_peak_time, #Time of onset peak
+                'onset_rise_time': analyze.onset_rise_time, #Time from sep_start_time to sep_onset_peak_time
+                'max_flux': analyze.max_flux, #Maximum flux during SEP event
+                'max_flux_time': analyze.max_flux_time, #Time of maximum flux
+                'max_rise_time': analyze.max_rise_time, #Time from sep_start_time to sep_max_flux_time
+                'duration': analyze.duration, #sep_end_time - sep_start_time
+                'fluence': analyze.fluence, #fluence in single energy channel summed between sep_start_time and sep_end_time
+                'fluence_spectrum': analyze.fluence_spectrum, #fluence in all_energy_bins summed between sep_start_time and sep_end_time
+                'flux_units': analyze.flux_units, #str
+                'fluence_units': analyze.fluence_units, #str
+                'fluence_spectrum_units': analyze.fluence_spectrum_units, #str
+                'rise_time_units': analyze.rise_time_units, #str
+                'duration_units': analyze.duration_units, #str
+                'sep_profile': analyze.sep_profile #str
+            
+        }
+
+        return dict
+
+
+    def fill_event_info_list(self, analyze):
+        """ Return a list that contains SEP event info
+            saved in a single Analyze object combined with Data. 
+            
+            This list contains the derived values and 
+            supporting contextual information for a single
+            event definition.
+            
+            The list is in the same order as the event info dict.
+            
+        """
+        event_info_list = [self.data.experiment,
+                            self.data.flux_type,
+                            self.data.startdate,
+                            self.data.enddate,
+                            self.data.doBGSub,
+                            self.data.options,
+                            self.data.energy_bins,
+                            analyze.make_energy_channel_dict(),
+                            analyze.make_energy_bin(),
+                            analyze.make_threshold_dict(),
+                            analyze.event_definition['threshold'].threshold,
+                            analyze.sep_start_time,
+                            analyze.sep_end_time,
+                            analyze.onset_peak,
+                            analyze.onset_peak_time,
+                            analyze.onset_rise_time,
+                            analyze.max_flux,
+                            analyze.max_flux_time,
+                            analyze.max_rise_time,
+                            analyze.duration,
+                            analyze.fluence,
+                            analyze.fluence_spectrum,
+                            analyze.flux_units,
+                            analyze.fluence_units,
+                            analyze.fluence_spectrum_units,
+                            analyze.rise_time_units,
+                            analyze.duration_units,
+                            analyze.sep_profile
+                            ]
+ 
+        return event_info_list
 
 
     def fill_json_header(self):
         """ Fill the json dictionary with the extracted SEP values. """
-        issue_time = datetime.datetime.now()
-        
-        self.json_template = ccmc_json.fill_json_header(self.json_template, self.json_type,
-            issue_time, self.data.experiment, self.data.flux_type, self.spase_id,
-            model_name=self.data.model_name)
+        self.json_dict = ccmc_json.fill_json_header(self.json_type,
+            self.issue_time, self.data.experiment, self.data.flux_type,
+            self.data.options, self.spase_id,
+            model_name=self.data.model_name, spacecraft=self.data.spacecraft)
 
         return
 
@@ -1325,30 +1521,46 @@ class Output:
             
         """
 
-#        self.event_definition = event_definition
-#        
-#        #Derived values
-#        self.sep_start_time = pd.NaT
-#        self.sep_end_time = pd.NaT
-#        self.onset_peak = np.nan
-#        self.onset_peak_time = pd.NaT
-#        self.onset_rise_time = np.nan
-#        self.max_flux = np.nan
-#        self.max_flux_time = pd.NaT
-#        self.max_flux_rise_time = np.nan
-#        self.duration = np.nan
-#        self.fluence = np.nan
-#        self.fluence_spectrum = []
-#
-#        self.flux_units = None
-#        self.rise_time_units = 'minutes'
-#        self.duration_units = 'hours'
-#        self.fluence_units = None
-#        self.fluence_spectrum_units = None
-
-
+        energy_channel_dict = analyze.make_energy_channel_dict()
+        threshold_dict = analyze.make_threshold_dict()
         
+        self.json_dict = ccmc_json.fill_json_block(self.json_dict,
+                                    self.json_type,
+                                    energy_channel_dict,
+                                    threshold_dict,
+                                    self.data.startdate,
+                                    self.data.enddate,
+                                    analyze.sep_start_time,
+                                    analyze.sep_end_time,
+                                    analyze.onset_peak,
+                                    analyze.onset_peak_time,
+                                    analyze.max_flux,
+                                    analyze.max_flux_time,
+                                    analyze.flux_units,
+                                    analyze.fluence,
+                                    analyze.fluence_units,
+                                    analyze.fluence_spectrum,
+                                    analyze.fluence_spectrum_units,
+                                    self.data.energy_bins,
+                                    analyze.sep_profile,
+                                    self.location,
+                                    self.species)
+        
+        return
 
+
+    def clean_json(self):
+        """ Remove empty fields or fields with bad values """
+        
+        self.json_dict = ccmc_json.clean_json(self.json_dict, self.data.experiment,
+                self.json_type)
+        return
+
+
+    def write_json(self):
+        filename = os.path.join(cfg.outpath, 'opsep', self.json_filename)
+        is_good = ccmc_json.write_json(self.json_dict, filename)
+        return
 
 
     def write_ccmc_json(self):
@@ -1356,9 +1568,22 @@ class Output:
             https://ccmc.gsfc.nasa.gov/publicData/sepsb/files/sepscoreboard_visual_schema.pdf
         
         """
-        self.read_in_template(self.json_type, filename=self.json_template_filename)
+        self.set_json_filename()
         self.fill_json_header()
         
+        #Cycle through all Analyze objects for the various event definitions
+        for i, analyze in enumerate(self.data.results):
+            #Set SEP profile filename
+            analyze = self.set_sep_profile_filename(analyze)
+            #Write out SEP profile in CCMC format and save to Analyze obj
+            self.write_zulu_time_profile(analyze)
+            self.fill_json_block(analyze)
+            self.data.results[i] = analyze
+            
+        self.clean_json()
+        self.write_json()
+
+        return
 
 
 

@@ -333,48 +333,42 @@ def forecast_json():
        "mode": "historical",
        "forecasts": []
         }}
-        
+    print("ccmc_json_handler: forecast_json: Initilizing forecast json.")
     return template
 
 
 def observation_json():
     """ header for observation json """
     
-    template = {
-       "sep_observation_submission": {
-           "notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],
-           "observatory": { "short_name": "", "spase_id": ""},
-           "source_info": {"native_flux_type": ""},
-           "options": "",
-           "issue_time": "",
-           "mode": "measurement",
-           "observations": []
-       }
-    }
+    template = {"sep_observation_submission": {"notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],"observatory": { "short_name": "", "spase_id": ""}, "source_info": {"native_flux_type": ""},"options": "","issue_time": "","mode": "measurement","observations": [] }}
+    print("ccmc_json_handler: observation_json: Initilizing observation json.")
     return template
 
 
 
 def fill_json_header(json_type, issue_time, experiment,
-    flux_type, spase_id, model_name=None, mode=None):
+    flux_type, options, spase_id, model_name=None, mode=None,
+    spacecraft=None):
     """ Fill in top level header information in json """
+    
+    zissue = make_ccmc_zulu_time(issue_time)
     
     short_name = experiment
     if model_name:
         short_name = model_name
     
     #If mode not specified, guess
-    if not mode or mode='':
-        if json_type == "observation":
+    if not mode or mode == '':
+        if json_type == "observations":
             mode = 'measurement'
         else:
             mode = 'historical'
 
     template = {}
-    if json_type == "observation":
+    if json_type == "observations":
         template = observation_json()
     elif json_type == "forecast":
-        template = forecast_json
+        template = forecast_json()
 
     key, type_key, win_key, exp_key = set_keys(json_type)
 
@@ -387,7 +381,7 @@ def fill_json_header(json_type, issue_time, experiment,
     template[key]['mode'] = mode
 
     template[key]['options'] = options
-    template[key]['issue_time'] = issue_time
+    template[key]['issue_time'] = zissue
 
     return template
 
@@ -413,10 +407,11 @@ def new_block():
     return block
 
 
-def fill_json_block(template, energy_channel, startdate, enddate,
-    sep_start_time, sep_end_time, onset_peak, onset_peak_time,
-    max_flux, max_flux_time,
-    location="earth", species="proton"):
+def fill_json_block(template, json_type, energy_channel, threshold_dict, startdate,
+    enddate,
+    sep_start_time, sep_end_time, onset_peak, onset_peak_time, max_flux, max_flux_time,
+    flux_units, fluence, fluence_units, fluence_spectrum, fluence_spectrum_units,
+    fluence_energy_bins, sep_profile, location="earth", species="proton"):
     """ Fill values in a single block for a single energy channel.
         A single block may contain multiple event definitions, which means 
         multiple Analyze objects.
@@ -424,6 +419,10 @@ def fill_json_block(template, energy_channel, startdate, enddate,
         Checks if a block of the appropriate energy channel already
         exists in the json. If not, a block is added and values filled in.
         If so, values are appended.
+        
+        
+        energy_channel = {'min': 10.0, 'max':-1, 'units': 'MeV'}
+        threshold_dict = {'threshold': 10, 'units': 'pfu'}
         
     """
     key, type_key, win_key, exp_key = set_keys(json_type)
@@ -436,7 +435,7 @@ def fill_json_block(template, energy_channel, startdate, enddate,
     zct = make_ccmc_zulu_time(sep_start_time)
     zeet = make_ccmc_zulu_time(sep_end_time)
 
-    #Evaluate All Clear
+    ######## Evaluate All Clear ##########
     all_clear = None #will be string unless specific conditions met
 
     #Threshold WAS crossed
@@ -446,40 +445,80 @@ def fill_json_block(template, energy_channel, startdate, enddate,
         #>10 MeV, 10 pfu - NOAA SWPC and SRAG operations
         #>100 MeV, 1 pfu - SRAG operations
         #For all other energy channels, the all clear will be True or
-        #False with respect to the thresholds applied in the event
-        #definitions. e.g. 
-        
-        
-        
-        if bin[0] == 10 and bin[1] == -1:
-            if flux_thresholds[i] == 10:
-                all_clear = False
-        elif bin[0] == 100 and bin[1] == -1:
-            if flux_thresholds[i] == 1:
-                all_clear = False
-#           elif bin[0] == 30 and bin[1] == -1:
-#               if flux_thresholds[i] == 1:
-#                   all_clear = False
-#           elif bin[0] == 50 and bin[1] == -1:
-#               if flux_thresholds[i] == 1:
-#                   all_clear = False
+        #False with respect to the thresholds applied in the event definitions
+
+        #>10 MeV, 10 pfu
+        if energy_channel['min'] == 10. and energy_channel['max'] == -1:
+            if threshold_dict['threshold'] == 10:
+                all_clear = False #event!
+        #>100 MeV, 1 pfu
+        elif energy_channel['min'] == 100. and energy_channel['max'] == -1:
+            if threshold_dict['threshold'] == 1:
+                all_clear = False #event!
         else:
             #Allow other flux & threshold combinations for other energy channels
             all_clear = False
 
+    ####### CREATE THE DICTS FOR THE INDIVIDUAL VALUES #######
+    #All Clear
+    all_clear_dict = {"all_clear_boolean": all_clear, "threshold": threshold_dict['threshold'],
+        "threshold_units": flux_units}
+    
+    
+    #Onset Peak Flux
+    onset_dict = {"intensity":float(onset_peak),"time": zodate,
+                    "units":flux_units}
+
+    #Maximum Flux
+    max_dict = {"intensity":float(max_flux),"time": zpdate,
+                    "units":flux_units}
+
+    #Start and End Times
+    length_dict = { "start_time": zct,  "end_time": zeet,
+                    "threshold_start": threshold_dict['threshold'],
+                    "threshold_end": threshold_dict['threshold']*cfg.endfac,
+                    "threshold_units": threshold_dict['threshold_units'] }
+
+    #Fluence for only the specific energy channel
+    #Fluence order same as event_lengths
+    fluence_dict = {"fluence": fluence,
+                    "units": fluence_units}
+
+    #Fluence spectrum
+    spectrum = []
+    for kk in range(len(fluence_energy_bins)):
+        flentry = {"energy_min": fluence_energy_bins[kk][0],
+                    "energy_max": fluence_energy_bins[kk][1],
+                    "fluence": fluence_spectrum[kk]}
+        spectrum.append(flentry)
+    
+    fl_spec_dict = {"start_time": zct, "end_time": zeet,
+           "threshold_start":threshold_dict['threshold'],
+           "threshold_end":threshold_dict['threshold']*cfg.endfac,
+           "threshold_units":threshold_dict['threshold_units'],
+           "fluence_units": fluence_spectrum_units,
+           "fluence_spectrum":spectrum }
+
+    #Threshold crossings
+    cross_dict = { "crossing_time": zct,
+                    "threshold": threshold_dict['threshold'],
+                    "threshold_units": threshold_dict['threshold_units']}
+
+
     #####CREATE (if necessary) AND FILL BLOCK ####
+    ##### CREATE ######
     #Check if template contains the energy channel for this event definition
     blocks = template[key][type_key]
 
     #Creating a new block or adding to an existing one?
-    new_block = True
+    need_new_block = True
 
     #Identify the index of the required block
     ix = -1
     for i, block in enumerate(blocks):
         if block['energy_channel']  == energy_channel:
             ix = i
-            new_block = False
+            need_new_block = False
 
     #If no block found, create new one
     if ix == -1:
@@ -488,301 +527,65 @@ def fill_json_block(template, energy_channel, startdate, enddate,
         template[key][type_key].append(new_block())
         template[key][type_key][n]['energy_channel'] = energy_channel
 
+
+    #### FILL ######
+
     #If added a new block, initialize all the values
-    if new_block:
+    if need_new_block:
         template[key][type_key][ix]['species'] = species
         template[key][type_key][ix]['location'] = location
         template[key][type_key][ix][win_key]['start_time'] = zst
         template[key][type_key][ix][win_key]['end_time'] = zend
 
+        template[key][type_key][ix]['peak_intensity'].update(onset_dict)
+        template[key][type_key][ix]['peak_intensity_max'].update(max_dict)
+        template[key][type_key][ix]['sep_profile'] = sep_profile
+
+        template[key][type_key][ix]['event_lengths'][0].update(length_dict)
+        template[key][type_key][ix]['fluences'][0].update(fluence_dict)
+        template[key][type_key][ix]['fluence_spectra'][0].update(fl_spec_dict)
+        template[key][type_key][ix]['threshold_crossings'][0].update(cross_dict)
+        template[key][type_key][ix]['all_clear'] = all_clear_dict
 
 
-def fill_json(template, json_type,
-                energy_bins, startdate, enddate, options,
-                energy_thresholds, flux_thresholds, crossing_time,
-                onset_peak, onset_date, peak_flux, peak_time, rise_time,
-                event_end_time, duration, all_threshold_fluences,
-                diff_thresh, all_fluence,
-                umasep, umasep_times, umasep_fluxes, profile_filenames,
-                energy_units, flux_units_integral, fluence_units_integral,
-                flux_units_differential, fluence_units_differential,
-                opsep_version, spacecraft=""):
-    """ Add all the appropriate values to the json template for model or
-        observations.
-        
-        The inputs here are mainly the same as the outputs in
-        operational_sep_quantities.append_differential_thresholds()
-    """
-#    #For now, assume a user-input file is model output
-#    #This is not generic and should be modified in the future
-#    if experiment == "user" and json_type == "model":
-#        key = keys.model_main
-#        type_key = keys.model_type
-#        win_key = keys.model_win
-#        template[key]['model']['short_name'] = model_name
-#        template[key]['source_info']['native_flux_type'] = flux_type
-#        template[key]['model']['spase_id'] = spase_id
-#                        
-#    else:
-#        key = keys.obs_main
-#        type_key = keys.obs_type
-#        win_key = keys.obs_win
-#        template[key][keys.obs_exp]['short_name'] = experiment
-#        if experiment == "GOES_RT" and spacecraft:
-#            template[key][keys.obs_exp]['short_name'] = experiment + " " + spacecraft
-#        if experiment == "user" and model_name != "":
-#                template[key][keys.obs_exp]['short_name'] = model_name
-#        template[key]['source_info']['native_flux_type'] = flux_type
-#        if spase_id != "":
-#            template[key]['observatory']['spase_id'] = spase_id
-#
-#    template[key]['options'] = options
-#    template[key]['issue_time'] = issue_time
-
-    #Git repo version info code provided by the one and only
-    #Luke Stegeman, coding genius
-    #Get the hash of the git repo on the local computer and the
-    #latest
-#    git_repo = git.Repo(search_parent_directories=True)
-#    git_repo_url = 'https://github.com/ktindiana/fetchsep'
-#    git_commit_sha = git_repo.head.object.hexsha
-#    git_is_dirty = git_repo.is_dirty()
-#    
-#    template[key]['notes'].append({'note':f"version, git hash: {git_commit_sha}"})
-#    template[key]['notes'].append({'note':f"Link, if commit pushed to repo: {git_repo_url}/tree/{git_commit_sha}"})
-#    template[key]['notes'].append({'note': f"Uncommitted changes present on user's computer: {git_is_dirty}."})
-#
-#    #####FILL THRESHOLDS#############
-#    nthresh = len(energy_thresholds)
-#    
-#    #if template doesn't contain enough energy channel entries, add more
-#    #Only one block per energy channel
-#    nunique, energy_unique = id_unique_energy_channels(energy_thresholds)
-#    print("fill_json: Number of unique energy channels that have had thresholds "
-#        "applied " + str(nunique))
-#    nent = len(template[key][type_key])
-#    if nent < nunique:
-#        for j in range(nent,nunique):
-#            add_entry = copy.deepcopy(template[key][type_key][nent-1])
-#            template[key][type_key].append(add_entry)
-#            template[key][type_key][j]['energy_channel']['min'] = energy_unique[j]
-#            
-#    #Fill in the unique energy channels
-#    for i in range(nthresh):
-#        bin = [energy_thresholds[i], -1] #default assume integral
-#        if diff_thresh[i]:
-#            bin = find_energy_bin(energy_thresholds[i], energy_bins)
-#        
-#        energy_dict = {"min":bin[0], "max": bin[1], "units":energy_units}
-#            
-#        for j in range(nunique):
-#            template_dict = template[key][type_key][j]['energy_channel']
-#            if template_dict['min'] == energy_dict['min']:
-#                template[key][type_key][j]['energy_channel'].update(energy_dict)
-#            
-#
-#    #Fill in the info for each energy channel and threshold
-#    tidx = 0 #index of block in json template
-#    for i in range(nthresh):
-#        if not diff_thresh[i]: #integral channel
-#            flux_units = flux_units_integral #"pfu"
-#            fluence_units = fluence_units_integral #'cm^-2'
-#        if diff_thresh[i]: #differential channel
-#            flux_units = flux_units_differential #"[MeV/n cm^2 s sr]^(-1)"
-#            fluence_units = fluence_units_differential #'MeV^-1*cm^-2'
-#            
-#        bin = [energy_thresholds[i], -1] #default assume integral
-#        if diff_thresh[i]:
-#            bin = find_energy_bin(energy_thresholds[i], energy_bins)
-#        
-#        
-#        #ENERGY CHANNEL
-#        energy_dict = {"min":bin[0], "max": bin[1], "units":energy_units}
-#        #Identify the correct block in the json template
-#        for j in range(nunique):
-#            if energy_dict == template[key][type_key][j]['energy_channel']:
-#                tidx = j
-        
-        zst = make_ccmc_zulu_time(startdate)
-        zend = make_ccmc_zulu_time(enddate)
-        template[key][type_key][tidx]['species'] = "proton"
-        template[key][type_key][tidx]['location'] = "earth"
-        template[key][type_key][tidx][win_key]['start_time'] = zst
-        template[key][type_key][tidx][win_key]['end_time'] = zend
-
-        all_clear = "" #will be string unless specific conditions met
-
-        #Threshold WAS crossed
-        if crossing_time[i] != 0:
-            zodate = make_ccmc_zulu_time(onset_date[i])
-            zpdate = make_ccmc_zulu_time(peak_time[i])
-            zct = make_ccmc_zulu_time(crossing_time[i])
-            zeet = make_ccmc_zulu_time(event_end_time[i])
-            
-            #Only a specific set of energy channel and thresholds are considered
-            #for the All Clear field.
-            #>10 MeV, 10 pfu - NOAA SWPC and SRAG operations
-            #>100 MeV, 1 pfu - SRAG operations
-            #>30 MeV, 1 pfu - SRAG supplemental (disabled for now)
-            #>50 MeV, 1 pfu - SRAG supplemental (disabled for now)
-            if bin[0] == 10 and bin[1] == -1:
-                if flux_thresholds[i] == 10:     
-                    all_clear = False
-            elif bin[0] == 100 and bin[1] == -1:
-                if flux_thresholds[i] == 1:
-                    all_clear = False
- #           elif bin[0] == 30 and bin[1] == -1:
- #               if flux_thresholds[i] == 1:
- #                   all_clear = False
- #           elif bin[0] == 50 and bin[1] == -1:
- #               if flux_thresholds[i] == 1:
- #                   all_clear = False
-            else:
-                #Allow other flux & threshold combinations for other energy channels
-                all_clear = False            
-
-            #Onset Peak Flux
-            onset_dict = {"intensity":float(onset_peak[i]),"time": zodate,
-                            "units":flux_units}
-            template[key][type_key][tidx]['peak_intensity'].update(onset_dict)
-            
-            #Maximum Flux
-            max_dict = {"intensity":float(peak_flux[i]),"time": zpdate,
-                            "units":flux_units}
-            template[key][type_key][tidx]['peak_intensity_max'].update(max_dict)
-            
-            #Start and End Times
-            length_dict = { "start_time": zct,  "end_time": zeet,
-                            "threshold_start": flux_thresholds[i],
-                            "threshold_end": flux_thresholds[i]*cfg.endfac,
-                            "threshold_units": flux_units }
-            if template[key][type_key][tidx]['event_lengths'][0]['start_time']\
-                == "":
-                template[key][type_key][tidx]['event_lengths'][0].update(length_dict)
-            else:
-                template[key][type_key][tidx]['event_lengths'].append(length_dict)
-            
-            #Fluence for only the specific energy channel
-            #Fluence order same as event_lengths
-            fluence_dict = {"fluence": all_threshold_fluences[i],
-                            "units": fluence_units}
-            if template[key][type_key][tidx]['fluences'][0]['fluence'] == "":
-                template[key][type_key][tidx]['fluences'][0].update(fluence_dict)
-            else:
-                template[key][type_key][tidx]['fluences'].append(fluence_dict)
-            
-            
-            #Fluence spectrum
-            spectrum = []
-            for kk in range(len(energy_bins)):
-                flentry = {"energy_min": energy_bins[kk][0],
-                            "energy_max": energy_bins[kk][1],
-                            "fluence": all_fluence[i][kk]}
-                spectrum.append(flentry)
-            
-            if flux_type == "differential":
-                spec_fluence_units = fluence_units_differential
-            else:
-                spec_fluence_units = fluence_units_integral
-            
-            fl_spec_dict = {"start_time": zct, "end_time": zeet,
-                   "threshold_start":flux_thresholds[i],
-                   "threshold_end":flux_thresholds[i]*cfg.endfac,
-                   "threshold_units":flux_units,
-                   "fluence_units": spec_fluence_units,
-                   "fluence_spectrum":spectrum }
-            if template[key][type_key][tidx]['fluence_spectra'][0]['start_time']\
-                == "":
-                template[key][type_key][tidx]['fluence_spectra'][0].update(fl_spec_dict)
-            else:
-                template[key][type_key][tidx]['fluence_spectra'].append(fl_spec_dict)
-            
-
-            #Threshold crossings
-            cross_dict = { "crossing_time": zct,
-                            "threshold": flux_thresholds[i],
-                            "threshold_units": flux_units }
-            if template[key][type_key][tidx]['threshold_crossings'][0]['crossing_time']\
-                == "":
-                template[key][type_key][tidx]['threshold_crossings'][0].update(cross_dict)
-            else:
-                template[key][type_key][tidx]['threshold_crossings'].append(cross_dict)
-            #template[key][type_key][i]['threshold_crossings'][0]['crossing_time']\
-            #                    = zct
-            #template[key][type_key][i]['threshold_crossings'][0]['threshold']\
-            #                    = flux_thresholds[i]
+    else:
  
-            #All Clear
-            #Fill in All Clear if not already filled in.
-            #If there was already a forecast made for a different threshold,
-            #will not replace it
-            #If there are multiple thresholds applied to a block, only the first
-            #one will determine the all_clear field.
-            if template[key][type_key][tidx]['all_clear']['all_clear_boolean']\
-                == "" and all_clear != "":
-                template[key][type_key][tidx]['all_clear']['all_clear_boolean'] \
-                                = all_clear
-                template[key][type_key][tidx]['all_clear']['threshold'] \
-                                = flux_thresholds[i]
-                template[key][type_key][tidx]['all_clear']['threshold_units'] \
-                                = flux_units
-            
-            #SEP Flux Time Profile
-            template[key][type_key][tidx]['sep_profile'] = profile_filenames[i]
+        template[key][type_key][ix]['event_lengths'].append(length_dict)
+        template[key][type_key][ix]['fluences'].append(fluence_dict)
+        template[key][type_key][ix]['fluence_spectra'].append(fl_spec_dict)
+        template[key][type_key][ix]['threshold_crossings'].append(cross_dict)
 
+        #All Clear
+        #Fill in All Clear if not already filled in.
+        #If there was already a forecast made for a different threshold,
+        #will not replace it
+        #If there are multiple thresholds applied to a block, only the first
+        #one will determine the all_clear field.
+        if pd.isnull(template[key][type_key][ix]['all_clear']['all_clear_boolean']) \
+            or template[key][type_key][ix]['all_clear']['all_clear_boolean'] == "":
+            template[key][type_key][ix]['all_clear']['all_clear_boolean'] \
+                            = all_clear
+            template[key][type_key][ix]['all_clear']['threshold'] \
+                            = threshold_dict['threshold']
+            template[key][type_key][ix]['all_clear']['threshold_units'] \
+                            = threshold_dict['threshold_units']
+    
+        #Fill the values only if the ones there are null
+        if pd.isnull(template[key][type_key][ix]['peak_intensity']['intensity'])\
+            or template[key][type_key][ix]['peak_intensity']['intensity'] == "":
+            template[key][type_key][ix]['peak_intensity'].update(onset_dict)
 
-        #Threshold was NOT crossed OR doesn't exist in data set
-        if crossing_time[i] == 0:
-            zodate = ""
-            zpdate = make_ccmc_zulu_time(peak_time[i])
-            zct = ""
-            zeet = ""
-            template[key][type_key][tidx]['sep_profile'] = profile_filenames[i]
-            
-            max_dict = {"intensity":float(peak_flux[i]),"time": zpdate,
-                        "units":flux_units}
-            template[key][type_key][tidx]['peak_intensity_max'].update(max_dict)
-            
-            
-            #Only a specific set of energy channel and thresholds are considered
-            #for the All Clear field.
-            #>10 MeV, 10 pfu - NOAA SWPC and SRAG operations
-            #>100 MeV, 1 pfu - SRAG operations
-            #>30 MeV, 1 pfu - SRAG supplemental (disabled for now)
-            #>50 MeV, 1 pfu - SRAG supplemental (disabled for now)
-            if bin[0] == 10 and bin[1] == -1:
-                if flux_thresholds[i] == 10:     
-                    all_clear = True
-            elif bin[0] == 100 and bin[1] == -1:
-                if flux_thresholds[i] == 1:
-                    all_clear = True
-  #          elif bin[0] == 30 and bin[1] == -1:
-  #              if flux_thresholds[i] == 1:
-  #                  all_clear = True
-  #          elif bin[0] == 50 and bin[1] == -1:
-  #              if flux_thresholds[i] == 1:
-  #                  all_clear = True
-            else:
-                #Allow other flux & threshold combinations for other energy channels
-                all_clear = True            
+        if pd.isnull(template[key][type_key][ix]['peak_intensity_max']['intensity'])\
+            or template[key][type_key][ix]['peak_intensity_max']['intensity'] == "":
+            template[key][type_key][ix]['peak_intensity_max'].update(max_dict)
+        
+        if pd.isnull(template[key][type_key][ix]['sep_profile']) \
+            or template[key][type_key][ix]['sep_profile'] == "":
+            template[key][type_key][ix]['sep_profile'] = sep_profile
 
-
-
-            #Fill in All Clear if not already filled in.
-            #If there was already a forecast made for a different threshold,
-            #will not replace it
-            #If there are multiple thresholds applied to a block, only the first
-            #one will determine the all_clear field.
-            if template[key][type_key][tidx]['all_clear']['all_clear_boolean']\
-                == "" and all_clear != "":
-                template[key][type_key][tidx]['all_clear']['all_clear_boolean'] \
-                                = all_clear
-                template[key][type_key][tidx]['all_clear']['threshold'] \
-                                = flux_thresholds[i]
-                template[key][type_key][tidx]['all_clear']['threshold_units'] \
-                                = flux_units
 
     return template
+
 
 
 def clean_json(template, experiment, json_type):
@@ -884,6 +687,8 @@ def write_json(template, filename):
         json.dump(template, outfile)
 
     if not os.path.isfile(filename):
+        print("WARNING: ccmc_json_handler: write_json could not write your " \
+            "file "+ str(filename))
         return False
 
     print("Wrote SEP values to json file --> " + filename)
