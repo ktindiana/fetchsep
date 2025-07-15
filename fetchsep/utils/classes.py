@@ -154,6 +154,7 @@ class Data:
         #The flux timeseries after interpolation and any background subtraction
         self.energy_bin_objects = [] #include bin centers
         self.energy_bins = []
+        self.energy_bin_centers = []
         self.dates = []
         self.fluxes = []
         self.time_resolution = np.nan #seconds
@@ -539,10 +540,10 @@ class Data:
         #Define energy bins
         if self.experiment == "ERNE":
             version = datasets.which_erne(startdate, enddate)
-            energy_bins = datasets.define_energy_bins(version, self.flux_type,
-                                west_detector, self.options)
+            energy_bins, energy_bin_centers = datasets.define_energy_bins(version,
+                self.flux_type, west_detector, self.options)
         elif self.experiment != "GOES":
-            energy_bins = datasets.define_energy_bins(self.experiment, self.flux_type,
+            energy_bins, energy_bin_centers = datasets.define_energy_bins(self.experiment, self.flux_type,
                         west_detector, self.options, spacecraft=self.spacecraft,
                         user_bins=self.user_energy_bins)
 
@@ -551,9 +552,10 @@ class Data:
             sys.exit(f"read_in_flux_files: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
 
         #Full flux and date range for specified input files, not yet trimmed in date
-        all_fluxes, energy_bins = tools.sort_bin_order(all_fluxes, energy_bins)
+        all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins, energy_bin_centers)
         
         self.energy_bins = energy_bins
+        self.energy_bin_centers = energy_bin_centers
         
         ####Save original fluxes with bad points set to None
         #Extract date range that covers any background-subtraction periods
@@ -627,7 +629,8 @@ class Data:
                 energy_threshold = evdef['energy_channel'].min
                 integral_flux = tools.from_differential_to_integral_flux(self.experiment,
                             energy_threshold, self.energy_bins, self.fluxes,
-                            bruno2017=self.goes_Bruno2017)
+                            bruno2017=self.goes_Bruno2017,
+                            energy_bin_centers=self.energy_bin_centers)
                 
                 #Add estimated integral fluxes and associated energy bin to self
                 self.evaluated_fluxes.append(integral_flux)
@@ -1487,6 +1490,8 @@ class Output:
         fluence_spectrum_str = fluence_spectrum_str.replace(",", ";")
         fluence_spectrum_energy_bins = str(self.data.energy_bins)
         fluence_spectrum_energy_bins = fluence_spectrum_energy_bins.replace(",", ";")
+        fluence_spectrum_energy_bin_centers = str(self.data.energy_bin_centers)
+        fluence_spectrum_energy_bin_centers = fluence_spectrum_energy_bin_centers.replace(",", ";")
 
         dict = {f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time.strftime("%Y-%m-%d %H:%M:%S"),
                 f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -1500,6 +1505,7 @@ class Output:
                 f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
                 f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": fluence_spectrum_str,
                 f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": fluence_spectrum_energy_bin_centers
             }
 
         return dict
@@ -1523,6 +1529,7 @@ class Output:
                             self.data.doBGSub,
                             self.data.options,
                             self.data.energy_bins,
+                            self.data.energy_bin_centers,
                             analyze.make_energy_channel_dict(),
                             analyze.make_energy_bin(),
                             analyze.make_threshold_dict(),

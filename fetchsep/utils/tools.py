@@ -9,7 +9,7 @@ from statistics import mode
 import scipy
 from numpy import exp
 
-def sort_bin_order(all_fluxes, energy_bins):
+def sort_bin_order(all_fluxes, energy_bins, energy_bin_centers=[]):
     """Check the order of the energy bins. Usually, bins go from
         low to high energies, but some modelers or users may
         go in reverse order. Usually expect:
@@ -28,6 +28,7 @@ def sort_bin_order(all_fluxes, energy_bins):
             and m time points
         :energy_bins: (float 2xn array) - energy bins for each of the
             energy channels
+        :energy_bin_centers: (float 1xn array) - corresponding energy bin centers
             
         OUTPUTS:
         
@@ -40,24 +41,26 @@ def sort_bin_order(all_fluxes, energy_bins):
     nbins = len(energy_bins)
     #Rank energy bins in order of lowest to highest effective
     #energies
-    eff_en = []
-    for i in range(nbins):
-        if energy_bins[i][1] == -1:
-            eff_en.append(energy_bins[i][0])
-        else:
-            midpt = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
-            eff_en.append(midpt)
+    if len(energy_bin_centers) == 0:
+        for i in range(nbins):
+            if energy_bins[i][1] == -1:
+                energy_bin_centers.append(energy_bins[i][0])
+            else:
+                midpt = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
+                energy_bin_centers.append(midpt)
             
     eff_en_np = np.array(eff_en)
     sort_index = np.argsort(eff_en_np) #indices in sorted order
     
     sort_fluxes = np.array(all_fluxes)
     sort_bins = []
+    sort_centers = []
     for i in range(nbins):
         sort_fluxes[i] = all_fluxes[sort_index[i]]
         sort_bins.append(energy_bins[sort_index[i]])
+        sort_centers.append(energy_bin_centers[sort_index[i]])
     
-    return sort_fluxes, sort_bins
+    return sort_fluxes, sort_bins, sort_centers
 
 
 def determine_time_resolution(dates):
@@ -128,7 +131,7 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
     
     
 def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
-    fluxes, bruno2017=False):
+    fluxes, bruno2017=False, energy_bin_centers=[]):
     """ If user selected differential fluxes, convert to integral fluxes to
         caluculate operational threshold crossings (>10 MeV protons exceed 10
         pfu, >100 MeV protons exceed 1 pfu).
@@ -177,12 +180,15 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
 
     #Calculate bin center in log space for each energy bin
     bin_center = []
-    for i in range(nbins):
-        if energy_bins[i][1] != -1:
-            centerE = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
-        else:
-            centerE = -1
-        bin_center.append(centerE)
+    if len(energy_bin_centers) != 0:
+        bin_center = energy_bin_centers
+    else:
+        for i in range(nbins):
+            if energy_bins[i][1] != -1:
+                centerE = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
+            else:
+                centerE = -1
+            bin_center.append(centerE)
 
     #The highest energy EPEAD bin overlaps with all of the HEPAD bins
     #For this reason, excluding the highest energy EPEAD bin in

@@ -670,7 +670,7 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
         if i == nthresh-1: ax.set_xlabel('Date')
         plt.ylabel(ylabel)
         plt.suptitle(plot_title)
-        if sum(fluxes) > 0:
+        if sum(fluxes) > 0: #If NaN present, returns False
             plt.yscale("log")
         #ymin = max(1e-6, min(integral_fluxes[i]))
         # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
