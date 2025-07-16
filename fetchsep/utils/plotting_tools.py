@@ -557,6 +557,12 @@ def plot_weibull_fit(energy_bin, threshold, experiment, sep_start_time, trim_tim
 #            plt.close(fig)
 
 
+def make_math_label(label):
+    label = label.replace("^-1", "^{-1}")
+    label = label.replace("^-2", "^{-2}")
+    label = label.replace("*", "")
+    return label
+
 def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doBGSub,
     evaluated_dates, evaluated_fluxes, evaluated_energy_bins, event_definitions,
     sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
@@ -616,12 +622,12 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
         figname = f"{stzulu}_{exp_name}_{spacecraft}_{flux_type}{modifier}_Event_Def"
 
     if nthresh > 4:
-        fig = plt.figure(figname,figsize=(13,13))
+        fig = plt.figure(figname,figsize=(12,12))
     else:
-        fig = plt.figure(figname,figsize=(13,10))
+        fig = plt.figure(figname,figsize=(12,9))
         
     plot_title = f"Event Definitions for {exp_name} {title_mod} {flux_type} Fluxes"
-        
+
     for i in range(nthresh):
         #Get energy bin
         energy_bin = [event_definitions[i]['energy_channel'].min,
@@ -637,7 +643,8 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
         fluxes = evaluated_fluxes[ix]
         
         #Create labels
-        ylabel = f"Flux [{flux_units}]"
+        ylabel = f"Flux [${flux_units}$]"
+        ylabel = make_math_label(ylabel)
         if energy_bin[1] == -1 and flux_type == "integral":
             data_label = f"{exp_name} >{energy_bin[0]} {energy_units}"
         elif energy_bin[1] == -1 and flux_type == "differential":
@@ -675,16 +682,116 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
         #ymin = max(1e-6, min(integral_fluxes[i]))
         # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
         ax.legend(loc='upper right')
+        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+            item.set_fontsize(12)
+
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath,'opsep', figname + '.png'))
     if not showplot:
         plt.close(fig)
 
 
+def define_colors():
+    colors = ['black','red','blue','green','cyan','magenta','violet',\
+            'orange','brown','darkred','deepskyblue','mediumseagreen',
+            'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
+            'navy','palevioletred','saddlebrown']
+    return colors
+
+
+def opsep_plot_all_bins(experiment, flux_type, model_name, options, doBGSub,
+    all_dates, all_fluxes, all_energy_bins, event_definitions,
+    sep_start_times, sep_end_times, showplot, saveplot, spacecraft=None):
+    """ Plot all energy bins with all event definitions """
+
+    stzulu = ccmc_json.make_ccmc_zulu_time(all_dates[0])
+    stzulu = stzulu.replace(":","")
+
+    #Additions to titles and filenames according to user-selected options
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    energy_units = event_definitions[0]['energy_channel'].units
+    
+    exp_name = experiment
+    if not pd.isnull(model_name) and model_name != '':
+        exp_name = model_name
+    
+    figname = f"{stzulu}_{exp_name}_{flux_type}{modifier}_All_Bins"
+    if not pd.isnull(spacecraft) and spacecraft != "":
+        figname = f"{stzulu}_{exp_name}_{spacecraft}_{flux_type}{modifier}_All_Bins"
+
+    plot_title = f"All Energy Bins with Threshold Crossings for {exp_name} {title_mod} {flux_type}"
+    
+    fig = plt.figure(figname,figsize=(12,6))
+    ax = plt.subplot(111)
+    colors = define_colors()
+    #Plot the fluxes
+    for j in range(len(all_energy_bins)):
+        energy_bin = all_energy_bins[j]
+
+        if energy_bin[1] == -1:
+            legend_label = f">{energy_bin[0]} {energy_units}"
+        else:
+            legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+
+        if doBGSub:
+            maskfluxes = np.ma.masked_where(all_fluxes[j] <0, all_fluxes[j])
+            ax.plot_date(dates,maskfluxes,'-',label=legend_label)
+        else:
+            ax.plot_date(all_dates,all_fluxes[j],'-',label=legend_label)
+
+    #Plot the threshold crossing times
+    for i in range(len(event_definitions)):
+        energy_bin = [event_definitions[i]['energy_channel'].min,
+                    event_definitions[i]['energy_channel'].max]
+        threshold = event_definitions[i]['threshold'].threshold
+        flux_units = event_definitions[i]['threshold'].threshold_units
+
+        threshold_label = f"{threshold} ${flux_units}$"
+        threshold_label = make_math_label(threshold_label)
+
+        if energy_bin[1] == -1:
+            line_label = f">{energy_bin[0]} {energy_units}, {threshold_label}"
+        else:
+            line_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units},\n{threshold_label}"
+
+        if not pd.isnull(sep_start_times[i]):
+            ax.axvline(sep_start_times[i],color=colors[i],linestyle=':',
+                        label=line_label)
+            ax.axvline(sep_end_times[i],color=colors[i],linestyle=':')
+
+    plt.title(plot_title)
+    ylabel = f"Flux [${flux_units}$]"
+    ylabel = make_math_label(ylabel)
+    plt.ylabel(ylabel)
+    plt.xlabel('Date')
+    #ax.xaxis_date()
+    #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
+    plt.yscale("log")
+    chartBox = ax.get_position()
+    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+                     chartBox.height])
+    ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(12)
+    if saveplot:
+        fname = os.path.join(cfg.plotpath,'opsep',figname + '.png')
+        fig.savefig(fname)
+    if not showplot:
+        plt.close(fig)
+    
+    
+
+
 def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBGSub,
-    event_definitions, fluence_spectra, fluence_energy_bins, fluence_spectra_units,
-    showplot, saveplot, spacecraft=None):
-    """ Plot the fluence spectrum calculated by OpSEP. """
+    event_definitions, evaluated_dates, energy_bin_centers, fluence_spectra,
+    fluence_spectra_units, showplot, saveplot, spacecraft=None):
+    """ Plot the fluence spectrum calculated by OpSEP. 
+        
+        fluence_spectra correspond to multiple event_definitions.
+        energy_bin_centers are a single array defining the energy bin
+            centers for all of the fluence spectra.
+    
+    """
     
     #Event-integrated fluence for energy channels
     print("Generating figure of event-integrated fluence spectrum.")
@@ -698,6 +805,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBG
     #plot integral fluxes (either input or estimated)
     nthresh = len(event_definitions)
     energy_units = event_definitions[0]['energy_channel'].units
+    fluence_units = fluence_spectra_units[0]
     
     exp_name = experiment
     if not pd.isnull(model_name) and model_name != '':
@@ -711,45 +819,43 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBG
  
     ncross = 0 #Check if any thresholds were crossed, if not no need plot
 
-    fig = plt.figure(figname,figsize=(12,10))
+    fig = plt.figure(figname,figsize=(10,8))
     ax = plt.subplot(111)
     markers = ['o','P','D','v','^','<','>','*','d','+','8','p','h','1','X','x']
+    colors = define_colors()
     for i in range(nthresh):
-        energy_bin = [event_definitions[i]['energy_channel'].min,
-                    event_definitions[i]['energy_channel'].max]
     
         if len(fluence_spectra[i]) == 0:
             continue
         ncross = ncross + 1
 
+        energy_bin = [event_definitions[i]['energy_channel'].min, event_definitions[i]['energy_channel'].max]
         flspec_units = fluence_spectra_units[i]
-        threshold_label = f"{event_definitions[i]['threshold'].threshold} {event_definitions[i]['threshold'].threshold_units}"
+        threshold_label = f"{event_definitions[i]['threshold'].threshold} ${event_definitions[i]['threshold'].threshold_units}$"
+        threshold_label = make_math_label(threshold_label)
+
         #Create labels
-        if energy_bin[1] == -1 and flux_type == "integral":
-            legend_label = f"{exp_name} >{energy_bin[0]} {energy_units}, {threshold_label}"
-        elif energy_bin[1] == -1 and flux_type == "differential":
-            legend_label = f"{exp_name} Estimated >{energy_bin[0]} {energy_units}, {threshold_label}"
+        if energy_bin[1] == -1:
+            legend_label = f">{energy_bin[0]} {energy_units}, {threshold_label}"
         else:
-            legend_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}, {threshold_label}"
+            legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}, {threshold_label}"
 
-        ax.plot(all_energies[j,:],all_fluence[j,:],markers[j],
-                color=colors[j],mfc='none',label=legend_label)
-
-
+        ax.plot(energy_bin_centers,fluence_spectra[i],markers[i],
+                color=colors[i], mfc='none', label=legend_label)
+    
     plt.grid(which="both", axis="both")
-    plt.title(experiment + ' ' + title_mod + '\n Event-Integrated Fluences '
-                'for All Event Definitions')
-    if experiment == 'user' and model_name != '':
-        plt.title(model_name + ' ' + title_mod + '\n Event-Integrated '
-                'Fluences for All Event Definitions')
-    plt.xlabel('Energy [' + energy_units +']')
-    if flux_type == "integral":
-        plt.ylabel('Integral Fluence [' + fluence_units_integral + ']')
-    if flux_type == "differential":
-        plt.ylabel('Differential Fluence [' + fluence_units_differential + ']')
+    plot_title = f"Event-Integrated Fluence Spectra for {exp_name} {title_mod} {flux_type}"
+    plt.title(plot_title)
+    plt.xlabel(f"Energy [{energy_units}]")
+    ylabel = f"Fluence [${fluence_units}$]"
+    ylabel = make_math_label(ylabel)
+    plt.ylabel(ylabel)
+
     plt.xscale("log")
     plt.yscale("log")
     ax.legend(loc='upper right')
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(14)
 
     if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
 
@@ -758,8 +864,6 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBG
     if not showplot:
         plt.close(fig)
 
-
-  
 
 
 ############ IDSEP PLOTS ##############

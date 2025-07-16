@@ -4286,7 +4286,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                        [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
                        [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
                        [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-         energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
+        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
                         15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
  
     if experiment == "ERNEf50":
@@ -4351,7 +4351,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                            [375, 375],[465,465],[605,605], [700,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "integral"):
-             energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
+            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
                             [50.0,-1],[60.0,-1],[100.0,-1], [700,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
 
@@ -4372,8 +4372,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                                 math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
                                 math.sqrt(510.0*700.0), 700]
         if (flux_type == "integral"):
-             energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1]]
+            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
 
 
@@ -4381,7 +4380,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
         or experiment == "GOES-10" or experiment == "GOES-11"
         or experiment == "GOES-12"):
         if (flux_type == "integral"):
-             energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
+            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
                             [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "differential"):
@@ -4412,7 +4411,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
     if (experiment == "GOES-13" or experiment == "GOES-14" or
         experiment == "GOES-15"):
         if (flux_type == "integral"):
-             energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
+            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
                             [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "differential"):

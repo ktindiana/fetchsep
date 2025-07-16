@@ -911,6 +911,18 @@ class Analyze:
                         #Double checked some calculated event end times with SWPC and
                         #this logic gave the correct end times. 2023-04-10 KW
 
+
+        #In case that date range ended before fell before threshold,
+        #use the last time in the file
+        if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+            sep_end_time = dates[ndates-1]
+            print(f"WARNING !!!!File ended before SEP event ended for [{energy_bin[0]},{energy_bin[1]}], "
+                 f"{threshold} {event_definition['threshold'].threshold_units}! "
+                "Using the last time in the date range as the event end time. "
+                "Extend your date range to get an improved estimate of the event "
+                "end time and duration.")
+
+
         self.sep_start_time = sep_start_time
         self.sep_end_time = sep_end_time
         
@@ -924,6 +936,10 @@ class Analyze:
         """
         
         indices = [i for i in range(len(dates)) if (dates[i] >= startdate and dates[i] <= enddate)]
+        
+        if len(indices) == 0:
+            return []
+        
         nst = indices[0]
         nend = indices[-1] + 1
         
@@ -1185,6 +1201,10 @@ class Analyze:
             
         """
         clean_flux = [fx for fx in fluxes if not pd.isnull(fx) and fx >=0]
+        
+        if len(clean_flux) == 0:
+            return np.nan
+        
         fluence = sum(clean_flux)*time_resolution*4.0*math.pi #multiply 4pi steradians
     
         return fluence
@@ -1196,6 +1216,10 @@ class Analyze:
  
         flux = self.flux
         dates = self.dates
+
+        if pd.isnull(self.sep_start_time) or pd.isnull(self.sep_end_time):
+            print("calculated_channel_fluence: The SEP start or end time is null. No event. Returning NaN for fluence.")
+            return np.nan
 
         trim_flux = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, dates, flux)
         fluence = self.calculate_fluence(trim_flux, data.time_resolution)
@@ -1504,7 +1528,7 @@ class Output:
                 f"{channel_label} {threshold_label} Rise Time to Max ({analyze.rise_time_units})": analyze.max_rise_time,
                 f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
                 f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": fluence_spectrum_str,
-                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins,
                 f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": fluence_spectrum_energy_bin_centers
             }
 
@@ -1656,8 +1680,6 @@ class Output:
             analyze_dict = self.event_info_dict_for_csv(analyze)
             dict.update(analyze_dict)
             
-        print(dict)
-        
         header = ''
         row = ''
         for key in dict.keys():
@@ -1729,7 +1751,22 @@ class Output:
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
             spacecraft=self.data.spacecraft)
-    
+
+
+    def plot_all_fluxes(self):
+        """ Plot threshold crossings on top of all fluxes """
+ 
+        #Collect calculated values from Analyze objects
+        event_definitions, sep_start_times, sep_end_times, onset_peaks,\
+        onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
+
+        plt_tools.opsep_plot_all_bins(self.data.experiment, self.data.flux_type,
+            self.data.model_name, self.data.options, self.data.doBGSub,
+            self.data.dates, self.data.fluxes, self.data.energy_bins,
+            self.data.event_definitions, sep_start_times, sep_end_times,
+            self.data.showplot, self.data.saveplot, spacecraft=self.data.spacecraft)
+
 
     def plot_fluence_spectra(self):
         """ Plots the fluence spectra from all event definitions """
@@ -1739,7 +1776,12 @@ class Output:
         onset_peak_times, max_fluxes, max_flux_times, fluences,\
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
         
-        
+        plt_tools.opsep_plot_fluence_spectrum(self.data.experiment, self.data.flux_type,
+            self.data.model_name, self.data.options, self.data.doBGSub,
+            self.data.event_definitions, self.data.evaluated_dates,
+            self.data.energy_bin_centers,
+            fluence_spectra, fluence_spectra_units, self.data.showplot,
+            self.data.saveplot, spacecraft=self.data.spacecraft)
         
         
 

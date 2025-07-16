@@ -49,7 +49,7 @@ def sort_bin_order(all_fluxes, energy_bins, energy_bin_centers=[]):
                 midpt = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
                 energy_bin_centers.append(midpt)
             
-    eff_en_np = np.array(eff_en)
+    eff_en_np = np.array(energy_bin_centers)
     sort_index = np.argsort(eff_en_np) #indices in sorted order
     
     sort_fluxes = np.array(all_fluxes)

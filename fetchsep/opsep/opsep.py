@@ -757,89 +757,89 @@ def make_dirs():
             print('Making directory: ', check_path)
             os.makedirs(check_path)
 
-
-def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
-                integral_fluxes, crossing_time):
-    """ Uses the integral fluxes (either input or estimated from differential
-        channels) and all the energy and flux thresholds set in the main program
-        to calculate SEP event quantities specific to the UMASEP model.
-            Flux at threshold crossing time + 3, 4, 5, 6, 7 hours
-            
-        INPUTS:
-        
-        :energy_thresholds: (float 1xn array) - energy channels for which thresholds
-            are applied
-        :flux_thresholds: (float 1xn array) - flux thresholds that are applied
-        :dates: (datetime 1xm array) - dates associated with flux time profile
-        :integral_fluxes: (float nxm array) - fluxes for each energy channel for
-            which a threshold is applied; each is the same length as dates
-        :crossing_time: (datetime 1xn array) - threshold crossing times for each energy
-            channel for which a threshold is applied
-            
-        OUTPUTS:
-        
-        :proton_delay_times: (datetime nx5 array) - times 3, 4, 5, 6, 7 hours
-            after crossing time for n thresholds
-        :proton_flux: (float nx5 array) - value of flux at each delay time and for
-            each threshold
-        
-    """
-    nthresh = len(flux_thresholds)
-    proton_flux = []
-    delays = [datetime.timedelta(hours=3), datetime.timedelta(hours=4),
-                    datetime.timedelta(hours=5), datetime.timedelta(hours=6),
-                    datetime.timedelta(hours=7)]
-    ndelay = len(delays)
-    delay_times = []
-    proton_delay_times = []  #actual time point corresponding to flux
-
-    #Match the correct time delay with the correct threshold
-    for i in range(nthresh):
-        if crossing_time[i] == 0:
-            delay_times.append(0)
-            continue
-        all_delays = []
-        for delay in delays:
-            all_delays.append(crossing_time[i] + delay)
-            #Make sure that delayed time doesn't exceed input time range
-            if crossing_time[i] + delay > dates[len(dates)-1]:
-                sys.exit("An UMASEP delayed time (Ts+3, 4, 5, 6, 7 hrs) "
-                        "exceeded the user's input time range. Please rerun "
-                        "and extend end time.")
-
-        delay_times.append(all_delays) #all delays for a given threshold
-
-    for i in range(nthresh):
-        save_flux = [0]*ndelay
-        save_dates = [0]*ndelay
-        if delay_times[i] == 0:
-            proton_delay_times.append(0)
-            proton_flux.append(0)
-            continue
-        for k in range(ndelay):
-            save_index = -1
-            for j in range(len(dates)):
-                if dates[j] <= delay_times[i][k]:
-                    save_index = j
-
-            #GET FLUX AT DELAYED TIME WITH 10 MINUTE AVERAGE
-            #May choose to modify if input data set has something other than
-            #5 minute time cadence.
-            if save_index == -1: #should not happen, unless dates has no length
-                sys.exit("Did not find an appropriate UMASEP flux point. "
-                        "Exiting.")
-            if save_index == 0: #also should be no way for this to happen
-                save_flux[k] = (integral_fluxes[i][save_index] + \
-                            integral_fluxes[i][save_index +1])/2.
-            else:
-                save_flux[k] = (integral_fluxes[i][save_index] + \
-                            integral_fluxes[i][save_index - 1])/2.
-            save_dates[k] = dates[save_index]
-
-        proton_flux.append(save_flux)
-        proton_delay_times.append(save_dates)
-
-    return proton_delay_times, proton_flux
+#### TO BE INCORPORATED INTO ANALYZE CLASS IF DEEMED NECESSARY ####
+#def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
+#                integral_fluxes, crossing_time):
+#    """ Uses the integral fluxes (either input or estimated from differential
+#        channels) and all the energy and flux thresholds set in the main program
+#        to calculate SEP event quantities specific to the UMASEP model.
+#            Flux at threshold crossing time + 3, 4, 5, 6, 7 hours
+#            
+#        INPUTS:
+#        
+#        :energy_thresholds: (float 1xn array) - energy channels for which thresholds
+#            are applied
+#        :flux_thresholds: (float 1xn array) - flux thresholds that are applied
+#        :dates: (datetime 1xm array) - dates associated with flux time profile
+#        :integral_fluxes: (float nxm array) - fluxes for each energy channel for
+#            which a threshold is applied; each is the same length as dates
+#        :crossing_time: (datetime 1xn array) - threshold crossing times for each energy
+#            channel for which a threshold is applied
+#            
+#        OUTPUTS:
+#        
+#        :proton_delay_times: (datetime nx5 array) - times 3, 4, 5, 6, 7 hours
+#            after crossing time for n thresholds
+#        :proton_flux: (float nx5 array) - value of flux at each delay time and for
+#            each threshold
+#        
+#    """
+#    nthresh = len(flux_thresholds)
+#    proton_flux = []
+#    delays = [datetime.timedelta(hours=3), datetime.timedelta(hours=4),
+#                    datetime.timedelta(hours=5), datetime.timedelta(hours=6),
+#                    datetime.timedelta(hours=7)]
+#    ndelay = len(delays)
+#    delay_times = []
+#    proton_delay_times = []  #actual time point corresponding to flux
+#
+#    #Match the correct time delay with the correct threshold
+#    for i in range(nthresh):
+#        if crossing_time[i] == 0:
+#            delay_times.append(0)
+#            continue
+#        all_delays = []
+#        for delay in delays:
+#            all_delays.append(crossing_time[i] + delay)
+#            #Make sure that delayed time doesn't exceed input time range
+#            if crossing_time[i] + delay > dates[len(dates)-1]:
+#                sys.exit("An UMASEP delayed time (Ts+3, 4, 5, 6, 7 hrs) "
+#                        "exceeded the user's input time range. Please rerun "
+#                        "and extend end time.")
+#
+#        delay_times.append(all_delays) #all delays for a given threshold
+#
+#    for i in range(nthresh):
+#        save_flux = [0]*ndelay
+#        save_dates = [0]*ndelay
+#        if delay_times[i] == 0:
+#            proton_delay_times.append(0)
+#            proton_flux.append(0)
+#            continue
+#        for k in range(ndelay):
+#            save_index = -1
+#            for j in range(len(dates)):
+#                if dates[j] <= delay_times[i][k]:
+#                    save_index = j
+#
+#            #GET FLUX AT DELAYED TIME WITH 10 MINUTE AVERAGE
+#            #May choose to modify if input data set has something other than
+#            #5 minute time cadence.
+#            if save_index == -1: #should not happen, unless dates has no length
+#                sys.exit("Did not find an appropriate UMASEP flux point. "
+#                        "Exiting.")
+#            if save_index == 0: #also should be no way for this to happen
+#                save_flux[k] = (integral_fluxes[i][save_index] + \
+#                            integral_fluxes[i][save_index +1])/2.
+#            else:
+#                save_flux[k] = (integral_fluxes[i][save_index] + \
+#                            integral_fluxes[i][save_index - 1])/2.
+#            save_dates[k] = dates[save_index]
+#
+#        proton_flux.append(save_flux)
+#        proton_delay_times.append(save_dates)
+#
+#    return proton_delay_times, proton_flux
 
 
 
@@ -1004,14 +1004,12 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
         if spacecraft != "primary" and spacecraft != "secondary":
             sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
         
-
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes
     flux_data = load_input_data(str_startdate, str_enddate, experiment,
         flux_type, model_name, user_file, showplot, saveplot, two_peaks,
         str_thresh, options, doBGSub, str_bgstartdate, str_bgenddate,
         nointerp, spacecraft, use_bg_thresholds)
-
 
     #Calculate SEP info for each event definition and create Analyze objects.
     flux_data = calculate_event_info(flux_data)
@@ -1022,6 +1020,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     jsonfname = output_data.write_ccmc_json()
     output_data.create_csv_dict()
     output_data.plot_event_definitions()
+    output_data.plot_all_fluxes()
+    output_data.plot_fluence_spectra()
 
     if showplot: plt.show()
 
@@ -1036,104 +1036,3 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
 #    if umasep:
 #        umasep_times, umasep_fluxes = calculate_umasep_info(energy_thresholds,
 #                        flux_thresholds, dates, integral_fluxes, crossing_time)
-
-
-
-
-
-#    ###TO BE CONVERTED
-#    #####################################################################
-#    #===============PLOTS==================
-#    if saveplot or showplot:
-#        stzulu = ccmc_json.make_ccmc_zulu_time(startdate)
-#        stzulu = stzulu.replace(":","")
-#        #Plot selected results
-#        #Event definition from integral fluxes
-#        if flux_type == "differential":
-#            print("Generating figure of estimated integral fluxes with "
-#                   "threshold crossings.")
-#        if flux_type == "integral":
-#            print("Generating figure of integral fluxes with threshold "
-#                    "crossings.")
-#
-#        #Additions to titles and filenames according to user-selected options
-#        modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-#
-#        #plot integral fluxes (either input or estimated)
-#        nthresh = len(flux_thresholds)
-#
-#        #All energy channels in specified date range with event start and stop
-#        print("Generating figure of fluxes in original energy bins. Any bad data "
-#              "points were interpolated. Lines indicate event start and stop for "
-#              "thresholds.")
-#        #Plot all channels of user specified data
-#        figname = stzulu + '_' + experiment + '_' + flux_type + modifier \
-#                + '_' + 'All_Bins'
-#        if experiment == 'user' and model_name != '':
-#            figname = stzulu + '_' + model_name + '_' + flux_type + modifier \
-#                    + '_' + 'All_Bins'
-#        fig = plt.figure(figname,figsize=(13.5,6))
-#        ax = plt.subplot(111)
-#        nbins = len(energy_bins)
-#        for i in range(nbins):
-#            legend_label = ""
-#            if energy_bins[i][1] != -1:
-#                legend_label = str(energy_bins[i][0]) + '-' \
-#                               + str(energy_bins[i][1]) + ' ' + energy_units
-#            else:
-#                legend_label = '>'+ str(energy_bins[i][0]) + ' ' + energy_units
-#
-#            if doBGSub:
-#                maskfluxes = np.ma.masked_where(fluxes[i] <0, fluxes[i])
-#                ax.plot_date(dates,maskfluxes,'-',label=legend_label)
-#            else:
-#                ax.plot_date(dates,fluxes[i],'-',label=legend_label)
-#
-#        colors = ['black','red','blue','green','cyan','magenta','violet',\
-#                'orange','brown','darkred','deepskyblue','mediumseagreen',
-#                'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
-#                'navy','palevioletred','saddlebrown']
-#        for j in range(len(energy_thresholds)):
-#            #if crossing_time[j] == 0:
-#            #    continue
-#            line_label = '>' + plt_energy[j] + ' MeV, ' \
-#                        + plt_flux[j] + ' pfu'
-#            if plot_diff_thresh[j]: #tacked on to end
-#                line_label = (plt_energy[j] + ' MeV, ' + plt_flux[j] + \
-#                            '\n' + flux_units_differential)
-#            
-#            if crossing_time[j] != 0:
-#                ax.axvline(crossing_time[j],color=colors[j],linestyle=':',
-#                            label=line_label)
-#                ax.axvline(event_end_time[j],color=colors[j],linestyle=':')
-#        if flux_type == "integral":
-#            plt.ylabel('Integral Flux [' + flux_units_integral + ']')
-#            plt.title(experiment + ' '+ title_mod + '\n'\
-#                        + "Integral Energy Bins with Threshold Crossings")
-#            if experiment == 'user' and model_name != '':
-#                plt.title(model_name + ' '+ title_mod + '\n'\
-#                        + "Integral Energy Bins with Threshold Crossings")
-#        if flux_type == "differential":
-#            plt.ylabel('Flux [' + flux_units_differential + ']')
-#            plt.title(experiment + ' ' + title_mod + '\n'\
-#                        + "Differential Energy Bins with Threshold Crossings")
-#            if experiment == 'user' and model_name != '':
-#                plt.title(model_name + ' ' + title_mod + '\n' \
-#                        + "Differential Energy Bins with Threshold Crossings")
-#        plt.xlabel('Date')
-#        ax.xaxis_date()
-#        ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
-#        plt.yscale("log")
-#        #plt.grid(which="major", axis="both", linestyle="dotted")
-#        chartBox = ax.get_position()
-#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-#                         chartBox.height])
-#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
-#        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-#            item.set_fontsize(14)
-#        if saveplot:
-#            fig.savefig(plotpath + '/' +figname + '.png')
-#        if not showplot:
-#            plt.close(fig)
-#
-#
