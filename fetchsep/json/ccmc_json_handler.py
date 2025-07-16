@@ -367,7 +367,7 @@ def fill_json_header(json_type, issue_time, experiment,
     template = {}
     if json_type == "observations":
         template = observation_json()
-    elif json_type == "forecast":
+    elif json_type == "model":
         template = forecast_json()
 
     key, type_key, win_key, exp_key = set_keys(json_type)
@@ -386,23 +386,41 @@ def fill_json_header(json_type, issue_time, experiment,
     return template
 
 
-def new_block():
+def new_block(json_type):
     """ dict containing observation or forecast block """
+    block = {}
+    if json_type == "observations":
+        block = {"energy_channel": { "min": "", "max": "", "units": ""},
+                "species": "",
+                "location": "",
+                "observation_window": { "start_time": "", "end_time": "" },
+                "peak_intensity": { "intensity": "", "units": "", "time": ""},
+                "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
+                "event_lengths":[ { "start_time": "",  "end_time": "", "threshold_start": "", "threshold_end": "", "threshold_units": ""  }],
+                "fluences": [{"fluence": "", "units": ""}],
+                "fluence_spectra": [{"start_time": "", "end_time": "","threshold_start":"", "threshold_end":"", "threshold_units":"",
+                "fluence_units": "",
+                "fluence_spectrum":[{"energy_min": "", "energy_max":"", "fluence": ""}]}],
+                "threshold_crossings": [ { "crossing_time": "", "threshold": "", "threshold_units": "" } ],
+                "all_clear": { "all_clear_boolean": "", "threshold": "", "threshold_units": ""},
+                "sep_profile": ""}
 
-    block = {"energy_channel": { "min": "", "max": "", "units": ""},
-            "species": "",
-            "location": "",
-            "observation_window": { "start_time": "", "end_time": "" },
-            "peak_intensity": { "intensity": "", "units": "", "time": ""},
-            "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
-            "event_lengths":[ { "start_time": "",  "end_time": "", "threshold_start": "", "threshold_end": "", "threshold_units": ""  }],
-            "fluences": [{"fluence": "", "units": ""}],
-            "fluence_spectra": [{"start_time": "", "end_time": "","threshold_start":"", "threshold_end":"", "threshold_units":"",
-            "fluence_units": "",
-            "fluence_spectrum":[{"energy_min": "", "energy_max":"", "fluence": ""}]}],
-            "threshold_crossings": [ { "crossing_time": "", "threshold": "", "threshold_units": "" } ],
-            "all_clear": { "all_clear_boolean": "", "threshold": "", "threshold_units": ""},
-            "sep_profile": ""}
+    if json_type == "model":
+        block = {"energy_channel": { "min": "", "max": "", "units": ""},
+                "species": "",
+                "location": "",
+                "prediction_window": { "start_time": "", "end_time": "" },
+                "peak_intensity": { "intensity": "", "units": "", "time": ""},
+                "peak_intensity_max": { "intensity": "", "units": "", "time": "" },
+                "event_lengths":[ { "start_time": "",  "end_time": "", "threshold_start": "", "threshold_end": "", "threshold_units": ""  }],
+                "fluences": [{"fluence": "", "units": ""}],
+                "fluence_spectra": [{"start_time": "", "end_time": "","threshold_start":"", "threshold_end":"", "threshold_units":"",
+                "fluence_units": "",
+                "fluence_spectrum":[{"energy_min": "", "energy_max":"", "fluence": ""}]}],
+                "threshold_crossings": [ { "crossing_time": "", "threshold": "", "threshold_units": "" } ],
+                "all_clear": { "all_clear_boolean": "", "threshold": "", "threshold_units": ""},
+                "sep_profile": ""}
+
 
     return block
 
@@ -531,7 +549,7 @@ def fill_json_block(template, json_type, energy_channel, threshold_dict, startda
     if ix == -1:
         n = len(blocks)
         ix = n
-        template[key][type_key].append(new_block())
+        template[key][type_key].append(new_block(json_type))
         template[key][type_key][n]['energy_channel'] = energy_channel
 
 

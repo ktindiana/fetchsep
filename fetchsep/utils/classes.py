@@ -101,7 +101,7 @@ class Data:
         
         #Variables for user-input files
         self.user_delim = cfg.user_delim #delimeter between columns
-        self.use_col = cfg.user_col #columns in input data file containing fluxes
+        self.user_col = cfg.user_col #columns in input data file containing fluxes
         #self.err_col = cfg.err_col #columns containing error bars
         self.user_energy_bins = cfg.user_energy_bins #energy bins for each column
 
@@ -534,7 +534,7 @@ class Data:
  
         else:
             all_dates, all_fluxes = datasets.read_in_user_files(filenames1,
-                        user_delim=self.user_delim, flux_col=self.user_col)
+                        delim=self.user_delim, flux_col=self.user_col)
 
 
         #Define energy bins
@@ -1348,6 +1348,8 @@ class Output:
     
         self.spase_id = spase_id
         self.json_type = json_type #observation or forecast
+        self.mode = None #modes for CCMC json when forecasts: allowed values: forecast, historical, nowcast,
+                         #simulated_realtime_forecast, simulated_realtime_nowcast
         self.json_dict = {} #json dictionary from template
         self.json_filename = None #output path and filename
         self.location = location #earth, mars, etc
@@ -1690,7 +1692,7 @@ class Output:
 
         exp_name = self.data.experiment
         if not pd.isnull(self.data.model_name) and self.data.model_name != "":
-            exp_name = model_name
+            exp_name = self.data.model_name
             
         dict = {"Experiment": exp_name,
                 "Flux Type": self.data.flux_type,
