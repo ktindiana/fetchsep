@@ -100,7 +100,7 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         sys.exit('User must indicate whether input flux is integral or '
                 'differential. Exiting.')
 
-    goes_R = ["GOES-16", "GOES-17", "GOES-18"]
+    goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
 
     if ("SEPEM" in experiment and flux_type == "integral"):
         sys.exit('The SEPEM data sets only provides differential fluxes.'
@@ -125,16 +125,16 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '
             'and archived by CCMC. Available starting 2010-04-14.')
 
-    if experiment == "user" and (json_type != "model" and json_type != "observations"):
-        sys.exit('User experiments must specify a JSONType of \"model\" or '
-            '\"observations\". Please specify your JSONType. Exiting.')
+#    if experiment == "user" and (json_type != "model" and json_type != "observations"):
+#        sys.exit('User experiments must specify a JSONType of \"model\" or '
+#            '\"observations\". Please specify your JSONType. Exiting.')
 
-    for diff_thresh in is_diff_thresh:
-        if diff_thresh and flux_type == "integral":
-            sys.exit('The input flux type is specified as integral, but you '
-                    'have requested a threshold in a differential energy bin. '
-                    'Flux must be differential to impelement a threshold on a '
-                    'differential energy bin. Exiting.')
+#    for diff_thresh in is_diff_thresh:
+#        if diff_thresh and flux_type == "integral":
+#            sys.exit('The input flux type is specified as integral, but you '
+#                    'have requested a threshold in a differential energy bin. '
+#                    'Flux must be differential to impelement a threshold on a '
+#                    'differential energy bin. Exiting.')
 
     sepem_end_date = datetime.datetime(2015,12,31,23,55,00)
     if(experiment == "SEPEM" and (startdate > sepem_end_date or
