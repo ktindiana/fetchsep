@@ -522,7 +522,7 @@ class Data:
         #read in flux files
         if not self.user:
             if self.experiment == "GOES":
-                all_dates, all_fluxes, west_detector, energy_bins = \
+                all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
                     datasets.read_in_files(self.experiment, self.flux_type,
                             filenames1, filenames2, filenames_orien, self.options,
                             detector=detector, spacecraft=self.spacecraft)
@@ -921,10 +921,6 @@ class Analyze:
                 "Using the last time in the date range as the event end time. "
                 "Extend your date range to get an improved estimate of the event "
                 "end time and duration.")
-
-
-        self.sep_start_time = sep_start_time
-        self.sep_end_time = sep_end_time
         
         return sep_start_time, sep_end_time
 
@@ -971,14 +967,19 @@ class Analyze:
             dates = self.trim_to_date_range(self.sep_start_time, self.sep_end_time,
                                     dates, dates)
 
+        print(f"LEN FLUXES: {len(fluxes)}, LEN DATES: {len(dates)}")
 
-        max_flux = max(fluxes)
-        ix = np.where(fluxes == max_flux) #First instance, if multiple
+        max_flux = np.nanmax(fluxes)
+        print(max_flux)
+        ix = np.argmax(fluxes) #First instance, if multiple
+        print(f"MAX FLUX: {max_flux} at INDEX: {ix}")
         try:
-            max_flux_time = dates[ix[0][0]]
+            max_flux_time = dates[ix]
+            print(f"MAX FLUX TIME {dates[ix]}")
         except:
             pass
         
+        print(f"MAX FLUX: {max_flux}, MAX FLUX TIME: {max_flux_time}")
         self.max_flux = max_flux
         self.max_flux_time = max_flux_time
         
@@ -1075,8 +1076,8 @@ class Analyze:
             for rat in ratio:
                 low_thresh = rat*threshold
                 low_evdef = data.create_event_definition(energy_bin[0],energy_bin[1],
-                    energy_units, low_thresh, thresh_units)
-                low_start_time, low_end_time = calculate_threshold_crossing(data, low_evdef)
+                    energy_units, low_thresh, threshold_units)
+                low_start_time, low_end_time = self.calculate_threshold_crossing(data, low_evdef)
                 if low_start_time > dates[0] and low_start_time < start_fit_time:
                     start_fit_time = low_start_time
                     break
@@ -1249,6 +1250,7 @@ class Analyze:
         #Trim to the SEP start and end times
         sep_dates, sep_fluxes = datasets.extract_date_range(self.sep_start_time,
                                 self.sep_end_time, dates, fluxes)
+
         fluence_spectrum = []
         for flux in sep_fluxes:
             fluence = self.calculate_fluence(flux, data.time_resolution)
@@ -1283,7 +1285,9 @@ class Analyze:
         #calculate event values and fill in a dictionary that will
         #save info needed for Observation or Forecast objects
         self.select_fluxes(data, self.event_definition) #Load fluxes to obj
-        self.calculate_threshold_crossing(data, self.event_definition)
+        sep_start_time, sep_end_time = self.calculate_threshold_crossing(data, self.event_definition)
+        self.sep_start_time = sep_start_time
+        self.sep_end_time = sep_end_time
         self.calculate_max_flux(data)
         self.calculate_onset_peak_from_fit(data)
         self.derived_timing_values()
@@ -1517,14 +1521,34 @@ class Output:
         fluence_spectrum_energy_bin_centers = str(self.data.energy_bin_centers)
         fluence_spectrum_energy_bin_centers = fluence_spectrum_energy_bin_centers.replace(",", ";")
 
-        dict = {f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time.strftime("%Y-%m-%d %H:%M:%S"),
+        if not pd.isnull(analyze.sep_start_time):
+            sttime = analyze.sep_start_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            sttime = "No SEP"
+
+        if not pd.isnull(analyze.sep_end_time):
+            endtime = analyze.sep_end_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            endtime = "No SEP"
+
+        if not pd.isnull(analyze.onset_peak_time):
+            optime = analyze.onset_peak_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            optime = "No Onset Peak"
+
+        if not pd.isnull(analyze.max_flux_time):
+            mftime = analyze.max_flux_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            mftime = "No Max Flux"
+
+        dict = {f"{channel_label} {threshold_label} SEP Start Time": sttime,
+                f"{channel_label} {threshold_label} SEP End Time": endtime,
                 f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
                 f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
-                f"{channel_label} {threshold_label} Onset Peak Time": analyze.onset_peak_time.strftime("%Y-%m-%d %H:%M:%S"),
+                f"{channel_label} {threshold_label} Onset Peak Time": optime,
                 f"{channel_label} {threshold_label} Rise Time to Onset ({analyze.rise_time_units})": analyze.onset_rise_time,
                 f"{channel_label} {threshold_label} Max Flux ({analyze.flux_units})": analyze.max_flux,
-                f"{channel_label} {threshold_label} Max Flux Time": analyze.max_flux_time.strftime("%Y-%m-%d %H:%M:%S"),
+                f"{channel_label} {threshold_label} Max Flux Time": mftime,
                 f"{channel_label} {threshold_label} Rise Time to Max ({analyze.rise_time_units})": analyze.max_rise_time,
                 f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
                 f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": fluence_spectrum_str,
@@ -1654,7 +1678,7 @@ class Output:
             self.write_zulu_time_profile(analyze)
             self.fill_json_block(analyze)
             self.data.results[i] = analyze
-            
+        
         self.clean_json()
         filename = self.write_json()
 

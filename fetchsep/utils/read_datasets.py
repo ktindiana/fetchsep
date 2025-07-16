@@ -3671,7 +3671,8 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes, west_detector, energy_bins = read_in_all_goes(experiment,
                     flux_type, filenames1, filenames2, filenames_orien,
                     options, detector, spacecraft=spacecraft)
-        return all_dates, all_fluxes, west_detector, energy_bins
+        energy_bin_centers = calculate_geometric_means(energy_bins)
+        return all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers
                     
     elif experiment in old_goes_sc:
         all_dates, all_fluxes, west_detector =\
@@ -3901,6 +3902,9 @@ def extract_date_range(startdate,enddate,all_dates,all_fluxes):
             and p time points
         
     """
+    if pd.isnull(startdate) or pd.isnull(enddate):
+        return [], []
+
     #print('Extracting fluxes for dates: ' + str(startdate) + ' to '
     #    + str(enddate))
     ndates = len(all_dates)

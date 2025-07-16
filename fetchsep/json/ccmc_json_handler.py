@@ -429,14 +429,20 @@ def fill_json_block(template, json_type, energy_channel, threshold_dict, startda
 
     #Process times into the correct format
     zst = make_ccmc_zulu_time(startdate)
+    if pd.isnull(zst): zst = ""
     zend = make_ccmc_zulu_time(enddate)
+    if pd.isnull(zend): zend = ""
     zodate = make_ccmc_zulu_time(onset_peak_time)
+    if pd.isnull(zodate): zodate = ""
     zpdate = make_ccmc_zulu_time(max_flux_time)
+    if pd.isnull(zpdate): zpdate = ""
     zct = make_ccmc_zulu_time(sep_start_time)
+    if pd.isnull(zct): zct = ""
     zeet = make_ccmc_zulu_time(sep_end_time)
+    if pd.isnull(zeet): zeet = ""
 
     ######## Evaluate All Clear ##########
-    all_clear = None #will be string unless specific conditions met
+    all_clear = True #Assume True and check if thresholds were crossed
 
     #Threshold WAS crossed
     if not pd.isnull(sep_start_time):
@@ -486,11 +492,12 @@ def fill_json_block(template, json_type, energy_channel, threshold_dict, startda
 
     #Fluence spectrum
     spectrum = []
-    for kk in range(len(fluence_energy_bins)):
-        flentry = {"energy_min": fluence_energy_bins[kk][0],
-                    "energy_max": fluence_energy_bins[kk][1],
-                    "fluence": fluence_spectrum[kk]}
-        spectrum.append(flentry)
+    if len(fluence_spectrum) != 0:
+        for kk in range(len(fluence_energy_bins)):
+            flentry = {"energy_min": fluence_energy_bins[kk][0],
+                        "energy_max": fluence_energy_bins[kk][1],
+                        "fluence": fluence_spectrum[kk]}
+            spectrum.append(flentry)
     
     fl_spec_dict = {"start_time": zct, "end_time": zeet,
            "threshold_start":threshold_dict['threshold'],
@@ -598,8 +605,7 @@ def clean_json(template, experiment, json_type):
         type_key = keys.model_type
         win_key = keys.model_win
         
-        spase_id = template[key]['model']['spase_id']
-        if spase_id == "":
+        if template[key]['model']['spase_id'] == "":
             template[key]['model'].pop('spase_id', None)
        
                         
@@ -608,22 +614,28 @@ def clean_json(template, experiment, json_type):
         type_key = keys.obs_type
         win_key = keys.obs_win
 
-        spase_id = template[key]['observatory']['spase_id']
-        if spase_id != "":
+
+        if template[key]['observatory']['spase_id'] == "":
             template[key]['observatory'].pop('spase_id', None)
 
     options = template[key]['options']
     if options == [""]:
+        template[key].pop('options', None)
+    elif len(options) == 0:
         template[key].pop('options', None)
 
     nent = len(template[key][type_key])
     for i in range(nent-1,-1,-1):
         #Onset Peak Flux
         if template[key][type_key][i]['peak_intensity']['intensity'] == "":
-            template[key][type_key][i].pop('peak_intensity', None)
+            template[key][type_key][i].pop('peak_intensity', None) #remove from dict
+        elif pd.isnull(template[key][type_key][i]['peak_intensity']['intensity']):
+            template[key][type_key][i].pop('peak_intensity', None) #remove from dict
         
         #Maximum Flux
         if template[key][type_key][i]['peak_intensity_max']['intensity'] == "":
+            template[key][type_key][i].pop('peak_intensity_max', None)
+        elif pd.isnull(template[key][type_key][i]['peak_intensity_max']['intensity']):
             template[key][type_key][i].pop('peak_intensity_max', None)
                     
         #Maximum flux is the one field that will always be filled in,
@@ -641,14 +653,16 @@ def clean_json(template, experiment, json_type):
             if template[key][type_key][i]['event_lengths'][j]['start_time']\
                 == "":
                 template[key][type_key][i]['event_lengths'].pop(j)
-                            
-            if template[key][type_key][i]['fluences'][j]['fluence'] == "":
-                template[key][type_key][i]['fluences'].pop(j)
+                template[key][type_key][i]['fluences'].pop(j) #corresponding fluences
+
+            elif pd.isnull(template[key][type_key][i]['event_lengths'][j]['start_time']):
+                template[key][type_key][i]['event_lengths'].pop(j)
+                template[key][type_key][i]['fluences'].pop(j) #corresponding fluences
         
-        if template[key][type_key][i]['event_lengths'] == []:
-            template[key][type_key][i].pop('event_lengths')
-        if template[key][type_key][i]['fluences'] == []:
-            template[key][type_key][i].pop('fluences')
+        if len(template[key][type_key][i]['event_lengths']) == 0:
+            template[key][type_key][i].pop('event_lengths', None)
+        if len(template[key][type_key][i]['fluences']) == 0:
+            template[key][type_key][i].pop('fluences', None)
         
         
         #Fluence spectrum
@@ -657,8 +671,8 @@ def clean_json(template, experiment, json_type):
             if template[key][type_key][i]['fluence_spectra'][j]['start_time']\
                 == "":
                 template[key][type_key][i]['fluence_spectra'].pop(j)
-        if template[key][type_key][i]['fluence_spectra'] == []:
-            template[key][type_key][i].pop('fluence_spectra')
+        if len(template[key][type_key][i]['fluence_spectra']) == 0:
+            template[key][type_key][i].pop('fluence_spectra', None)
         
         
         #Threshold crossings
@@ -666,23 +680,25 @@ def clean_json(template, experiment, json_type):
         for j in range(nev-1,-1,-1):
             if template[key][type_key][i]['threshold_crossings'][j]['crossing_time'] == "":
                 template[key][type_key][i]['threshold_crossings'].pop(j)
-        if template[key][type_key][i]['threshold_crossings'] == []:
-            template[key][type_key][i].pop('threshold_crossings')
+            elif pd.isnull(template[key][type_key][i]['threshold_crossings'][j]['crossing_time']):
+                template[key][type_key][i]['threshold_crossings'].pop(j)
+        if len(template[key][type_key][i]['threshold_crossings']) == 0:
+            template[key][type_key][i].pop('threshold_crossings', None)
             
         #All Clear
-        if template[key][type_key][i]['all_clear']['all_clear_boolean'] \
-                            == "":
-            template[key][type_key][i].pop('all_clear')
+        if template[key][type_key][i]['all_clear']['all_clear_boolean'] == "":
+            template[key][type_key][i].pop('all_clear', None)
         
         #SEP Flux Time Profile
         if template[key][type_key][i]['sep_profile'] == "":
-            template[key][type_key][i].pop('sep_profile')
+            template[key][type_key][i].pop('sep_profile', None)
             
     return template
 
 
 def write_json(template, filename):
     """Write json template to json file. """
+
     with open(filename, "w") as outfile:
         json.dump(template, outfile)
 

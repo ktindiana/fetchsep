@@ -622,11 +622,15 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
         figname = f"{stzulu}_{exp_name}_{spacecraft}_{flux_type}{modifier}_Event_Def"
 
     if nthresh > 4:
-        fig = plt.figure(figname,figsize=(12,12))
+        #fig = plt.figure(figname,figsize=(12,12))
+        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,12))
     else:
-        fig = plt.figure(figname,figsize=(12,9))
-        
+        #fig = plt.figure(figname,figsize=(12,9))
+        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9))
+
+
     plot_title = f"Event Definitions for {exp_name} {title_mod} {flux_type} Fluxes"
+    plt.suptitle(plot_title)
 
     for i in range(nthresh):
         #Get energy bin
@@ -653,36 +657,35 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
             data_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}"
 
     
-        ax = plt.subplot(nthresh, 1, i+1)
+        #ax = plt.subplot(nthresh, 1, i+1)
         #Don't want to plot negative values, particularly in background-subtracted plots
         if doBGSub:
             maskfluxes = np.ma.masked_where(fluxes <0, fluxes)
-            plt.plot_date(dates,maskfluxes,'-',label=data_label)
+            ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
         else:
-            plt.plot_date(dates,fluxes,'-',label=data_label)
+            ax[i].plot_date(dates,fluxes,'-',label=data_label)
 
         if not pd.isnull(sep_start_times[i]):
-            plt.axvline(sep_start_times[i],color='black',linestyle=':')
-            plt.axvline(sep_end_times[i],color='black',linestyle=':',
+            ax[i].axvline(sep_start_times[i],color='black',linestyle=':')
+            ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
                         label="Start, End")
-        plt.axhline(threshold,color='red',linestyle=':', label="Threshold")
+        ax[i].axhline(threshold,color='red',linestyle=':', label="Threshold")
         if not pd.isnull(onset_peaks[i]) and not pd.isnull(onset_peak_times[i]):
-            plt.plot_date(onset_peak_times[i],onset_peaks[i],'o',color="black",
+            ax[i].plot_date(onset_peak_times[i],onset_peaks[i],'o',color="black",
                     label="Onset Peak")
         if not pd.isnull(max_fluxes[i]) and not pd.isnull(max_flux_times[i]):
-            plt.plot_date(max_flux_times[i],max_fluxes[i],'ro',mfc='none',
+            ax[i].plot_date(max_flux_times[i],max_fluxes[i],'ro',mfc='none',
                     label="Max Flux")
 
 
-        if i == nthresh-1: ax.set_xlabel('Date')
-        plt.ylabel(ylabel)
-        plt.suptitle(plot_title)
+        if i == nthresh-1: ax[i].set_xlabel('Date')
+        ax[i].set_ylabel(ylabel)
         if sum(fluxes) > 0: #If NaN present, returns False
-            plt.yscale("log")
+            ax[i].set_yscale("log")
         #ymin = max(1e-6, min(integral_fluxes[i]))
         # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
-        ax.legend(loc='upper right')
-        for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        ax[i].legend(loc='upper right')
+        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
             item.set_fontsize(12)
 
     if saveplot:
