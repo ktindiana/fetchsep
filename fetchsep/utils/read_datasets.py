@@ -3114,6 +3114,7 @@ def read_in_ephin(experiment, flux_type, filenames1):
                     flux = float(row[fluxcols[j]])
                     if flux < 0:
                         flux = badval
+                       # print(f"SETTING EPHIN FLUX TO BADVAL {badval} for {j}, {count}")
                     fluxes[j][count] = flux
                 count = count + 1
 
@@ -4024,7 +4025,7 @@ def do_interpolation(i,dates,flux):
             
     if preflux == badval or postflux == badval:
         interp_flux = badval
- #       print(f'do_interpolation could not interpolate flux at {i}. Setting to {badval}.')
+#        print(f'do_interpolation could not interpolate flux at {i}. Setting to {badval}.')
     
     else:
         if preflux == postflux:
@@ -4032,8 +4033,8 @@ def do_interpolation(i,dates,flux):
         if preflux != postflux:
             interp_flux = preflux + (dates[i] - predate).total_seconds()\
                  *(postflux - preflux)/(postdate - predate).total_seconds()
-    #    print('Filling gap at time ' + str(dates[i])
-    #            + ' with interpolated flux ' + str(interp_flux))
+#        print('Filling gap at time ' + str(dates[i])
+#                + ' with interpolated flux ' + str(interp_flux))
     return interp_flux
 
 
