@@ -140,10 +140,10 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
     #different energy channels for the purposes of SEP identification.
     if experiment == "ERNE":
         version = datasets.which_erne(startdate, enddate)
-        energy_bins = datasets.define_energy_bins(version, flux_type,
+        energy_bins, energy_bin_centers = datasets.define_energy_bins(version, flux_type,
                                 west_detector, options)
     elif experiment != "GOES":
-        energy_bins = datasets.define_energy_bins(experiment, flux_type,
+        energy_bins, energy_bin_centers = datasets.define_energy_bins(experiment, flux_type,
                                 west_detector, options,spacecraft=spacecraft)
 
 
@@ -151,7 +151,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
         sys.exit("Could not identify energy bins for experiment " + experiment
                 + " and fluxtype " + flux_type)
 
-    all_fluxes, energy_bins = tools.sort_bin_order(all_fluxes, energy_bins)
+    all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins)
 
 
     #Extract the date range specified by the user

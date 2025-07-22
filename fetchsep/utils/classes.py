@@ -451,7 +451,7 @@ class Data:
         self.two_peaks = two_peaks
         self.showplot = showplot
         self.saveplot = saveplot
-        self.dointerpolation = not(nointerp)
+        self.do_interpolation = not(nointerp)
         self.error_check()
         
         return
@@ -559,10 +559,10 @@ class Data:
         
         ####Save original fluxes with bad points set to None
         #Extract date range that covers any background-subtraction periods
-        print("Reading in original fluxes with no interpolation including any background subtraction periods.")
+        print("Reading in original fluxes including any background subtraction periods with no interpolation.")
         orig_dates, orig_fluxes = datasets.extract_date_range(startdate, enddate,
                                         all_dates, all_fluxes)
-        orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,self.do_interpolation)
+        orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,dointerp=False)
         self.original_dates = orig_dates
         self.original_fluxes = orig_fluxes
 
@@ -573,7 +573,7 @@ class Data:
             #Previous version of subroutine had read in the data
             #again and did not apply linear interpolation on bad points
             nointerp_fluxes = datasets.check_for_bad_data(all_dates,all_fluxes,
-                energy_bins,False)
+                energy_bins,dointerp=False)
             bgfluxes, sepfluxes, means, sigmas = bgsub.derive_background(self.bgstartdate, self.bgenddate, all_dates, nointerp_fluxes, energy_bins, self.showplot,
                 self.saveplot)
             self.bgmeans = means
@@ -592,8 +592,9 @@ class Data:
                                     all_dates, all_fluxes)
         
         #Handle bad data points
-        print("Removing bad points from final fluxes after any background subtraction and trimming.")
-        fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins, self.do_interpolation)
+        print("Removing bad points from final fluxes after any background subtraction and trimming. "
+                f"Performing interpolation? {self.do_interpolation}")
+        fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins, dointerp=self.do_interpolation)
          
         if len(dates) <= 1:
             print("read_in_flux_files: The specified start and end dates were not "
