@@ -111,7 +111,8 @@ def read_sep_dates(sep_filename):
         the file must have the format:
         
         StartDate, Enddate, Experiment, FluxType, Flags, Model Name,
-            User Filename, options, bgstartdate, bgenddate, JSON type
+            User Filename, options, bgstartdate, bgenddate, JSON type,
+            spacecraft, use IDSEP background, location (earth), particles (proton)
 
         Flags may be: TwoPeak, DetectPreviousEvent, SubtractBG
         
@@ -154,6 +155,10 @@ def read_sep_dates(sep_filename):
     bgenddate = [] #row 9
     json_types = [] #row 10 (if user experiment)
     spacecrafts = [] #row 11, primary or secondary for GOES_RT
+    use_idsep_bg = [] #row 12, use background found by idsep for subtraction and threshold
+    locations = [] #earth, mars, etc CCMC json
+    particles = [] #proton, electron, etc CCMC json
+    
 
     with open(sep_filename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
@@ -225,10 +230,26 @@ def read_sep_dates(sep_filename):
             else:
                 spacecrafts.append('')
 
+            if len(row) > 12:
+                use_idsep_bg.append(bool(row[12].strip()))
+            else:
+                use_idsep_bg.append(False)
+                
+            if len(row) > 13:
+                locations.append(row[13].strip())
+            else:
+                locations.append('earth')
+                
+            if len(row) > 14:
+                particles.append(row[14].strip())
+            else:
+                particles.append('proton')
+                
+                
 
     return start_dates, end_dates, experiments, flux_types, flags,\
         model_names, user_files, json_types, options, bgstartdate,\
-        bgenddate, spacecrafts
+        bgenddate, spacecrafts, use_idsep_bg, locations, particles
 
 
 
@@ -497,9 +518,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
     check_list_path()
 
     #READ IN SEP DATES AND experiments
-    start_dates, end_dates, experiments, flux_types, flags,  \
-        model_names, user_files, json_types, options, bgstart,\
-        bgend, spacecrafts = read_sep_dates(sep_filename)
+    start_dates, end_dates, experiments, flux_types, flags,  model_names,\
+        user_files, json_types, options, bgstart, bgend, spacecrafts,\
+        use_idsep_bg, locations, particles = read_sep_dates(sep_filename)
 
     #Prepare output file listing events and flags
     fout = open(os.path.join(cfg.listpath,"opsep",outfname),"w+")
@@ -522,6 +543,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
         bgstartdate = bgstart[i]
         bgenddate = bgend[i]
         spacecraft = spacecrafts[i]
+        use_bg_thresholds = use_idsep_bg[i]
+        location = locations[i]
+        species = particles[i]
 
         spase_id = ''
 
@@ -545,10 +569,10 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
                 experiment, flux_type, model_name, user_file, json_type,
                 spase_id, showplot, saveplot, detect_prev_event,
                 two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
-                bgenddate, nointerp=nointerp, spacecraft=spacecraft)
+                bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+                use_bg_thresholds=use_bg_thresholds, location=location, species=species)
 
-            sep_date = datetime.datetime(year=sep_year, month=sep_month,
-                            day=sep_day)
+            sep_date = datetime.datetime(year=sep_year, month=sep_month, day=sep_day)
             if experiment == 'user' and model_name != '':
                 fout.write(model_name + ',')
             if experiment != 'user':

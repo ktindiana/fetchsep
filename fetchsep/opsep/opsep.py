@@ -930,6 +930,8 @@ def calculate_event_info(flux_data):
         #Add to the flux_data object
         flux_data.add_results(analyze)
 
+    flux_data.get_sep_date() #Set SEP year, month, day if a SEP occurred
+
     return flux_data
 
 
@@ -940,7 +942,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     user_file, json_type, spase_id, showplot, saveplot, detect_prev_event,
     two_peaks, umasep, str_thresh, options, doBGSub, str_bgstartdate,
     str_bgenddate, nointerp=False, spacecraft='',
-    use_bg_thresholds=False, location='earth', species='protons'):
+    use_bg_thresholds=False, location='earth', species='proton'):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -1023,9 +1025,11 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
     output_data.plot_all_fluxes()
     output_data.plot_fluence_spectra()
 
-    if showplot: plt.show()
+    print(f"A SEP occurred on {flux_data.sep_year}-{flux_data.sep_month}-{flux_data.sep_day}")
 
-    return sep_year, sep_month, sep_day, jsonfname
+    if showplot: plt.show()
+    
+    return flux_data.sep_year, flux_data.sep_month, flux_data.sep_day, jsonfname
 
 
 

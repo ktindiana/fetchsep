@@ -167,6 +167,10 @@ class Data:
         #Collect the results as individual Analyze objects for
         #each event definition
         self.results = []
+        #If a SEP event happens in any channel, day is stored here to return
+        self.sep_year = np.nan
+        self.sep_month = np.nan
+        self.sep_day = np.nan
 
         return
 
@@ -692,6 +696,24 @@ class Data:
         return
 
 
+    def get_sep_date(self):
+        """ Get the year, month, day of SEP event if one is
+            recorded for any of the event definitions.
+            
+        """
+        sep_date = pd.NaT
+        for analyze in self.results:
+            if not pd.isnull(analyze.sep_start_time):
+                self.sep_year = analyze.sep_start_time.year
+                self.sep_month = analyze.sep_start_time.month
+                self.sep_day = analyze.sep_start_time.day
+                return
+                
+        return
+        
+
+
+
 ################################################################
 ##### Analyze Class: Analysis of Flux Data for OpSEP ###########
 ################################################################
@@ -968,19 +990,13 @@ class Analyze:
             dates = self.trim_to_date_range(self.sep_start_time, self.sep_end_time,
                                     dates, dates)
 
-        print(f"LEN FLUXES: {len(fluxes)}, LEN DATES: {len(dates)}")
-
         max_flux = np.nanmax(fluxes)
-        print(max_flux)
         ix = np.argmax(fluxes) #First instance, if multiple
-        print(f"MAX FLUX: {max_flux} at INDEX: {ix}")
         try:
             max_flux_time = dates[ix]
-            print(f"MAX FLUX TIME {dates[ix]}")
         except:
             pass
         
-        print(f"MAX FLUX: {max_flux}, MAX FLUX TIME: {max_flux_time}")
         self.max_flux = max_flux
         self.max_flux_time = max_flux_time
         
@@ -1105,7 +1121,7 @@ class Analyze:
         best_fit = tools.modified_weibull(trim_times, best_Ip, best_a, best_b)
 
         print(f"calculate_onset_peak_from_fit ==== {energy_bin} MeV =====")
-        print(f"Best Fit Ip: {best_Ip}, a: {best_a}, b: {best_b}")
+        print(f"Best fit Weibull for onset peak Ip: {best_Ip}, a: {best_a}, b: {best_b}")
         
         if pd.isnull(best_Ip) or pd.isnull(best_a) or pd.isnull(best_b):
             print("calculate_onset_peak_from_fit: Fit failed for "
@@ -1307,6 +1323,7 @@ class Analyze:
         if energy_bin[1] == -1:
             energy_label = f">{energy_bin[0]} {energy_units}"
         threshold_label = f"{threshold} {threshold_units}"
+        print()
         print(f"====SEP Event Characteristics for {energy_label}, {threshold_label}====")
         print(f"SEP Start Time: {self.sep_start_time}")
         print(f"SEP End Time: {self.sep_end_time}")
@@ -1318,6 +1335,7 @@ class Analyze:
         print(f"Channel Fluence: {self.fluence} {self.fluence_units}")
         print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_spectrum_units}")
         print(f"Fluence Energy Bins: {data.energy_bins}")
+        print()
         
 
         return
