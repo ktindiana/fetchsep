@@ -365,7 +365,7 @@ def file_completeness(df, experiment, flux_type, filename, dates):
     
     #Update data manager dataframe
     index = df[df['File'] == filename].index.values
-    if not index:
+    if index.size == 0:
         df = add_to_data_manager(df, experiment, flux_type, filename, dates[0], cadence, resolution, complete)
     else:
         df.at[index[0],'Complete'] = complete

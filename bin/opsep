@@ -19,37 +19,56 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes"))
+
 parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
+
 parser.add_argument("--Experiment", type=str, choices=['GOES', 'GOES-05',
         'GOES-06', 'GOES-07', 'GOES-08',
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
         'GOES-16', 'GOES-17','GOES-18','GOES_RT', 'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE',
         'ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B', 'user'],
         default='', help="Enter name of spacecraft or dataset")
+
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Do you want to use integral or differential fluxes?"))
+
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
+
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
+
 parser.add_argument("--UserFile", type=str, default='tmp.txt', help=("If "
         "you chose user for experiment, specify the filename containing "
         "the fluxes. Specify energy bins and delimeter in code at top. "
         "Default is tmp.txt."))
+
 parser.add_argument("--JSONType", type=str, choices=['model',
         'observations'], default='observations',
         help=("For user-input files, specify whether they are observations "
         "or model predictions to generate a JSON file in the correct format. "
         "Choices are \"model\" or \"observations\" Default is observations."))
+
 parser.add_argument("--spase_id", type=str, default='', help=("If your "
         "model or data source has an associated Spase ID, specify here. "
         "Enter the full Spase ID for the CCMC system, including url, "
         "including spase://CCMC/SimulationModel/."))
+
+parser.add_argument("--Location", type=str, default='earth',
+        help=("Location of time profile. CCMC json files recognize: mercury, venus, "
+            "earth, mars, psp, stereoa, stereob, dawn, juno, L1, L2, L4, L5. You may "
+            "enter another location if needed. Default = earth."))
+
+parser.add_argument("--Species", type=str, default='protons',
+        help=("Location of time profile. CCMC json files recognize: electron, proton, "
+              " helium, helium3, helium4, oxygen, iron, ion. You may "
+              "enter another location if needed. Default = proton"))
+
 parser.add_argument("--Threshold", type=str, default="",
         help=("Additional energy and flux threshold which will be used to "
                 "define the event. To define an integral flux threshold: "
@@ -61,6 +80,7 @@ parser.add_argument("--Threshold", type=str, default="",
                 "Multiple thresholds may be entered separated by a "
                 "semi-colon with no spaces and surrounded by quotes, "
                 "e.g. \"30,1;50,1;25-40.9,0.001\""))
+
 parser.add_argument("--options", type=str, default='', help=("You "
         "may specify a series of options as a semi-colon separated list "
         "surrounded by quotations.\n"
@@ -76,37 +96,47 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
+
 parser.add_argument("--NoInterp",
         help=("Do not fill in negative or missing fluxes via "
                 "linear interpolation in time. Set as None values "
                 "instead."), action="store_true")
+
 parser.add_argument("--SubtractBG",
         help="Set to calculate the background and subtract from the "\
             "SEP flux. Must define start and end dates for the background.",
             action="store_true")
+
 parser.add_argument("--BGStartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes to define the background time period."))
+
 parser.add_argument("--BGEndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes to define the background time period."))
+
 parser.add_argument("--showplot",
         help="Flag to display plots", action="store_true")
+
 parser.add_argument("--saveplot",
         help="Flag to save plots to file", action="store_true")
+
 parser.add_argument("--DetectPreviousEvent",
         help=("Flag to indicate that the threshold is crossed at the "
                "first point due to a previous event."), action="store_true")
+
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
                 "before increasing again to the true peak of the event."),
                 action="store_true")
+
 parser.add_argument("--UMASEP",
         help=("Flag to calculate flux values and thresholds specific to "
             "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
             "flux values at various time periods after crossing "
             "thresholds."), action="store_true")
+
 parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
               "the current working directory and exit.  Used to prepare a "
@@ -128,6 +158,8 @@ model_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
 spase_id = args.spase_id
+location = args.Location
+species = args.Species
 str_thresh = args.Threshold
 doBGSub = args.SubtractBG
 str_bgstartdate = args.BGStartDate
@@ -146,6 +178,6 @@ sep_year, sep_month, sep_day, jsonfname = fetchsep.opsep.run_all(str_startdate,
     str_enddate, experiment, flux_type, model_name, user_file, json_type, spase_id,
     showplot, saveplot, detect_prev_event, two_peaks, umasep, str_thresh, options,
     doBGSub, str_bgstartdate, str_bgenddate, nointerp=nointerp,
-    spacecraft=spacecraft)
+    spacecraft=spacecraft, location=location, species=species)
 
 if showplot: plt.show()
