@@ -3964,7 +3964,7 @@ def do_interpolation(i,dates,flux):
     #If first point is bad point, use the next good point to fill gap
     if i == 0:
         for j in range(i,ndates-1):
-            if flux[j] != badval and flux[j] != None:
+            if flux[j] != badval and not pd.isnull(flux[j]):
                 postflux = flux[j]
                 postdate = dates[j]
 #                print('First point in array is bad. The first good value after '
@@ -3976,7 +3976,7 @@ def do_interpolation(i,dates,flux):
     #If last point is bad point, use the first prior good point to fill gap
     if i == ndates - 1:
         for j in range(i,-1,-1):
-            if flux[j] != badval and flux[j] != None:
+            if flux[j] != badval and not pd.isnull(flux[j]):
                 preflux = flux[j]
                 predate = dates[j]
  #               print('Last point in the array is bad. The first good value '
@@ -3989,7 +3989,7 @@ def do_interpolation(i,dates,flux):
     if i != 0 and i != ndates-1:
         #search for first previous good value prior to the gap
         for j in range(i,-1,-1):
-            if flux[j] != badval and flux[j] != None:
+            if flux[j] != badval and not pd.isnull(flux[j]):
                 preflux = flux[j]
                 predate = dates[j]
 #                print('The first good value previous to gap is on '
@@ -4004,15 +4004,15 @@ def do_interpolation(i,dates,flux):
 
         #search for first previous good value after to the gap
         for j in range(i,ndates-1):
-            if flux[j] != badval and flux[j] != None:
+            if flux[j] != badval and not pd.isnull(flux[j]):
                 postflux = flux[j]
                 postdate = dates[j]
 #                print('The first good value after to gap is on '
 #                    + str(dates[j]) + ' with value ' + str(flux[j]))
                 break
             
-            if j == ndates-2 and (flux[j] == badval or flux[j] == None):
-                if flux[ndates-1] != badval and flux[ndates-1] != None:
+            if j == ndates-2 and (flux[j] == badval or pd.isnull(flux[j])):
+                if flux[ndates-1] != badval and not pd.isnull(flux[ndates-1]):
                     postflux = flux[ndates-1]
                     postdate = dates[ndates-1]
                 else:
