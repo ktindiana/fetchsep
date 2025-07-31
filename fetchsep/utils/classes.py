@@ -107,7 +107,7 @@ class Data:
 
         #User-input data file
         self.user = False #user file?
-        self.model_name = None
+        self.user_name = None
         self.user_filename = None #If user-input file
         
         #Original fluxes before any background subtraction or interpolation
@@ -116,7 +116,7 @@ class Data:
         self.original_fluxes = []
         
         #Do background subtraction on the fluxes?
-        self.doBGSub = False #True to do background-subtraction
+        self.doBGSubOPSEP = False #True to do background-subtraction
         self.bgstartdate = pd.NaT #defaults to idsep output if not set
         self.bgenddate = pd.NaT #defaults to idsep output if not set
         self.bgmeans = [] #Mean fluxes for each energy channel
@@ -267,14 +267,14 @@ class Data:
         return
 
 
-    def set_background_subtraction_info(self, doBGSub, bgstartdate, bgenddate):
+    def set_background_subtraction_info(self, doBGSubOPSEP, bgstartdate, bgenddate):
         """ Indicate whether to perform background-subtraction.
             If start and end dates aren't set, then code
             will look for idsep output to use for mean background.
         
             INPUT:
             
-                :doBGSub: (bool) bg subtraction if True
+                :doBGSubOPSEP: (bool) bg subtraction if True
                 :bg_startdate: (str) start of time period to use for 
                     background calculation
                 :bg_enddate: (str) end of time period to use for
@@ -285,11 +285,11 @@ class Data:
                 Set background attributes in Data object
         
         """
-        self.doBGSub = doBGSub
+        self.doBGSubOPSEP = doBGSubOPSEP
         self.bgstartdate = self.str_to_datetime(bgstartdate)
         self.bgenddate = self.str_to_datetime(bgenddate)
 
-        if doBGSub:
+        if doBGSubOPSEP:
             if pd.isnull(self.bgstartdate) or pd.isnull(self.bgenddate):
                 print("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Will look for idsep output files to extract mean background.")
         
@@ -396,15 +396,15 @@ class Data:
     def error_check(self):
         """ Error check the inputs and options. """
             
-        error_check.error_check_options(self.experiment, self.flux_type, self.options, self.doBGSub, spacecraft=self.spacecraft)
+        error_check.error_check_options(self.experiment, self.flux_type, self.options, self.doBGSubOPSEP, spacecraft=self.spacecraft)
         error_check.error_check_inputs(self.startdate, self.enddate, self.experiment, self.flux_type)
 
         return
 
 
     def load_info(self, startdate, enddate, experiment, flux_type,
-        model_name, user_file, showplot, saveplot, two_peaks,
-        definitions, options, doBGSub, bgstartdate,
+        user_name, user_file, showplot, saveplot, two_peaks,
+        definitions, options, doBGSubOPSEP, bgstartdate,
         bgenddate, nointerp, spacecraft):
         """ Create new Data object and load with all values.
         
@@ -415,8 +415,8 @@ class Data:
                 :experiment: (string) - "GOES-05" up to "GOES-19", "SEPEM", "SEPEMv3","EPHIN", "EPHIN_REleASE", or "user"
                 :flux_type: (string) - "integral" or "differential" 
                     indicates the type of flux to read in
-                :model_name: (string) - If model is "user", set 
-                    model_name to describe your model or data set (e.g. 
+                :user_name: (string) - If model is "user", set 
+                    user_name to describe your model or data set (e.g. 
                     MyModel), otherwise set to ''.
                 :user_file: (string) - Default is ''. If "user" is 
                     selected for experiment, specify name of flux file.
@@ -425,7 +425,7 @@ class Data:
                 :two_peaks: (bool) - option for extending event length
                 :definitions: (string) - user-input thresholds in the 
                     format "30,1;4-7,0.01" multiple thresholds
-                    separated by semi-colon. Same as str_thresh in opsep
+                    separated by semi-colon. Same as user_thresholds in opsep
                 :nointerp: (boolean) - True to fill in negative fluxes 
                     with None instead of linear interpolation in time
                 :spacecraft: (string) primary or secondary 
@@ -438,19 +438,19 @@ class Data:
         
         if experiment == "user":
             self.user = True
-            self.label = f"{model_name} {flux_type}"
+            self.label = f"{user_name} {flux_type}"
         else:
             self.label = f"{experiment} {flux_type}"
 
         self.experiment = experiment
         self.flux_type = flux_type
-        self.model_name = model_name #user input experiment (model or obs name)
+        self.user_name = user_name #user input experiment (model or obs name)
         self.user_filename = user_file
         self.set_dates(startdate, enddate)
         self.user_filename = user_file #default tmp.txt
         self.spacecraft = spacecraft
         self.set_options(options)
-        self.set_background_subtraction_info(doBGSub, bgstartdate, bgenddate)
+        self.set_background_subtraction_info(doBGSubOPSEP, bgstartdate, bgenddate)
         self.set_event_definitions(definitions)
         self.two_peaks = two_peaks
         self.showplot = showplot
@@ -465,15 +465,15 @@ class Data:
         """ Make plots of background-subtracted fluxes """
 
         plt_tools.opsep_plot_bgfluxes(f"Total_{experiment}", self.flux_type, self.options,
-                self.model_name, self.original_fluxes, self.original_dates,
+                self.user_name, self.original_fluxes, self.original_dates,
                 self.energy_bins, self.means, self.sigmas, self.saveplot,
                 spacecraft = self.spacecraft)
         plt_tools.opsep_plot_bgfluxes(f"BackgroundFlux_{experiment}", self.flux_type,
-                self.options, self.model_name, self.bgfluxes, self.bgdates,
+                self.options, self.user_name, self.bgfluxes, self.bgdates,
                 self.energy_bins, self.means, self.sigmas, self.saveplot,
                 spacecraft = self.spacecraft)
         plt_tools.opsep_plot_bgfluxes(f"BGSubSEPFlux_{experiment}", self.flux_type,
-                self.options, self.model_name, self.fluxes, self.dates,
+                self.options, self.user_name, self.fluxes, self.dates,
                 self.energy_bins, self.means, self.sigmas, self.saveplot,
                 spacecraft = self.spacecraft)
         
@@ -509,7 +509,7 @@ class Data:
         enddate = self.enddate
         #If want to do background subtraction with a specified date range,
         #make sure to read in data for the full date range required
-        if self.doBGSub:
+        if self.doBGSubOPSEP:
             if not pd.isnull(self.bgstartdate) and not pd.isnull(self.bgenddate):
                 startdate = min(self.startdate,self.bgstartdate)
                 enddate = max(self.enddate, self.bgenddate)
@@ -572,7 +572,7 @@ class Data:
 
 
         #IF BACKGROUND SUBTRACTION
-        if self.doBGSub:
+        if self.doBGSubOPSEP:
             #sepfluxes are background subtracted fluxes
             #Previous version of subroutine had read in the data
             #again and did not apply linear interpolation on bad points
@@ -590,7 +590,7 @@ class Data:
                                     all_dates, sepfluxes)
 
         #NO BACKGROUND SUBTRACTION
-        if not self.doBGSub:
+        if not self.doBGSubOPSEP:
             #Extract the date range specified by the user
             dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
                                     all_dates, all_fluxes)
@@ -611,7 +611,7 @@ class Data:
         time_res = tools.determine_time_resolution(dates)
         self.time_resolution = time_res.total_seconds()
 
-        if self.doBGSub and (self.showplot or self.saveplot):
+        if self.doBGSubOPSEP and (self.showplot or self.saveplot):
             plot_background_subtraction()
 
         return
@@ -1409,7 +1409,7 @@ class Output:
             
         """
 
-        modifier, title_mod = plt_tools.setup_modifiers(self.data.options, self.data.doBGSub, spacecraft=self.data.spacecraft)
+        modifier, title_mod = plt_tools.setup_modifiers(self.data.options, self.data.doBGSubOPSEP, spacecraft=self.data.spacecraft)
 
         #Get issue time of forecast (now)
         now = datetime.datetime.now()
@@ -1424,14 +1424,14 @@ class Output:
         fnameprefix = ""
         if self.json_type == "observations":
             fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}"
-            if not pd.isnull(self.data.model_name) and self.data.model_name != "":
-                fnameprefix = f"{self.data.model_name}_{self.data.flux_type}{modifier}.{zstdate}"
+            if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+                fnameprefix = f"{self.data.user_name}_{self.data.flux_type}{modifier}.{zstdate}"
 
         #Filenames for model output do include issue time
         if self.json_type == "model":
             fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
-            if not pd.isnull(self.data.model_name) and self.data.model_name != "":
-                fnameprefix = f"{self.data.model_name}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
+            if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+                fnameprefix = f"{self.data.user_name}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
 
         ####JSON FILE
         self.json_filename = fnameprefix + ".json"
@@ -1501,7 +1501,7 @@ class Output:
                 'flux_type': self.data.flux_type, #ORIGINAL input data - integral or differential
                 'startdate': self.data.startdate, #Start of analyzed time period
                 'enddate': self.data.enddate, #End of analyzed time period
-                'background_subtraction': self.data.doBGSub, #bool doBGSub
+                'background_subtraction': self.data.doBGSubOPSEP, #bool doBGSubOPSEP
                 'options': self.data.options, #options applied to data
                 'original_energy_bins': self.data.energy_bins, #All original energy bins for input data
                # 'event_definition': None, #Dictionary of Energy Channel and Threshold obj
@@ -1612,7 +1612,7 @@ class Output:
                             self.data.flux_type,
                             self.data.startdate,
                             self.data.enddate,
-                            self.data.doBGSub,
+                            self.data.doBGSubOPSEP,
                             self.data.options,
                             self.data.energy_bins,
                             self.data.energy_bin_centers,
@@ -1647,7 +1647,7 @@ class Output:
         self.json_dict = ccmc_json.fill_json_header(self.json_type,
             self.issue_time, self.data.experiment, self.data.flux_type,
             self.data.options, self.spase_id,
-            model_name=self.data.model_name, spacecraft=self.data.spacecraft)
+            user_name=self.data.user_name, spacecraft=self.data.spacecraft)
 
         return
 
@@ -1727,13 +1727,13 @@ class Output:
         """ A flat dictionary of values for all event definitions. """
 
         exp_name = self.data.experiment
-        if not pd.isnull(self.data.model_name) and self.data.model_name != "":
-            exp_name = self.data.model_name
+        if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+            exp_name = self.data.user_name
             
         dict = {"Experiment": exp_name,
                 "Flux Type": self.data.flux_type,
                 "Options": self.data.options,
-                "Background Subtraction": self.data.doBGSub,
+                "Background Subtraction": self.data.doBGSubOPSEP,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S")
                 }
@@ -1807,8 +1807,8 @@ class Output:
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
         
         plt_tools.opsep_plot_event_definitions(self.data.experiment,
-            self.data.flux_type, self.data.model_name, self.data.options,
-            self.data.doBGSub, self.data.evaluated_dates, self.data.evaluated_fluxes,
+            self.data.flux_type, self.data.user_name, self.data.options,
+            self.data.doBGSubOPSEP, self.data.evaluated_dates, self.data.evaluated_fluxes,
             self.data.evaluated_energy_bins, event_definitions,
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
@@ -1824,7 +1824,7 @@ class Output:
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
 
         plt_tools.opsep_plot_all_bins(self.data.experiment, self.data.flux_type,
-            self.data.model_name, self.data.options, self.data.doBGSub,
+            self.data.user_name, self.data.options, self.data.doBGSubOPSEP,
             self.data.dates, self.data.fluxes, self.data.energy_bins,
             self.data.event_definitions, sep_start_times, sep_end_times,
             self.data.showplot, self.data.saveplot, spacecraft=self.data.spacecraft)
@@ -1848,7 +1848,7 @@ class Output:
         if not plot_fluence: return
 
         plt_tools.opsep_plot_fluence_spectrum(self.data.experiment, self.data.flux_type,
-            self.data.model_name, self.data.options, self.data.doBGSub,
+            self.data.user_name, self.data.options, self.data.doBGSubOPSEP,
             self.data.event_definitions, self.data.evaluated_dates,
             self.data.energy_bin_centers,
             fluence_spectra, fluence_spectra_units, self.data.showplot,

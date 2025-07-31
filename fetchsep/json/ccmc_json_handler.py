@@ -347,15 +347,15 @@ def observation_json():
 
 
 def fill_json_header(json_type, issue_time, experiment,
-    flux_type, options, spase_id, model_name=None, mode=None,
+    flux_type, options, spase_id, user_name=None, mode=None,
     spacecraft=None):
     """ Fill in top level header information in json """
     
     zissue = make_ccmc_zulu_time(issue_time)
     
     short_name = experiment
-    if model_name:
-        short_name = model_name
+    if user_name:
+        short_name = user_name
     
     #If mode not specified, guess
     if not mode or mode == '':

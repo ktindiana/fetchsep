@@ -4678,13 +4678,13 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
             if pd.isnull(fluxes[i,j]): #bad data
                 #estimate flux with interpolation in time
                 if dointerp:
-#                    print('There is bad data for time ' + str(dates[j])
-#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-#                            + str(energy_bins[i][1]) + '.'
-#                            + ' Filling in missing value with linear '
-#                            + 'interpolation in time.')
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
+#                    print('There is null data for time ' + str(dates[j])
+#                        + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
+#                        + str(energy_bins[i][1]) + '.'
+#                        + ' Filling in missing value with linear '
+#                        + 'interpolation in time. ' + str(interp_flux))
                 else:
 #                    print('There is bad data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
@@ -4695,13 +4695,13 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
             elif fluxes[i,j] < 0:
                 #estimate flux with interpolation in time
                 if dointerp:
-#                    print('There is bad data for time ' + str(dates[j])
+                    interp_flux = do_interpolation(j,dates,fluxes[i,:])
+                    fluxes[i,j] = interp_flux
+#                    print('There is negative data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
 #                            + str(energy_bins[i][1]) + '.'
 #                            + ' Filling in missing value with linear '
-#                            + 'interpolation in time.')
-                    interp_flux = do_interpolation(j,dates,fluxes[i,:])
-                    fluxes[i,j] = interp_flux
+#                            + 'interpolation in time. ' + str(interp_flux))
                 else:
 #                    print('There is bad data for time ' + str(dates[j])
 #                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '

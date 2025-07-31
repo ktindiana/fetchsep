@@ -134,7 +134,7 @@ def read_sep_dates(sep_filename):
         :experiments: (string 1xn array)
         :flux_types: (string 1xn array)
         :flags: (string 1xn array)
-        :model_names: (string 1xn array)
+        :user_names: (string 1xn array)
         :user_files: (string 1xn array)
         :json_types: (string 1xn array)
         :options: (string 1xn array)
@@ -148,7 +148,7 @@ def read_sep_dates(sep_filename):
     experiments = [] #row 1, e.g. GOES-11, GOES-13, GOES-15, SEPEM, user
     flux_types = [] #row 3
     flags = [] #row 4
-    model_names = [] #row 5
+    user_names = [] #row 5
     user_files = [] #row 6
     options = [] #row 7
     bgstartdate = [] #row 8
@@ -196,9 +196,9 @@ def read_sep_dates(sep_filename):
                 flags.append('')
 
             if len(row) > 5:
-                model_names.append(row[5].strip())
+                user_names.append(row[5].strip())
             else:
-                model_names.append('')
+                user_names.append('')
 
             if len(row) > 6:
                 user_files.append(row[6].strip())
@@ -231,9 +231,9 @@ def read_sep_dates(sep_filename):
                 spacecrafts.append('')
 
             if len(row) > 12:
-                use_idsep_bg.append(bool(row[12].strip()))
+                idsep_paths.append(bool(row[12].strip()))
             else:
-                use_idsep_bg.append(False)
+                idsep_paths.append('')
                 
             if len(row) > 13:
                 locations.append(row[13].strip())
@@ -248,7 +248,7 @@ def read_sep_dates(sep_filename):
                 
 
     return start_dates, end_dates, experiments, flux_types, flags,\
-        model_names, user_files, json_types, options, bgstartdate,\
+        user_names, user_files, json_types, options, bgstartdate,\
         bgenddate, spacecrafts, use_idsep_bg, locations, particles
 
 
@@ -518,7 +518,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
     check_list_path()
 
     #READ IN SEP DATES AND experiments
-    start_dates, end_dates, experiments, flux_types, flags,  model_names,\
+    start_dates, end_dates, experiments, flux_types, flags,  user_names,\
         user_files, json_types, options, bgstart, bgend, spacecrafts,\
         use_idsep_bg, locations, particles = read_sep_dates(sep_filename)
 
@@ -536,21 +536,23 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
         experiment = experiments[i]
         flux_type = flux_types[i]
         flag = flags[i]
-        model_name = model_names[i]
+        user_name = user_names[i]
         user_file = user_files[i]
         json_type = json_types[i]
         option = options[i]
         bgstartdate = bgstart[i]
         bgenddate = bgend[i]
         spacecraft = spacecrafts[i]
-        use_bg_thresholds = use_idsep_bg[i]
+        idsep_path = idsep_paths[i]
         location = locations[i]
         species = particles[i]
 
         spase_id = ''
 
         flag = flag.split(';')
-        doBGSub = False
+        doBGSubOPSEP = False
+        doBGSubIDSEP = False
+        use_idsep_thresholds = False
         nointerp = True #if true, will not do interpolation in time
         if dointerp: nointerp = False
         
@@ -558,21 +560,29 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
             detect_prev_event = True
         if "TwoPeak" in flag:
             two_peaks = True
-        if "SubtractBG" in flag:
-            doBGSub = True
+        if "OpSEPSubtractBG" in flag:
+            doBGSubOPSEP = True
+        if "IDSEPSubtractBG" in flag:
+            doBGSubIDSEP = True
+        if "IDSEPThresholds" in flag:
+            use_idsep_thresholds = True
+
 
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
             startdate, jsonfname = opsep.run_all(start_date, end_date,
-                experiment, flux_type, model_name, user_file, json_type,
-                spase_id, showplot, saveplot, detect_prev_event,
-                two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
-                bgenddate, nointerp=nointerp, spacecraft=spacecraft,
-                use_bg_thresholds=use_bg_thresholds, location=location, species=species)
+                experiment, flux_type, user_name=user_name, user_file=user_file,
+                json_type=json_type, spase_id=spase_id, showplot=showplot,
+                saveplot=saveplot, detect_prev_event=detect_prev_event,
+                two_peaks=two_peaks, umasep=umasep, user_threshold=threshold,
+                options=option, doBGSubOPSEP=doBGSubOPSEP, bgstartdate=bgstartdate,
+                bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+                use_idsep_thresholds=use_idsep_thresholds, idsep_path=idsep_path,
+                location=location, species=species)
 
-            if experiment == 'user' and model_name != '':
-                fout.write(model_name + ',')
+            if experiment == 'user' and user_name != '':
+                fout.write(user_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
             fout.write(str(startdate) + ', ')
@@ -594,8 +604,8 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
             logger.exception('opsep failed with exception')
             # this log will just include content in sys.exit
             logger.error(str(e))
-            if experiment == 'user' and model_name != '':
-                fout.write(model_name + ',')
+            if experiment == 'user' and user_name != '':
+                fout.write(user_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
             fout.write(str(startdate) +',' + '\"' + str(e) + '\"' )
