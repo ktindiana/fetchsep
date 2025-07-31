@@ -2298,15 +2298,15 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
             if "corrected" in options or "uncorrected" not in options:
                 #CORRECTED CHANNELS; DEFAULT
                 columns = [16,17,18,19,20,21] #eps
-                hepad_columns = [-1, -1, -1, -1]
+                hepad_columns = []
             if "uncorrected" in options:
                 #UNCORRECTED channels
                 columns = [3,4,5,6,7,8] #eps
-                hepad_columns = [-1, -1, -1, -1]
+                hepad_columns = []
         if flux_type == "integral":
             #ONLY CORRECTED CHANNELS AVAILABLE
             columns = [23,24,25,26,27,28] #eps
-            hepad_columns = [-1]
+            hepad_columns = []
 
 
 
@@ -4370,12 +4370,8 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
             energy_bin_centers = calculate_geometric_means(energy_bins)
             if "S14" in options:
                     energy_bins = [[4.4,8.2],[7.8,14.6],[18.0,24.2],
-                               [41.0,57.3],[89.5,139.0],[166.0,299.0],
-                               [350.0,420.0],[420.0,510.0],[510.0,700.0],
-                               [700.0,-1]]
-                    energy_bin_centers = [6.6, 11.2, 21.1, 50.5, 114.0, 243.0,
-                                math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
-                                math.sqrt(510.0*700.0), 700]
+                               [41.0,57.3],[89.5,139.0],[166.0,299.0]]
+                    energy_bin_centers = [6.6, 11.2, 21.1, 50.5, 114.0, 243.0]
         if (flux_type == "integral"):
             energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)

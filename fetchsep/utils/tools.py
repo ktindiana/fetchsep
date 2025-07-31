@@ -120,7 +120,7 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
     keys = []
     for bin in energy_bins:
         keys.append((f"{bin[0]}-{bin[1]}"))
-        
+    
     dict = {"dates":dates}
     for i in range(len(fluxes)):
         dict.update({keys[i]:fluxes[i]})
