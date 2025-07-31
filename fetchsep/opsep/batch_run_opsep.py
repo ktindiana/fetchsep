@@ -564,29 +564,27 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            sep_year, sep_month, \
-            sep_day, jsonfname = opsep.run_all(start_date, end_date,
+            startdate, jsonfname = opsep.run_all(start_date, end_date,
                 experiment, flux_type, model_name, user_file, json_type,
                 spase_id, showplot, saveplot, detect_prev_event,
                 two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
                 bgenddate, nointerp=nointerp, spacecraft=spacecraft,
                 use_bg_thresholds=use_bg_thresholds, location=location, species=species)
 
-            sep_date = datetime.datetime(year=sep_year, month=sep_month, day=sep_day)
             if experiment == 'user' and model_name != '':
                 fout.write(model_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
-            fout.write(str(sep_date) + ', ')
+            fout.write(str(startdate) + ', ')
             fout.write('Success\n')
 
-            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
-            #EACH THRESHOLD
-            if not combos:
-                combos = initialize_files(jsonfname)
-            success = write_sep_lists(jsonfname,combos)
-            if not success:
-                print('Could not write values to file for ' + jsonfname)
+#            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
+#            #EACH THRESHOLD
+#            if not combos:
+#                combos = initialize_files(jsonfname)
+#            success = write_sep_lists(jsonfname,combos)
+#            if not success:
+#                print('Could not write values to file for ' + jsonfname)
 
             plt.close('all')
             reload(opsep)
@@ -600,7 +598,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
                 fout.write(model_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
-            fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
+            fout.write(str(startdate) +',' + '\"' + str(e) + '\"' )
             fout.write('\n')
             reload(opsep)
             continue

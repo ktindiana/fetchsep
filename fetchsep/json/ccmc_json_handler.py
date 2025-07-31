@@ -425,8 +425,7 @@ def new_block(json_type):
     return block
 
 
-def fill_json_block(template, json_type, energy_channel, threshold_dict, startdate,
-    enddate,
+def fill_json_block(template, json_type, energy_channel, threshold_dict, startdate, enddate,
     sep_start_time, sep_end_time, onset_peak, onset_peak_time, max_flux, max_flux_time,
     flux_units, fluence, fluence_units, fluence_spectrum, fluence_spectrum_units,
     fluence_energy_bins, sep_profile, location="earth", species="proton"):

@@ -863,7 +863,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBG
     if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
 
     if saveplot:
-        fig.savefig(plotpath + '/' + figname + '.png')
+        fig.savefig(os.path.join(cfg.plotpath,'opsep',figname + '.png'))
     if not showplot:
         plt.close(fig)
 
