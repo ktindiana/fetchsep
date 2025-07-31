@@ -1821,6 +1821,15 @@ class Output:
         onset_peak_times, max_fluxes, max_flux_times, fluences,\
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
         
+        #Check that at least one SEP crossed threshold, otherwise
+        #don't need to generate fluence plot.
+        plot_fluence = False
+        for time in sep_start_times:
+            if not pd.isnull(time):
+                plot_fluence = True
+
+        if not plot_fluence: return
+
         plt_tools.opsep_plot_fluence_spectrum(self.data.experiment, self.data.flux_type,
             self.data.model_name, self.data.options, self.data.doBGSub,
             self.data.event_definitions, self.data.evaluated_dates,

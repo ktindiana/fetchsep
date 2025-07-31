@@ -1032,7 +1032,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type, model_name,
 
     if showplot: plt.show()
     
-    return flux_data.sep_year, flux_data.sep_month, flux_data.sep_day, jsonfname
+    return flux_data.startdate, jsonfname
 
 
 

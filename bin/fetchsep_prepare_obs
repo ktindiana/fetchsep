@@ -163,6 +163,17 @@ parser.add_argument("--JSONType", type=str, choices=['model',
         "or model predictions to generate a JSON file in the correct format. "
         "Choices are \"model\" or \"observations\" Default is observations."))
 
+parser.add_argument("--Location", type=str, default='earth',
+        help=("Location of time profile. CCMC json files recognize: mercury, venus, "
+            "earth, mars, psp, stereoa, stereob, dawn, juno, L1, L2, L4, L5. You may "
+            "enter another location if needed. Default = earth."))
+
+parser.add_argument("--Species", type=str, default='protons',
+        help=("Location of time profile. CCMC json files recognize: electron, proton, "
+              " helium, helium3, helium4, oxygen, iron, ion. You may "
+              "enter another location if needed. Default = proton"))
+
+
 #WHERE TO START IN THE WORKFLOW
 parser.add_argument("--StartPoint", type=str, default="IDSEP",
         choices=['IDSEP','MAKEFILE','BATCH'],
@@ -183,6 +194,8 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+location = args.Location
+species = args.Species
 exp_name = args.ExperimentName
 user_file = args.UserFile
 is_unixtime = args.Unixtime
@@ -238,9 +251,9 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
         septimes_file, detector_list,experiment, flux_type,options, json_type,
-        batchfile, revise, spacecraft=spacecraft, use_bg_thresholds=use_bg_thresholds)
+        batchfile, revise, spacecraft=spacecraft, use_bg_thresholds=use_bg_thresholds,
+        location=location, species=species)
 
-sys.exit("Finished makefile test")
 
 #THIRD #########################
 #Batch run OpSEP using the input file created above
