@@ -155,7 +155,7 @@ def read_sep_dates(sep_filename):
     bgenddate = [] #row 9
     json_types = [] #row 10 (if user experiment)
     spacecrafts = [] #row 11, primary or secondary for GOES_RT
-    use_idsep_bg = [] #row 12, use background found by idsep for subtraction and threshold
+    idsep_paths = [] #row 12, use background found by idsep for subtraction and threshold
     locations = [] #earth, mars, etc CCMC json
     particles = [] #proton, electron, etc CCMC json
     
@@ -249,7 +249,7 @@ def read_sep_dates(sep_filename):
 
     return start_dates, end_dates, experiments, flux_types, flags,\
         user_names, user_files, json_types, options, bgstartdate,\
-        bgenddate, spacecrafts, use_idsep_bg, locations, particles
+        bgenddate, spacecrafts, idsep_paths, locations, particles
 
 
 
@@ -485,7 +485,7 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
+def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=True,
     showplot=False, saveplot=True, detect_prev_event=False, two_peaks=False):
     """ Run all of the time periods and experiments in the list
         file. Extract the values of interest and compile them
@@ -520,7 +520,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
     #READ IN SEP DATES AND experiments
     start_dates, end_dates, experiments, flux_types, flags,  user_names,\
         user_files, json_types, options, bgstart, bgend, spacecrafts,\
-        use_idsep_bg, locations, particles = read_sep_dates(sep_filename)
+        idsep_paths, locations, particles = read_sep_dates(sep_filename)
 
     #Prepare output file listing events and flags
     fout = open(os.path.join(cfg.listpath,"opsep",outfname),"w+")
@@ -551,8 +551,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
 
         flag = flag.split(';')
         doBGSubOPSEP = False
+        opsep_enhancement = False
         doBGSubIDSEP = False
-        use_idsep_thresholds = False
+        idsep_enhancement = False
         nointerp = True #if true, will not do interpolation in time
         if dointerp: nointerp = False
         
@@ -560,12 +561,14 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
             detect_prev_event = True
         if "TwoPeak" in flag:
             two_peaks = True
-        if "OpSEPSubtractBG" in flag:
+        if "OPSEPSubtractBG" in flag:
             doBGSubOPSEP = True
+        if "OPSEPEnhancement" in flag:
+            opsep_enhancement = True
         if "IDSEPSubtractBG" in flag:
             doBGSubIDSEP = True
-        if "IDSEPThresholds" in flag:
-            use_idsep_thresholds = True
+        if "IDSEPEnhancement" in flag:
+            idsep_enhancement = True
 
 
         print('\n-------RUNNING SEP ' + start_date + '---------')
@@ -575,10 +578,11 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
                 experiment, flux_type, user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
-                two_peaks=two_peaks, umasep=umasep, user_threshold=threshold,
-                options=option, doBGSubOPSEP=doBGSubOPSEP, bgstartdate=bgstartdate,
+                two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
+                options=option, doBGSubOPSEP=doBGSubOPSEP,
+                opsep_enhancement=opsep_enhancement, bgstartdate=bgstartdate,
                 bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
-                use_idsep_thresholds=use_idsep_thresholds, idsep_path=idsep_path,
+                idsep_enhancement=idsep_enhancement, idsep_path=idsep_path,
                 location=location, species=species)
 
             if experiment == 'user' and user_name != '':

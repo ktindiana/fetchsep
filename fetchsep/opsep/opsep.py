@@ -845,8 +845,10 @@ def make_dirs():
 
 def load_input_data(str_startdate, str_enddate, experiment,
     flux_type, user_name, user_file, showplot, saveplot, two_peaks,
-    user_thresholds, options, doBGSubOPSEP, bgstartdate, bgenddate,
-    nointerp, spacecraft, use_idsep_thresholds):
+    user_thresholds, options,
+    doBGSubOPSEP, opsep_enhancement, bgstartdate, bgenddate,
+    doBGSubIDSEP, idsep_enhancement, idsep_path,
+    nointerp, spacecraft, location, species):
     """ Instantiate an InputData object. Load all data.
         If differential fluxes specified, estimate integral fluxes.
 
@@ -856,8 +858,8 @@ def load_input_data(str_startdate, str_enddate, experiment,
             "YYYY-MM-DD HH:MM:SS"
         :str_enddate: (string) - user input end date "YYYY-MM-DD" or
             "YYYY-MM-DD HH:MM:SS"
-        :experiment: (string) - "GOES-08" up to "GOES-15", "SEPEM", "SEPEMv3",
-            "EPHIN", "EPHIN_REleASE", or "user"
+        :experiment: (string) - "GOES-05" up to "GOES-15", "SEPEM", "SEPEMv3",
+            "EPHIN", "EPHIN_REleASE", etc, or "user"
         :flux_type: (string) - "integral" or "differential" indicates the type
             of flux to read in
         :user_name: (string) - If model is "user", set user_name to describe
@@ -875,7 +877,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
         :nointerp: (boolean) - set to true to fill in negative fluxes with None
             value rather than filling in via linear interpolation in time
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
-        :use_idsep_thresholds: (bool) Set to true to use the threshold calculated
+        :idsep_enhancement: (bool) Set to true to use the threshold calculated
             by idsep
 
     OUTPUT:
@@ -888,12 +890,19 @@ def load_input_data(str_startdate, str_enddate, experiment,
     
     #Load all info, including specifying desired SEP event definitions (user_thresholds)
     flux_data.load_info(str_startdate, str_enddate, experiment, flux_type,
-        user_name, user_file, showplot, saveplot, two_peaks,
-        user_thresholds, options, doBGSubOPSEP, bgstartdate,
-        bgenddate, nointerp, spacecraft)
+        user_name=user_name, user_file=user_file, showplot=showplot,
+        saveplot=saveplot,
+        two_peaks=two_peaks, definitions=user_thresholds, options=options,
+        doBGSubOPSEP=doBGSubOPSEP, opsep_enhancement=opsep_enhancement,
+        bgstartdate=bgstartdate, bgenddate=bgenddate,
+        doBGSubIDSEP=doBGSubIDSEP, idsep_enhancement=idsep_enhancement,
+        idsep_path=idsep_path, nointerp=nointerp, spacecraft=spacecraft,
+        location=location, species=species)
 
-    #Read in fluxes; perform any background subtraction or interpolation
-    flux_data.read_in_flux_files()
+
+    #Read in fluxes; perform any background subtraction, background and SEP
+    #separation (for enhancement above background), or interpolation
+    flux_data.read_in_flux()
 
     #If want to use IDSEP background and threshold outputs to define an
     #event definition for the flux to exceed background levels, this would be
@@ -944,9 +953,9 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     user_name='', user_file='', json_type='observations',
     spase_id='', showplot=False, saveplot=False, detect_prev_event=False,
     two_peaks=False, umasep=False, user_thresholds='', options='',
-    doBGSubOPSEP=False, bgstartdate='', bgenddate='',
+    doBGSubOPSEP=False, opsep_enhancement=False, bgstartdate='', bgenddate='',
     nointerp=False, spacecraft='', doBGSubIDSEP=False,
-    use_idsep_thresholds=False, idsep_path='output/idsep/csv/',
+    idsep_enhancement=False, idsep_path='output/idsep/csv/',
     location='earth', species='proton'):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
@@ -984,7 +993,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
         :templatename: (string) optional name of user json template located in
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
-        :use_idsep_thresholds: (bool) Set to true to use the thresholds calculated in IDSEP
+        :idsep_enhancement: (bool) Set to true to use the thresholds calculated in IDSEP
         
         OUTPUTS:
         
@@ -1014,16 +1023,18 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes
     flux_data = load_input_data(str_startdate, str_enddate, experiment,
-        flux_type, user_name, user_file, showplot, saveplot, two_peaks,
-        user_thresholds, options, doBGSubOPSEP, bgstartdate, bgenddate,
-        nointerp, spacecraft, use_idsep_thresholds)
+                flux_type, user_name, user_file, showplot, saveplot, two_peaks,
+                user_thresholds, options,
+                doBGSubOPSEP, opsep_enhancement, bgstartdate, bgenddate,
+                doBGSubIDSEP, idsep_enhancement, idsep_path,
+                nointerp, spacecraft, location, species)
+
 
     #Calculate SEP info for each event definition and create Analyze objects.
     flux_data = calculate_event_info(flux_data)
 
     #Create Output object to write out results
-    output_data = cl.Output(flux_data, json_type, spase_id=spase_id,
-                            location=location, species=species)
+    output_data = cl.Output(flux_data, json_type, spase_id=spase_id)
     jsonfname = output_data.write_ccmc_json()
     output_data.create_csv_dict()
     output_data.plot_event_definitions()

@@ -274,6 +274,6 @@ two_peaks_default = False #Set to true if get ShortEvent flag
 sep_filename = os.path.join(cfg.outpath,'idsep',batchfile)
 statusfname = 'batch_run_status.csv'
 
-batch.run_all_events(sep_filename, statusfname, threshold, umasep,
+batch.run_all_events(sep_filename, statusfname, threshold, umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
     detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)

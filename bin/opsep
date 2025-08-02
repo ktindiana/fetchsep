@@ -81,11 +81,6 @@ parser.add_argument("--Threshold", type=str, default="",
                 "semi-colon with no spaces and surrounded by quotes, "
                 "e.g. \"30,1;50,1;25-40.9,0.001\""))
 
-parser.add_argument("--IDSEPThresholds",
-        help="Set flag to use the thresholds found with IDSEP. "
-            "Must specify the path to the directory containing the IDSEP "
-            "output files with IDSEPPath flag.", action="store_true")
-
 parser.add_argument("--options", type=str, default='', help=("You "
         "may specify a series of options as a semi-colon separated list "
         "surrounded by quotations.\n"
@@ -106,9 +101,15 @@ parser.add_argument("--NoInterp",
         help=("Do not fill in negative or missing fluxes via "
                 "linear interpolation in time. Set as None values "
                 "instead."), action="store_true")
-            
+
+parser.add_argument("--IDSEPEnhancement",
+        help="Set flag to use background mean+n*sigma found with IDSEP "
+            "to identify SEP enhancement above background. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with IDSEPPath flag.", action="store_true")
+
 parser.add_argument("--IDSEPSubtractBG",
-        help="Set flag to calculate the background and subtract from the "
+        help="Set flag to subtract the background from the "
             "SEP flux using the background found with IDSEP. "
             "Must specify the path to the directory containing the IDSEP "
             "output files with IDSEPPath flag.", action="store_true")
@@ -119,11 +120,18 @@ parser.add_argument("--IDSEPPath", type=str, default='output/idsep/csv/',
             "background_threshold_optimized_FINAL.csv."
             "Default = output/idsep/csv/")
 
-parser.add_argument("--OpSEPSubtractBG",
+parser.add_argument("--OPSEPSubtractBG",
         help="Set flag to calculate the background and subtract from the "
             "SEP flux using the algorithm in OpSEP. Must define start "
             "and end dates for the background with the BGStartDate and "
             "BGEndDate flags.", action="store_true")
+
+parser.add_argument("--OPSEPEnhancement",
+        help="Set flag to use the background mean+n*sigma found "
+            "with OPSEP to identify SEP enhancement above background. "
+            "Must define start and end dates for the background "
+            "with the BGStartDate and BGEndDate flags.",
+            action="store_true")
 
 parser.add_argument("--BGStartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
@@ -179,10 +187,11 @@ spase_id = args.spase_id
 location = args.Location
 species = args.Species
 user_thresholds = args.Threshold
-use_idsep_thresholds = args.IDSEPThresholds
 doBGSubIDSEP = args.IDSEPSubtractBG
+idsep_enhancement = args.IDSEPEnhancement
 idsep_path = args.IDSEPPath
-doBGSubOPSEP = args.OpSEPSubtractBG
+doBGSubOPSEP = args.OPSEPSubtractBG
+opsep_enhancement = args.OPSEPEnhancement
 bgstartdate = args.BGStartDate
 bgenddate = args.BGEndDate
 showplot = args.showplot
@@ -195,14 +204,29 @@ nointerp = args.NoInterp
 
 
 
-sep_year, sep_month, sep_day, jsonfname = fetchsep.opsep.run_all(str_startdate,
+year, month, day, jsonfname = fetchsep.opsep.run_all(str_startdate,
     str_enddate, experiment, flux_type,
-    user_name=user_name, user_file=user_file, json_type=json_type, spase_id=spase_id,
-    showplot=showplot, saveplot=saveplot, detect_prev_event=detect_prev_event,
-    two_peaks=two_peaks, umasep=umasep, user_thresholds=user_thresholds, options=options,
-    doBGSubOPSEP=doBGSubOPSEP, bgstartdate=bgstartdate, bgenddate=bgenddate,
-    nointerp=nointerp, spacecraft=spacecraft, doBGSubIDSEP=doBGSubIDSEP,
-    use_idsep_thresholds=use_idsep_thresholds, idsep_path=idsep_path,
-    location=location, species=species)
+    user_name=user_name,
+    user_file=user_file,
+    json_type=json_type,
+    spase_id=spase_id,
+    showplot=showplot,
+    saveplot=saveplot,
+    detect_prev_event=detect_prev_event,
+    two_peaks=two_peaks,
+    umasep=umasep,
+    user_thresholds=user_thresholds,
+    options=options,
+    doBGSubOPSEP=doBGSubOPSEP,
+    opsep_enhancement=opsep_enhancement,
+    bgstartdate=bgstartdate,
+    bgenddate=bgenddate,
+    nointerp=nointerp,
+    spacecraft=spacecraft,
+    doBGSubIDSEP=doBGSubIDSEP,
+    idsep_enhancement=idsep_enhancement,
+    idsep_path=idsep_path,
+    location=location,
+    species=species)
 
 if showplot: plt.show()

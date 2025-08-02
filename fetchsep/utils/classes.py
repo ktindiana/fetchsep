@@ -90,9 +90,8 @@ class Data:
         self.min_energy = np.nan #If set, only use bins above this value
         self.max_energy = np.nan #If set, only use bins below this value
 
-        #Determine Observation or Forecast class according
-        #to type of input data
-        self.datatype = 'observation' #or 'forecast' for model output
+        self.location = None #earth, mars, etc
+        self.species = None #protons, electrons
 
         #Paths for data source, plots and output files
         self.datapath = cfg.datapath
@@ -116,14 +115,26 @@ class Data:
         self.original_fluxes = []
         
         #Do background subtraction on the fluxes?
+        #With OPSEP
         self.doBGSubOPSEP = False #True to do background-subtraction
         self.bgstartdate = pd.NaT #defaults to idsep output if not set
         self.bgenddate = pd.NaT #defaults to idsep output if not set
+        #With IDSEP
+        self.doBGSubIDSEP = False
+        self.idsep_path = ''
+        
+        #BACKGROUND
+        self.nsigma = cfg.opsep_nsigma #N * sigma to use in background subtraction
         self.bgmeans = [] #Mean fluxes for each energy channel
         self.bgsigmas = [] #Sigmas for each energy channel
         self.bgdates = []
         self.bgfluxes = []
-        
+
+        #ENHANCEMENT ABOVE BACKGROUND
+        self.opsep_enhancement = False
+        self.idsep_enhancement = False #Get threshold from idsep output files
+        #Use threshold to set background to zero and leave only enhancement
+
         #Apply linear interpolation in time to data gaps when
         #time steps exist that have bad data values (negative, NaN)
         self.do_interpolation = True
@@ -267,7 +278,8 @@ class Data:
         return
 
 
-    def set_background_subtraction_info(self, doBGSubOPSEP, bgstartdate, bgenddate):
+    def set_opsep_background_info(self, doBGSubOPSEP, opsep_enhancement,
+        bgstartdate, bgenddate):
         """ Indicate whether to perform background-subtraction.
             If start and end dates aren't set, then code
             will look for idsep output to use for mean background.
@@ -275,6 +287,8 @@ class Data:
             INPUT:
             
                 :doBGSubOPSEP: (bool) bg subtraction if True
+                :opsep_enhancement: (bool) will use background mean + n*sigma
+                    to separate background and SEP, with or without background subtraction
                 :bg_startdate: (str) start of time period to use for 
                     background calculation
                 :bg_enddate: (str) end of time period to use for
@@ -288,14 +302,29 @@ class Data:
         self.doBGSubOPSEP = doBGSubOPSEP
         self.bgstartdate = self.str_to_datetime(bgstartdate)
         self.bgenddate = self.str_to_datetime(bgenddate)
-
-        if doBGSubOPSEP:
+        self.opsep_enhancement = opsep_enhancement
+        #IF choose to do background subtraction, then automatically choose
+        #to calculate enhancement above background
+        if self.doBGSubOPSEP: self.opsep_enhancement = True
+        
+        if doBGSubOPSEP or opsep_enhancement:
             if pd.isnull(self.bgstartdate) or pd.isnull(self.bgenddate):
                 print("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Will look for idsep output files to extract mean background.")
         
         return
 
 
+    def set_idsep_background_info(self, doBGSubIDSEP, idsep_path, idsep_enhancement):
+        """ Specify whether to use background calculated by idsep """
+        self.doBGSubIDSEP = doBGSubIDSEP
+        self.idsep_path = idsep_path
+        self.idsep_enhancement = idsep_enhancement
+        #IF choose to do background subtraction, then automatically choose
+        #to calculate enhancement above background
+        if self.doBGSubIDSEP: self.idsep_enhancement = True
+
+        return
+    
 
     def create_event_definition(self, emin, emax, eunits, thresh, thresh_units):
         """ Easily create a single event definition for flexible
@@ -336,6 +365,10 @@ class Data:
             Units will be pulled from the config file for the
             appropriate flux type.
             
+            A threshold set to -1 in the event definition indicates to use
+            the mean and sigma calculated by idsep as a threshold. The 
+            threshold can vary with time as a value is calculated for each
+            timestep. Therefore a constant value cannot be applied.
             
             INPUT:
             
@@ -389,7 +422,13 @@ class Data:
             threshold_obj = Threshold(thresh, flux_units)
             
             self.event_definitions.append({'energy_channel': energy_bin_obj, 'threshold': threshold_obj})
-            
+
+            #If use IDSEP thresholds, append event definitions to all
+            #previously selected energy channels and use -1 as threshold
+            if self.idsep_enhancement or self.opsep_enhancement:
+                idsep_threshold_obj = Threshold(-1, flux_units)
+                self.event_definitions.append({'energy_channel': energy_bin_obj, 'threshold': idsep_threshold_obj})
+
         return
 
         
@@ -403,9 +442,11 @@ class Data:
 
 
     def load_info(self, startdate, enddate, experiment, flux_type,
-        user_name, user_file, showplot, saveplot, two_peaks,
-        definitions, options, doBGSubOPSEP, bgstartdate,
-        bgenddate, nointerp, spacecraft):
+        user_name='', user_file='', spase_id='', showplot=False, saveplot=False,
+        two_peaks=False, definitions='', options='',
+        doBGSubOPSEP=False, opsep_enhancement=False, bgstartdate='', bgenddate='',
+        doBGSubIDSEP=False, idsep_enhancement=False, idsep_path='output/idsep/csv/',
+        nointerp=False, spacecraft='', location='earth', species='proton'):
         """ Create new Data object and load with all values.
         
             INPUT:
@@ -449,8 +490,11 @@ class Data:
         self.set_dates(startdate, enddate)
         self.user_filename = user_file #default tmp.txt
         self.spacecraft = spacecraft
+        self.location = location
+        self.species = species
         self.set_options(options)
-        self.set_background_subtraction_info(doBGSubOPSEP, bgstartdate, bgenddate)
+        self.set_opsep_background_info(doBGSubOPSEP, opsep_enhancement, bgstartdate, bgenddate)
+        self.set_idsep_background_info(doBGSubIDSEP, idsep_path, idsep_enhancement)
         self.set_event_definitions(definitions)
         self.two_peaks = two_peaks
         self.showplot = showplot
@@ -464,17 +508,17 @@ class Data:
     def plot_background_subtraction(self, showplot=False):
         """ Make plots of background-subtracted fluxes """
 
-        plt_tools.opsep_plot_bgfluxes(f"Total_{experiment}", self.flux_type, self.options,
+        plt_tools.opsep_plot_bgfluxes(f"Total_{self.experiment}", self.flux_type, self.options,
                 self.user_name, self.original_fluxes, self.original_dates,
-                self.energy_bins, self.means, self.sigmas, self.saveplot,
+                self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
                 spacecraft = self.spacecraft)
-        plt_tools.opsep_plot_bgfluxes(f"BackgroundFlux_{experiment}", self.flux_type,
+        plt_tools.opsep_plot_bgfluxes(f"BackgroundFlux_{self.experiment}", self.flux_type,
                 self.options, self.user_name, self.bgfluxes, self.bgdates,
-                self.energy_bins, self.means, self.sigmas, self.saveplot,
+                self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
                 spacecraft = self.spacecraft)
-        plt_tools.opsep_plot_bgfluxes(f"BGSubSEPFlux_{experiment}", self.flux_type,
+        plt_tools.opsep_plot_bgfluxes(f"BGSubSEPFlux_{self.experiment}", self.flux_type,
                 self.options, self.user_name, self.fluxes, self.dates,
-                self.energy_bins, self.means, self.sigmas, self.saveplot,
+                self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
                 spacecraft = self.spacecraft)
         
         if showplot:
@@ -483,12 +527,131 @@ class Data:
         return
 
 
+    def opsep_background_and_sep_separation(self, all_dates, all_fluxes):
+        """ Perform background separation using OpSEP for a
+            small time period specified by the user. 
+            If OpSEPdoBGSub == True, then background will be subtracted
+            from SEP fluxes and background values will be set to zero.
+            Otherwise, background values will be set to zero and SEP 
+            fluxes will remain the same.
+            
+        """
+        #sepfluxes are background subtracted fluxes
+        #Previous version of subroutine had read in the data
+        #again and did not apply linear interpolation on bad points
+        nointerp_fluxes = datasets.check_for_bad_data(all_dates,all_fluxes,
+            self.energy_bins, dointerp=False)
+        bgfluxes, sepfluxes, means, sigmas = bgsub.derive_background(self.experiment,
+            self.flux_type, self.options, self.bgstartdate, self.bgenddate,
+            all_dates, nointerp_fluxes, self.energy_bins, self.showplot,
+            self.saveplot, nsigma=self.nsigma, doBGSub=self.doBGSubOPSEP)
+        self.bgmeans = means
+        self.bgsigmas = sigmas
+        self.bgfluxes = bgfluxes
+        self.bgdates = all_dates
+        #Extract the date range specified by the user for the
+        #background-subtracted fluxes
+        dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
+                            all_dates, sepfluxes)
 
-    def read_in_flux_files(self):
+        return dates, fluxes
+
+
+    def read_idsep_files(self):
+        """ Read in the idsep files needed for background subtraction and
+            for applying the thresholds calculated by idsep as an event
+            definition.
+            
+        """
+        bgfilename = os.path.join(self.idsep_path,'background_mean_fluxes_optimized_FINAL.csv')
+        sigmafilename = os.path.join(self.idsep_path, 'background_sigma_optimized_FINAL.csv')
+        threshfilename = os.path.join(self.idsep_path, 'background_threshold_optimized_FINAL.csv')
+
+        df_mean = pd.read_csv(bgfilename)
+        df_mean['dates'] =pd.to_datetime(df_mean['dates'])
+        df_sigma = pd.read_csv(sigmafilename)
+        df_sigma['dates'] =  pd.to_datetime(df_sigma['dates'])
+        df_thresh = pd.read_csv(threshfilename)
+        df_thresh['dates'] = pd.to_datetime(df_thresh['dates'])
+        
+        df_mean = df_mean.replace(1e6,np.nan)
+        df_thresh = df_thresh.replace(1e6,np.nan)
+        
+        #Trim to date range
+        df_mean = df_mean.loc[(df_mean['dates'] >= self.startdate) & (df_mean['dates'] <= self.enddate)]
+        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.startdate) & (df_sigma['dates'] <= self.enddate)]
+        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.startdate) & (df_thresh['dates'] <= self.enddate)]
+        if df_mean.empty:
+            sys.exit("The idsep file containing the mean background does not cover the "
+                    f"dates required. {bgfilename}")
+                    
+        mean_dates = df_mean['dates'].to_list()
+        if mean_dates != self.original_dates:
+            sys.exit("The idsep file containing the mean background doesn't have the same "
+                    f"dates length. {bgfilename}")
+ 
+        df_mean = df_mean.drop('dates',axis=1) #only flux columns
+        
+        means = []
+        sigmas = []
+        thresholds = []
+        columns = df_mean.columns
+        for i, col in enumerate(columns):
+            bg_flux = df_mean[col].to_list()
+            bg_sigma = df_sigma[col].to_list()
+            bg_thresh = df_thresh[col].to_list()
+            if i==0:
+                means = [bg_flux]
+                sigmas = [bg_sigma]
+                thresholds = [bg_thresh]
+            else:
+                means.append(bg_flux)
+                sigmas.append(bg_sigma)
+                thresholds.append(bg_thresh)
+
+        return means, sigmas, thresholds
+
+
+
+    def idsep_background_and_sep_separation(self):
+        """ Read in idsep files containing mean background with time,
+            e.g. output/idsep/
+            
+            You must have run idsep for exactly the same experiment and 
+            flux_type for date ranges that contain your period of interest.
+            In this way, the energy bins and data cadence will match.
+            
+            If IDSEP background subtraction is selected, will 
+            return background-subtracted fluxes with background
+            set to zero.
+            
+            If background subtraction not selected, will return
+            original fluxes, but with background set to zero.
+            
+        """
+
+        means, sigmas, thresholds = self.read_idsep_files()
+        
+        bgfluxes, sepfluxes = bgsub.separate_sep_and_background_idsep(self.original_fluxes,
+                            means, sigmas, nsigma=self.nsigma,
+                            doBGSub=self.doBGSubIDSEP)
+        
+        bgfluxes = np.array(bgfluxes)
+        sepfluxes = np.array(sepfluxes)
+ 
+        self.bgmeans = means
+        self.bgsigmas = sigmas
+        self.bgfluxes = bgfluxes
+        self.bgdates = self.original_dates
+ 
+        return self.original_dates, sepfluxes
+  
+
+    def read_in_flux(self):
         """ Read in the appropriate data or user files. Performs
-            background subtraction, if requested. Trims to dates
-            between start time and end time. Interpolates bad
-            points with linear interpolation in time.
+            background subtraction or background and SEP separation, 
+            if requested. Trims to dates between start time and end time. 
+            Interpolates bad points with linear interpolation in time.
             
             Loads into self.fluxes
             
@@ -553,7 +716,7 @@ class Data:
 
 
         if len(all_dates) <= 1:
-            sys.exit(f"read_in_flux_files: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
+            sys.exit(f"read_in_flux: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
 
         #Full flux and date range for specified input files, not yet trimmed in date
         all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins, energy_bin_centers)
@@ -572,36 +735,25 @@ class Data:
 
 
         #IF BACKGROUND SUBTRACTION
-        if self.doBGSubOPSEP:
-            #sepfluxes are background subtracted fluxes
-            #Previous version of subroutine had read in the data
-            #again and did not apply linear interpolation on bad points
-            nointerp_fluxes = datasets.check_for_bad_data(all_dates,all_fluxes,
-                energy_bins,dointerp=False)
-            bgfluxes, sepfluxes, means, sigmas = bgsub.derive_background(self.bgstartdate, self.bgenddate, all_dates, nointerp_fluxes, energy_bins, self.showplot,
-                self.saveplot)
-            self.bgmeans = means
-            self.bgsigmas = sigmas
-            self.bgfluxes = bgfluxes
-            self.bgdates = all_dates
-            #Extract the date range specified by the user for the
-            #background-subtracted fluxes
-            dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
-                                    all_dates, sepfluxes)
-
-        #NO BACKGROUND SUBTRACTION
-        if not self.doBGSubOPSEP:
+        if self.doBGSubOPSEP or self.opsep_enhancement:
+            #Background-subtracted fluxes with date range specified by the user
+            dates, fluxes = self.opsep_background_and_sep_separation(all_dates, all_fluxes)
+        elif self.doBGSubIDSEP or self.idsep_enhancement:
+             dates,fluxes = self.idsep_background_and_sep_separation()
+        #NO BACKGROUND SUBTRACTION OR USE OF IDSEP BACKGROUND IDENTIFICATION
+        else:
             #Extract the date range specified by the user
-            dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
-                                    all_dates, all_fluxes)
+            dates, fluxes = datasets.extract_date_range(self.startdate,
+                    self.enddate, all_dates, all_fluxes)
         
         #Handle bad data points
-        print("Removing bad points from final fluxes after any background subtraction and trimming. "
-                f"Performing interpolation? {self.do_interpolation}")
+        print("Removing bad points from final fluxes after any background "
+              "subtraction and trimming. "
+              f"Performing interpolation? {self.do_interpolation}")
         fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins, dointerp=self.do_interpolation)
          
         if len(dates) <= 1:
-            print("read_in_flux_files: The specified start and end dates were not "
+            print("read_in_flux: The specified start and end dates were not "
                 f"present in the specified input file. Exiting. {startdate} to {enddate}")
             sys.exit()
         
@@ -611,8 +763,12 @@ class Data:
         time_res = tools.determine_time_resolution(dates)
         self.time_resolution = time_res.total_seconds()
 
-        if self.doBGSubOPSEP and (self.showplot or self.saveplot):
-            plot_background_subtraction()
+        #Plot background and SEP separation, may or may not include background
+        #subtraction
+        if self.doBGSubOPSEP or self.doBGSubIDSEP or self.opsep_enhancement\
+        or self.idsep_enhancement:
+            if self.showplot or self.saveplot:
+                self.plot_background_subtraction()
 
         return
 
@@ -750,6 +906,7 @@ class Analyze:
         """
         self.event_definition = event_definition
         
+        
         #Specific dates and fluxes for this event definition
         #Flux in a single energy channel
         self.dates = []
@@ -799,7 +956,27 @@ class Analyze:
             f"{self.event_definition['energy_channel'].max}] exceeds "
             f"{self.event_definition['threshold'].threshold} {self.event_definition['threshold'].threshold_units}")
 
-        return True
+
+        if self.event_definition['threshold'].threshold == -1:
+            if not data.opsep_enhancement and not data.idsep_enhancement \
+            and not data.doBGSubOPSEP and not data.doBGSubIDSEP:
+                sys.exit("You are requesting to identify enhancement "
+                    "above background, but background and SEP separation "
+                    "has not been performed. Choose to do background subtraction "
+                    "--OPSEPSubtractBG, variable=doBGSubOPSEP or --IDSEPSubtractBG, "
+                    "variable=doBGSubIDSEP) "
+                    "or set flags to identify enhancements above background "
+                    "(--OPSEPEnhancement, variable=opsep_enhancement or "
+                    "--IDSEPEnhancement, variable=idsep_enhancement)")
+                    
+            print("-1 threshold indicates you have selected to identify "
+                "enhancement above background. Setting threshold to "
+                "opsep_min_threshold in fetchsep.cfg: "
+                f"{cfg.opsep_min_threshold}.")
+            self.event_definition['threshold'].threshold = cfg.opsep_min_threshold
+            
+         return True
+
  
  
     def make_energy_channel_dict(self):
@@ -810,8 +987,8 @@ class Analyze:
         
         """
         energy_channel = {'min':self.event_definition['energy_channel'].min,
-                            'max':self.event_definition['energy_channel'].max,
-                            'units': self.event_definition['energy_channel'].units}
+                        'max':self.event_definition['energy_channel'].max,
+                        'units': self.event_definition['energy_channel'].units}
         return energy_channel
 
 
@@ -860,7 +1037,78 @@ class Analyze:
             self.fluence_spectrum_units = cfg.fluence_units_differential
 
         return
-        
+
+
+#    def plot_sep_separation(self, data, dates, original_fluxes, sepfluxes,
+#        bgfluxes, energy_bins, means, sigmas, showplot=False):
+#        """ Make plots of background-subtracted fluxes """
+#
+#        plt_tools.opsep_plot_bgfluxes(f"Total_{data.experiment}", data.flux_type,
+#                data.options, data.user_name, original_fluxes, dates, energy_bins,
+#                means, sigmas, data.saveplot, spacecraft = data.spacecraft)
+#        plt_tools.opsep_plot_bgfluxes(f"BackgroundFluxIDSEP_{data.experiment}",
+#                data.flux_type, data.options, data.user_name, bgfluxes, dates,
+#                energy_bins, means, sigmas, data.saveplot, spacecraft = data.spacecraft)
+#        plt_tools.opsep_plot_bgfluxes(f"BGSubSEPFluxIDSEP_{data.experiment}",
+#                data.flux_type, data.options, data.user_name, sepfluxes, dates,
+#                energy_bins, means, sigmas, data.saveplot,
+#                spacecraft = data.spacecraft)
+#        
+#        if showplot:
+#            plt.show()
+#        
+#        return
+#
+#
+#    def get_flux_above_idsep_threshold(self, data):
+#        """ If threshold == -1, this indicates to apply
+#            the IDSEP mean + nsigma. n is defined here and
+#            optimized to identify SEP onsets above background.
+#            The nsigma used here may not be the same that is 
+#            used for background and SEP separation in IDSEP or
+#            background subtraction step in OpSEP.
+#            
+#        """
+#        thresh_nsigma = cfg.opsep_nsigma #allow for flexibility
+#
+#        fluxes = self.flux
+#        dates = self.dates
+#        energy_bin = self.make_energy_bin()
+#        idx = data.energy_bins.index(energy_bin) #Mean and sigma index
+#
+#        means, sigmas, thresholds = data.read_idsep_files()
+#        means = means[idx]
+#        sigmas = sigmas[idx]
+#        zeroes = [0]*len(means)
+#
+#        #If IDSEP mean background and sigma have already been
+#        #applied to separate fluxes from background, then
+#        #self.flux is already background subtracted.
+#        #Want to do a background, SEP separation by applying
+#        #thresh_nsigma * sigmas
+#        if data.doBGSubIDSEP:
+#            bgfluxes, sepfluxes = bgsub.separate_sep_and_background_idsep([fluxes],
+#                            [zeroes], [sigmas], nsigma=thresh_nsigma,
+#                            doBGSub=False)
+#            if data.showplot or data.saveplot:
+#                self.plot_sep_separation(data, dates, [fluxes], sepfluxes,
+#                    bgfluxes, [energy_bin], [zeroes], [sigmas])
+#
+#        else:
+#            bgfluxes, sepfluxes = bgsub.separate_sep_and_background_idsep([fluxes],
+#                            [means], [sigmas], nsigma=thresh_nsigma,
+#                            doBGSub=False)
+#            if data.showplot or data.saveplot:
+#                self.plot_sep_separation(data, dates, [fluxes], sepfluxes,
+#                    bgfluxes, [energy_bin], [means], [sigmas])
+#
+#        #all background fluxes have been set to zero and non-zero fluxes
+#        #remain only over the idsep threshold values with time
+#        self.flux = sepfluxes[0]
+#
+#        return
+
+
 
     def calculate_threshold_crossing(self, data, event_definition):
         """ Calculate the threshold crossing times for a given energy bin
@@ -1305,11 +1553,6 @@ class Analyze:
                 :event_info: (dict) SEP event values
                 
         """
-        energy_bin = self.make_energy_bin()
-        energy_units = self.event_definition['energy_channel'].units
-        threshold = self.event_definition['threshold'].threshold
-        threshold_units = self.event_definition['threshold'].threshold_units
-        
         #calculate event values and fill in a dictionary that will
         #save info needed for Observation or Forecast objects
         self.select_fluxes(data, self.event_definition) #Load fluxes to obj
@@ -1330,6 +1573,11 @@ class Analyze:
         self.calculate_channel_fluence(data)
         self.calculate_fluence_spectrum(data)
 
+        energy_bin = self.make_energy_bin()
+        energy_units = self.event_definition['energy_channel'].units
+        threshold = self.event_definition['threshold'].threshold
+        threshold_units = self.event_definition['threshold'].threshold_units
+
         energy_label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
         if energy_bin[1] == -1:
             energy_label = f">{energy_bin[0]} {energy_units}"
@@ -1348,14 +1596,12 @@ class Analyze:
         print(f"Fluence Energy Bins: {data.energy_bins}")
         print()
         
-
         return
         
 
 
 class Output:
-    def __init__(self, data, json_type, spase_id=None, location="earth",
-        species="proton"):
+    def __init__(self, data, json_type, spase_id=None):
         """Output the data generated by OpSEP and write out the data
             files. Multiple Analyze objects with individual event 
             definitions are combined to create summary text files,
@@ -1388,8 +1634,6 @@ class Output:
                          #simulated_realtime_forecast, simulated_realtime_nowcast
         self.json_dict = {} #json dictionary from template
         self.json_filename = None #output path and filename
-        self.location = location #earth, mars, etc
-        self.species = species #protons, electrons
         self.issue_time = pd.NaT
 
 
@@ -1680,8 +1924,8 @@ class Output:
                                     analyze.fluence_spectrum_units,
                                     self.data.energy_bins,
                                     analyze.sep_profile,
-                                    self.location,
-                                    self.species)
+                                    self.data.location,
+                                    self.data.species)
         
         return
 
@@ -1769,6 +2013,7 @@ class Output:
         
         """
         event_definitions = []
+        fluxes = []
         sep_start_times = []
         sep_end_times = []
         onset_peaks = []
@@ -1781,6 +2026,7 @@ class Output:
 
         for analyze in self.data.results:
             event_definitions.append(analyze.event_definition)
+            fluxes.append(analyze.flux)
             sep_start_times.append(analyze.sep_start_time)
             sep_end_times.append(analyze.sep_end_time)
             onset_peaks.append(analyze.onset_peak)
@@ -1791,7 +2037,7 @@ class Output:
             fluence_spectra.append(analyze.fluence_spectrum)
             fluence_spectra_units.append(analyze.fluence_spectrum_units)
 
-        return event_definitions, sep_start_times, sep_end_times, onset_peaks,\
+        return event_definitions, fluxes, sep_start_times, sep_end_times, onset_peaks,\
             onset_peak_times, max_fluxes, max_flux_times, fluences, fluence_spectra,\
             fluence_spectra_units
 
@@ -1802,13 +2048,13 @@ class Output:
         
         """
         #Collect calculated values from Analyze objects
-        event_definitions, sep_start_times, sep_end_times, onset_peaks,\
-        onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        event_definitions, analyzed_fluxes, sep_start_times, sep_end_times,\
+        onset_peaks, onset_peak_times, max_fluxes, max_flux_times, fluences,\
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
         
         plt_tools.opsep_plot_event_definitions(self.data.experiment,
             self.data.flux_type, self.data.user_name, self.data.options,
-            self.data.doBGSubOPSEP, self.data.evaluated_dates, self.data.evaluated_fluxes,
+            self.data.doBGSubOPSEP, self.data.evaluated_dates, analyzed_fluxes,
             self.data.evaluated_energy_bins, event_definitions,
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
@@ -1819,8 +2065,8 @@ class Output:
         """ Plot threshold crossings on top of all fluxes """
  
         #Collect calculated values from Analyze objects
-        event_definitions, sep_start_times, sep_end_times, onset_peaks,\
-        onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        event_definitions, analyzed_fluxes, sep_start_times, sep_end_times,\
+        onset_peaks, onset_peak_times, max_fluxes, max_flux_times, fluences,\
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
 
         plt_tools.opsep_plot_all_bins(self.data.experiment, self.data.flux_type,
@@ -1834,8 +2080,8 @@ class Output:
         """ Plots the fluence spectra from all event definitions """
 
         #Collect calculated values from Analyze objects
-        event_definitions, sep_start_times, sep_end_times, onset_peaks,\
-        onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        event_definitions, analyzed_fluxes, sep_start_times, sep_end_times,\
+        onset_peaks, onset_peak_times, max_fluxes, max_flux_times, fluences,\
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
         
         #Check that at least one SEP crossed threshold, otherwise
