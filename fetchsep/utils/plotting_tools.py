@@ -413,8 +413,9 @@ def setup_energy_bin_label(energy_bin):
 
 
 ############ OPSEP PLOTS ##############
-def opsep_plot_bgfluxes(experiment, flux_type, options, model_name, fluxes, dates,
-                energy_bins, means, sigmas, saveplot, spacecraft=''):
+def opsep_plot_bgfluxes(experiment, flux_type, options, model_name,
+    fluxes, dates, energy_bins, means, sigmas, saveplot,
+    spacecraft=''):
     """Plot fluxes with time for all of the energy bins on the same plot. The
         estimated mean background levels are plotted as dashed lines.
         Zero values are masked, which is useful when make plots of the
@@ -447,10 +448,10 @@ def opsep_plot_bgfluxes(experiment, flux_type, options, model_name, fluxes, date
 
     strdate = f"{dates[0].year}_{dates[0].month}_{dates[0].day}"
 
-    figname = f"{strdate}_Fluxes_{experiment}{modifier}_{flux_type}_{All_Bins}"
+    figname = f"{strdate}_Fluxes_{experiment}{modifier}_{flux_type}_All_Bins"
 
     if experiment == 'user' and model_name != '':
-        figname = f"{strdate}_Fluxes_{model_name}{modifier}_{flux_type}_{All_Bins}"
+        figname = f"{strdate}_Fluxes_{model_name}{modifier}_{flux_type}_All_Bins"
 
 
     fig = plt.figure(figname,figsize=(13.5,6))
@@ -460,14 +461,18 @@ def opsep_plot_bgfluxes(experiment, flux_type, options, model_name, fluxes, date
         #Don't want to plot zero values, particularly in background-subtracted plots
         maskfluxes = np.ma.masked_where(fluxes[i] == 0, fluxes[i])
         
+        mean =  means[i]
+        if isinstance(means[i], list):
+            mean = np.nanmean(np.array(means[i]))
+            
         legend_label = setup_energy_bin_label(energy_bins[i])
         p = ax.plot_date(dates,maskfluxes,'-',label=legend_label)
         color = p[0].get_color()
         if i==0:
-            plt.axhline(means[i],color=color,linestyle=':',\
+            plt.axhline(mean,color=color,linestyle=':',\
                         label="Mean Background")
         else:
-            plt.axhline(means[i],color=color,linestyle=':')
+            plt.axhline(mean,color=color,linestyle=':')
 
 
     if flux_type == "integral": flux_units = cfg.flux_units_integral
@@ -639,12 +644,10 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
         threshold = event_definitions[i]['threshold'].threshold
         flux_units = event_definitions[i]['threshold'].threshold_units
                     
-        #Extract correct fluxes (could apply multiple event definitions to
-        #same energy channels, so event_definitions and evaluated_fluxes
-        #not necessarily the same size or in the same order.
-        ix = evaluated_energy_bins.index(energy_bin)
+        #Event definitions and fluxes are in the same order
         dates = evaluated_dates #for ease
-        fluxes = evaluated_fluxes[ix]
+        fluxes = evaluated_fluxes[i]
+        fluxes = np.array(fluxes)
         
         #Create labels
         ylabel = f"Flux [${flux_units}$]"
@@ -738,7 +741,7 @@ def opsep_plot_all_bins(experiment, flux_type, model_name, options, doBGSub,
 
         if doBGSub:
             maskfluxes = np.ma.masked_where(all_fluxes[j] <0, all_fluxes[j])
-            ax.plot_date(dates,maskfluxes,'-',label=legend_label)
+            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
         else:
             ax.plot_date(all_dates,all_fluxes[j],'-',label=legend_label)
 

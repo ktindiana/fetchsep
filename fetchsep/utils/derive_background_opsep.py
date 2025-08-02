@@ -28,13 +28,6 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 #2021-09-25, changes in 0.2: print out means and sigmas in derive_background
 
-datapath = cfg.datapath
-outpath = cfg.outpath
-plotpath = cfg.plotpath + "/opsep"
-badval = cfg.badval #bad data points will be set to this value;
-                    #must be negative
-
-nsigma = cfg.opsep_nsigma
 
 ######FOR USER DATA SETS######
 user_col = cfg.user_col
@@ -128,7 +121,8 @@ def remove_below(flux, val):
     return strip_flux
 
 
-def separate_sep_and_background(fluxes, dates, means, sigmas):
+def separate_sep_and_background(fluxes, means, sigmas,
+    nsigma=cfg.opsep_nsigma, doBGSub=True):
     """ Take the input fluxes, separate them into arrays containing
         the background flux and SEP flux. Values above mean + Nsigma*sigma is
         considered SEP flux while values below are considered the background.
@@ -168,10 +162,13 @@ def separate_sep_and_background(fluxes, dates, means, sigmas):
                 bgflux.append(0)
                 bgsubflux = fluxes[i][j] - means[i]
                 if bgsubflux < 0: bgsubflux = 0
-                sepflux.append(bgsubflux)
+                if doBGSub:
+                    sepflux.append(bgsubflux)
+                else:
+                    sepflux.append(fluxes[i][j])
             if np.isnan(fluxes[i][j]):
-                bgflux.append(None)
-                sepflux.append(None)
+                bgflux.append(np.nan)
+                sepflux.append(np.nan)
 
         bgflux.pop(0)
         sepflux.pop(0)
@@ -187,6 +184,74 @@ def separate_sep_and_background(fluxes, dates, means, sigmas):
             sepfluxes.append(sepflux)
 
     return bgfluxes, sepfluxes
+
+
+def separate_sep_and_background_idsep(fluxes, means, sigmas,
+    nsigma=cfg.opsep_nsigma, doBGSub=True):
+    """ Take the input fluxes, separate them into arrays containing
+        the background flux and SEP flux. Values above mean + Nsigma*sigma is
+        considered SEP flux while values below are considered the background.
+        Perform a background subtraction on the SEP flux by subtracting the
+        mean background value.
+        The input flux array is a numpy array, but the output will be a list
+        for flexibility.
+        Nsigma is specified in config/config_opsep.py.
+        
+        INPUTS:
+        
+        :fluxes: (float nxm array) fluxes for n energy channels and m time points
+        :dates: (datetime 1xm array) time points for flux time profile
+        :means: (float nxm array) mean background flux for n energy channels and m time points
+        :sigmas: (float nxm array) expected variability sigma for n energy channels and m time points
+        
+        OUTPUTS:
+        
+        :bgfluxes: (float nxm array) background fluxes for n energy channels and
+            m time points
+        :sepfluxes: (float nxm array) SEP fluxes for n energy channels and
+            m time points
+        
+    """
+    nflx = len(fluxes)
+    sepfluxes = []
+    bgfluxes = []
+
+    for i in range(nflx):
+        bgflux = [-1]
+        sepflux = [-1]
+        for j in range(len(fluxes[i])):
+            if np.isnan(fluxes[i][j]):
+                bgflux.append(np.nan)
+                sepflux.append(np.nan)
+            elif pd.isnull(means[i][j]): #idsep did not get a good background
+                bgflux.append(np.nan)
+                sepflux.append(np.nan)
+            elif fluxes[i][j] <= means[i][j] + nsigma*sigmas[i][j]:
+                bgflux.append(fluxes[i][j])
+                sepflux.append(0)
+            elif fluxes[i][j] > means[i][j] + nsigma*sigmas[i][j]:
+                bgflux.append(0)
+                bgsubflux = fluxes[i][j] - means[i][j]
+                if bgsubflux < 0: bgsubflux = 0
+                if doBGSub:
+                    sepflux.append(bgsubflux)
+                else:
+                    sepflux.append(fluxes[i][j])
+        bgflux.pop(0)
+        sepflux.pop(0)
+
+        if not bgfluxes:
+            bgfluxes = [bgflux]
+        else:
+            bgfluxes.append(bgflux)
+
+        if not sepfluxes:
+            sepfluxes = [sepflux]
+        else:
+            sepfluxes.append(sepflux)
+
+    return bgfluxes, sepfluxes
+
 
 
 def define_hist_bins(flux):
@@ -366,8 +431,9 @@ def iterate_background(fluxes, energy_bins):
 
 
 
-def derive_background(bgstartdate, bgenddate, dates, fluxes, energy_bins,
-    showplot, saveplot):
+def derive_background(experiment, flux_type, options,
+    bgstartdate, bgenddate, dates, fluxes, energy_bins,
+    showplot, saveplot, nsigma=cfg.opsep_nsigma, doBGSub=True):
     """ Derive the background using fluxes in the time period between
         background start and end dates specified by the user. Derive the
         mean background value along with an expected level of variation (sigma)
@@ -379,6 +445,10 @@ def derive_background(bgstartdate, bgenddate, dates, fluxes, energy_bins,
         Return the background and background-subtracted SEP flux arrays along
         with a date array. The fluxes and dates will extend from BGStartdate to
         SEPEndDate. The fluxes will be numpy arrays and the dates are a list.
+        
+        If doBGSub is False, then don't subtract the background, just return 
+        original fluxes but with the background values set to zero and only
+        the enhanced fluxes as nonzero.
         
         INPUTS:
         
@@ -409,28 +479,28 @@ def derive_background(bgstartdate, bgenddate, dates, fluxes, energy_bins,
                   + str(sepem_end_date) +
             '. Please change your requested dates. Exiting.')
 
-    if experiment[0:4] == "GOES" and flux_type == "integral":
-        sys.exit("Do not perform background subtraction on GOES integral "
-                "fluxes. Integral fluxes have already been derived by "
-                "applying corrections for cross-contamination and removing "
-                "the instrument background levels.")
-
-    if experiment[0:4] == "GOES" and "uncorrected" not in options:
-        print("Warning: GOES corrected fluxes have already been derived by "
-                "applying corrections for cross-contamination and removing "
-                "the instrument and GCR background levels up to channel P6. "
-                "Please be sure it makes sense to perform a background "
-                "subtraction of this data (e.g. for HEPAD energies). "
-                "Otherwise, please add --options uncorrected to perform "
-                "background subtracion on GOES uncorrected fluxes. Continuing.")
-
-    if experiment[0:4] == "GOES" and "uncorrected" in options:
-        print("Note: Background-subtraction of uncorrected GOES fluxes "
-                "does not remove the effects of spurious increases in the low "
-                "energy channels due to cross-talk from the high energy "
-                "channels, particularly at the onset of well-connected, "
-                "intense SEP events. It also does not remove any contamination "
-                "due to particles entering the GOES detectors from the sides.")
+#    if experiment[0:4] == "GOES" and flux_type == "integral":
+#        sys.exit("Do not perform background subtraction on GOES integral "
+#                "fluxes. Integral fluxes have already been derived by "
+#                "applying corrections for cross-contamination and removing "
+#                "the instrument background levels.")
+#
+#    if experiment[0:4] == "GOES" and "uncorrected" not in options:
+#        print("Warning: GOES corrected fluxes have already been derived by "
+#                "applying corrections for cross-contamination and removing "
+#                "the instrument and GCR background levels up to channel P6. "
+#                "Please be sure it makes sense to perform a background "
+#                "subtraction of this data (e.g. for HEPAD energies). "
+#                "Otherwise, please add --options uncorrected to perform "
+#                "background subtracion on GOES uncorrected fluxes. Continuing.")
+#
+#    if experiment[0:4] == "GOES" and "uncorrected" in options:
+#        print("Note: Background-subtraction of uncorrected GOES fluxes "
+#                "does not remove the effects of spurious increases in the low "
+#                "energy channels due to cross-talk from the high energy "
+#                "channels, particularly at the onset of well-connected, "
+#                "intense SEP events. It also does not remove any contamination "
+#                "due to particles entering the GOES detectors from the sides.")
 
 
     #Pull out the fluxes in the time period to be used for calculating
@@ -440,10 +510,10 @@ def derive_background(bgstartdate, bgenddate, dates, fluxes, energy_bins,
     print(f"Calculating background with data from {bgstartdate} to {bgenddate}.")
 
     means, sigmas = iterate_background(bg_fluxes, energy_bins)
-    bgfluxes, sepfluxes = separate_sep_and_background(fluxes, dates,
-                     means, sigmas)
+    bgfluxes, sepfluxes = separate_sep_and_background(fluxes, means, sigmas,
+                        doBGSub=doBGSub)
                      
-    print("=====BACKROUND SUBTRACTION=====")
+    print("=====BACKROUND IDENITIFCATION=====")
     for k in range(len(means)):
         print(f"Mean: {means[k]} +- {cfg.opsep_nsigma} * {sigmas[k]}")
     
