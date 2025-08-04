@@ -49,7 +49,8 @@ def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None
             "applied to P2-P5. Bruno (2017) effective energies will be applied "
             "to P6-P11.")
     if doBGSub and experiment[0:4] == "GOES" and flux_type == "integral":
-        sys.exit("Do not perform background subtraction on GOES integral "
+        print("WARNING: Do you want to perform background subtraction? "
+                "Do not perform background subtraction on GOES integral "
                 "fluxes. Integral fluxes have already been derived by "
                 "applying corrections for cross-contamination and removing "
                 "the instrument background levels.")
