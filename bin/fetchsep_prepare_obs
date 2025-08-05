@@ -76,7 +76,8 @@ parser.add_argument("--Experiment", type=str,
         choices=['GOES', 'GOES-05', 'GOES-06', 'GOES-07', 'GOES-08', 'GOES-10',
                 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
                 'GOES-16','GOES-17','GOES-18','GOES_RT', 'SEPEM', 'SEPEMv3',
-                'EPHIN', 'EPHIN_REleASE', 'CalGOES','user'],
+                'EPHIN', 'EPHIN_REleASE', 'CalGOES', 'ACE_SIS',
+                'ACE_EPAM_electrons', 'IMP8_CPME', 'user'],
         default='', help="Enter name of spacecraft or dataset")
 
 parser.add_argument("--FluxType", type=str, choices=['integral', 'differential'],

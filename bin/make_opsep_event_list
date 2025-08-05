@@ -14,10 +14,11 @@ parser.add_argument("--DetectorList", type=str, default='',
             "multiple detectors were compiled to create the "
             "dataset."))
 parser.add_argument("--Experiment", type=str, choices=[
-        'GOES-05', 'GOES-06', 'GOES-07', 'GOES-08',
+        'GOES', 'GOES-05', 'GOES-06', 'GOES-07', 'GOES-08',
         'GOES-09', 'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14',
         'GOES-15','GOES-16','GOES-17','SEPEM', 'SEPEMv3', 'EPHIN',
-        'EPHIN_REleASE', 'CalGOES', 'user'],
+        'EPHIN_REleASE', 'CalGOES', 'ACE_SIS', 'ACE_EPAM_electrons',
+        'IMP8_CPME','user'],
         default='', help=("Enter name of spacecraft or dataset. "
             "Use Experiment if only one experiment was used to "
             "create the SEP event list. Otherwise ignore."))

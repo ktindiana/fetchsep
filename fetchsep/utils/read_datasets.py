@@ -22,6 +22,8 @@ from bs4 import BeautifulSoup
 import tarfile
 import ssl
 import subprocess
+import gzip
+import shutil
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -139,42 +141,65 @@ def check_paths():
         print('check_paths: Directory containing fluxes, ' + datapath +
         ', does not exist. Creating.')
         os.mkdir(datapath);
+
     if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
         print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + datapath + '/GOES')
         os.mkdir(os.path.join(cfg.datapath, 'GOES'));
+
     if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
         print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + datapath + '/GOES_RT')
         os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+
     if not os.path.isdir(os.path.join(cfg.datapath,'SEPEM')):
         print('check_paths: Directory containing SEPEM fluxes does not exist. Creating ' + datapath + '/SEPEM')
         os.mkdir(os.path.join(cfg.datapath,'SEPEM'));
+
     if not os.path.isdir(os.path.join(cfg.datapath,'SEPEMv3')):
         print('check_paths: Directory containing SEPEMv3 fluxes does not exist. Creating ' + datapath + '/SEPEMv3')
         os.mkdir(os.path.join(cfg.datapath,'SEPEMv3'));
+
     if not os.path.isdir(os.path.join(cfg.datapath, 'EPHIN')):
         print('check_paths: Directory containing EPHIN fluxes does not exist. Creating ' + datapath + '/EPHIN')
         os.mkdir(os.path.join(cfg.datapath, 'EPHIN'));
+
     if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
         print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + datapath + '/ERNE')
         os.mkdir(os.path.join(cfg.datapath,'ERNE'));
     if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
         print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + datapath + '/ERNE/export.srl.utu.fi')
         os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'));
+
     if not os.path.isdir(os.path.join(cfg.datapath,'CalGOES')):
         print('check_paths: Directory containing CalGOES fluxes does not exist. Creating ' + cfg.datapath + '/CalGOES')
         os.mkdir(os.path.join(cfg.datapath,'CalGOES'));
+
     if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A')):
         print('check_paths: Directory containing STEREO-A fluxes does not exist. Creating ' + cfg.datapath +
         '/STEREO-A')
         os.mkdir(os.path.join(cfg.datapath,'STEREO-A'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A','LET')):
         os.mkdir(os.path.join(cfg.datapath,'STEREO-A','LET'));
+    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A','HET')):
         os.mkdir(os.path.join(cfg.datapath,'STEREO-A','HET'));
+
     if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B')):
         print('check_paths: Directory containing STEREO-B fluxes does not exist. Creating ' + cfg.datapath +
         '/STEREO-B')
         os.mkdir(os.path.join(cfg.datapath,'STEREO-B'));
+    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B','LET')):
         os.mkdir(os.path.join(cfg.datapath,'STEREO-B','LET'));
+    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B','HET')):
         os.mkdir(os.path.join(cfg.datapath,'STEREO-B','HET'));
+        
+    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
+        print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
+        '/ACE')
+        os.mkdir(os.path.join(cfg.datapath,'ACE'));
+    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','SIS')):
+        os.mkdir(os.path.join(cfg.datapath,'ACE','SIS'));
+    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','EPAM')):
+        os.mkdir(os.path.join(cfg.datapath,'ACE','EPAM'));
+        
     if not os.path.isdir(cfg.outpath):
         print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
         os.mkdir(cfg.outpath);
@@ -229,6 +254,12 @@ def check_completeness(experiment, flux_type, filename, df=pd.DataFrame):
     if experiment == 'ERNE':
         print(f"file_completeness: {experiment} uses variable time periods and cannot "
             "be checked for completeness. Double check data/ERNE/*.dates to ensure you "
+            "have the most up-to-date data.")
+        return True
+        
+    if experiment == 'IMP8_CPME':
+        print(f"file_completeness: {experiment} uses variable time periods and cannot "
+            "be checked for completeness. Double check data files to ensure you "
             "have the most up-to-date data.")
         return True
 
@@ -314,7 +345,13 @@ def file_completeness(df, experiment, flux_type, filename, dates):
                 'STEREO HET': {'cadence': 'month',
                         'resolution': datetime.timedelta(minutes=1)},
                 'STEREO LET': {'cadence': 'day',
-                        'resolution': datetime.timedelta(minutes=1)}
+                        'resolution': datetime.timedelta(minutes=1)},
+                'ACE_SIS': {'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=5)},
+                'ACE_EPAM_electrons': {'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=5)},
+                'IMP8_CPME': {'cadence': 'variable',
+                        'resolution': datetime.timedelta(seconds=330)}
     }
 
     key = experiment
@@ -1899,6 +1936,266 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
 
 
 
+def check_ace_sis_data(startdate, enddate, experiment, flux_type):
+    """Check for ACE/SIS data on your computer. If not there,
+        download from https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
+        5 minute data will be downloaded. Only >30 and >60 MeV fluxes.
+        Intensities are in units of p/cs2-sec-ster
+        First available date is 2001-08-07.
+        The files are available in daily format.
+        e.g. 20010807_ace_sis_5m.txt
+        
+        INPUTS:
+        
+        :startdate: (datetime) start of time period specified by user
+        :enddate: (datetime) end of time period entered by user
+        :experiment: (string) name of native experiment or "user"
+        :flux_type: (string) "integral"
+        
+        OUTPUTS:
+        
+        :filenames1: (string array) the files containing the SOHO
+            EPHIN Level 3 data that span the desired time range
+            (yearly files)
+        
+    """
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
+
+    startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
+    enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
+    Ndays = int((enddt - startdt)/datetime.timedelta(hours=24)) + 1
+
+    df = read_data_manager() #file completeness record
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []
+
+    for i in range(Ndays):
+        getday = startdt + i*datetime.timedelta(hours=24)
+        #20010807_ace_sis_5m.txt
+        fname = getday.strftime("%Y%m%d") + "_ace_sis_5m.txt"
+        
+        svfile = os.path.join(cfg.datapath,'ACE','SIS',fname)
+        exists = os.path.isfile(svfile)
+        
+        complete = False
+        if exists:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, svfile, df=df)
+        
+        if not exists or not complete: #download file if not found on your computer
+            url = ('https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/%s'
+                    % (fname))
+            print('Downloading ACE/SIS integral data: ' + url)
+            try:
+                urllib.request.urlopen(url)
+                
+                if os.path.exists(svfile):
+                    os.remove(svfile) # if exist, remove it directly
+  
+                wget.download(url, svfile)
+            except urllib.request.HTTPError:
+                sys.exit("Cannot access ACE/SIS file at " + url +
+               ". Please check that selected spacecraft covers date range.")
+               
+        filenames1.append(os.path.join('ACE', 'SIS', fname))
+        
+    return filenames1
+
+
+def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
+    """Check for ACE/EPAM data on your computer. If not there,
+        download from https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
+        5 minute data will be downloaded. Electron and proton data. Only take
+        the energetic electrons.
+        # Units: Differential Flux particles/cm2-s-ster-MeV
+        First available date is 2001-08-07.
+        The files are available in daily format.
+        e.g. 20010807_ace_epam_5m.txt
+        
+        INPUTS:
+        
+        :startdate: (datetime) start of time period specified by user
+        :enddate: (datetime) end of time period entered by user
+        :experiment: (string) name of native experiment or "user"
+        :flux_type: (string) "integral"
+        
+        OUTPUTS:
+        
+        :filenames1: (string array) the files containing the SOHO
+            EPHIN Level 3 data that span the desired time range
+            (yearly files)
+        
+    """
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
+
+    startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
+    enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
+    Ndays = int((enddt - startdt)/datetime.timedelta(hours=24)) + 1
+
+    df = read_data_manager() #file completeness record
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []
+
+    for i in range(Ndays):
+        getday = startdt + i*datetime.timedelta(hours=24)
+        #20010807_ace_sis_5m.txt
+        fname = getday.strftime("%Y%m%d") + "_ace_epam_5m.txt"
+        
+        svfile = os.path.join(cfg.datapath,'ACE','EPAM',fname)
+        exists = os.path.isfile(svfile)
+        
+        complete = False
+        if exists:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, svfile, df=df)
+        
+        if not exists or not complete: #download file if not found on your computer
+            url = ('https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/%s'
+                    % (fname))
+            print('Downloading ACE/EPAM data: ' + url)
+            try:
+                urllib.request.urlopen(url)
+                
+                if os.path.exists(svfile):
+                    os.remove(svfile) # if exist, remove it directly
+  
+                wget.download(url, svfile)
+            except urllib.request.HTTPError:
+                sys.exit("Cannot access ACE/EPAM file at " + url +
+               ". Please check that selected spacecraft covers date range.")
+               
+        filenames1.append(os.path.join('ACE', 'EPAM', fname))
+        
+    return filenames1
+
+
+
+def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
+    """Check for IMP-8/CPME data on your computer. If not there,
+        download from http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/
+        330s data will be downloaded. 
+        IMP-8 CPME: 330-sec. Avg. Proton Intensities & Uncertainties [no./(cm^2-sc-ster-MeV)] 
+        The files are compiled in regular doy groupings.
+        e.g. h_330s_1989_240_263.txt.gz
+        
+        First data available: h_330s_1974_048_071.txt.gz   (Feb 17, 1974) 
+        
+        INPUTS:
+        
+        :startdate: (datetime) start of time period specified by user
+        :enddate: (datetime) end of time period entered by user
+        :experiment: (string) name of native experiment or "user"
+        :flux_type: (string) "integral"
+        
+        OUTPUTS:
+        
+        :filenames1: (string array) the files containing the SOHO
+            EPHIN Level 3 data that span the desired time range
+            (yearly files)
+        
+    """
+    doy_groupings = [[1,23],[24,47],[48,71],[72,95],[96,119],[120,143],
+                    [144,167],[168,191],[192,215],[216,239],[240,263],
+                    [264,287],[288,311],[312,336],[336,365]]
+
+    leap_year_ref = 1980
+
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    stdoy = startdate.timetuple().tm_yday
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
+    enddoy = enddate.timetuple().tm_yday
+    
+    Nyr = (endyear - styear) + 1
+
+    df = read_data_manager() #file completeness record
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []
+
+    for i in range(Nyr):
+        year = styear + i
+        is_leap_year = ((year - leap_year_ref)%4 == 0)
+    
+        stix = 0
+        endix = 0
+        if year != styear:
+            stix = 0
+        if year != endyear:
+            endix = len(doy_groupings) - 1
+        if year == styear:
+            for j,grp in enumerate(doy_groupings):
+                if (stdoy >= grp[0]) and (stdoy <= grp[1]):
+                    stix = j
+        if year == endyear:
+                if (enddoy >= grp[0]) and (enddoy <= grp[1]):
+                    endix = j
+    
+        for k in range(stix,endix+1):
+            grp = doy_groupings[k]
+            dy1 = grp[0]
+            dy2 = grp[1]
+            if is_leap_year and dy2 == 365: dy2 = 366
+            #h_330s_1974_048_071.txt.gz
+            fname = f"h_330s_{year}_{dy1:03d}_{dy2:03d}.txt"
+            gzfname = f"{fname}.gz"
+        
+            gzsvfile = os.path.join(cfg.datapath,'IMP8','CPME',gzfname)
+            svfile = os.path.join(cfg.datapath,'IMP8','CPME',fname)
+            exists = os.path.isfile(svfile)
+        
+            complete = False
+            if exists:
+                #Check if the file is listed as complete
+                complete = check_completeness(experiment, flux_type, svfile, df=df)
+            
+            if not exists or not complete: #download file if not found on your computer
+                url = ('http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/%s/%s'
+                        % (year, gzfname))
+                print('Downloading IMP-8/CPME data: ' + url)
+                try:
+                    urllib.request.urlopen(url)
+                    
+                    if os.path.exists(gzsvfile):
+                        os.remove(gzsvfile) # if exist, remove it directly
+                    if os.path.exists(svfile):
+                        os.remove(svfile) # if exist, remove it directly
+      
+                    wget.download(url, gzsvfile)
+                    #Decompress gzip file
+                    # Open the gzipped file in binary read mode ('rb')
+                    with gzip.open(gzsvfile, 'rb') as f_in:
+                        # Open the output file in binary write mode ('wb')
+                        with open(svfile, 'wb') as f_out:
+                            # Copy the decompressed data from the input to the output file
+                            shutil.copyfileobj(f_in, f_out)
+                    
+                except urllib.request.HTTPError:
+                    sys.exit("Cannot access IMP-8/CPME file at " + url +
+                   ". Please check that selected spacecraft covers date range.")
+                   
+            filenames1.append(svfile)
+        
+    return filenames1
+
+
+
+
 def check_data(startdate, enddate, experiment, flux_type, user_file,
     spacecraft="primary"):
     """Check that the files containing the data are in the data directory. If
@@ -2017,14 +2314,27 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
-
     if experiment == "ERNE":
         filenames1 = check_erne_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
-
     if 'STEREO' in experiment:
         filenames1, filenames2 = check_stereo_data(startdate,
+            enddate, experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
+
+    if experiment == "ACE_SIS":
+        filenames1 = check_ace_sis_data(startdate,
+            enddate, experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
+
+    if experiment == "ACE_EPAM_electrons":
+        filenames1 = check_ace_epam_electrons_data(startdate,
+            enddate, experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
+
+    if experiment == "IMP8_CPME":
+        filenames1 = check_imp8_cpme_data(startdate,
             enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
@@ -3604,7 +3914,275 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 
     return all_dates, all_fluxes
 
+
+
+def read_in_ace_sis(experiment, flux_type, filenames1):
+    """ Read in ACE/SIS integral >30, >60 MeV data from your computer.
+        
+        # Units: proton flux p/cs2-sec-ster
+        # Status(S): 0 = nominal data, 1 to 8 = bad data record, 9 = no data
+        # Missing data values: -1.00e+05
+        # Source: ACE Satellite - Solar Isotope Spectrometer
+        #
+        # 5-minute averaged Real-time Integral Flux of High-energy Solar Protons
+        
+                          Modified Seconds
+        # UT Date   Time   Julian  of the      ---- Integral Proton Flux ----
+        # YR MO DA  HHMM     Day     Day       S    > 10 MeV    S    > 30 MeV
+        #--------------------------------------------------------------------
+        2001 08 07  0000    52128       0      0    7.97e-01    0    5.57e-01        
+        
+        INPUTS:
+        
+        :experiment: (string) experiment name
+        :flux_type: (string) integral
+        :filenames1: (string array) the files containing the data
+        
+            
+        OUTPUTS:
+        
+        :all_dates: (datetime 1xm array) time points for every time in
+            all the data points in the files contained in filenames1
+        :all_fluxes: (float nxm array) fluxes for n energy channels and m
+            time points
     
+        Note that all_dates and all_fluxes will be trimmed down to the
+        user time period of interest.
+        
+    """
+    n_chan = 2 #>30, >60
+    
+    NFILES = len(filenames1)
+    all_dates = []
+    all_fluxes = []
+
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+
+    #Read in fluxes from files
+    for i in range(NFILES):
+        file_dates = []
+        if filenames1[i] == None:
+            continue
+
+        fullpath = os.path.join(datapath, filenames1[i])
+        if not os.path.isfile(fullpath):
+            print(f"read_in_ace_sis: Cannot read {fullpath}. Skipping.")
+            continue
+        with open(fullpath, 'r') as file:
+            for line in file:
+                if ":Data" in line: continue
+                if ":Created" in line: continue
+                if "#" in line: continue
+                line = line.strip().split()
+
+                #Date
+                year = int(line[0])
+                month = int(line[1])
+                day = int(line[2])
+                time = line[3]
+                hr = int(time[0:2])
+                min = int(time[2:4])
+                date = datetime.datetime(year = year, month=month, day=day, hour=hr, minute=min)
+                file_dates.append(date)
+                all_dates.append(date)
+
+                flx30 = float(line[7])
+                flx60 = float(line[9])
+                if flx30 < 0: flx30 = badval
+                if flx60 < 0: flx60 = badval
+            
+                all_fluxes.append([flx30, flx60])
+                
+
+
+        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+
+    print(f"{datetime.datetime.now()} read_in_ace_sis: Finished reading ACE/SIS integral data.")
+    write_data_manager(df)
+    
+    all_fluxes = np.array(all_fluxes).T
+
+    return all_dates, all_fluxes
+
+
+def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
+    """ Read in ACE/EPAM energetic electrons 175-315 keV from your computer.
+        
+        # Units: Differential Flux particles/cm2-s-ster-MeV
+        # Units: Anisotropy Index 0.0 - 2.0
+        # Status(S): 0 = nominal data, 1 to 8 = bad data record, 9 = no data
+        # Missing data values: -1.00e+05, index = -1.00
+        # Source: ACE Satellite - Electron, Proton, and Alpha Monitor
+        # Note: 7/26/00 Corrected Differential Flux ranges.
+        #
+        #                      5-minute averaged Real-time Differential Electron and Proton Flux 
+        # 
+        #                Modified Seconds ---------------------------- Differential Flux --------------------------- 
+        # UT Date   Time  Julian  of the  ----- Electron -----   ------------------- Protons keV -------------------   Anis.
+        # YR MO DA  HHMM    Day    Day    S    38-53   175-315   S   47-65    112-187   310-580   761-1220 060-1910   Ratio
+        #-------------------------------------------------------------------------------------------------------------------
+        2001 08 07  0000   52128       0  0  7.22e+02  1.60e+01  0  1.28e+03  1.29e+02  9.20e+00  9.54e-01  2.19e-01   0.47
+                
+        INPUTS:
+        
+        :experiment: (string) experiment name
+        :flux_type: (string) differential
+        :filenames1: (string array) the files containing data
+        
+            
+        OUTPUTS:
+        
+        :all_dates: (datetime 1xm array) time points for every time in
+            all the data points in the files contained in filenames1
+        :all_fluxes: (float nxm array) fluxes for n energy channels and m
+            time points
+    
+        Note that all_dates and all_fluxes will be trimmed down to the
+        user time period of interest.
+        
+    """
+    n_chan = 1 #175-315 keV
+    
+    NFILES = len(filenames1)
+    all_dates = []
+    all_fluxes = []
+
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+    
+    #Read in fluxes from files
+    for i in range(NFILES):
+        file_dates = []
+        if filenames1[i] == None:
+            continue
+
+        fullpath = os.path.join(datapath, filenames1[i])
+        if not os.path.isfile(fullpath):
+            print(f"read_in_ace_epam_electrons: Cannot read {fullpath}. Skipping.")
+            continue
+        with open(fullpath, 'r') as file:
+            for line in file:
+                if ":Data" in line: continue
+                if ":Created" in line: continue
+                if "#" in line: continue
+                line = line.strip().split()
+
+                #Date
+                year = int(line[0])
+                month = int(line[1])
+                day = int(line[2])
+                time = line[3]
+                hr = int(time[0:2])
+                min = int(time[2:4])
+                date = datetime.datetime(year = year, month=month, day=day, hour=hr, minute=min)
+                file_dates.append(date)
+                all_dates.append(date)
+
+                flx = float(line[8])
+                if flx < 0: flx = badval
+            
+                all_fluxes.append(flx)
+                
+
+
+        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+
+    print(f"{datetime.datetime.now()} read_in_ace_epam_electrons: Finished reading ACE/EPAM energetic electron data.")
+    write_data_manager(df)
+    
+    all_fluxes = np.array([all_fluxes])
+
+    return all_dates, all_fluxes
+
+
+def read_in_imp8_cpme(experiment, flux_type, filenames1):
+    """ Read in IMP-8/CPME protons from your computer.
+        
+        IMP-8 CPME: 330-sec. Avg. Proton Intensities & Uncertainties [no./(cm^2-sc-ster-MeV)]                                   
+        year doy hr mn sc     dec_year  dec_doy  x_gse_km  y_gse_km  z_gse_km  y_gsm_km  
+        z_gsm_km     p1_fx    p1_fxu     p2_fx    p2_fxu     p3_fx    p3_fxu     p4_fx    
+        p4_fxu     p5_fx    p5_fxu     p7_fx    p7_fxu     p8_fx    p8_fxu     p9_fx    
+        p9_fxu    p10_fx   p10_fxu    p11_fx   p11_fxu
+        
+        NOTE NO P6
+
+        P5 = 4.60 - 15.0 MeV
+        P7 = 15.0 - 25.0 MeV
+        P8 = 25.0 - 48.0 MeV
+        P9 = 48.0 - 96.0 MeV
+        P10 = 96.0 - 145.0 MeV
+        P11 = 145.0 - 440.0 MeV
+                       
+        INPUTS:
+        
+        :experiment: (string) experiment name
+        :flux_type: (string) differential
+        :filenames1: (string array) the files containing data
+        
+            
+        OUTPUTS:
+        
+        :all_dates: (datetime 1xm array) time points for every time in
+            all the data points in the files contained in filenames1
+        :all_fluxes: (float nxm array) fluxes for n energy channels and m
+            time points
+    
+        Note that all_dates and all_fluxes will be trimmed down to the
+        user time period of interest.
+        
+    """
+    n_chan = 6 #P5 - P11
+    
+    NFILES = len(filenames1)
+    all_dates = []
+    all_fluxes = []
+
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+    
+    #Read in fluxes from files
+    for i in range(NFILES):
+        file_dates = []
+        if filenames1[i] == None:
+            continue
+
+        if not os.path.isfile(filenames1[i]):
+            print(f"read_in_imp8_cpme: Cannot read {fullpath}. Skipping.")
+            continue
+        with open(filenames1[i], 'r') as file:
+            for line in file:
+                #decimal year in column 5
+                #P5 - P11 (no P6), columns 20, 22, 24, 26, 28, 30
+                if "IMP-8" in line: continue
+                if "year" in line: continue
+                if "#" in line: continue
+                line = line.strip().split()
+
+                #Date
+                frac_year = float(line[5])
+                date = convert_frac_year(frac_year)
+                file_dates.append(date)
+                all_dates.append(date)
+
+                flx = [float(line[20]), float(line[22]), float(line[24]), float(line[26]),
+                    float(line[28]), float(line[30])]
+                for jj in range(len(flx)):
+                    if flx[jj] < 0: flx[jj] = badval
+            
+                all_fluxes.append(flx)
+                
+
+
+        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+
+    print(f"{datetime.datetime.now()} read_in_imp8_cpme: Finished reading IMP-8/CPME data.")
+    write_data_manager(df)
+    
+    all_fluxes = np.array(all_fluxes).T
+
+    return all_dates, all_fluxes
+
 
 
 def read_in_files(experiment, flux_type, filenames1, filenames2,
@@ -3706,6 +4284,15 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes = read_in_stereo(experiment, flux_type,
                     filenames1, filenames2)
 
+    elif experiment == "ACE_SIS":
+        all_dates, all_fluxes = read_in_ace_sis(experiment, flux_type, filenames1)
+        
+    elif experiment == "ACE_EPAM_electrons":
+        all_dates, all_fluxes = read_in_ace_epam_electrons(experiment, flux_type, filenames1)
+        
+    elif experiment == "IMP8_CPME":
+        all_dates, all_fluxes = read_in_imp8_cpme(experiment, flux_type, filenames1)
+
     return all_dates, all_fluxes, west_detector
 
 
@@ -3726,6 +4313,20 @@ def convert_decimal_hour(decimal_hours):
     
     return hours, minutes, seconds
 
+
+def convert_frac_year(frac_year):
+    """ Convert a fractional year date to datetime """
+    
+    year = int(frac_year)
+    frac = frac_year - year
+    thisyear = datetime.datetime(year=year, month=1, day=1)
+    nextyear = datetime.datetime(year=year+1, month=1, day=1)
+    tot_sec = (nextyear - thisyear).total_seconds()
+    frac_sec = tot_sec * frac
+    
+    date = thisyear + datetime.timedelta(seconds=frac_sec)
+
+    return date
 
 def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
     """ Read in file containing flux time profile information that
@@ -4537,6 +5138,24 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                         [14.9,17.1],[17.0,19.3],[20.8,23.8],
                         [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
                         [35.5,40.5],[40.0,60.0],[60.0,100.0]]
+
+
+    if experiment == "ACE_SIS":
+        #https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
+        energy_bins = [[30,-1],[60,-1]]
+        energy_bin_centers = calculate_geometric_means(energy_bins)
+
+    if experiment == "ACE_EPAM_electrons":
+        #https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
+        energy_bins = [[0.175,0.315]]
+        energy_bin_centers = calculate_geometric_means(energy_bins)
+
+    if experiment == "IMP8_CPME":
+        #http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/
+        energy_bins = [[4.60, 15.0], [15.0, 25.0], [25.0, 48.0], [48.0, 96.0],
+                        [96.0, 145.0], [145.0, 440.0]]
+        energy_bin_centers = calculate_geometric_means(energy_bins)
+
 
     if experiment == "user":
         #modify to match your energy bins or integral channels
