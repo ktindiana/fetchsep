@@ -5035,7 +5035,6 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                             math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
                             math.sqrt(510.0*700.0), 700]
             if "Bruno2017" in options:
-                energy_bin_centers = [np.nan]*10
                 #EPEAD CHANNELS P6 and P7
                 if "uncorrected" in options:
                     if west_detector.count("A") >= west_detector.count("B"):
