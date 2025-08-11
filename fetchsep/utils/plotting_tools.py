@@ -627,7 +627,7 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
     else:
         #fig = plt.figure(figname,figsize=(12,9))
         fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9))
-
+        if nthresh == 1: ax = [ax]
 
     plot_title = f"Event Definitions for {exp_name} {title_mod} {flux_type} Fluxes"
     plt.suptitle(plot_title)

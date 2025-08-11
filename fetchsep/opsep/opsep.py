@@ -925,6 +925,8 @@ def calculate_event_info(flux_data):
 
     for evdef in flux_data.event_definitions:
         analyze = cl.Analyze(flux_data, evdef)
+        if not analyze.isgood: continue
+
         #Calculate all SEP characteristics
         analyze.calculate_event_info(flux_data)
         #Add to the flux_data object
