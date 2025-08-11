@@ -2131,7 +2131,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
     for i in range(Nyr):
         year = styear + i
         is_leap_year = ((year - leap_year_ref)%4 == 0)
-    
+
         stix = 0
         endix = 0
         if year != styear:
@@ -2143,9 +2143,10 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
                 if (stdoy >= grp[0]) and (stdoy <= grp[1]):
                     stix = j
         if year == endyear:
+            for j,grp in enumerate(doy_groupings):
                 if (enddoy >= grp[0]) and (enddoy <= grp[1]):
                     endix = j
-    
+
         for k in range(stix,endix+1):
             grp = doy_groupings[k]
             dy1 = grp[0]
@@ -4133,7 +4134,7 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
         
     """
     n_chan = 6 #P5 - P11
-    
+
     NFILES = len(filenames1)
     all_dates = []
     all_fluxes = []
@@ -4148,9 +4149,10 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
             continue
 
         if not os.path.isfile(filenames1[i]):
-            print(f"read_in_imp8_cpme: Cannot read {fullpath}. Skipping.")
+            print(f"read_in_imp8_cpme: Cannot read {filenames1[i]}. Skipping.")
             continue
         with open(filenames1[i], 'r') as file:
+            print(f"read_in_imp8_cpme: Reading {filenames1[i]}.")
             for line in file:
                 #decimal year in column 5
                 #P5 - P11 (no P6), columns 20, 22, 24, 26, 28, 30

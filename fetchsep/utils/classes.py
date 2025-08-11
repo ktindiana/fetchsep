@@ -664,6 +664,7 @@ class Data:
         self.evaluated_energy_bins = []
         self.evaluated_dates = self.dates
         self.evaluated_fluxes = []
+        to_remove = [] #event definitions with energy bins not in the data
         
         if self.flux_type == 'differential':
             self.estimate_integral_fluxes()
@@ -682,11 +683,20 @@ class Data:
             except:
                 print("extract_fluxes_to_evaluate: Energy bin for requested event "
                     f"definition is not present in the data, {bin}. Skipping.")
+                #Remove from event definitions
+                to_remove.append(evdef)
                 continue
             
             self.evaluated_energy_bins.append(bin)
             self.evaluated_fluxes.append(self.fluxes[idx])
-    
+ 
+        #Clean up by removing any event definitions that weren't in the data
+        if len(to_remove) > 0:
+            for evdef in to_remove:
+                if evdef in self.event_definitions:
+                    self.event_definitions.remove(evdef)
+ 
+ 
         return
 
 
@@ -768,8 +778,7 @@ class Analyze:
         self.sep_profile = None #name of output file continaining
             #datetime column and flux column for this event definition
 
-        self.check_event_definition(data)
-
+        self.isgood = self.check_event_definition(data)
 
  
     def check_event_definition(self, data):
@@ -781,14 +790,16 @@ class Analyze:
         try:
             data.evaluated_energy_bins.index(energy_bin)
         except:
-            sys.exit(f"Analyze init: Requested energy bin in the event definition {energy_bin} "
+            print(f"Analyze init: Requested energy bin in the event definition {energy_bin} "
                 f"is not present in the data: {data.evaluated_energy_bins}. Exiting.")
+            return False
         
         print(f"Analyze init: Applying event definition: "
             f"[{self.event_definition['energy_channel'].min}, "
             f"{self.event_definition['energy_channel'].max}] exceeds "
             f"{self.event_definition['threshold'].threshold} {self.event_definition['threshold'].threshold_units}")
- 
+
+        return True
  
  
     def make_energy_channel_dict(self):
@@ -1364,6 +1375,12 @@ class Output:
         """
 
         self.data = data
+        
+        #Check if any Analysis objects were created
+        if len(data.results) == 0:
+            sys.exit("Output init: No event definitions were applied to the data. "
+                "There are no results to report. Available energy bins are "
+                f"{self.data.energy_bins} Exiting.")
     
         self.spase_id = spase_id
         self.json_type = json_type #observation or forecast
