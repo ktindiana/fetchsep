@@ -975,7 +975,7 @@ class Analyze:
                 f"{cfg.opsep_min_threshold}.")
             self.event_definition['threshold'].threshold = cfg.opsep_min_threshold
             
-         return True
+        return True
 
  
  
