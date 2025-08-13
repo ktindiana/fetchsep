@@ -670,12 +670,14 @@ def run_all(str_startdate, str_enddate, experiment,
     threshold = []
     print(f"TIMESTAMP: Starting background and SEP event identification for {niter} iterations, {datetime.datetime.now()}.")
     is_final = False
+    close_plot = True
     for iter in range(niter):
         print(f"TIMESTAMP: Performing iteration {iter}, {datetime.datetime.now()}")
         post = "_iter" + str(iter)
         if iter == niter-1:
             post += "_FINAL"
             is_final = True
+            close_plot = False
         #Separate high and low flux by applying a sliding smoothing window to the background
         #fluxes_bg_init is used to get the mean, sigma, and threshold, then fluxes is split
         #into fluxes_bg and fluxes_high
@@ -689,17 +691,17 @@ def run_all(str_startdate, str_enddate, experiment,
 
         if showplot or saveplot:
             plt_tools.idsep_make_plots(str(sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, doBGSub, False, saveplot,
-                spacecraft=spacecraft)
+                spacecraft=spacecraft, close_plot=close_plot)
             
             plt_tools.idsep_make_plots(str(sliding_win)+"window_nosigma" + post,
                 experiment, flux_type,
                 exp_name, options, dates, fluxes_bg_init, energy_bins, dates,
                 ave_background, ave_sigma, dates, threshold, doBGSub, showplot,
-                saveplot, True, spacecraft=spacecraft) #disable_sigma
+                saveplot, True, spacecraft=spacecraft, close_plot=close_plot) #disable_sigma
             
             plt_tools.idsep_make_bg_sep_plot(str(sliding_win)+"window" + post, experiment,
                 flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins,
-                doBGSub, showplot, saveplot, spacecraft=spacecraft)
+                doBGSub, showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot)
 
 
         #Identify SEP events in full time range
@@ -709,7 +711,7 @@ def run_all(str_startdate, str_enddate, experiment,
         if showplot or saveplot:
             plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
                 exp_name, options, dates, fluxes, fluxes_sep, energy_bins, doBGSub,
-                showplot, saveplot, spacecraft=spacecraft)
+                showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot)
 
 
         #Taking the estimated background flux and remove SEP periods

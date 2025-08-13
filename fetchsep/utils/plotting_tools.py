@@ -905,7 +905,8 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units):
 
 def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,
-        threshold, doBGSub, showplot, saveplot, disable_sigma=False, spacecraft=""):
+        threshold, doBGSub, showplot, saveplot, disable_sigma=False, spacecraft="",
+        close_plot=False):
     """ Make multiple plots with 3 vertical subplots representing individual energy
         channels.
         
@@ -985,16 +986,17 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
+            if close_plot:
+                plt.close(fig)
 
         #increment to next axis
         iax += 1
  
 
 
-
 def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
-        spacecraft=""):
+        spacecraft="", close_plot=False):
 
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
@@ -1030,6 +1032,8 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
+            if close_plot:
+                plt.close(fig)
 
         #increment to next axis
         iax += 1
@@ -1039,7 +1043,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
 
 def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             dates, fluxes_bg, fluxes_sep, energy_bins, doBGSub,
-            showplot, saveplot, spacecraft=""):
+            showplot, saveplot, spacecraft="", close_plot=False):
     
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
@@ -1076,7 +1080,9 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
-
+            if close_plot:
+                plt.close(fig)
+        
         #increment to next axis
         iax += 1
     
@@ -1086,7 +1092,8 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
 
 
 def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
-            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot):
+            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot,
+            close_plot=False):
     #NEEDS TO BE CLEANED UP
     #Additions to titles and filenames according to user-selected options
     modifier = ''
@@ -1162,4 +1169,5 @@ def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, da
             fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
             if not showplot:
                 plt.close(fig)
-
+            if close_plot:
+                plt.close(fig)

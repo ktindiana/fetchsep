@@ -353,6 +353,38 @@ def residual(fit, data):
     return resid
 
 
+def ratio(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    resid = []
+    for i in range(len(fit)):
+        if data[i] != 0:
+            err = abs(data[i] - fit[i])/data[i]
+            resid.append(err)
+ 
+    resid = sum(resid)/len(resid)
+ 
+    return resid
+
+
+def normchisq(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    resid = []
+    for i in range(len(fit)):
+        if data[i] != 0:
+            err = ((data[i] - fit[i])**2)/data[i]
+            resid.append(err)
+ 
+    resid = sum(resid)/(len(resid)-1)
+ 
+    return resid
+
+
 def modified_weibull(times, Ip, a, b):
     """ Create a Weibull for times in seconds since first
         date with params a and b.
@@ -399,6 +431,7 @@ def func_residual(params, *args):
 #    fit = lognormal(times, Ip, a, b)
     
     resid = residual(fit, data)
+#    resid = normchisq(fit, data)
 
     return resid
     

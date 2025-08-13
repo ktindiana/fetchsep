@@ -1336,9 +1336,9 @@ class Analyze:
 
         #Do a fit of the Weibull function for each time profile
         params_fit = Parameters()
-        params_fit.add('alpha', value = -3, min = -5, max = -0.1)
-        params_fit.add('beta', value = 10, min = 1, max =100)
-        params_fit.add('peak_intensity', value = 100, min = 1e-3, max =1e6)
+        params_fit.add('alpha', value = -3, min = -20, max = -0.1) #-3, -5, -0.1
+        params_fit.add('beta', value = 10, min = 1, max =500) #10, 1, 100
+        params_fit.add('peak_intensity', value = 100, min = 1e-3, max =1e6) #100, 1e-3, 1e6
 
         flxratio = self.max_flux/threshold
         
@@ -1386,10 +1386,12 @@ class Analyze:
         best_b = best_pars['beta']
         best_Ip = best_pars['peak_intensity']
         best_fit = tools.modified_weibull(trim_times, best_Ip, best_a, best_b)
-
+        err = tools.ratio(best_fit, trim_fluxes)
+    
         print(f"calculate_onset_peak_from_fit ==== {energy_bin} MeV =====")
         print(f"Best fit Weibull for onset peak Ip: {best_Ip}, a: {best_a}, b: {best_b}")
-        
+        print(f"Error in fit: {err}")
+
         if pd.isnull(best_Ip) or pd.isnull(best_a) or pd.isnull(best_b):
             print("calculate_onset_peak_from_fit: Fit failed for "
                 f"{energy_bin}, {threshold}. Returning null values.")
