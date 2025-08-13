@@ -2431,8 +2431,9 @@ def get_west_detector(filename, dates):
             if date_index == len(dates):
                 break
 
-    #print('There were ' + str(len(dates)) + ' input dates and there are ' +
-    #        str(len(west_detector)) + ' detector orientations.')
+#    print('There were ' + str(len(dates)) + ' input dates and there are ' +
+#            str(len(west_detector)) + ' detector orientations. '
+#            f"A: {west_detector.count('A')}, B: {west_detector.count('B')}")
     return west_detector
 
 
@@ -4805,7 +4806,7 @@ def calculate_geometric_means(energy_bins):
     return centers
 
 
-def define_energy_bins(experiment,flux_type,west_detector,options,
+def define_energy_bins(experiment, flux_type, west_detector, options,
     spacecraft="primary", user_bins=[]):
     """ Define the energy bins for the selected spacecraft or data set.
         If the user inputs their own file, they must set the
@@ -5038,6 +5039,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                 #EPEAD CHANNELS P6 and P7
                 if "uncorrected" in options:
                     if west_detector.count("A") >= west_detector.count("B"):
+                        print("Choosing Bruno2017 energy bins for uncorrected A detector.")
                         #A detector bins
                         if experiment == "GOES-13":
                             energy_bins[4] = [93.3,129.0]
@@ -5050,6 +5052,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                             energy_bins[5] = [142.2,199.0]
                             energy_bin_centers[5] = 175.5
                     if west_detector.count("B") > west_detector.count("A"):
+                        print("Choosing Bruno2017 energy bins for uncorrected B detector.")
                         #B detector bins
                         if experiment == "GOES-13":
                             energy_bins[4] = [92.3,127.5]
@@ -5063,6 +5066,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                             energy_bin_centers[5] = 178.5
                 if "corrected" in options or "uncorrected" not in options: #Z89 applied
                     if west_detector.count("A") >= west_detector.count("B"):
+                        print("Choosing Bruno2017 energy bins for corrected A detector.")
                         #A detector bins
                         if experiment == "GOES-13":
                             energy_bins[4] = [93.3,129.1]
@@ -5075,6 +5079,7 @@ def define_energy_bins(experiment,flux_type,west_detector,options,
                             energy_bins[5] = [145.0,202.3]
                             energy_bin_centers[5] = 178.6
                     if west_detector.count("B") > west_detector.count("A"):
+                        print("Choosing Bruno2017 energy bins for corrected B detector.")
                         #B detector bins
                         if experiment == "GOES-13":
                             energy_bins[4] = [92.4,127.8]

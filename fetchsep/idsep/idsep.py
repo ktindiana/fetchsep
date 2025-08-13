@@ -5,24 +5,13 @@ from ..utils import define_background_idsep as defbg
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
 from ..utils import tools
-import re
-import calendar
 import datetime
-import argparse
 from datetime import timedelta
 import os
-import wget
-from calendar import monthrange
-import urllib.request
-import csv
-from dateutil.parser import parse
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import math
-from astropy.time import Time
-from statistics import mode
-import array
 import pandas as pd
 
 __author__ = "Katie Whitman"
@@ -144,7 +133,7 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
                                 west_detector, options)
     elif experiment != "GOES":
         energy_bins, energy_bin_centers = datasets.define_energy_bins(experiment, flux_type,
-                                west_detector, options,spacecraft=spacecraft)
+                                west_detector, options, spacecraft=spacecraft)
 
 
     if energy_bins == None:
@@ -332,7 +321,7 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     one_sec = datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
 
     prename = (f"SEPTimes_{experiment}_{flux_type}{modifier}")
@@ -416,7 +405,7 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     if for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
 
     prename = (f"HighPoints_{experiment}_{flux_type}{modifier}")
@@ -506,7 +495,8 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     print("Preforming an initial rough cut between the background and enhanced fluxes.")
     print(f"Init win: {init_win}, Nsigma: {nsigma}, Remove above: {remove_above}")
     ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
-                defbg.ndays_average_optimized(init_win, dates, fluxes, nsigma, remove_above)
+                defbg.ndays_average_optimized(init_win, dates, fluxes, energy_bins,
+                nsigma, remove_above)
     
     #INITIAL SEPARATION OF BG AND HIGHER THAN BG
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
@@ -521,7 +511,7 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     return fluxes_bg, fluxes_high
 
 
-def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
+def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, nsigma,
     iteration=0, is_final=False):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
@@ -548,7 +538,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
     """
     ave_background, ave_sigma, threshold =\
             defbg.backward_window_background_optimized(sliding_win, dates, fluxes_bg_in,
-            nsigma, iteration, is_final)
+            energy_bins, nsigma, iteration, is_final)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -559,7 +549,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, nsigma,
     return fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold
 
 
-def write_sep_fluxes(dates, fluxes, fluxes_bg):
+def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins):
     """ Write out final SEP fluxes and bg-subtracted fluxes.
         Subtract fluxes (e.g. SEP fluxes subtracted by the mean background).
         If fluxes already at a value of zero, no background subtraction is
@@ -569,8 +559,10 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg):
     dict = {'dates': dates}
     cols = []
     for ii in range(len(fluxes)):
-        dict.update({'fluxes'+str(ii): fluxes[ii]})
-        cols.append('fluxes'+str(ii))
+        bin = energy_bins[ii]
+        key = tools.energy_bin_key(bin)
+        dict.update({key: fluxes[ii]})
+        cols.append(key)
     df = pd.DataFrame(dict)
     df_bg = pd.DataFrame(dict)
     
@@ -618,6 +610,7 @@ def run_all(str_startdate, str_enddate, experiment,
     enddate = dateh.str_to_datetime(str_enddate)
     eff_startdate = startdate
     
+    options = options.split(";")
     #If the user entered a date range shorter than required for the
     #initial window used to identify the background, extend the date
     #range
@@ -689,7 +682,7 @@ def run_all(str_startdate, str_enddate, experiment,
         #The mean background is sensitive to the background selection in fluxes_bg_init
         print(f"TIMESTAMP: Starting sliding window background calculation, {datetime.datetime.now()}")
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
-            apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, nsigma,
+            apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, energy_bins, nsigma,
             iteration=iter, is_final=is_final)
         print(f"TIMESTAMP: Completed sliding window background calculation, {datetime.datetime.now()}")
 
@@ -741,7 +734,7 @@ def run_all(str_startdate, str_enddate, experiment,
     SEPstart, SEPend, final_fluxes_sep = identify_sep(trim_dates, trim_fluxes_high)
     
     #Write background-subtracted SEP only fluxes to file
-    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg)
+    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg, energy_bins)
     
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins,

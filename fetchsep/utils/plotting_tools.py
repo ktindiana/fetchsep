@@ -1,4 +1,5 @@
 from . import config as cfg
+from . import tools
 from ..json import ccmc_json_handler as ccmc_json
 import numpy as np
 import pandas as pd
@@ -372,44 +373,44 @@ def box_plot(values, labels, x_label="Model", y_label="Metric",
     return fig
 
 
-##### NAMING SCHEMA #####
-def setup_modifiers(options, doBGSub, spacecraft=""):
-    """ Add modifier strings according to options.
-    
-    """
-    modifier = '' #for appending to filenames
-    title_mod = '' #for appending to plot titles
-
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
-    if spacecraft:
-        modifier = modifier + '_' + spacecraft
-        title_mod = title_mod + spacecraft + ' '
-
-    return modifier, title_mod
-
-
-def setup_energy_bin_label(energy_bin):
-    """ Label for a single energy bin.
-    
-    """
-    label = ""
-    if energy_bin[1] != -1:
-        label = (f"{energy_bin[0]}-{energy_bin[1]} {cfg.energy_units}")
-    else:
-        label = (f">{energy_bin[0]} {cfg.energy_units}")
-
-    return label
+###### NAMING SCHEMA #####
+#def setup_modifiers(options, doBGSub, spacecraft=""):
+#    """ Add modifier strings according to options.
+#    
+#    """
+#    modifier = '' #for appending to filenames
+#    title_mod = '' #for appending to plot titles
+#
+#    if "uncorrected" in options:
+#        modifier = modifier + '_uncorrected'
+#        title_mod = title_mod + 'uncorrected '
+#    if doBGSub:
+#        modifier = modifier + '_bgsub'
+#        title_mod = title_mod + 'BG-subtracted '
+#    if "S14" in options:
+#        modifier = modifier + '_S14'
+#        title_mod = title_mod + 'S14 '
+#    if "Bruno2017" in options:
+#        modifier = modifier + '_Bruno2017'
+#        title_mod = title_mod + 'Bruno2017 '
+#    if spacecraft:
+#        modifier = modifier + '_' + spacecraft
+#        title_mod = title_mod + spacecraft + ' '
+#
+#    return modifier, title_mod
+#
+#
+#def setup_energy_bin_label(energy_bin):
+#    """ Label for a single energy bin.
+#    
+#    """
+#    label = ""
+#    if energy_bin[1] != -1:
+#        label = (f"{energy_bin[0]}-{energy_bin[1]} {cfg.energy_units}")
+#    else:
+#        label = (f">{energy_bin[0]} {cfg.energy_units}")
+#
+#    return label
 
 
 ############ OPSEP PLOTS ##############
@@ -444,7 +445,7 @@ def opsep_plot_bgfluxes(experiment, flux_type, options, model_name,
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
     doBGSub = True
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
     strdate = f"{dates[0].year}_{dates[0].month}_{dates[0].day}"
 
@@ -465,7 +466,7 @@ def opsep_plot_bgfluxes(experiment, flux_type, options, model_name,
         if isinstance(means[i], list):
             mean = np.nanmean(np.array(means[i]))
             
-        legend_label = setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
         p = ax.plot_date(dates,maskfluxes,'-',label=legend_label)
         color = p[0].get_color()
         if i==0:
@@ -612,7 +613,7 @@ def opsep_plot_event_definitions(experiment, flux_type, model_name, options, doB
                 "crossings.")
 
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
     #plot integral fluxes (either input or estimated)
     nthresh = len(event_definitions)
@@ -714,7 +715,7 @@ def opsep_plot_all_bins(experiment, flux_type, model_name, options, doBGSub,
     stzulu = stzulu.replace(":","")
 
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
     energy_units = event_definitions[0]['energy_channel'].units
     
     exp_name = experiment
@@ -806,7 +807,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, model_name, options, doBG
     stzulu = stzulu.replace(":","")
  
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
     #plot integral fluxes (either input or estimated)
     nthresh = len(event_definitions)
@@ -940,7 +941,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
 
     figname = (f"{experiment}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
@@ -960,7 +961,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
-        legend_label = setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
             
         #PLOT FLUXES
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
@@ -996,7 +997,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         spacecraft=""):
 
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
 
     figname = (f"{experiment}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
@@ -1016,7 +1017,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
-        legend_label = setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
         ax[iax].plot_date(dates,maskfluxes,'.-',label=legend_label)
@@ -1041,7 +1042,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             showplot, saveplot, spacecraft=""):
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
 
     figname = (f"{experiment}_{flux_type}{modifier}_SEP_BG_{unique_id}")
     if experiment == 'user' and exp_name != '':
@@ -1060,7 +1061,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
             iax = 0
 
-        legend_label = setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
         ax[iax].plot_date(dates,maskfluxes_bg,'.-',label=(f"Background {legend_label}"))

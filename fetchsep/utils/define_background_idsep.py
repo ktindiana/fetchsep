@@ -1,4 +1,5 @@
 from ..utils import config as cfg
+from ..utils import tools
 from . import date_handler as dateh
 import datetime
 import numpy as np
@@ -527,7 +528,8 @@ def plot_dist_hist(df, iteration):
 #####################################
 #OPTIMIZED ALGORITHM
 #####################################
-def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
+def ndays_average_optimized(N, dates, fluxes, energy_bins,
+    nsigma, remove_above):
     """ Average flux over N days.
 
         INPUTS:
@@ -557,8 +559,10 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
     dict = {'dates': dates}
     cols = []
     for ii in range(len(fluxes)):
-        dict.update({'fluxes'+str(ii): fluxes[ii]})
-        cols.append('fluxes'+str(ii))
+        bin = energy_bins[ii]
+        key = tools.energy_bin_key(bin)
+        dict.update({key: fluxes[ii]})
+        cols.append(key)
     df = pd.DataFrame(dict)
 
     means = []
@@ -637,8 +641,8 @@ def ndays_average_optimized(N, dates, fluxes, nsigma, remove_above):
 #####################################
 ##OPTIMIZED AGLORITHM
 #####################################
-def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0,
-    is_final=False):
+def backward_window_background_optimized(N, dates, fluxes, energy_bins,
+    nsigma, iteration=0, is_final=False):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -694,8 +698,10 @@ def backward_window_background_optimized(N, dates, fluxes, nsigma,iteration=0,
     dict = {'dates': dates}
     cols = []
     for ii in range(len(fluxes)):
-        dict.update({'fluxes'+str(ii): fluxes[ii]})
-        cols.append('fluxes'+str(ii))
+        bin = energy_bins[ii]
+        key = tools.energy_bin_key(bin)
+        dict.update({key: fluxes[ii]})
+        cols.append(key)
     df = pd.DataFrame(dict)
     
     #Set up the starting dates and time steps

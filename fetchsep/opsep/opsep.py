@@ -1,38 +1,11 @@
 from ..utils import classes as cl
 from ..utils import read_datasets as datasets
 from ..utils import config as cfg
-from ..json import ccmc_json_handler as ccmc_json
-from ..utils import derive_background_opsep as bgsub
-from ..utils import error_check
-from ..utils import tools
-from ..utils import plotting_tools as plt_tools
 import matplotlib.pyplot as plt
-from matplotlib.dates import DateFormatter
-import math
-import numpy as np
 import sys
-#import urllib2
-import re
-import calendar
-import datetime
-import argparse
-from datetime import timedelta
 import os
-import wget
-from calendar import monthrange
-import urllib.request
-import csv
-from dateutil.parser import parse
-import scipy.integrate
-from numpy import exp
-import array as arr
 import pandas as pd
-import scipy
-from scipy import signal
-from statistics import mode
-from lmfit import minimize, Parameters
 import array
-from pprint import pprint
 
 __version__ = "3.7"
 __author__ = "Katie Whitman"

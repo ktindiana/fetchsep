@@ -1,4 +1,3 @@
-from . import plotting_tools as plt_tools
 from . import config as cfg
 import pandas as pd
 import datetime
@@ -89,6 +88,55 @@ def determine_time_resolution(dates):
     return time_resolution
 
 
+##### NAMING SCHEMA #####
+def setup_modifiers(options, doBGSub, spacecraft=""):
+    """ Add modifier strings according to options.
+    
+    """
+    modifier = '' #for appending to filenames
+    title_mod = '' #for appending to plot titles
+
+    if "uncorrected" in options:
+        modifier = modifier + '_uncorrected'
+        title_mod = title_mod + 'uncorrected '
+    if doBGSub:
+        modifier = modifier + '_bgsub'
+        title_mod = title_mod + 'BG-subtracted '
+    if "S14" in options:
+        modifier = modifier + '_S14'
+        title_mod = title_mod + 'S14 '
+    if "Bruno2017" in options:
+        modifier = modifier + '_Bruno2017'
+        title_mod = title_mod + 'Bruno2017 '
+    if spacecraft:
+        modifier = modifier + '_' + spacecraft
+        title_mod = title_mod + spacecraft + ' '
+
+    return modifier, title_mod
+
+
+def setup_energy_bin_label(energy_bin):
+    """ Label for a single energy bin.
+    
+    """
+    label = ""
+    if energy_bin[1] != -1:
+        label = (f"{energy_bin[0]}-{energy_bin[1]} {cfg.energy_units}")
+    else:
+        label = (f">{energy_bin[0]} {cfg.energy_units}")
+
+    return label
+
+
+def energy_bin_key(bin):
+    """ Create key for dataframe or columns header in dataframe and
+        csv files.
+        
+    """
+    return f"{bin[0]}-{bin[1]}"
+
+
+
 def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, module,
     spacecraft=""):
     """ Write dates, fluxes to a standard format csv file with datetime in the 
@@ -111,7 +159,7 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
             csv file written to outpath
                  
     """
-    modifier, title_modifier = plt_tools.setup_modifiers(options,False,spacecraft=spacecraft)
+    modifier, title_modifier = setup_modifiers(options,False,spacecraft=spacecraft)
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
     fname = (f"fluxes_{experiment}_{flux_type}{modifier}_{stdate}_{enddate}.csv")
@@ -119,7 +167,7 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
         
     keys = []
     for bin in energy_bins:
-        keys.append((f"{bin[0]}-{bin[1]}"))
+        keys.append(energy_bin_key(bin))
     
     dict = {"dates":dates}
     for i in range(len(fluxes)):

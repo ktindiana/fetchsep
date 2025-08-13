@@ -309,7 +309,7 @@ class Data:
         
         if doBGSubOPSEP or opsep_enhancement:
             if pd.isnull(self.bgstartdate) or pd.isnull(self.bgenddate):
-                print("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Will look for idsep output files to extract mean background.")
+                sys.exit("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Please provide dates of a quiet background period to use this feature.")
         
         return
 
@@ -573,7 +573,7 @@ class Data:
         df_sigma['dates'] =  pd.to_datetime(df_sigma['dates'])
         df_thresh = pd.read_csv(threshfilename)
         df_thresh['dates'] = pd.to_datetime(df_thresh['dates'])
-        
+
         df_mean = df_mean.replace(1e6,np.nan)
         df_thresh = df_thresh.replace(1e6,np.nan)
         
@@ -592,10 +592,18 @@ class Data:
  
         df_mean = df_mean.drop('dates',axis=1) #only flux columns
         
+        #Check that the energy bins for the columns match the energy bins
+        #of the current data
+        columns = df_mean.columns
+        for bin in self.energy_bins:
+            key = tools.energy_bin_key(bin)
+            if key not in columns:
+                sys.exit("read_idsep_files: IDSEP files don't contain energy bins that "
+                    f"match the data. IDSEP columns: {columns}, Data energy bins: {self.energy_bins}")
+        
         means = []
         sigmas = []
         thresholds = []
-        columns = df_mean.columns
         for i, col in enumerate(columns):
             bg_flux = df_mean[col].to_list()
             bg_sigma = df_sigma[col].to_list()
@@ -1653,7 +1661,7 @@ class Output:
             
         """
 
-        modifier, title_mod = plt_tools.setup_modifiers(self.data.options, self.data.doBGSubOPSEP, spacecraft=self.data.spacecraft)
+        modifier, title_mod = tools.setup_modifiers(self.data.options, self.data.doBGSubOPSEP, spacecraft=self.data.spacecraft)
 
         #Get issue time of forecast (now)
         now = datetime.datetime.now()
