@@ -142,8 +142,8 @@ def get_detector(date, detector_dates, detector):
 
 def make_event_list(str_startdate, str_enddate, septimes_file,
             detector_list, experiment, flux_type, options, json_type,
-            outfile, revise=False, spacecraft="", use_bg_thresholds=False,
-            location='earth', species='proton'):
+            outfile, revise=False, spacecraft="",
+            location='earth', species='proton', add_path='', flags=''):
     """ Read in SEP times and detector list, if applicable,
         and create a file in the appropriate format to run
         operational_sep_quantities.py in batch mode.
@@ -175,10 +175,12 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
 
     header = "#Start Time,End Time,Experiment,Flux Type,Flags," \
             + "User Experiment Name,User Filename,Options,"\
-            +"BGStart,BGEnd,JSON Type,Spacecraft,Use BG Thresholds,"\
+            +"BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,"\
             +"Location,Species\n"
     
-    out = open(os.path.join(cfg.outpath, "idsep", outfile),'w')
+    idsep_path = os.path.join(cfg.outpath, "idsep", add_path, 'csv')
+    outfname = os.path.join(cfg.outpath, "idsep", add_path, outfile)
+    out = open(outfname,'w')
     out.write(header)
     
     if detector_list != '':
@@ -200,12 +202,12 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
     if detector_list != '':
         det = get_detector(startdate, detector_dates, detector)
         if det != None:
-            line = (f"{str_startdate},{sep_sttimes[0]},{det},{flux_type},,,,"
-                    f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+            line = (f"{str_startdate},{sep_sttimes[0]},{det},{flux_type},{flags},,,"
+                    f"{options},,,{json_type},{spacecraft},{idsep_path},"
                     f"{location},{species}\n")
     else:
-        line = (f"{str_startdate},{sep_sttimes[0]},{experiment},{flux_type},,,,"
-                f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+        line = (f"{str_startdate},{sep_sttimes[0]},{experiment},{flux_type},{flags},,,"
+                f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
 
     out.write(line)
@@ -216,12 +218,12 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
         if detector_list != '':
             det = get_detector(sep_sttimes[i], detector_dates, detector)
             if det == None: continue
-            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{det},{flux_type},,,,"
-                 f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{det},{flux_type},{flags},,,"
+                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                  f"{location},{species}\n")
         else:
-            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{experiment},{flux_type},,,,"
-                f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{experiment},{flux_type},{flags},,,"
+                f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
             
         out.write(line)
@@ -233,12 +235,12 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
             det = get_detector(sep_endtimes[i], detector_dates,
                     detector)
             if det == None: continue
-            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{det},{flux_type},,,,"\
-                f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{det},{flux_type},{flags},,,"\
+                f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
         else:
-            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{experiment},{flux_type},,,,"\
-                f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{experiment},{flux_type},{flags},,,"\
+                f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
         
         out.write(line)
@@ -249,16 +251,15 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
     if detector_list != '':
         det = get_detector(enddate, detector_dates, detector)
         if det != None:
-            line = (f"{sep_endtimes[-1]},{str_enddate},{det},{flux_type},,,,"\
-                f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+            line = (f"{sep_endtimes[-1]},{str_enddate},{det},{flux_type},{flags},,,"\
+                f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
     else:
-        line = (f"{sep_endtimes[-1]},{str_enddate},{experiment},{flux_type},,,," \
-                f"{options},,,{json_type},{spacecraft},{use_bg_thresholds},"
+        line = (f"{sep_endtimes[-1]},{str_enddate},{experiment},{flux_type},{flags},,," \
+                f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
     
     out.write(line)
         
     out.close()
-            
-    
+

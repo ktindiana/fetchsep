@@ -412,13 +412,13 @@ def find_last_good(idx, arr):
 #attempt to speed up the computation. These subroutines are labeled
 #_optimized().
 
-def write_df(df, name, verbose=True):
+def write_df(df, name, verbose=True, add_path=''):
     """Writes a pandas dataframe to the standard location in multiple formats
     """
     dataformats = (('pkl' , getattr(df, 'to_pickle'), {}),
                    ('csv',  getattr(df, 'to_csv'), dict(index=False)))
     for ext, write_func, kwargs in dataformats:
-        filepath = os.path.join(cfg.outpath, 'idsep', ext, name + '.' + ext)
+        filepath = os.path.join(cfg.outpath, 'idsep', add_path, ext, name + '.' + ext)
         write_func(filepath, **kwargs)
         if verbose:
             print('Wrote ' + filepath)
@@ -529,7 +529,7 @@ def plot_dist_hist(df, iteration):
 #OPTIMIZED ALGORITHM
 #####################################
 def ndays_average_optimized(N, dates, fluxes, energy_bins,
-    nsigma, remove_above):
+    nsigma, remove_above, add_path=''):
     """ Average flux over N days.
 
         INPUTS:
@@ -631,9 +631,12 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
     df_sigmas.insert(0,'dates',ave_dates)
 
     #Write fluxes to file for testing and use
-    write_df(df_means,'background_mean_fluxes_ndays_optimized')
-    write_df(df_sigmas,'background_sigma_ndays_optimized')
-    write_df(df_thresholds,'background_threshold_ndays_optimized')
+    write_df(df_means,'background_mean_fluxes_ndays_optimized',
+            add_path=add_path)
+    write_df(df_sigmas,'background_sigma_ndays_optimized',
+            add_path=add_path)
+    write_df(df_thresholds,'background_threshold_ndays_optimized',
+            add_path=add_path)
 
     return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
 
@@ -642,7 +645,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
 ##OPTIMIZED AGLORITHM
 #####################################
 def backward_window_background_optimized(N, dates, fluxes, energy_bins,
-    nsigma, iteration=0, is_final=False):
+    nsigma, iteration=0, is_final=False, add_path=''):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -832,10 +835,13 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
     #Write fluxes to file for testing and use
     appx = '_it'+str(iteration)
     if is_final: appx = '_FINAL'
-    write_df(df_means,'background_mean_fluxes_optimized'+appx)
-    write_df(df_sigmas,'background_sigma_optimized'+appx)
-    write_df(df_thresholds,'background_threshold_optimized'+appx)
-    write_df(df_stats1,'kurtosis'+appx)
+    write_df(df_means,'background_mean_fluxes_optimized'+appx,
+            add_path=add_path)
+    write_df(df_sigmas,'background_sigma_optimized'+appx,
+            add_path=add_path)
+    write_df(df_thresholds,'background_threshold_optimized'+appx,
+            add_path=add_path)
+    write_df(df_stats1,'kurtosis'+appx, add_path=add_path)
 
     return mean_background, ave_sigma, threshold
 

@@ -231,7 +231,7 @@ def read_sep_dates(sep_filename):
                 spacecrafts.append('')
 
             if len(row) > 12:
-                idsep_paths.append(bool(row[12].strip()))
+                idsep_paths.append(row[12].strip())
             else:
                 idsep_paths.append('')
                 
@@ -612,7 +612,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                 fout.write(user_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
-            fout.write(str(startdate) +',' + '\"' + str(e) + '\"' )
+            fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
             fout.write('\n')
             reload(opsep)
             continue

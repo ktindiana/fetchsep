@@ -24,6 +24,11 @@ datapath = cfg.datapath
 outpath = os.path.join(cfg.outpath, "idsep")
 plotpath = os.path.join(cfg.plotpath, "idsep")
 
+#Background subtraction automatically done where makes sense
+#This field does nothing except it's needed for plotting.
+#Should leave doBGSub = False
+doBGSub=False
+
 # Prepare directories
 cfg.prepare_dirs()
 for path in (outpath, plotpath):
@@ -60,7 +65,7 @@ dwell_pts = 0 #number of points that can be missed after SEP starts
 
 
 
-def read_in_flux_files(experiment, flux_type, user_file, startdate,
+def read_in_flux_files(experiment, flux_type, user_file, exp_name, startdate,
         enddate, options, dointerp, is_unixtime, write_fluxes=False,
         spacecraft=""):
     """ Read in the appropriate data or user files. Trims to dates
@@ -158,8 +163,8 @@ def read_in_flux_files(experiment, flux_type, user_file, startdate,
                 "specified input file. Exiting.")
 
     if write_fluxes:
-        tools.write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, "idsep",
-            spacecraft=spacecraft)
+        tools.write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
+            "idsep", spacecraft=spacecraft)
 
     return dates, fluxes, energy_bins
 
@@ -322,16 +327,15 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
-    prename = (f"SEPTimes_{experiment}_{flux_type}{modifier}")
-    if experiment == 'user' and exp_name != '':
-        prename = (f"SEPTimes_{exp_name}_{flux_type}{modifier}")
+    prename = (f"SEPTimes_{name}")
     
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(SEPstart)):
         fname = (f"{prename}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
-        fname = os.path.join(outpath,fname)
+        fname = os.path.join(outpath, name, fname)
         outfile = open(fname,"w")
         outfile.write("#SEP times calculated by idsep\n")
         if experiment == "user" and exp_name != '':
@@ -406,16 +410,14 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
-
-    prename = (f"HighPoints_{experiment}_{flux_type}{modifier}")
-    if experiment == 'user' and exp_name != '':
-        prename = (f"HighPoints_{exp_name}_{flux_type}{modifier}")
+    prename = (f"HighPoints_{name}")
     
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(fluxes_high)):
         fname = (f"{prename}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
-        fname = os.path.join(outpath, fname)
+        fname = os.path.join(outpath, name, fname)
         outfile = open(fname,"w")
         outfile.write("#All high points above mean background + 3*sigma calculated by idsep\n")
         if experiment == "user" and exp_name != '':
@@ -467,7 +469,8 @@ def separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding):
 
 
 def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experiment,
-        flux_type, exp_name, options, doBGSub, showplot, saveplot, spacecraft=""):
+        flux_type, exp_name, options, doBGSub, showplot, saveplot, spacecraft="",
+        add_path=''):
     """ Remove fluxes above remove_above.
         Group fluxes into time periods of init_win.
         For each time period, calculate the mean background and sigma.
@@ -496,7 +499,7 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
     print(f"Init win: {init_win}, Nsigma: {nsigma}, Remove above: {remove_above}")
     ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
                 defbg.ndays_average_optimized(init_win, dates, fluxes, energy_bins,
-                nsigma, remove_above)
+                nsigma, remove_above, add_path=add_path)
     
     #INITIAL SEPARATION OF BG AND HIGHER THAN BG
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
@@ -512,7 +515,7 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
 
 
 def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, nsigma,
-    iteration=0, is_final=False):
+    iteration=0, is_final=False, add_path=''):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
         by applying a sliding window of sliding_win days to get a background
@@ -538,7 +541,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, 
     """
     ave_background, ave_sigma, threshold =\
             defbg.backward_window_background_optimized(sliding_win, dates, fluxes_bg_in,
-            energy_bins, nsigma, iteration, is_final)
+            energy_bins, nsigma, iteration, is_final=is_final, add_path=add_path)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -549,7 +552,7 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, 
     return fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold
 
 
-def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins):
+def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins, add_path=''):
     """ Write out final SEP fluxes and bg-subtracted fluxes.
         Subtract fluxes (e.g. SEP fluxes subtracted by the mean background).
         If fluxes already at a value of zero, no background subtraction is
@@ -566,7 +569,7 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins):
     df = pd.DataFrame(dict)
     df_bg = pd.DataFrame(dict)
     
-    defbg.write_df(df,'SEP_fluxes_FINAL')
+    defbg.write_df(df,'SEP_fluxes_FINAL', add_path=add_path)
     
     for ii in range(len(fluxes)):
         df.update({cols[ii]:fluxes[ii]})
@@ -575,24 +578,37 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins):
     df[cols] = df[cols] - df_bg[cols]
     df[df[cols] < 0][cols] = 0
     
-    defbg.write_df(df,'SEP_fluxes_background-subtracted_FINAL')
+    defbg.write_df(df,'SEP_fluxes_background-subtracted_FINAL',add_path=add_path)
 
 
 
-def make_dirs():
+def make_dirs(add_path=''):
     """ Make subdirectories for files written out by idsep."""
+
+    #Output directory
+    check_path = os.path.join(cfg.outpath,'idsep',add_path)
+    if not os.path.isdir(check_path):
+        print('Making directory: ', check_path)
+        os.makedirs(check_path)
 
     paths = ['csv','pkl']
     
     for path in paths:
-        check_path = os.path.join(cfg.outpath,'idsep',path)
+        check_path = os.path.join(cfg.outpath,'idsep',add_path, path)
         if not os.path.isdir(check_path):
             print('Making directory: ', check_path)
             os.makedirs(check_path)
 
+    #Plot directory
+    check_path = os.path.join(cfg.plotpath,'idsep',add_path)
+    if not os.path.isdir(check_path):
+        print('Making directory: ', check_path)
+        os.makedirs(check_path)
+
+
 
 def run_all(str_startdate, str_enddate, experiment,
-        flux_type, exp_name, user_file, is_unixtime, options, doBGSub, dointerp,
+        flux_type, exp_name, user_file, is_unixtime, options, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
         write_fluxes=True, spacecraft=""):
     """ Run all the steps to do background and SEP separation.
@@ -634,12 +650,15 @@ def run_all(str_startdate, str_enddate, experiment,
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
         subroutine='idsep')
     datasets.check_paths()
-    make_dirs()
-    
+
+    idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+
+    make_dirs(add_path=idsep_name)
+
     #READ IN FLUXES
     print("TIMESTAMP: Reading in flux files at time " + str(datetime.datetime.now()))
     dates, fluxes, energy_bins = read_in_flux_files(experiment,
-        flux_type, user_file, eff_startdate, enddate, options, dointerp, is_unixtime,
+        flux_type, user_file, exp_name, eff_startdate, enddate, options, dointerp, is_unixtime,
         write_fluxes=write_fluxes, spacecraft=spacecraft)
             
             
@@ -655,7 +674,7 @@ def run_all(str_startdate, str_enddate, experiment,
     print("TIMESTAMP: Creating rough cut first guess at threshold at time " + str(datetime.datetime.now()))
     fluxes_bg_init, fluxes_high_init = rough_cut(init_win, dates, fluxes, nsigma,
         remove_above, energy_bins, experiment, flux_type, exp_name, options, doBGSub,
-        False, saveplot, spacecraft=spacecraft)
+        False, saveplot, spacecraft=spacecraft, add_path=idsep_name)
     
     
     #ITERATE over the identification of background and SEP periods
@@ -685,7 +704,7 @@ def run_all(str_startdate, str_enddate, experiment,
         print(f"TIMESTAMP: Starting sliding window background calculation, {datetime.datetime.now()}")
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
             apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, energy_bins, nsigma,
-            iteration=iter, is_final=is_final)
+            iteration=iter, is_final=is_final, add_path=idsep_name)
         print(f"TIMESTAMP: Completed sliding window background calculation, {datetime.datetime.now()}")
 
 
@@ -736,7 +755,7 @@ def run_all(str_startdate, str_enddate, experiment,
     SEPstart, SEPend, final_fluxes_sep = identify_sep(trim_dates, trim_fluxes_high)
     
     #Write background-subtracted SEP only fluxes to file
-    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg, energy_bins)
+    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg, energy_bins, add_path=idsep_name)
     
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins,

@@ -943,11 +943,9 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     """
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
-
-    figname = (f"{experiment}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
-    if experiment == 'user' and exp_name != '':
-        figname = (f"{exp_name}_{flux_type}{modifier}_FluxWithThreshold_{unique_id}")
+    figname = (f"{name}_FluxWithThreshold_{unique_id}")
     
     #UNITS
     if flux_type == "integral": flux_units = cfg.flux_units_integral
@@ -983,7 +981,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
                       facecolor='lightgray', edgecolor='black')
 
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1000,11 +998,10 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
 
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
-    figname = (f"{experiment}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
-    if experiment == 'user' and exp_name != '':
-        figname = (f"{exp_name}_{flux_type}{modifier}_FluxTimeseries_{unique_id}")
+    figname = (f"{name}_FluxTimeseries_{unique_id}")
  
     flux_units = ''
     if flux_type == "integral": flux_units = cfg.flux_units_integral
@@ -1029,7 +1026,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
                       facecolor='lightgray', edgecolor='black')
                       
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1047,10 +1044,10 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
     
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
-    figname = (f"{experiment}_{flux_type}{modifier}_SEP_BG_{unique_id}")
-    if experiment == 'user' and exp_name != '':
-        figname = (f"{exp_name}_{flux_type}{modifier}_SEP_BG_{unique_id}")
+
+    figname = (f"{name}_SEP_BG_{unique_id}")
 
     flux_units = ''
     if flux_type == "integral": flux_units = cfg.flux_units_integral
@@ -1077,7 +1074,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
                       facecolor='lightgray', edgecolor='black')
         
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep",(f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1091,83 +1088,83 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
 
 
 
-def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
-            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot,
-            close_plot=False):
-    #NEEDS TO BE CLEANED UP
-    #Additions to titles and filenames according to user-selected options
-    modifier = ''
-    title_mod = ''
-    if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
-        title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
-    if "S14" in options:
-        modifier = modifier + '_S14'
-        title_mod = title_mod + 'S14 '
-    if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
-        title_mod = title_mod + 'Bruno2017 '
-
-
-    figname = experiment + '_' + flux_type + modifier \
-            + '_' + 'Diff_' + unique_id
-    if experiment == 'user' and exp_name != '':
-        figname = exp_name + '_' + flux_type + modifier \
-                + '_' + 'Diff_' + unique_id
-    
-    fig = plt.figure(figname,figsize=(12,8))
-    plt.rcParams.update({'font.size': 16})
-    ax = plt.subplot(111)
-    nbins = len(energy_bins)
-    ifig = 0
-    for i in range(nbins):
-        thresh = np.multiply(ave_sigma[i][1],nsigma)
-        if i != 0 and not i%3:
-            if saveplot:
-                fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
-            figname = figname + str(i)
-            fig = plt.figure(figname,figsize=(12,8))
-            ax = plt.subplot(111)
-            ifig = 0
-
-        ax = plt.subplot(min(3,nbins), 1, ifig+1)
-        ifig = ifig + 1
-        legend_label = ""
-        if energy_bins[i][1] != -1:
-            legend_label = str(energy_bins[i][0]) + '-' \
-                    + str(energy_bins[i][1]) + ' ' + cfg.energy_units
-        else:
-            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + cfg.energy_units
-
-        ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
-        ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
-        
-        flux_units = ''
-        if flux_type == "integral": flux_units = cfg.flux_units_integral
-        if flux_type == "differential": flux_units = cfg.flux_units_differential
-        
-        if i==0:
-            plt.title(experiment + ' '+ title_mod + ' ' + unique_id\
-                    + "\nDiff = Flux - Mean BG")
-            if experiment == 'user' and exp_name != '':
-                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id\
-                    + "\nDiff = Flux - Mean BG")
-        plt.xlabel('Date')
-        #plt.ylabel('Flux [' + flux_units + ']')
-        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
-        fig.autofmt_xdate(rotation=45)
-        chartBox = ax.get_position()
-#        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-#                         chartBox.height])
-#        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
- 
- 
-        if saveplot and i == nbins-1:
-            fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
-            if not showplot:
-                plt.close(fig)
-            if close_plot:
-                plt.close(fig)
+#def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
+#            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot,
+#            close_plot=False):
+#    #NEEDS TO BE CLEANED UP
+#    #Additions to titles and filenames according to user-selected options
+#    modifier = ''
+#    title_mod = ''
+#    if "uncorrected" in options:
+#        modifier = modifier + '_uncorrected'
+#        title_mod = title_mod + 'uncorrected '
+#    if doBGSub:
+#        modifier = modifier + '_bgsub'
+#        title_mod = title_mod + 'BG-subtracted '
+#    if "S14" in options:
+#        modifier = modifier + '_S14'
+#        title_mod = title_mod + 'S14 '
+#    if "Bruno2017" in options:
+#        modifier = modifier + '_Bruno2017'
+#        title_mod = title_mod + 'Bruno2017 '
+#
+#
+#    figname = experiment + '_' + flux_type + modifier \
+#            + '_' + 'Diff_' + unique_id
+#    if experiment == 'user' and exp_name != '':
+#        figname = exp_name + '_' + flux_type + modifier \
+#                + '_' + 'Diff_' + unique_id
+#    
+#    fig = plt.figure(figname,figsize=(12,8))
+#    plt.rcParams.update({'font.size': 16})
+#    ax = plt.subplot(111)
+#    nbins = len(energy_bins)
+#    ifig = 0
+#    for i in range(nbins):
+#        thresh = np.multiply(ave_sigma[i][1],nsigma)
+#        if i != 0 and not i%3:
+#            if saveplot:
+#                fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
+#            figname = figname + str(i)
+#            fig = plt.figure(figname,figsize=(12,8))
+#            ax = plt.subplot(111)
+#            ifig = 0
+#
+#        ax = plt.subplot(min(3,nbins), 1, ifig+1)
+#        ifig = ifig + 1
+#        legend_label = ""
+#        if energy_bins[i][1] != -1:
+#            legend_label = str(energy_bins[i][0]) + '-' \
+#                    + str(energy_bins[i][1]) + ' ' + cfg.energy_units
+#        else:
+#            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + cfg.energy_units
+#
+#        ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
+#        ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
+#        
+#        flux_units = ''
+#        if flux_type == "integral": flux_units = cfg.flux_units_integral
+#        if flux_type == "differential": flux_units = cfg.flux_units_differential
+#        
+#        if i==0:
+#            plt.title(experiment + ' '+ title_mod + ' ' + unique_id\
+#                    + "\nDiff = Flux - Mean BG")
+#            if experiment == 'user' and exp_name != '':
+#                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id\
+#                    + "\nDiff = Flux - Mean BG")
+#        plt.xlabel('Date')
+#        #plt.ylabel('Flux [' + flux_units + ']')
+#        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
+#        fig.autofmt_xdate(rotation=45)
+#        chartBox = ax.get_position()
+##        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+##                         chartBox.height])
+##        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
+# 
+# 
+#        if saveplot and i == nbins-1:
+#            fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
+#            if not showplot:
+#                plt.close(fig)
+#            if close_plot:
+#                plt.close(fig)

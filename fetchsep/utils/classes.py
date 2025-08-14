@@ -316,6 +316,13 @@ class Data:
 
     def set_idsep_background_info(self, doBGSubIDSEP, idsep_path, idsep_enhancement):
         """ Specify whether to use background calculated by idsep """
+
+        #If want to use IDSEP files, but no path specified, try the default
+        if (idsep_enhancement or doBGSubIDSEP) and idsep_path == '':
+            name = tools.idsep_naming_scheme(self.experiment, self.flux_type, self.user_name,
+                    self.options, spacecraft=self.spacecraft)
+            idsep_path = os.path.join(cfg.outpath, 'idsep', name, 'csv')
+
         self.doBGSubIDSEP = doBGSubIDSEP
         self.idsep_path = idsep_path
         self.idsep_enhancement = idsep_enhancement
@@ -1047,6 +1054,7 @@ class Analyze:
         return
 
 
+#FOR TESTING
 #    def plot_sep_separation(self, data, dates, original_fluxes, sepfluxes,
 #        bgfluxes, energy_bins, means, sigmas, showplot=False):
 #        """ Make plots of background-subtracted fluxes """

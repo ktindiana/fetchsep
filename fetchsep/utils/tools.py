@@ -2,6 +2,7 @@ from . import config as cfg
 import pandas as pd
 import datetime
 import os
+import sys
 import math
 import numpy as np
 from statistics import mode
@@ -136,9 +137,30 @@ def energy_bin_key(bin):
     return f"{bin[0]}-{bin[1]}"
 
 
+def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=''):
+    """ Create naming scheme for subfolders in output/idsep """
 
-def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, module,
-    spacecraft=""):
+    modifier, title_mod = setup_modifiers(options, False, spacecraft=spacecraft)
+    name = (f"{experiment}_{flux_type}{modifier}")
+    if experiment == 'user' and exp_name != '':
+        name = (f"{exp_name}_{flux_type}{modifier}")
+    
+    return name
+    
+
+def opsep_naming_scheme(experiment, flux_type, exp_name, options, doBGSub, spacecraft=''):
+    """ Create naming scheme for subfolders in output/idsep """
+
+    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    name = (f"{experiment}_{flux_type}{modifier}")
+    if experiment == 'user' and exp_name != '':
+        name = (f"{exp_name}_{flux_type}{modifier}")
+
+    return name
+
+
+def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
+    module, spacecraft=""):
     """ Write dates, fluxes to a standard format csv file with datetime in the 
         first column and fluxes in the remaining column. The energy bins will 
         be indicated in the file comments.
@@ -159,11 +181,15 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
             csv file written to outpath
                  
     """
-    modifier, title_modifier = setup_modifiers(options,False,spacecraft=spacecraft)
+    name = idsep_naming_scheme(experiment, flux_type, exp_name, options,
+                    spacecraft=spacecraft)
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
-    fname = (f"fluxes_{experiment}_{flux_type}{modifier}_{stdate}_{enddate}.csv")
-    fname = os.path.join(cfg.outpath,module,fname)
+    fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
+    if module == 'idsep':
+        fname = os.path.join(cfg.outpath, module, name, fname)
+    else:
+        fname = os.path.join(cfg.outpath,module,fname)
         
     keys = []
     for bin in energy_bins:
@@ -381,6 +407,25 @@ def normchisq(fit, data):
             resid.append(err)
  
     resid = sum(resid)/(len(resid)-1)
+ 
+    return resid
+
+
+def determination(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    fiterr = []
+    dataerr = []
+    meandata = [x for x in data if (x > 0 and not pd.isnull(x))]
+    meandata = sum(meandata)/len(meandata)
+    for i in range(len(fit)):
+        if data[i] != 0 and not pd.isnull(data[i]):
+            fiterr.append((data[i] - fit[i])**2)
+            dataerr.append((data[i] - meandata)**2)
+    
+    resid = 1 -  sum(fiterr)/sum(dataerr)
  
     return resid
 

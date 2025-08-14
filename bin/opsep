@@ -114,11 +114,10 @@ parser.add_argument("--IDSEPSubtractBG",
             "Must specify the path to the directory containing the IDSEP "
             "output files with IDSEPPath flag.", action="store_true")
             
-parser.add_argument("--IDSEPPath", type=str, default='output/idsep/csv/',
+parser.add_argument("--IDSEPPath", type=str, default='',
         help="Path to the directory containing the IDSEP "
             "output files background_mean_fluxes_optimized_FINAL.csv and "
-            "background_threshold_optimized_FINAL.csv."
-            "Default = output/idsep/csv/")
+            "background_threshold_optimized_FINAL.csv.")
 
 parser.add_argument("--OPSEPSubtractBG",
         help="Set flag to calculate the background and subtract from the "
@@ -201,7 +200,6 @@ two_peaks = args.TwoPeaks
 umasep = args.UMASEP
 options = args.options
 nointerp = args.NoInterp
-
 
 
 year, month, day, jsonfname = fetchsep.opsep.run_all(str_startdate,

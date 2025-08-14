@@ -928,7 +928,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     two_peaks=False, umasep=False, user_thresholds='', options='',
     doBGSubOPSEP=False, opsep_enhancement=False, bgstartdate='', bgenddate='',
     nointerp=False, spacecraft='', doBGSubIDSEP=False,
-    idsep_enhancement=False, idsep_path='output/idsep/csv/',
+    idsep_enhancement=False, idsep_path='',
     location='earth', species='proton'):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
@@ -993,6 +993,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
         if spacecraft != "primary" and spacecraft != "secondary":
             sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
         
+
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes
     flux_data = load_input_data(str_startdate, str_enddate, experiment,
