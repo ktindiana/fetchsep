@@ -339,7 +339,7 @@ def function_two(dates, fluxes, energy_bins, flux_type, plot_fit = False):
                 # np.abs(low_energy_slope[r+1] - low_energy_slope[r]) > 0.75
                     
                 
-    if plot_fit_
+    if plot_fit:
         fig = plt.figure(figsize=(20,10))
         ax = plt.subplot(111)
         ax.plot(plot_times, low_energy_slope, color = '#BFDEAC', label = 'Gamma A')
