@@ -1994,7 +1994,7 @@ class Output:
             
         dict = {"Experiment": exp_name,
                 "Flux Type": self.data.flux_type,
-                "Options": self.data.options,
+                "Options": str(self.data.options).replace(",",";"),
                 "Background Subtraction": self.data.doBGSubOPSEP,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S")

@@ -1010,7 +1010,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     #Create Output object to write out results
     output_data = cl.Output(flux_data, json_type, spase_id=spase_id)
     jsonfname = output_data.write_ccmc_json()
-    output_data.create_csv_dict()
+    event_dict = output_data.create_csv_dict()
     output_data.plot_event_definitions()
     output_data.plot_all_fluxes()
     output_data.plot_fluence_spectra()
@@ -1022,7 +1022,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
 
     if showplot: plt.show()
     
-    return flux_data.startdate, jsonfname
+    return flux_data.startdate, jsonfname, event_dict
 
 
 

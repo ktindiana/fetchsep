@@ -4,6 +4,7 @@ from ..json import keys
 from ..utils import config as cfg
 from importlib import reload
 import matplotlib.pyplot as plt
+import pandas as pd
 import argparse
 import csv
 import datetime
@@ -528,7 +529,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
 
     #---RUN ALL SEP EVENTS---
     Nsep = len(start_dates)
-    combos = {}
+    df_all = pd.DataFrame()
     print(f"Read in {Nsep} SEP events.")
     for i in range(Nsep):
         start_date = start_dates[i]
@@ -570,11 +571,10 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         if "IDSEPEnhancement" in flag:
             idsep_enhancement = True
 
-
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, jsonfname = opsep.run_all(start_date, end_date,
+            startdate, jsonfname, event_dict = opsep.run_all(start_date, end_date,
                 experiment, flux_type, user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
@@ -592,13 +592,10 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
             fout.write(str(startdate) + ', ')
             fout.write('Success\n')
 
-#            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
-#            #EACH THRESHOLD
-#            if not combos:
-#                combos = initialize_files(jsonfname)
-#            success = write_sep_lists(jsonfname,combos)
-#            if not success:
-#                print('Could not write values to file for ' + jsonfname)
+            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
+            df_event = pd.DataFrame(event_dict, index=[0])
+            df_all = pd.concat([df_all, df_event])
+
 
             plt.close('all')
             reload(opsep)
@@ -618,3 +615,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
             continue
 
     fout.close()
+    all_fname = f"{experiment}_{flux_type}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.csv"
+    all_fname = os.path.join(cfg.outpath, 'opsep', all_fname)
+    print(f"batch_run_opsep: Writing all events to csv file {all_fname}")
+    df_all.to_csv(all_fname, index=False)
