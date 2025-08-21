@@ -131,8 +131,8 @@ class Data:
         self.bgfluxes = []
 
         #ENHANCEMENT ABOVE BACKGROUND
-        self.opsep_enhancement = False
-        self.idsep_enhancement = False #Get threshold from idsep output files
+        self.OPSEPenhancement = False
+        self.IDSEPenhancement = False #Get threshold from idsep output files
         #Use threshold to set background to zero and leave only enhancement
 
         #Apply linear interpolation in time to data gaps when
@@ -278,7 +278,7 @@ class Data:
         return
 
 
-    def set_opsep_background_info(self, doBGSubOPSEP, opsep_enhancement,
+    def set_opsep_background_info(self, doBGSubOPSEP, OPSEPEnhancement,
         bgstartdate, bgenddate):
         """ Indicate whether to perform background-subtraction.
             If start and end dates aren't set, then code
@@ -287,7 +287,7 @@ class Data:
             INPUT:
             
                 :doBGSubOPSEP: (bool) bg subtraction if True
-                :opsep_enhancement: (bool) will use background mean + n*sigma
+                :OPSEPEnhancement: (bool) will use background mean + n*sigma
                     to separate background and SEP, with or without background subtraction
                 :bg_startdate: (str) start of time period to use for 
                     background calculation
@@ -302,33 +302,33 @@ class Data:
         self.doBGSubOPSEP = doBGSubOPSEP
         self.bgstartdate = self.str_to_datetime(bgstartdate)
         self.bgenddate = self.str_to_datetime(bgenddate)
-        self.opsep_enhancement = opsep_enhancement
+        self.OPSEPEnhancement = OPSEPEnhancement
         #IF choose to do background subtraction, then automatically choose
         #to calculate enhancement above background
-        if self.doBGSubOPSEP: self.opsep_enhancement = True
+        if self.doBGSubOPSEP: self.OPSEPEnhancement = True
         
-        if doBGSubOPSEP or opsep_enhancement:
+        if doBGSubOPSEP or OPSEPEnhancement:
             if pd.isnull(self.bgstartdate) or pd.isnull(self.bgenddate):
                 sys.exit("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Please provide dates of a quiet background period to use this feature.")
         
         return
 
 
-    def set_idsep_background_info(self, doBGSubIDSEP, idsep_path, idsep_enhancement):
+    def set_idsep_background_info(self, doBGSubIDSEP, idsep_path, IDSEPEnhancement):
         """ Specify whether to use background calculated by idsep """
 
         #If want to use IDSEP files, but no path specified, try the default
-        if (idsep_enhancement or doBGSubIDSEP) and idsep_path == '':
+        if (IDSEPEnhancement or doBGSubIDSEP) and idsep_path == '':
             name = tools.idsep_naming_scheme(self.experiment, self.flux_type, self.user_name,
                     self.options, spacecraft=self.spacecraft)
             idsep_path = os.path.join(cfg.outpath, 'idsep', name, 'csv')
 
         self.doBGSubIDSEP = doBGSubIDSEP
         self.idsep_path = idsep_path
-        self.idsep_enhancement = idsep_enhancement
+        self.IDSEPEnhancement = IDSEPEnhancement
         #IF choose to do background subtraction, then automatically choose
         #to calculate enhancement above background
-        if self.doBGSubIDSEP: self.idsep_enhancement = True
+        if self.doBGSubIDSEP: self.IDSEPEnhancement = True
 
         return
     
@@ -432,7 +432,7 @@ class Data:
 
             #If use IDSEP thresholds, append event definitions to all
             #previously selected energy channels and use -1 as threshold
-            if self.idsep_enhancement or self.opsep_enhancement:
+            if self.IDSEPEnhancement or self.OPSEPEnhancement:
                 idsep_threshold_obj = Threshold(-1, flux_units)
                 self.event_definitions.append({'energy_channel': energy_bin_obj, 'threshold': idsep_threshold_obj})
 
@@ -442,8 +442,10 @@ class Data:
     def error_check(self):
         """ Error check the inputs and options. """
             
-        error_check.error_check_options(self.experiment, self.flux_type, self.options, self.doBGSubOPSEP, spacecraft=self.spacecraft)
+        error_check.error_check_options(self.experiment, self.flux_type, self.options, spacecraft=self.spacecraft)
         error_check.error_check_inputs(self.startdate, self.enddate, self.experiment, self.flux_type)
+        error_check.error_check_background(self.experiment, self.flux_type, self.doBGSubOPSEP,
+            self.doBGSubIDSEP, self.OPSEPEnhancement, self.IDSEPEnhancement)
 
         return
 
@@ -451,8 +453,8 @@ class Data:
     def load_info(self, startdate, enddate, experiment, flux_type,
         user_name='', user_file='', spase_id='', showplot=False, saveplot=False,
         two_peaks=False, definitions='', options='',
-        doBGSubOPSEP=False, opsep_enhancement=False, bgstartdate='', bgenddate='',
-        doBGSubIDSEP=False, idsep_enhancement=False, idsep_path='output/idsep/csv/',
+        doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
+        doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='output/idsep/csv/',
         nointerp=False, spacecraft='', location='earth', species='proton'):
         """ Create new Data object and load with all values.
         
@@ -500,8 +502,8 @@ class Data:
         self.location = location
         self.species = species
         self.set_options(options)
-        self.set_opsep_background_info(doBGSubOPSEP, opsep_enhancement, bgstartdate, bgenddate)
-        self.set_idsep_background_info(doBGSubIDSEP, idsep_path, idsep_enhancement)
+        self.set_opsep_background_info(doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate)
+        self.set_idsep_background_info(doBGSubIDSEP, idsep_path, IDSEPEnhancement)
         self.set_event_definitions(definitions)
         self.two_peaks = two_peaks
         self.showplot = showplot
@@ -515,18 +517,27 @@ class Data:
     def plot_background_subtraction(self, showplot=False):
         """ Make plots of background-subtracted fluxes """
 
-        plt_tools.opsep_plot_bgfluxes(f"Total_{self.experiment}", self.flux_type, self.options,
+        plt_tools.opsep_plot_bgfluxes("Total_Fluxes",self.experiment, self.flux_type, self.options,
                 self.user_name, self.original_fluxes, self.original_dates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
-                spacecraft = self.spacecraft)
-        plt_tools.opsep_plot_bgfluxes(f"BackgroundFlux_{self.experiment}", self.flux_type,
+                spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
+                doBGSubIDSEP=self.doBGSubIDSEP,
+                OPSEPEnhancement=self.OPSEPEnhancement,
+                IDSEPEnhancement=self.IDSEPEnhancement)
+        plt_tools.opsep_plot_bgfluxes("Background_Fluxes", self.experiment, self.flux_type,
                 self.options, self.user_name, self.bgfluxes, self.bgdates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
-                spacecraft = self.spacecraft)
-        plt_tools.opsep_plot_bgfluxes(f"BGSubSEPFlux_{self.experiment}", self.flux_type,
-                self.options, self.user_name, self.fluxes, self.dates,
+                spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
+                doBGSubIDSEP=self.doBGSubIDSEP,
+                OPSEPEnhancement=self.OPSEPEnhancement,
+                IDSEPEnhancement=self.IDSEPEnhancement)
+        plt_tools.opsep_plot_bgfluxes("Background_and_SEP_Fluxes", self.experiment,
+                self.flux_type, self.options, self.user_name, self.fluxes, self.dates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
-                spacecraft = self.spacecraft)
+                spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
+                doBGSubIDSEP=self.doBGSubIDSEP,
+                OPSEPEnhancement=self.OPSEPEnhancement,
+                IDSEPEnhancement=self.IDSEPEnhancement)
         
         if showplot:
             plt.show()
@@ -750,10 +761,10 @@ class Data:
 
 
         #IF BACKGROUND SUBTRACTION
-        if self.doBGSubOPSEP or self.opsep_enhancement:
+        if self.doBGSubOPSEP or self.OPSEPEnhancement:
             #Background-subtracted fluxes with date range specified by the user
             dates, fluxes = self.opsep_background_and_sep_separation(all_dates, all_fluxes)
-        elif self.doBGSubIDSEP or self.idsep_enhancement:
+        elif self.doBGSubIDSEP or self.IDSEPEnhancement:
              dates,fluxes = self.idsep_background_and_sep_separation()
         #NO BACKGROUND SUBTRACTION OR USE OF IDSEP BACKGROUND IDENTIFICATION
         else:
@@ -780,8 +791,8 @@ class Data:
 
         #Plot background and SEP separation, may or may not include background
         #subtraction
-        if self.doBGSubOPSEP or self.doBGSubIDSEP or self.opsep_enhancement\
-        or self.idsep_enhancement:
+        if self.doBGSubOPSEP or self.doBGSubIDSEP or self.OPSEPEnhancement\
+        or self.IDSEPEnhancement:
             if self.showplot or self.saveplot:
                 self.plot_background_subtraction()
 
@@ -973,7 +984,7 @@ class Analyze:
 
 
         if self.event_definition['threshold'].threshold == -1:
-            if not data.opsep_enhancement and not data.idsep_enhancement \
+            if not data.OPSEPEnhancement and not data.IDSEPEnhancement \
             and not data.doBGSubOPSEP and not data.doBGSubIDSEP:
                 sys.exit("You are requesting to identify enhancement "
                     "above background, but background and SEP separation "
@@ -981,8 +992,8 @@ class Analyze:
                     "--OPSEPSubtractBG, variable=doBGSubOPSEP or --IDSEPSubtractBG, "
                     "variable=doBGSubIDSEP) "
                     "or set flags to identify enhancements above background "
-                    "(--OPSEPEnhancement, variable=opsep_enhancement or "
-                    "--IDSEPEnhancement, variable=idsep_enhancement)")
+                    "(--OPSEPEnhancement, variable=OPSEPEnhancement or "
+                    "--IDSEPEnhancement, variable=IDSEPEnhancement)")
                     
             print("-1 threshold indicates you have selected to identify "
                 "enhancement above background. Setting threshold to "
@@ -1456,10 +1467,14 @@ class Analyze:
         #PLOT
         if data.saveplot or data.showplot:
             plt_tools.plot_weibull_fit(energy_bin, threshold, data.experiment,
-                self.sep_start_time,trim_times, trim_fluxes, best_pars, best_fit, max_time,
+                data.flux_type, data.user_name, data.options,
+                self.sep_start_time, trim_times, trim_fluxes, best_pars, best_fit, max_time,
                 max_val, max_meas_time, max_meas, max_curve_model_time, max_curve_model_peak,
                 max_curve_meas_time, max_curve_meas_peak,
-                data.saveplot, data.showplot, spacecraft=data.spacecraft)
+                data.saveplot, data.showplot, spacecraft=data.spacecraft,
+                doBGSubOPSEP=data.doBGSubOPSEP, doBGSubIDSEP=data.doBGSubIDSEP,
+                OPSEPEnhancement=data.OPSEPEnhancement,
+                IDSEPEnhancement=data.IDSEPEnhancement)
 
         self.onset_peak = onset_peak
         self.onset_peak_time = onset_peak_time
@@ -1671,7 +1686,9 @@ class Output:
             
         """
 
-        modifier, title_mod = tools.setup_modifiers(self.data.options, self.data.doBGSubOPSEP, spacecraft=self.data.spacecraft)
+        modifier, title_mod = tools.setup_modifiers(self.data.options, spacecraft=self.data.spacecraft, doBGSubOPSEP=self.data.doBGSubOPSEP,
+            doBGSubIDSEP=self.data.doBGSubIDSEP, OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
 
         #Get issue time of forecast (now)
         now = datetime.datetime.now()
@@ -1683,6 +1700,7 @@ class Output:
         zstdate = zstdate.replace(":","")
 
         #Filenames for observations don't include issue time
+        print(f"MODIFIER IS {modifier}")
         fnameprefix = ""
         if self.json_type == "observations":
             fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}"
@@ -2072,11 +2090,13 @@ class Output:
         
         plt_tools.opsep_plot_event_definitions(self.data.experiment,
             self.data.flux_type, self.data.user_name, self.data.options,
-            self.data.doBGSubOPSEP, self.data.evaluated_dates, analyzed_fluxes,
+            self.data.evaluated_dates, analyzed_fluxes,
             self.data.evaluated_energy_bins, event_definitions,
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
-            spacecraft=self.data.spacecraft)
+            spacecraft=self.data.spacecraft, doBGSubOPSEP=self.data.doBGSubOPSEP,
+            doBGSubIDSEP=self.data.doBGSubIDSEP, OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
 
 
     def plot_all_fluxes(self):
@@ -2088,10 +2108,13 @@ class Output:
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
 
         plt_tools.opsep_plot_all_bins(self.data.experiment, self.data.flux_type,
-            self.data.user_name, self.data.options, self.data.doBGSubOPSEP,
+            self.data.user_name, self.data.options,
             self.data.dates, self.data.fluxes, self.data.energy_bins,
             self.data.event_definitions, sep_start_times, sep_end_times,
-            self.data.showplot, self.data.saveplot, spacecraft=self.data.spacecraft)
+            self.data.showplot, self.data.saveplot, spacecraft=self.data.spacecraft,
+            doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
+            OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
 
 
     def plot_fluence_spectra(self):
@@ -2112,11 +2135,14 @@ class Output:
         if not plot_fluence: return
 
         plt_tools.opsep_plot_fluence_spectrum(self.data.experiment, self.data.flux_type,
-            self.data.user_name, self.data.options, self.data.doBGSubOPSEP,
+            self.data.user_name, self.data.options,
             self.data.event_definitions, self.data.evaluated_dates,
             self.data.energy_bin_centers,
             fluence_spectra, fluence_spectra_units, self.data.showplot,
-            self.data.saveplot, spacecraft=self.data.spacecraft)
+            self.data.saveplot, spacecraft=self.data.spacecraft,
+            doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
+            OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
         
         
 

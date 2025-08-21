@@ -552,9 +552,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
 
         flag = flag.split(';')
         doBGSubOPSEP = False
-        opsep_enhancement = False
+        OPSEPEnhancement = False
         doBGSubIDSEP = False
-        idsep_enhancement = False
+        IDSEPEnhancement = False
         nointerp = True #if true, will not do interpolation in time
         if dointerp: nointerp = False
         
@@ -565,11 +565,11 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         if "OPSEPSubtractBG" in flag:
             doBGSubOPSEP = True
         if "OPSEPEnhancement" in flag:
-            opsep_enhancement = True
+            OPSEPEnhancement = True
         if "IDSEPSubtractBG" in flag:
             doBGSubIDSEP = True
         if "IDSEPEnhancement" in flag:
-            idsep_enhancement = True
+            IDSEPEnhancement = True
 
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
@@ -580,10 +580,10 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
                 two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
                 options=option, doBGSubOPSEP=doBGSubOPSEP,
-                opsep_enhancement=opsep_enhancement, bgstartdate=bgstartdate,
+                OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
                 bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
-                idsep_enhancement=idsep_enhancement, idsep_path=idsep_path,
-                location=location, species=species)
+                doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
+                idsep_path=idsep_path, location=location, species=species)
 
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')

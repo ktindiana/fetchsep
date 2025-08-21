@@ -1,4 +1,5 @@
 from . import config as cfg
+from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import datetime
 import os
@@ -90,19 +91,27 @@ def determine_time_resolution(dates):
 
 
 ##### NAMING SCHEMA #####
-def setup_modifiers(options, doBGSub, spacecraft=""):
+def setup_modifiers(options, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=False,
+        OPSEPEnhancement=False, IDSEPEnhancement=False):
     """ Add modifier strings according to options.
     
     """
     modifier = '' #for appending to filenames
     title_mod = '' #for appending to plot titles
 
+    doBGSub = False
+    if doBGSubOPSEP == True or doBGSubIDSEP == True:
+        doBGSub = True
+
+    module = ''
+    if doBGSubOPSEP or OPSEPEnhancement:
+        module = 'opsep'
+    if doBGSubIDSEP or IDSEPEnhancement:
+        module = 'idsep'
+
     if "uncorrected" in options:
         modifier = modifier + '_uncorrected'
         title_mod = title_mod + 'uncorrected '
-    if doBGSub:
-        modifier = modifier + '_bgsub'
-        title_mod = title_mod + 'BG-subtracted '
     if "S14" in options:
         modifier = modifier + '_S14'
         title_mod = title_mod + 'S14 '
@@ -112,6 +121,15 @@ def setup_modifiers(options, doBGSub, spacecraft=""):
     if spacecraft:
         modifier = modifier + '_' + spacecraft
         title_mod = title_mod + spacecraft + ' '
+    if doBGSub:
+        modifier = modifier + '_bgsub'
+        title_mod = title_mod + 'BG-subtracted '
+    if IDSEPEnhancement or OPSEPEnhancement:
+        modifier = modifier + '_enhancement'
+
+    if module != '':
+        modifier = modifier + '_' + module
+        title_mod = title_mod + ' (' + module + ')'
 
     return modifier, title_mod
 
@@ -137,10 +155,11 @@ def energy_bin_key(bin):
     return f"{bin[0]}-{bin[1]}"
 
 
+
 def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=''):
     """ Create naming scheme for subfolders in output/idsep """
 
-    modifier, title_mod = setup_modifiers(options, False, spacecraft=spacecraft)
+    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft)
     name = (f"{experiment}_{flux_type}{modifier}")
     if experiment == 'user' and exp_name != '':
         name = (f"{exp_name}_{flux_type}{modifier}")
@@ -148,15 +167,24 @@ def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft='')
     return name
     
 
-def opsep_naming_scheme(experiment, flux_type, exp_name, options, doBGSub, spacecraft=''):
+
+def opsep_naming_scheme(date, suffix, experiment, flux_type, exp_name, options,
+    spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
+    IDSEPEnhancement=False):
     """ Create naming scheme for subfolders in output/idsep """
 
-    modifier, title_mod = setup_modifiers(options, doBGSub, spacecraft=spacecraft)
-    name = (f"{experiment}_{flux_type}{modifier}")
+    tzulu = ccmc_json.make_ccmc_zulu_time(date)
+    tzulu = tzulu.replace(":","")
+
+    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
+    name = (f"{tzulu}_{experiment}_{flux_type}{modifier}_{suffix}")
     if experiment == 'user' and exp_name != '':
-        name = (f"{exp_name}_{flux_type}{modifier}")
+        name = (f"{tzulu}_{exp_name}_{flux_type}{modifier}_{suffix}")
 
     return name
+
 
 
 def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,

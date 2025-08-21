@@ -819,8 +819,8 @@ def make_dirs():
 def load_input_data(str_startdate, str_enddate, experiment,
     flux_type, user_name, user_file, showplot, saveplot, two_peaks,
     user_thresholds, options,
-    doBGSubOPSEP, opsep_enhancement, bgstartdate, bgenddate,
-    doBGSubIDSEP, idsep_enhancement, idsep_path,
+    doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
+    doBGSubIDSEP, IDSEPEnhancement, idsep_path,
     nointerp, spacecraft, location, species):
     """ Instantiate an InputData object. Load all data.
         If differential fluxes specified, estimate integral fluxes.
@@ -850,7 +850,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
         :nointerp: (boolean) - set to true to fill in negative fluxes with None
             value rather than filling in via linear interpolation in time
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
-        :idsep_enhancement: (bool) Set to true to use the threshold calculated
+        :IDSEPEnhancement: (bool) Set to true to use the threshold calculated
             by idsep
 
     OUTPUT:
@@ -866,9 +866,9 @@ def load_input_data(str_startdate, str_enddate, experiment,
         user_name=user_name, user_file=user_file, showplot=showplot,
         saveplot=saveplot,
         two_peaks=two_peaks, definitions=user_thresholds, options=options,
-        doBGSubOPSEP=doBGSubOPSEP, opsep_enhancement=opsep_enhancement,
+        doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
         bgstartdate=bgstartdate, bgenddate=bgenddate,
-        doBGSubIDSEP=doBGSubIDSEP, idsep_enhancement=idsep_enhancement,
+        doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
         idsep_path=idsep_path, nointerp=nointerp, spacecraft=spacecraft,
         location=location, species=species)
 
@@ -926,9 +926,9 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     user_name='', user_file='', json_type='observations',
     spase_id='', showplot=False, saveplot=False, detect_prev_event=False,
     two_peaks=False, umasep=False, user_thresholds='', options='',
-    doBGSubOPSEP=False, opsep_enhancement=False, bgstartdate='', bgenddate='',
+    doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
     nointerp=False, spacecraft='', doBGSubIDSEP=False,
-    idsep_enhancement=False, idsep_path='',
+    IDSEPEnhancement=False, idsep_path='',
     location='earth', species='proton'):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
@@ -966,7 +966,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
         :templatename: (string) optional name of user json template located in
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
-        :idsep_enhancement: (bool) Set to true to use the thresholds calculated in IDSEP
+        :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
         
         OUTPUTS:
         
@@ -999,8 +999,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     flux_data = load_input_data(str_startdate, str_enddate, experiment,
                 flux_type, user_name, user_file, showplot, saveplot, two_peaks,
                 user_thresholds, options,
-                doBGSubOPSEP, opsep_enhancement, bgstartdate, bgenddate,
-                doBGSubIDSEP, idsep_enhancement, idsep_path,
+                doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
+                doBGSubIDSEP, IDSEPEnhancement, idsep_path,
                 nointerp, spacecraft, location, species)
 
 

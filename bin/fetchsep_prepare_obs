@@ -212,10 +212,10 @@ for_inclusive = args.ForInclusive
 plot_timeseries_only = args.PlotTimeSeriesOnly
 
 doBGSubIDSEP = args.IDSEPSubtractBG
-idsep_enhancement = args.IDSEPEnhancement
+IDSEPEnhancement = args.IDSEPEnhancement
 flags = ''
 if doBGSubIDSEP: flags = 'IDSEPSubtractBG'
-if idsep_enhancement:
+if IDSEPEnhancement:
     if flags == '':
         flags = "IDSEPEnhancement"
     else:
