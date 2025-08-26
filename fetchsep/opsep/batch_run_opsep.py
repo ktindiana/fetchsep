@@ -1,4 +1,5 @@
 from . import opsep
+from ..utils import tools
 from ..json import ccmc_json_handler as ccmc_json
 from ..json import keys
 from ..utils import config as cfg
@@ -615,7 +616,10 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
             continue
 
     fout.close()
-    all_fname = f"{experiment}_{flux_type}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.csv"
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
+        IDSEPEnhancement=IDSEPEnhancement)
+    all_fname = f"{experiment}_{flux_type}{modifier}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.csv"
     all_fname = os.path.join(cfg.outpath, 'opsep', all_fname)
     print(f"batch_run_opsep: Writing all events to csv file {all_fname}")
     df_all.to_csv(all_fname, index=False)

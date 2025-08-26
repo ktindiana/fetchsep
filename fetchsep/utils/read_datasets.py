@@ -749,18 +749,27 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
     """
     #Have encountered some bad files and better to use a different
     #instrument
-    g13_bad = ['g13_epead_cpflux_5m_20130501_20130531.csv',
-                'g13_epead_cpflux_5m_20141201_20141231.csv',
-                'g13_epead_cpflux_5m_20160801_20160831.csv',
-                'g13_epead_p17ew_5m_20160801_20160831.csv',
-                'g13_epead_p17ew_5m_20141201_20141231.csv']
-    g14_bad = ['g14_epead_cpflux_5m_20160801_20160831.csv',
-                'g14_epead_p17ew_5m_20160801_20160831.csv']
-    g15_bad = ['g15_epead_cpflux_5m_20160801_20160831.csv',
-                'g15_epead_p17ew_5m_20160801_20160831.csv',
-                'g15_epead_cpflux_5m_20190901_20190930.csv',
-                'g15_epead_cpflux_5m_20191001_20191031.csv']
-    
+    #g14 20160801 bad because one day (last day) missing from orientation file
+    #Only goes up to the 30th
+    #Per communication with Juan Rodriguez, GOES-13 was always in the same
+    #orientation afer 2010.
+    #The orientation file is missing for 20130501_20130531. Per the previous
+    #month's orientation file, B was the westward-facing detector.
+#    g13_bad = ['g13_epead_cpflux_5m_20130501_20130531.csv',
+#                'g13_epead_cpflux_5m_20141201_20141231.csv',
+#                'g13_epead_cpflux_5m_20160801_20160831.csv',
+#                'g13_epead_p17ew_5m_20160801_20160831.csv',
+#                'g13_epead_p17ew_5m_20141201_20141231.csv']
+#    g14_bad = ['g14_epead_cpflux_5m_20160801_20160831.csv',
+#                'g14_epead_p17ew_5m_20160801_20160831.csv']
+#    g15_bad = ['g15_epead_cpflux_5m_20160801_20160831.csv',
+#                'g15_epead_p17ew_5m_20160801_20160831.csv',
+#                'g15_epead_cpflux_5m_20190901_20190930.csv',
+#                'g15_epead_cpflux_5m_20191001_20191031.csv']
+
+    g13_bad = []
+    g14_bad = []
+    g15_bad = []
     
     styear = startdate.year
     stmonth = startdate.month
@@ -2399,6 +2408,13 @@ def get_west_detector(filename, dates):
     orien_dates = []
     orientation = []
 
+    #Per communication with Juan Rodriguez, GOES-13 was always in the same
+    #orientation afer 2010.
+    #The orientation file is missing for 20130501_20130531. Per the previous
+    #month's orientation file, B was the westward-facing detector.
+    if dates[0] == datetime.datetime(2013,5,1) and dates[-1] == datetime.datetime(2013,5,31,23,55,0):
+        return ["B"]*len(dates)
+
     with open(datapath + '/' + filename) as orienfile:
         #GOES data has very large headers; figure out where the data
         #starts inside the file and skip the required number of lines
@@ -2857,26 +2873,38 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
 
 
                 #Go back and get fluxes
-                count = 0
+                ix = 0
                 csvfile.seek(0)
                 for k in range(nhead):
                     next(readCSV)  #to start of data
                 for row in readCSV:
+                    #Get west detector
+                    #Some files from NOAA have an orientation file that is missing
+                    #the last day, e.g. only goes to the 30th when there are
+                    #31 days in the month. To use this data from this month, assume
+                    #the west-facing detector remains the same on this missing day.
+                    if len(west_detector) == 0:
+                        west_det = None
+                    elif ix > len(west_detector)-1:
+                        west_det = west_detector[-1]
+                    else:
+                        west_det = west_detector[ix]
+                
                     for j in range(ncol):
                         flux = float(row[columns[j]])
                         #Account for orientation
                         if (experiment == "GOES-13" or experiment == "GOES-14"
                             or experiment == "GOES-15"):
-                            if len(west_detector) == 0:
+                            if west_det == None:
                                 flux = badval
-                            elif west_detector[count] == "B":
+                            elif west_det == "B":
                                 flux = float(row[columnsB[j]])
-                            elif west_detector[count] == "Flip":
+                            elif west_det == "Flip":
                                 flux = badval
                         if flux < 0:
                             flux = badval
-                        fluxes[j][count] = flux
-                    count = count + 1
+                        fluxes[j][ix] = flux
+                    ix = ix + 1
             csvfile.close()
 
             #Update file completeness

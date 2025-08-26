@@ -326,7 +326,7 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     one_sec = datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
     name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
@@ -409,7 +409,7 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     if for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
     name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
     prename = (f"HighPoints_{name}")

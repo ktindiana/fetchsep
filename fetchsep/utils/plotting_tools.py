@@ -441,9 +441,10 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     if flux_type == "integral": flux_units = cfg.flux_units_integral
     if flux_type == "differential": flux_units = cfg.flux_units_differential
 
-    fig.suptitle((f"{exp_name} {title_mod}"))
+    fig.suptitle((f"{unique_id}\n {exp_name} {title_mod} {flux_type}"))
     
     #Formatting of axes
+    flux_units = make_math_label(flux_units)
     ax.set_ylabel((f"Flux ({flux_units})"))
     ax.set_xlabel("Date")
 
@@ -485,9 +486,9 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     if energy_bin[1] == -1:
         label = f">{energy_bin[0]} MeV"
     plt.plot(trim_times,trim_fluxes,label=label)
-    label_fit = "Fit\n Ip: " + str(best_Ip) \
-                + "\n alpha: " + str(best_a) \
-                +"\n beta: " + str(best_b)
+    label_fit = (f"Fit\n Ip: {best_Ip:.2f}"
+                f"\n alpha: {best_a:.2f}"
+                f"\n beta: {best_b:.2f}")
     plt.plot(trim_times,best_fit,label=label_fit)
     plt.plot(max_time, max_val,"o",label="max fit")
     plt.plot(max_meas_time, max_meas,">",label="measured peak near fit max")
@@ -495,9 +496,9 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     plt.plot(max_curve_meas_time, max_curve_meas_peak,"^",label="measured peak near min 2nd Derivative")
     #plt.plot(onset_time, onset_peak[i],">",label="onset Weibull")
     plt.legend(loc='lower right')
-    plt.title(f"Onset Peak Weibull Fit for {exp_name} {title_mod} {flux_type}, {sep_start_time}")
+    plt.title(f"Onset Peak Weibull Fit\n {exp_name} {title_mod} {flux_type}\n {sep_start_time}")
     plt.xlabel("Hours")
-    plt.ylabel("Intensity")
+    plt.ylabel("Flux")
     plt.yscale("log")
     plt.ylim(1e-4,1e6)
     
@@ -604,7 +605,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9))
         if nthresh == 1: ax = [ax]
 
-    plot_title = f"Event Definitions for {exp_name} {title_mod} {flux_type} Fluxes"
+    plot_title = f"Event Definitions\n {exp_name} {title_mod} {flux_type} Fluxes"
     plt.suptitle(plot_title)
 
     for i in range(nthresh):
@@ -695,7 +696,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
 
     energy_units = event_definitions[0]['energy_channel'].units
 
-    plot_title = f"All Energy Bins with Threshold Crossings for {exp_name} {title_mod} {flux_type}"
+    plot_title = f"All Energy Bins with Threshold Crossings\n {exp_name} {title_mod} {flux_type}"
     
     fig = plt.figure(figname,figsize=(12,6))
     ax = plt.subplot(111)
@@ -820,7 +821,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
                 color=colors[i], mfc='none', label=legend_label)
     
     plt.grid(which="both", axis="both")
-    plot_title = f"Event-Integrated Fluence Spectra for {exp_name} {title_mod} {flux_type}"
+    plot_title = f"Event-Integrated Fluence Spectra\n {exp_name} {title_mod} {flux_type}"
     plt.title(plot_title)
     plt.xlabel(f"Energy [{energy_units}]")
     ylabel = f"Fluence [${fluence_units}$]"

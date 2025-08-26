@@ -38,7 +38,7 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
         
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
     name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
     prename = (f"SEPTimes_{name}")
