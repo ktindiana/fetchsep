@@ -510,7 +510,20 @@ class Data:
         self.saveplot = saveplot
         self.do_interpolation = not(nointerp)
         self.error_check()
+ 
+        #Create subdirectory to hold values
+        subdir = tools.opsep_subdir(self.experiment, self.flux_type,
+            self.user_name, self.options, spacecraft=self.spacecraft,
+            doBGSubOPSEP=self.doBGSubOPSEP, doBGSubIDSEP=self.doBGSubIDSEP,
+            OPSEPEnhancement=self.OPSEPEnhancement,
+            IDSEPEnhancement=self.IDSEPEnhancement)
+        if not os.path.exists(os.path.join(cfg.outpath,'opsep', subdir)):
+            os.mkdir(os.path.join(cfg.outpath,'opsep', subdir))
+        if not os.path.exists(os.path.join(cfg.plotpath,'opsep', subdir)):
+            os.mkdir(os.path.join(cfg.plotpath,'opsep', subdir))
+
         
+ 
         return
 
 
@@ -1668,6 +1681,18 @@ class Output:
         self.json_dict = {} #json dictionary from template
         self.json_filename = None #output path and filename
         self.issue_time = pd.NaT
+        
+        # Subdirectory with unique string to hold data
+        self.subdir = tools.opsep_subdir(self.data.experiment, self.data.flux_type,
+            self.data.user_name, self.data.options, spacecraft=self.data.spacecraft,
+            doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
+            OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
+
+        if not os.path.exists(os.path.join(cfg.outpath,'opsep', self.subdir)):
+            os.mkdir(os.path.join(cfg.outpath,'opsep', self.subdir))
+        if not os.path.exists(os.path.join(cfg.plotpath,'opsep', self.subdir)):
+            os.mkdir(os.path.join(cfg.plotpath,'opsep', subdir))
 
 
     def set_json_type(self, json_type):
@@ -1754,7 +1779,7 @@ class Output:
             
         """
 
-        fname = os.path.join(cfg.outpath,'opsep', analyze.sep_profile)
+        fname = os.path.join(cfg.outpath,'opsep', self.subdir, analyze.sep_profile)
         outfile = open(fname, "w")
         for i in range(len(analyze.dates)):
             zdate = ccmc_json.make_ccmc_zulu_time(analyze.dates[i])
@@ -1975,7 +2000,7 @@ class Output:
 
 
     def write_json(self):
-        filename = os.path.join(cfg.outpath, 'opsep', self.json_filename)
+        filename = os.path.join(cfg.outpath, 'opsep', self.subdir, self.json_filename)
         is_good = ccmc_json.write_json(self.json_dict, filename)
         return filename
 
@@ -2033,7 +2058,7 @@ class Output:
         
         filename = self.json_filename
         filename = filename.replace(".json",".csv")
-        filename = os.path.join(cfg.outpath,"opsep",filename)
+        filename = os.path.join(cfg.outpath,"opsep",self.subdir, filename)
         fout = open(filename,"w+")
         fout.write(header)
         fout.write(row)

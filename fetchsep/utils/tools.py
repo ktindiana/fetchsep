@@ -167,6 +167,20 @@ def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft='')
     return name
     
 
+def opsep_subdir(experiment, flux_type, exp_name, options,
+    spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
+    IDSEPEnhancement=False):
+
+    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
+    #Return a corresponding directory name
+    dir = (f"{experiment}_{flux_type}{modifier}")
+    if experiment == 'user' and exp_name != '':
+        name = (f"{exp_name}_{flux_type}{modifier}")
+ 
+    return dir
+
 
 def opsep_naming_scheme(date, suffix, experiment, flux_type, exp_name, options,
     spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
@@ -183,8 +197,12 @@ def opsep_naming_scheme(date, suffix, experiment, flux_type, exp_name, options,
     if experiment == 'user' and exp_name != '':
         name = (f"{tzulu}_{exp_name}_{flux_type}{modifier}_{suffix}")
 
-    return name
+    #Return a corresponding directory name
+    dir = opsep_subdir(experiment, flux_type, exp_name, options, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
+    return name, dir
 
 
 def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,

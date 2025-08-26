@@ -408,7 +408,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
     suffix = f"{unique_id}_All_Bins"
-    figname = tools.opsep_naming_scheme(dates[0], suffix, experiment, flux_type, user_name, options,
+    figname, subdir = tools.opsep_naming_scheme(dates[0], suffix, experiment, flux_type, user_name, options,
         spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
@@ -454,7 +454,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
                      chartBox.height])
     ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, 'opsep', figname + '.png'))
+        fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
 
 
 
@@ -471,7 +471,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     best_Ip = best_pars['peak_intensity']
 
     suffix = f"Weibull_profile_fit_{energy_bin[0]}MeV"
-    figname = tools.opsep_naming_scheme(sep_start_time, suffix, experiment, flux_type, user_name,
+    figname, subdir = tools.opsep_naming_scheme(sep_start_time, suffix, experiment, flux_type, user_name,
         options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
@@ -503,7 +503,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     plt.ylim(1e-4,1e6)
     
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, 'opsep', figname + '.png'))
+        fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
     if not showplot:
         plt.close(fig)
 
@@ -576,7 +576,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
     """
  
     suffix = "Event_Def"
-    figname = tools.opsep_naming_scheme(evaluated_dates[0], suffix, experiment, flux_type, user_name,
+    figname, subdir = tools.opsep_naming_scheme(evaluated_dates[0], suffix, experiment, flux_type, user_name,
         options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
  
@@ -663,7 +663,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             item.set_fontsize(12)
 
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath,'opsep', figname + '.png'))
+        fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
     if not showplot:
         plt.close(fig)
 
@@ -684,7 +684,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     """ Plot all energy bins with all event definitions """
 
     suffix = "All_Bins"
-    figname = tools.opsep_naming_scheme(all_dates[0], suffix, experiment, flux_type, user_name,
+    figname, subdir = tools.opsep_naming_scheme(all_dates[0], suffix, experiment, flux_type, user_name,
         options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
  
@@ -751,7 +751,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(12)
     if saveplot:
-        fname = os.path.join(cfg.plotpath,'opsep',figname + '.png')
+        fname = os.path.join(cfg.plotpath,'opsep',subdir, figname + '.png')
         fig.savefig(fname)
     if not showplot:
         plt.close(fig)
@@ -776,7 +776,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     print("Generating figure of event-integrated fluence spectrum.")
     
     suffix = "Fluence"
-    figname = tools.opsep_naming_scheme(evaluated_dates[0], suffix, experiment, flux_type, user_name,
+    figname, subdir = tools.opsep_naming_scheme(evaluated_dates[0], suffix, experiment, flux_type, user_name,
         options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
  
@@ -837,7 +837,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
 
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath,'opsep',figname + '.png'))
+        fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
     if not showplot:
         plt.close(fig)
 

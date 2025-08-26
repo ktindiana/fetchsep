@@ -202,7 +202,7 @@ options = args.options
 nointerp = args.NoInterp
 
 
-year, month, day, jsonfname = fetchsep.opsep.run_all(str_startdate,
+date, jsonfname, event_dict = fetchsep.opsep.run_all(str_startdate,
     str_enddate, experiment, flux_type,
     user_name=user_name,
     user_file=user_file,
