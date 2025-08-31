@@ -992,7 +992,9 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         sys.exit("check_goesR_data: This subroutine is only valid for GOES-R+ "
                 "differential fluxes. Please set the flux_type to differential "
                 "and try again.")
-                
+ 
+    g16_last_date = datetime.datetime(2025,4,6) #there is a file on the 7th, but has a problem
+ 
     styear = startdate.year
     stmonth = startdate.month
     stday = startdate.day
@@ -1053,6 +1055,11 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         day = date.day
         date_suffix = 'd%i%02i%02i' % (year,month,day)
  
+        if experiment == "GOES-16":
+            if date > g16_last_date:
+                print(f"check_goesR_data: Requested {date}. "
+                    f"Last available date for GOES-16 is {g16_last_date}. Continuing.")
+ 
         #GOES-R differential data has three possible version numbers
         file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc']
         
@@ -1070,15 +1077,18 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         if foundfile == None:
             for ext in file_ext:
                 fname_data = prefix + date_suffix + ext
+                fullpath = os.path.join(datapath,'GOES',fname_data)
                 url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
                 try:
                     urllib.request.urlopen(url)
                 
                     if os.path.exists(fullpath):
                         os.remove(fullpath) # if exist, remove it directly
+                        print(f"check_goesR_data: Removed existing file to avoid creating duplicates during download {fullpath}")
           
                     wget.download(url, os.path.join(datapath,'GOES',fname_data))
                     foundfile = fname_data
+                    print(f"\ncheck_goesR_data: Downloaded {url}")
                     break
                 except urllib.request.HTTPError:
                     foundfile = None
@@ -1091,6 +1101,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
             filenames1.append(None)
         else:
             filenames1.append(os.path.join('GOES', foundfile))
+            
         
     return filenames1, filenames2, filenames_orien, date
 
@@ -2440,7 +2451,7 @@ def get_west_detector(filename, dates):
             if orientation[i] == 0:
                 west_detector.append("B")
             if orientation[i] == 1:
-                west_detector.append("A")
+                west_detector.append("A") 
             if orientation[i] == 2:
                 west_detector.append("Flip")
             date_index = date_index + 1
@@ -2538,7 +2549,9 @@ def read_in_calgoes(experiment, filenames1):
                 ncol = len(firstline) - 1
                 for i in range(ncol):
                     fluxes.append([float(firstline[i+1])])
-        
+                date = datetime.datetime.strptime(firstline[0][0:19],"%Y-%m-%d %H:%M:%S")
+                all_dates.append(date)
+
             for line in file:
                 if line == "": continue
                 
@@ -2547,8 +2560,7 @@ def read_in_calgoes(experiment, filenames1):
                 for j in range(ncol):
                     fluxes[j].append(float(row[j+1]))
                 
-                date = datetime.datetime.strptime(row[0][0:19],
-                                                "%Y-%m-%d %H:%M:%S")
+                date = datetime.datetime.strptime(row[0][0:19],"%Y-%m-%d %H:%M:%S")
                 all_dates.append(date)
 
     all_fluxes = np.array(fluxes)
@@ -3022,6 +3034,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
     for i in range(NFILES):
         file_dates = []
         if filenames1 != None:
+            print(filenames1[i])
             fullpath = os.path.join(cfg.datapath, filenames1[i])
             infile = os.path.expanduser(fullpath)
             data = netCDF4.Dataset(infile)

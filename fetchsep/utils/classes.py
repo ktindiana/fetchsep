@@ -772,7 +772,6 @@ class Data:
         self.original_dates = orig_dates
         self.original_fluxes = orig_fluxes
 
-
         #IF BACKGROUND SUBTRACTION
         if self.doBGSubOPSEP or self.OPSEPEnhancement:
             #Background-subtracted fluxes with date range specified by the user

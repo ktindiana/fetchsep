@@ -616,10 +616,14 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
             continue
 
     fout.close()
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft,
+    
+    #Assuming that options is the same for all files in the batch list
+    opts = options[0]
+    opts = opts.strip().split(";")
+    modifier, title_mod = tools.setup_modifiers(opts, spacecraft=spacecraft,
         doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement)
-    subdir = tools.opsep_subdir(experiment, flux_type, user_name, options, spacecraft=spacecraft,
+    subdir = tools.opsep_subdir(experiment, flux_type, user_name, opts, spacecraft=spacecraft,
         doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement) #f"{experiment}_{flux_type}{modifier}"
     all_fname = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.csv"

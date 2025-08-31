@@ -971,7 +971,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
     name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
-    figname = (f"{name}_FluxTimeseries_{unique_id}")
+    figname = (f"{name}_{unique_id}")
  
     flux_units = ''
     if flux_type == "integral": flux_units = cfg.flux_units_integral

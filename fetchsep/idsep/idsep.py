@@ -665,7 +665,7 @@ def run_all(str_startdate, str_enddate, experiment,
     if plot_timeseries_only:
         unique_id = "FluxTimeSeries"
         plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot)
+        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot, spacecraft=spacecraft)
         if showplot:
             plt.show()
         sys.exit("Time series plot completed. Exiting.")
