@@ -12,6 +12,7 @@ import sys
 from lmfit import minimize, Parameters
 import datetime
 import math
+import pickle
 
 #########################################################
 ################# General-use Classes ###################
@@ -1724,7 +1725,6 @@ class Output:
         zstdate = zstdate.replace(":","")
 
         #Filenames for observations don't include issue time
-        print(f"MODIFIER IS {modifier}")
         fnameprefix = ""
         if self.json_type == "observations":
             fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}"
@@ -1866,22 +1866,22 @@ class Output:
         if not pd.isnull(analyze.sep_start_time):
             sttime = analyze.sep_start_time.strftime("%Y-%m-%d %H:%M:%S")
         else:
-            sttime = "No SEP"
+            sttime = None
 
         if not pd.isnull(analyze.sep_end_time):
             endtime = analyze.sep_end_time.strftime("%Y-%m-%d %H:%M:%S")
         else:
-            endtime = "No SEP"
+            endtime = None
 
         if not pd.isnull(analyze.onset_peak_time):
             optime = analyze.onset_peak_time.strftime("%Y-%m-%d %H:%M:%S")
         else:
-            optime = "No Onset Peak"
+            optime = None
 
         if not pd.isnull(analyze.max_flux_time):
             mftime = analyze.max_flux_time.strftime("%Y-%m-%d %H:%M:%S")
         else:
-            mftime = "No Max Flux"
+            mftime = None
 
         dict = {f"{channel_label} {threshold_label} SEP Start Time": sttime,
                 f"{channel_label} {threshold_label} SEP End Time": endtime,
@@ -1899,6 +1899,46 @@ class Output:
             }
 
         return dict
+
+
+    def event_info_dict_for_pkl(self, analyze):
+        """ Create a flat dictionary with all event info with the
+            dictionary keys labeled according to energy channel
+            and threshold information.
+            
+            Useful to ultimately export to pkl.
+            
+        """
+        energy_bin = analyze.make_energy_bin()
+        energy_units = analyze.event_definition['energy_channel'].units
+        threshold = analyze.event_definition['threshold'].threshold
+        threshold_units = analyze.event_definition['threshold'].threshold_units
+
+        if energy_bin[1] == -1:
+            channel_label = f">{energy_bin[0]} {energy_units}"
+        else:
+            channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+    
+        threshold_label = f"{threshold} {threshold_units}"
+
+
+        dict = {f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time,
+                f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time,
+                f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
+                f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
+                f"{channel_label} {threshold_label} Onset Peak Time": analyze.onset_peak_time,
+                f"{channel_label} {threshold_label} Rise Time to Onset ({analyze.rise_time_units})": analyze.onset_rise_time,
+                f"{channel_label} {threshold_label} Max Flux ({analyze.flux_units})": analyze.max_flux,
+                f"{channel_label} {threshold_label} Max Flux Time": analyze.max_flux_time,
+                f"{channel_label} {threshold_label} Rise Time to Max ({analyze.rise_time_units})": analyze.max_rise_time,
+                f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
+                f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": analyze.fluence_spectrum,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": self.data.energy_bins,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": self.data.energy_bin_centers
+            }
+
+        return dict
+
 
 
     def fill_event_info_list(self, analyze):
@@ -2033,11 +2073,15 @@ class Output:
         exp_name = self.data.experiment
         if not pd.isnull(self.data.user_name) and self.data.user_name != "":
             exp_name = self.data.user_name
-            
+
+        bgsub = 'None'
+        if self.data.doBGSubOPSEP: bgsub = 'OPSEP'
+        if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
+
         dict = {"Experiment": exp_name,
                 "Flux Type": self.data.flux_type,
                 "Options": str(self.data.options).replace(",",";"),
-                "Background Subtraction": self.data.doBGSubOPSEP,
+                "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S")
                 }
@@ -2062,9 +2106,51 @@ class Output:
         fout.write(header)
         fout.write(row)
         fout.close()
-        
+        print(f"create_csv_dict: Wrote {filename}")
+
         return dict
 
+
+    def create_pkl_dict(self):
+        """ A flat dictionary of values for all event definitions. """
+
+        exp_name = self.data.experiment
+        if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+            exp_name = self.data.user_name
+
+        bgsub = 'None'
+        if self.data.doBGSubOPSEP: bgsub = 'OPSEP'
+        if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
+
+        dict = {"Experiment": exp_name,
+                "Flux Type": self.data.flux_type,
+                "Options": self.data.options,
+                "Background Subtraction": bgsub,
+                "Time Period Start": self.data.startdate,
+                "Time Period End": self.data.enddate
+                }
+        
+        for analyze in self.data.results:
+            analyze_dict = self.event_info_dict_for_pkl(analyze)
+            dict.update(analyze_dict)
+            
+        header = ''
+        row = ''
+        for key in dict.keys():
+            header += key + ","
+            row += str(dict[key]) + ","
+        
+        header = header[:-1] + "\n"
+        row = row[:-1] + "\n"
+        
+        filename = self.json_filename
+        filename = filename.replace(".json",".pkl")
+        filename = os.path.join(cfg.outpath,"opsep",self.subdir, filename)
+        with open(filename, 'wb') as file:
+            pickle.dump(dict, file)
+            print(f"create_pkl_dict: Wrote {filename}")
+        
+        return dict
 
 
     def extract_analyze_lists(self):
