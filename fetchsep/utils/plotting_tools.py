@@ -634,7 +634,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         #ax = plt.subplot(nthresh, 1, i+1)
         #Don't want to plot negative values, particularly in background-subtracted plots
         if doBGSubOPSEP or doBGSubIDSEP:
-            maskfluxes = np.ma.masked_where(fluxes <0, fluxes)
+            maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
             ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
         else:
             ax[i].plot_date(dates,fluxes,'-',label=data_label)
@@ -711,7 +711,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
             legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
 
         if doBGSubOPSEP or doBGSubIDSEP:
-            maskfluxes = np.ma.masked_where(all_fluxes[j] <0, all_fluxes[j])
+            maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
             ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
         else:
             ax.plot_date(all_dates,all_fluxes[j],'-',label=legend_label)

@@ -1640,7 +1640,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
     return filenames1
 
 
-def check_ephin_release_data(startdate, enddate, experiment, flux_type):
+def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type):
     """Check for SOHO/COSTEP/EPHIN data on your computer provided by the
         HESPERIA collaboration on the website
         https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool
@@ -1649,7 +1649,7 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
         above, download the data sets, and use the file naming convention
         adopted here:
             
-        data/EPHIN_REleASE/HESPERIA_SOHO_PROTON_YYYY.txt
+        data/EPHIN_HESPERIA/HESPERIA_SOHO_PROTON_YYYY.txt
         
         Intensities are in units of (cm^2 s sr mev/nuc)^-1
         First available date is 1995 12 8 (DOY = 342).
@@ -1683,14 +1683,106 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
     for year in range(styear, endyear+1):
         fname = 'HESPERIA_SOHO_PROTON_' + str(year) + '.txt'
 
-        exists = os.path.isfile(datapath + '/EPHIN_REleASE/' + fname)
+        exists = os.path.isfile(os.path.join(datapath, 'EPHIN_HESPERIA', fname))
+        if not exists: #download file if not found on your computer
+                sys.exit("check_ephin_hesperia_data: Cannot access EPHIN file " + fname +
+               ". Please check that selected spacecraft covers date range.")
+       
+        filenames1.append(os.path.join('EPHIN_HESPERIA', fname))
+        
+    return filenames1
+
+
+
+def check_ephin_release_data(startdate, enddate, experiment, flux_type):
+    """Check for SOHO/COSTEP/EPHIN data on your computer provided by 
+        https://zenodo.org/records/14191918. 
+        Yearly files of this data set are provided from 1995 to 2016. 
+        The data must be downloaded manually from Zenodo and placed
+        in your data/EPHIN_REleASE/ directory.
+            
+        data/EPHIN_REleASE/YYYY.asc
+        
+        Intensities are in units of (cm^2 s sr mev/nuc)^-1
+        First available date is 1995 12 8 (DOY = 342).
+        The files are saved in yearly format.
+        
+        Contents of each file: 
+        Columns 
+        #1:     year
+        #2:     day of year (DOY)
+        #3:     milliseconds of the day
+        #4:     flag for data status:
+        ->      0 = not nominal data (do not use)
+        ->      1 = ok
+        #5:     criterium for high fluxes:
+        ->      1 if count rate in anti coincidence > 25e5 * 59.95312
+        ->      1 if a00+a01+a02+a03+a04+a05 count rate > 47500 * 59.95312
+        ->      else 0
+        #6:     <2: ring on, >=2: ring off
+
+        proton fluxes in (cm^2 s sr MeV)^-1 in the folowing energy bins
+        #7:     3.98 - 4.47 MeV
+        #8:     4.47 - 5.01 MeV
+        #9:     5.01 - 5.62 MeV
+        #10:    5.62 - 6.31 MeV
+        #11:    6.31 - 7.08 MeV
+        #12:    7.08 - 7.94 MeV
+        #13:    7.94 - 8.91 MeV
+        #14:    8.91 - 10.00 MeV
+        #15:    10.00 - 11.22 MeV
+        #16:    11.22 - 12.59 Mev
+        #17:    12.59 - 14.13 MeV
+        #18:    14.13 - 15.85 MeV
+        #19:    15.85 - 17.78 MeV
+        #20:    17.78 - 19.95 MeV
+        #21:    19.95 - 22.39 MeV
+        #22:    22.39 - 25.12 MeV
+        #23:    25.12 - 28.18 MeV
+        #24:    28.18 - 31.62 MeV
+        #25:    31.62 - 35.48 MeV
+        #26:    35.48 - 39.81 MeV
+        #27:    39.81 - 44.67 MeV
+        #28:    44.67 - 50.12 MeV
+        
+        INPUTS:
+        
+        :startdate: (datetime) start of time period specified by user
+        :enddate: (datetime) end of time period entered by user
+        :experiment: (string) name of native experiment or "user"
+        :flux_type: (string) "differential"
+        
+        OUTPUTS:
+        
+        :filenames1: (string array) the files containing the SOHO
+            EPHIN data from the REleASE website that span the desired
+            time range (yearly files)
+        
+    """
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []  #SEPEM, EPHIN, eps, or epead
+
+    Nyr = endyear - styear + 1
+    for year in range(styear, endyear+1):
+        fname = str(year) + '.asc'
+
+        exists = os.path.isfile(os.path.join(datapath, 'EPHIN_REleASE', fname))
         if not exists: #download file if not found on your computer
                 sys.exit("Cannot access EPHIN file " + fname +
                ". Please check that selected spacecraft covers date range.")
        
-        filenames1.append('EPHIN_REleASE/' + fname)
+        filenames1.append(os.path.join('EPHIN_REleASE', fname))
         
     return filenames1
+
+
 
 
 def check_erne_data(startdate, enddate, experiment, flux_type):
@@ -2330,6 +2422,13 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
         filenames1 = check_ephin_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
+
+    if experiment == "EPHIN_HESPERIA":
+        filenames1 = check_ephin_hesperia_data(startdate, enddate,
+            experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
+
+
     if experiment == "EPHIN_REleASE":
         filenames1 = check_ephin_release_data(startdate, enddate,
             experiment, flux_type)
@@ -2451,7 +2550,7 @@ def get_west_detector(filename, dates):
             if orientation[i] == 0:
                 west_detector.append("B")
             if orientation[i] == 1:
-                west_detector.append("A") 
+                west_detector.append("A")
             if orientation[i] == 2:
                 west_detector.append("Flip")
             date_index = date_index + 1
@@ -3487,8 +3586,9 @@ def read_in_ephin(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
-def read_in_ephin_release(experiment, flux_type, filenames1):
-    """ Read in EPHIN files from your computer.
+
+def read_in_ephin_hesperia(experiment, flux_type, filenames1):
+    """ Read in EPHIN HESPERIA files from your computer.
         
         INPUTS:
         
@@ -3515,8 +3615,9 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
     ncol= len(fluxcols)
 
     for i in range(NFILES):
-        print('Reading in file ' + datapath + '/' + filenames1[i])
-        with open(datapath + '/' + filenames1[i]) as csvfile:
+        pathnm  = os.path.join(cfg.datapath,filenames1[i])
+        print(f"Reading in file {pathnm}")
+        with open(pathnm) as csvfile:
             #Count header lines indicated by hash #
             nhead = 0
             for line in csvfile:
@@ -3561,6 +3662,90 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
         else:
             all_fluxes = np.concatenate((all_fluxes,fluxes),axis=1)
             all_dates = all_dates + dates
+
+    return all_dates, all_fluxes
+
+
+
+def read_in_ephin_release(experiment, flux_type, filenames1):
+    """ Read in EPHIN RELeASE files from your computer.
+        
+        Contents of each file: 
+        Columns 
+        #1:     year
+        #2:     day of year (DOY)
+        #3:     milliseconds of the day
+        #4:     flag for data status:
+        ->      0 = not nominal data (do not use)
+        ->      1 = ok
+        #5:     criterium for high fluxes:
+        ->      1 if count rate in anti coincidence > 25e5 * 59.95312
+        ->      1 if a00+a01+a02+a03+a04+a05 count rate > 47500 * 59.95312
+        ->      else 0
+        #6:     <2: ring on, >=2: ring off
+        
+        INPUTS:
+        
+        :experiment: (string) experiment name
+        :flux_type: (string) integral or differential
+        :filenames1: (string array) names of files containing
+            EPHIN REleASE data in desired time range (yearly files)
+            
+        OUTPUTS:
+        
+        :all_dates: (datetime 1xm array) time points for every time in
+            all the data points in the files contained in filenames1
+        :all_fluxes: (float nxm array) fluxes for n energy channels and m
+            time points
+    
+        Note that all_dates and all_fluxes will be trimmed down to the
+        user time period of interest.
+    
+    """
+    NFILES = len(filenames1)
+
+    fluxcols = [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27]
+    ncol= len(fluxcols)
+    
+    all_dates = []
+    all_fluxes = []
+
+    for i in range(NFILES):
+        pathnm  = os.path.join(cfg.datapath,filenames1[i])
+        print(f"Reading in file {pathnm}")
+        with open(pathnm) as csvfile:
+            for line in csvfile:
+                if line == '': continue
+                if line[0] == "#": continue
+                row = line.split()
+                
+                #Flag to indicate bad data
+                if int(row[3]) == 0:
+                    continue
+                
+                year = int(row[0])
+                doy = int(row[1])
+                numsec = float(row[2])/1000. #in ms
+                hr = int(numsec/(60*60))
+                remain_sec = numsec - hr*(60*60)
+                min = int(remain_sec/60)
+                sec = int(remain_sec - min*60)
+                str_date = f"{year} {doy} {hr} {min} {sec}"
+                date = datetime.datetime.strptime(str_date,"%Y %j %H %M %S")
+                all_dates.append(date)
+
+                #Define arrays that hold dates and fluxes
+                fluxes = []
+
+                for j in range(ncol):
+                    flux = float(row[fluxcols[j]])
+                    if flux < 0:
+                        flux = badval
+                    fluxes.append(flux)
+
+                all_fluxes.append(fluxes)
+            
+    all_fluxes = np.array(all_fluxes).T
 
     return all_dates, all_fluxes
 
@@ -4316,6 +4501,10 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
 
     elif experiment == "EPHIN":
         all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)
+        
+    elif experiment == "EPHIN_HESPERIA":
+        all_dates, all_fluxes = read_in_ephin_hesperia(experiment, flux_type,
+                    filenames1)
 
     elif experiment == "EPHIN_REleASE":
         all_dates, all_fluxes = read_in_ephin_release(experiment, flux_type,
@@ -4957,11 +5146,23 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
         energy_bins = [[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]]
         energy_bin_centers = calculate_geometric_means(energy_bins)
 
-    if experiment == "EPHIN_REleASE":
+    if experiment == "EPHIN_HESPERIA":
         #This data may be downloaded by hand through a web interface at:
         #https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool
         energy_bins = [[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]]
         energy_bin_centers = calculate_geometric_means(energy_bins)
+
+    if experiment == "EPHIN_REleASE":
+        #This data may be downloaded by hand through a web interface at:
+        #https://zenodo.org/records/14191918
+        energy_bins = [[3.98, 4.47],[4.47, 5.01],[5.01, 5.62],[5.62, 6.31],
+                    [6.31, 7.08], [7.08, 7.94], [7.94, 8.91], [8.91, 10.00], [10.00, 11.22],
+                    [11.22, 12.59], [12.59, 14.13], [14.13, 15.85], [15.85, 17.78],
+                    [17.78, 19.95], [19.95, 22.39], [22.39, 25.12], [25.12, 28.18],
+                    [28.18, 31.62], [31.62, 35.48], [35.48, 39.81], [39.81, 44.67],
+                    [44.67, 50.12] ]
+        energy_bin_centers = calculate_geometric_means(energy_bins)
+
 
     ##### GOES SPACECRAFT ########
     #### GOES DOCUMENTATION USES THE GEOMETRIC MEAN AS THE BIN CENTER####
