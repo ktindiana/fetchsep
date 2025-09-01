@@ -1010,8 +1010,7 @@ class Analyze:
                     
             print("-1 threshold indicates you have selected to identify "
                 "enhancement above background. Setting threshold to "
-                "opsep_min_threshold in fetchsep.cfg: "
-                f"{cfg.opsep_min_threshold}.")
+                f"opsep_min_threshold in fetchsep.cfg: {cfg.opsep_min_threshold}.")
             self.event_definition['threshold'].threshold = cfg.opsep_min_threshold
             
         return True
@@ -1158,6 +1157,10 @@ class Analyze:
             dataset time resolution) are above threshold. The start time is set to the 
             first point that crossed threshold.
             
+            If IDSEPEnhancement, OPSEPEnhancement or doBGSubIDSEP, doBGSubOPSEP are 
+            selected, then require 5 consecutive points to attempt to avoid false 
+            identifications of background time periods.
+            
             Start time will be calculated with respect to the threshold. The end
             time can be calculated for a different threshold by applying a factor
             specified in the fetchsep.cfg file called endfac. The end threshold 
@@ -1187,8 +1190,14 @@ class Analyze:
         threshold = event_definition['threshold'].threshold
         
         npoints = 3 #require 3 points above threshold
+        if data.IDSEPEnhancement or data.OPSEPEnhancement \
+        or data.doBGSubIDSEP or data.doBGSubOPSEP:
+            npoints = 5
         if data.time_resolution/60. > 15:
             npoints = 1 #time resolution >15 mins, require one point above threshold
+            if data.IDSEPEnhancement or data.OPSEPEnhancement \
+            or data.doBGSubIDSEP or data.doBGSubOPSEP:
+                npoints = 3
             
         if energy_bin not in data.evaluated_energy_bins:
             print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
