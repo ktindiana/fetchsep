@@ -1189,17 +1189,19 @@ class Analyze:
                         event_definition['energy_channel'].max]
         threshold = event_definition['threshold'].threshold
         
-        npoints = 3 #require 3 points above threshold
-        if data.IDSEPEnhancement or data.OPSEPEnhancement \
-        or data.doBGSubIDSEP or data.doBGSubOPSEP:
-            if threshold == cfg.opsep_min_threshold:
-                npoints = 8
+        npoints = 3 #require 3 points above threshold as employed by SWPC
+        if (data.IDSEPEnhancement or data.OPSEPEnhancement \
+        or data.doBGSubIDSEP or data.doBGSubOPSEP)\
+        and threshold == cfg.opsep_min_threshold:
+            npoints = 8
         if data.time_resolution/60. > 15:
             npoints = 1 #time resolution >15 mins, require one point above threshold
-            if data.IDSEPEnhancement or data.OPSEPEnhancement \
-            or data.doBGSubIDSEP or data.doBGSubOPSEP:
-                if threshold == cfg.opsep_min_threshold:
-                    npoints = 3
+            #If identifying enhancement above background, use more points because
+            #all points above mean+3sigma will be present
+            if (data.IDSEPEnhancement or data.OPSEPEnhancement \
+            or data.doBGSubIDSEP or data.doBGSubOPSEP) \
+            and threshold == cfg.opsep_min_threshold:
+                npoints = 3
             
         if energy_bin not in data.evaluated_energy_bins:
             print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
@@ -1238,12 +1240,20 @@ class Analyze:
                 if (fluxes[i] <= end_threshold): #flux drops below endfac*threshold
                     end_counter = end_counter + 1
                     elapse = (dates[i]  - end_tm0).total_seconds()
-                    if data.IDSEPEnhancement or data.OPSEPEnhancement \
-                    or data.doBGSubIDSEP or data.doBGSubOPSEP:
-                        if threshold == cfg.opsep_min_threshold:
-                            if end_counter > npoints:
-                                event_ended = True
-                                sep_end_time = dates[i-(end_counter-1)]
+                    #If identifying the end of an enhancement above background,
+                    #the background fluxes are set to zero. The remaining fluxes
+                    #are 3sigma above the mean background. The dwell time may not
+                    #appropriately identify the event end in this case, so end the
+                    #event after npoints are below the background threshold.
+                    if( data.IDSEPEnhancement or data.OPSEPEnhancement \
+                    or data.doBGSubIDSEP or data.doBGSubOPSEP) \
+                    and threshold == cfg.opsep_min_threshold:
+                        if end_counter > npoints:
+                            event_ended = True
+                            sep_end_time = dates[i-(end_counter-1)]
+                    #When looking for an end of an event below an operational threshold
+                    #or threshold that isn't the background, apply a dwell time to ensure
+                    #the fluxes don't fluctuate above threshold again after a little while.
                     elif elapse > cfg.dwell_time: #N consecutive points longer than dwell time
                         event_ended = True
                         sep_end_time = dates[i-(end_counter-1)] #correct back time steps
