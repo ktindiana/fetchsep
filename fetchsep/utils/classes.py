@@ -545,7 +545,7 @@ class Data:
                 doBGSubIDSEP=self.doBGSubIDSEP,
                 OPSEPEnhancement=self.OPSEPEnhancement,
                 IDSEPEnhancement=self.IDSEPEnhancement)
-        plt_tools.opsep_plot_bgfluxes("Background_and_SEP_Fluxes", self.experiment,
+        plt_tools.opsep_plot_bgfluxes("SEP_Fluxes", self.experiment,
                 self.flux_type, self.options, self.user_name, self.fluxes, self.dates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
                 spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
@@ -1192,12 +1192,14 @@ class Analyze:
         npoints = 3 #require 3 points above threshold
         if data.IDSEPEnhancement or data.OPSEPEnhancement \
         or data.doBGSubIDSEP or data.doBGSubOPSEP:
-            npoints = 5
+            if threshold == cfg.opsep_min_threshold:
+                npoints = 8
         if data.time_resolution/60. > 15:
             npoints = 1 #time resolution >15 mins, require one point above threshold
             if data.IDSEPEnhancement or data.OPSEPEnhancement \
             or data.doBGSubIDSEP or data.doBGSubOPSEP:
-                npoints = 3
+                if threshold == cfg.opsep_min_threshold:
+                    npoints = 3
             
         if energy_bin not in data.evaluated_energy_bins:
             print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
@@ -1236,7 +1238,13 @@ class Analyze:
                 if (fluxes[i] <= end_threshold): #flux drops below endfac*threshold
                     end_counter = end_counter + 1
                     elapse = (dates[i]  - end_tm0).total_seconds()
-                    if elapse > cfg.dwell_time: #N consecutive points longer than dwell time
+                    if data.IDSEPEnhancement or data.OPSEPEnhancement \
+                    or data.doBGSubIDSEP or data.doBGSubOPSEP:
+                        if threshold == cfg.opsep_min_threshold:
+                            if end_counter > npoints:
+                                event_ended = True
+                                sep_end_time = dates[i-(end_counter-1)]
+                    elif elapse > cfg.dwell_time: #N consecutive points longer than dwell time
                         event_ended = True
                         sep_end_time = dates[i-(end_counter-1)] #correct back time steps
                         #Double checked some calculated event end times with SWPC and
@@ -1299,7 +1307,7 @@ class Analyze:
                                     dates, dates)
 
         max_flux = np.nanmax(fluxes)
-        ix = np.argmax(fluxes) #First instance, if multiple
+        ix = np.nanargmax(fluxes) #First instance, if multiple
         try:
             max_flux_time = dates[ix]
         except:
@@ -1420,7 +1428,7 @@ class Analyze:
         minimize_func = minimize(tools.func_residual, params_fit,
                     args = [trim_times, trim_fluxes],
                     nan_policy= 'propagate', max_nfev=np.inf)
-        
+                
         #Get Weibull fit parameters
         best_pars = minimize_func.params.valuesdict()
         best_a = best_pars['alpha']

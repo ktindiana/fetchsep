@@ -639,8 +639,8 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
     print(f"batch_run_opsep: Writing all events to csv file {all_fname_csv}")
     df_all_csv.to_csv(all_fname_csv, index=False)
     
-    df_all_pkl = pd.DataFrame(dict_all_pkl)
-    all_fname_pkl = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.pkl"
-    all_fname_pkl = os.path.join(cfg.outpath, 'opsep', subdir, all_fname_pkl)
-    print(f"batch_run_opsep: Writing all events to pkl file {all_fname_pkl}")
-    df_all_pkl.to_pickle(all_fname_pkl)
+#    df_all_pkl = pd.DataFrame(dict_all_pkl)
+#    all_fname_pkl = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.pkl"
+#    all_fname_pkl = os.path.join(cfg.outpath, 'opsep', subdir, all_fname_pkl)
+#    print(f"batch_run_opsep: Writing all events to pkl file {all_fname_pkl}")
+#    df_all_pkl.to_pickle(all_fname_pkl)

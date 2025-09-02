@@ -130,6 +130,8 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
         if 0 in values[i]:
             y_values = np.array(values[i])
             values[i] = np.ma.masked_where(y_values <= 0 , y_values)
+#            values[i] = np.ma.masked_invalid(y_values)
+
         # getting indices where the metric is nan or +/-inf
         #indices = [j for j, arr in enumerate(metric[i]) if not np.isfinite(arr).all()]
 
@@ -423,8 +425,9 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     nbins = len(energy_bins)
     for i in range(nbins):
         #Don't want to plot zero values, particularly in background-subtracted plots
-        maskfluxes = np.ma.masked_where(fluxes[i] == 0, fluxes[i])
-        
+        maskfluxes = np.ma.masked_where(fluxes[i] <= 0, fluxes[i])
+#        maskfluxes = np.ma.masked_invalid(maskfluxes)
+
         mean =  means[i]
         if isinstance(means[i], list):
             mean = np.nanmean(np.array(means[i]))
@@ -617,8 +620,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
                     
         #Event definitions and fluxes are in the same order
         dates = evaluated_dates #for ease
-        fluxes = evaluated_fluxes[i]
-        fluxes = np.array(fluxes)
+        fluxes = np.array(evaluated_fluxes[i])
         
         #Create labels
         ylabel = f"Flux [${flux_units}$]"
@@ -631,13 +633,13 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             data_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}"
 
     
-        #ax = plt.subplot(nthresh, 1, i+1)
+#        maskfluxes = np.ma.masked_invalid(fluxes)
         #Don't want to plot negative values, particularly in background-subtracted plots
-        if doBGSubOPSEP or doBGSubIDSEP:
-            maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
-            ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
-        else:
-            ax[i].plot_date(dates,fluxes,'-',label=data_label)
+#        if doBGSubOPSEP or doBGSubIDSEP:
+        maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
+        ax[i].plot_date(dates,maskfluxes,'-',label=data_label,marker=".")
+#        else:
+#            ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
 
         if not pd.isnull(sep_start_times[i]):
             ax[i].axvline(sep_start_times[i],color='black',linestyle=':')
@@ -654,8 +656,8 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
 
         if i == nthresh-1: ax[i].set_xlabel('Date')
         ax[i].set_ylabel(ylabel)
-        if sum(fluxes) > 0: #If NaN present, returns False
-            ax[i].set_yscale("log")
+#        if sum(maskfluxes) > 0: #If NaN present, returns False
+        ax[i].set_yscale("log")
         #ymin = max(1e-6, min(integral_fluxes[i]))
         # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
         ax[i].legend(loc='upper right')
@@ -710,11 +712,12 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         else:
             legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
 
-        if doBGSubOPSEP or doBGSubIDSEP:
-            maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
-            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
-        else:
-            ax.plot_date(all_dates,all_fluxes[j],'-',label=legend_label)
+#        maskfluxes = np.ma.masked_invalid(all_fluxes[j])
+#        if doBGSubOPSEP or doBGSubIDSEP:
+        maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
+        ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
+#        else:
+#            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
 
     #Plot the threshold crossing times
     for i in range(len(event_definitions)):
