@@ -644,7 +644,7 @@ def identify_sep_above_background(dates, fluxes):
                     for kk in range(stidx, endidx+1):
                         SPEfluxes[j][kk] = fluxes[j][kk]
                     
-    return SPEstart, SPEend, SPEfluxes, dwell_pts
+    return SPEstart, SPEend, SPEfluxes
 
 
 
