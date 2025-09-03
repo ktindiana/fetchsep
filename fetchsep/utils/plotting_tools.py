@@ -378,6 +378,16 @@ def box_plot(values, labels, x_label="Model", y_label="Metric",
 
 
 ############ OPSEP PLOTS ##############
+def check_for_good_fluxes(flux):
+    """ Check that there are some non-zero points. """
+    is_good = False
+    positive = [flx for flx in flux if not pd.isnull(flx)]
+    positive = [flx for flx in positive if flx > 0]
+    if len(positive) > 0:
+        is_good = True
+    
+    return is_good
+    
 def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     fluxes, dates, energy_bins, means, sigmas, saveplot,
     spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False,
@@ -424,7 +434,12 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     ax = plt.subplot(111)
     nbins = len(energy_bins)
     for i in range(nbins):
-        #Don't want to plot zero values, particularly in background-subtracted plots
+        #Check to make sure there are positive fluxes
+        is_good = check_for_good_fluxes(fluxes[i])
+        if not is_good:
+            continue
+        #Don't want to plot zero values, particularly in
+        #background-subtracted plots
         maskfluxes = np.ma.masked_where(fluxes[i] <= 0, fluxes[i])
 #        maskfluxes = np.ma.masked_invalid(maskfluxes)
 
@@ -433,7 +448,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
             mean = np.nanmean(np.array(means[i]))
             
         legend_label = tools.setup_energy_bin_label(energy_bins[i])
-        p = ax.plot_date(dates,maskfluxes,'-',label=legend_label)
+        p = ax.plot_date(dates,maskfluxes, '-', label=legend_label)
         color = p[0].get_color()
         if i==0:
             plt.axhline(mean,color=color,linestyle=':', label="Mean Background")
@@ -488,7 +503,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     label = f"{energy_bin[0]} - {energy_bin[1]} MeV"
     if energy_bin[1] == -1:
         label = f">{energy_bin[0]} MeV"
-    plt.plot(trim_times,trim_fluxes,label=label)
+    plt.plot(trim_times,trim_fluxes,label=label,marker='.', linestyle='none')
     label_fit = (f"Fit\n Ip: {best_Ip:.2f}"
                 f"\n alpha: {best_a:.2f}"
                 f"\n beta: {best_b:.2f}")
@@ -503,7 +518,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     plt.xlabel("Hours")
     plt.ylabel("Flux")
     plt.yscale("log")
-    plt.ylim(1e-4,1e6)
+    plt.ylim(1e-4,1e5)
     
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
@@ -622,6 +637,10 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         dates = evaluated_dates #for ease
         fluxes = np.array(evaluated_fluxes[i])
         
+        is_good = check_for_good_fluxes(fluxes)
+        if not is_good:
+            continue
+        
         #Create labels
         ylabel = f"Flux [${flux_units}$]"
         ylabel = make_math_label(ylabel)
@@ -661,8 +680,8 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         #ymin = max(1e-6, min(integral_fluxes[i]))
         # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
         ax[i].legend(loc='upper right')
-        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
-            item.set_fontsize(12)
+#        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
+#            item.set_fontsize(12)
 
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
@@ -712,10 +731,14 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         else:
             legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
 
+        is_good = check_for_good_fluxes(all_fluxes[j])
+        if not is_good:
+            continue
+
 #        maskfluxes = np.ma.masked_invalid(all_fluxes[j])
 #        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
-        ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
+        ax.plot_date(all_dates,maskfluxes,'-',label=legend_label, marker='.')
 #        else:
 #            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
 
@@ -751,8 +774,8 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
     ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(12)
+#    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        #item.set_fontsize(12)
     if saveplot:
         fname = os.path.join(cfg.plotpath,'opsep',subdir, figname + '.png')
         fig.savefig(fname)
@@ -834,8 +857,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     plt.xscale("log")
     plt.yscale("log")
     ax.legend(loc='upper right')
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        item.set_fontsize(14)
+#    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        #item.set_fontsize(14)
 
     if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
 

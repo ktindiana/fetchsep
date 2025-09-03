@@ -655,14 +655,6 @@ def clean_json(template, experiment, json_type):
         elif pd.isnull(template[key][type_key][i]['peak_intensity_max']['intensity']):
             template[key][type_key][i].pop('peak_intensity_max', None)
                     
-        #Maximum flux is the one field that will always be filled in,
-        #regardless of whether a threshold is crossed. If max peak is
-        #set to a negative number, then remove entire entry for the
-        #energy channel, because it means the energy bin didn't exist
-        #in the data set.
-        if template[key][type_key][i]['peak_intensity_max']['intensity'] < 0:
-            template[key][type_key].pop(i)
-            continue
             
         #Start and End Times, Fluence
         nev = len(template[key][type_key][i]['event_lengths'])

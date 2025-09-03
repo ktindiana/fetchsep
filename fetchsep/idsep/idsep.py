@@ -170,109 +170,6 @@ def read_in_flux_files(experiment, flux_type, user_file, exp_name, startdate,
 
 
 
-def identify_sep(dates, fluxes):
-    """ Identify which increases above backgrounds
-        are SEP events.
-        
-        INPUTS:
-        
-        :dates: (1xn datetime array) dates for each flux point
-        :fluxes: (mxn float array) m energy channels and n time points
-        
-        OUTPUTS:
-        
-        :dates: (1xn datetime array) same as in
-        :fluxes_sep: (mxn float array) all points set to zero except
-            those identified as SEPs
-            
-    """
-    time_res = tools.determine_time_resolution(dates)
-    print("Time resolution of the data set is: "
-            + str(time_res.total_seconds()) + " seconds.")
-    time_res_sec = time_res.total_seconds()
-    
-    #DEPENDS ON TIME RESOLUTION
-    #CAN BE DIFFICULTIES IN IDENTIFYING SEP EVENTS IN VERY
-    #GAPPY DATA
-    time_increase = 86400/4 #86400 #Require an increase above threshold for duration
-    if time_res_sec <= 60*60:
-        time_increase = 3*60*60 #6*60*60 #6 hr increase for hi-res data
-    global nconsec
-    nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
-        #3 consecutive points for Voyager
-    global allow_miss
-    allow_miss = max(math.ceil(nconsec/4),1)
-    if nconsec == 2 or nconsec == 3: allow_miss = 0
-    global dwell_pts
-    dwell_pts = max(math.ceil(nconsec/2),2)
-    #Rosetta? needs --> dwell_pts = max(math.ceil(nconsec),2)
-
-    print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
-    print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
-    print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
-                
-    npts = len(dates)
-
-    IsSPE = False
-    SPEflag = False
-    
-    SPEstart = [[]]*len(fluxes)
-    SPEend = [[]]*len(fluxes)
-    SPEfluxes = [[]]*len(fluxes)
-    stidx = 0
-    endidx = 0
-    for j in range(len(fluxes)):
-        SPEfluxes[j] = [0]*npts
-        for i in range(npts-nconsec):
-            if fluxes[j][i] > 0 and not IsSPE:
-                IsSPE = True
-                
-                #Check that the increase continues
-                #Flux below threshold will be set to zero
-                nmiss = 0
-                for k in range(i, i+nconsec):
-                    chk_flux = fluxes[j][k]
-                    if chk_flux <= 0:
-                        nmiss = nmiss + 1
-                
-                #too many zero points, not an SPE
-                if nmiss > allow_miss: IsSPE = False
-            
-            #Identify the start of an SPE
-            if IsSPE and not SPEflag:
-                SPEflag = True
-                stidx = i
-                if not SPEstart[j]:
-                    SPEstart[j] = [dates[i]]
-                else:
-                    SPEstart[j].append(dates[i])
-                i = min(i+nconsec,npts-nconsec-1) #jump to end of required consecutive points
-              
-            #ONGOING SPE with allowed gap
-            if IsSPE and SPEflag:
-                if fluxes[j][i] <= 0:
-                    IsSPE = False
-                    end_dwell = min(i+dwell_pts,npts-nconsec-1)
-                    for ii in range(i,end_dwell):
-                        chk_flux = fluxes[j][ii]
-                        if chk_flux > 0: IsSPE = True
-                        
-                if not IsSPE or i == npts-nconsec-1:
-                    SPEflag = False
-                    endidx = i
-                    if not SPEend[j]:
-                        SPEend[j] = [dates[i]]
-                    else:
-                        SPEend[j].append(dates[i])
-                
-                    #Fill in the SEP flux array with the SEP points
-                    for kk in range(stidx, endidx+1):
-                        SPEfluxes[j][kk] = fluxes[j][kk]
-                    
-    return SPEstart, SPEend, SPEfluxes
-
-
-
 def get_bg_high(threshold, dates, fluxes):
     fluxes_bg = []
     fluxes_high = []
@@ -725,7 +622,8 @@ def run_all(str_startdate, str_enddate, experiment,
 
         #Identify SEP events in full time range
         #SEP identification proves to be very robust
-        SEPstart, SEPend, fluxes_sep = identify_sep(dates, fluxes_high)
+        global dwell_pts
+        SEPstart, SEPend, fluxes_sep = tools.identify_sep_above_background(dates, fluxes_high)
 
         if showplot or saveplot:
             plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
@@ -752,7 +650,7 @@ def run_all(str_startdate, str_enddate, experiment,
                 enddate, dates, fluxes_bg)
     #Expect that this solution is exactly the same as the last one in the loop above,
     #UNLESS the dates need to be trimmed down
-    SEPstart, SEPend, final_fluxes_sep = identify_sep(trim_dates, trim_fluxes_high)
+    SEPstart, SEPend, final_fluxes_sep = tools.identify_sep_above_background(trim_dates, trim_fluxes_high)
     
     #Write background-subtracted SEP only fluxes to file
     write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg, energy_bins, add_path=idsep_name)

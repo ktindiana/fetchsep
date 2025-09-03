@@ -412,6 +412,299 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
 
 
 
+######### SEP event identification ################
+def identify_sep_above_background_one(dates, fluxes):
+    """ Identify which increases above backgrounds
+        are SEP events.
+        
+        Used in IDSEP and OpSEP.
+        
+        INPUTS:
+        
+        :dates: (1xn datetime array) dates for each flux point
+        :fluxes: (1xn float array) m energy channels and n time points
+        
+        OUTPUTS:
+        
+        :dates: (1xn datetime array) same as in
+        :fluxes_sep: (1xn float array) all points set to zero except
+            those identified as SEPs
+            
+    """
+    time_res = determine_time_resolution(dates)
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    #DEPENDS ON TIME RESOLUTION
+    #CAN BE DIFFICULTIES IN IDENTIFYING SEP EVENTS IN VERY
+    #GAPPY DATA
+    time_increase = 86400/4 #86400 #Require an increase above threshold for 6 hrs
+    if time_res_sec <= 60*60:
+        time_increase = 3*60*60 #3 hr increase for hi-res data
+    global nconsec
+    nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
+        #3 consecutive points for Voyager
+    global allow_miss
+    #In this stricter SEP event identification used in OpSEP, allow less
+    #missed points for the identification of SEP onset
+    #20 minutes of points for 5 minute data
+    allow_miss = max(math.ceil(nconsec/10),1)
+    if nconsec == 2 or nconsec == 3: allow_miss = 0
+
+    #This algorithm is being used to identify enhancements above background using
+    #points that are n*sigma above background. There will be sporadic points
+    #that are above this level just due to statistical fluctuations. The dwell
+    #time can't be too long, or those random fluctuations will extend events
+    #artificially. For use in OpSEP, which aims to more precisely identify
+    #SEP events, use a shorter dwell time.
+    global dwell_pts
+    dwell_time = 1*60.*60. #hr
+    dwell_pts = int(dwell_time/time_res_sec)
+    if time_res_sec > dwell_time:
+        dwell_pts = 2
+
+    print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
+    print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
+    print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
+                
+    npts = len(dates)
+
+    IsSPE = False
+    SPEflag = False
+    
+    SPEstart = pd.NaT
+    SPEend = pd.NaT
+    SPEfluxes = [0]*npts
+    stidx = 0
+    endidx = 0
+
+    if npts < (nconsec+dwell_pts+allow_miss):
+        print(f"identify_sep_above_background_one: Time series is too short {npts} to "
+            f"identify a SEP event with the necessary requirements ({nconsec+dwell_pts+allow_miss}).")
+        return SPEstart, SPEend, SPEfluxes
+
+    for i in range(npts-nconsec):
+        #Condition to identify start of SEP
+        if fluxes[i] > 0 and not IsSPE:
+            #Check that the increase continues
+            #Flux below threshold or nan will be counted as a miss
+            nhit = 0
+            for k in range(i, i+nconsec):
+                chk_flux = fluxes[k]
+                if chk_flux > 0:
+                    nhit = nhit + 1
+                elif pd.isnull(chk_flux):
+                    continue
+                elif chk_flux == cfg.badval:
+                    continue
+            
+            #too many zero points, not an SPE
+            if nhit >= (nconsec - allow_miss): IsSPE = True
+        
+        #Identify the start of an SPE
+        if IsSPE and not SPEflag:
+            SPEflag = True
+            stidx = i
+            SPEstart = dates[i]
+            i = i+nconsec #jump to end of required consecutive points
+ 
+ 
+        #ONGOING SPE with allowed gap
+        if IsSPE and SPEflag:
+            if fluxes[i] == 0: #don't consider nan or badval; bg set to zero
+                IsSPE = False
+                end_dwell = min(i+dwell_pts,npts-1)
+                for ii in range(i,end_dwell):
+                    chk_flux = fluxes[ii]
+                    if chk_flux > 0: IsSPE = True
+
+            if not IsSPE or i == npts-1:
+                SPEflag = False
+                endidx = i
+                SPEend = dates[i]
+                if i== npts-1:
+                    print("WARNING!! identify_sep_above_background_one: SEP event ended "
+                        "at end of file. Consider extending the timeframe to get a "
+                        "more accurate end time.")
+            
+                #Fill in the SEP flux array with the SEP points
+                for kk in range(stidx, endidx+1):
+                    SPEfluxes[kk] = fluxes[kk]
+
+                #Return the first SEP found. If not returned here, code
+                #continue looking for next SEP.
+                print("identify_sep_above_background_one: SEP event found from "
+                    f"{SPEstart} and {SPEend}.")
+                return SPEstart, SPEend, SPEfluxes
+
+
+    return SPEstart, SPEend, SPEfluxes
+
+
+
+def identify_sep_above_background(dates, fluxes):
+    """ Identify which increases above backgrounds
+        are SEP events.
+        
+        Used in IDSEP and OpSEP.
+        
+        INPUTS:
+        
+        :dates: (1xn datetime array) dates for each flux point
+        :fluxes: (mxn float array) m energy channels and n time points
+        
+        OUTPUTS:
+        
+        :dates: (1xn datetime array) same as in
+        :fluxes_sep: (mxn float array) all points set to zero except
+            those identified as SEPs
+            
+    """
+    time_res = determine_time_resolution(dates)
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    #DEPENDS ON TIME RESOLUTION
+    #CAN BE DIFFICULTIES IN IDENTIFYING SEP EVENTS IN VERY
+    #GAPPY DATA
+    time_increase = 86400/4 #86400 #Require an increase above threshold for duration
+    if time_res_sec <= 60*60:
+        time_increase = 3*60*60 #6*60*60 #6 hr increase for hi-res data
+    global nconsec
+    nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
+        #3 consecutive points for Voyager
+    global allow_miss
+    allow_miss = max(math.ceil(nconsec/4),1)
+    if nconsec == 2 or nconsec == 3: allow_miss = 0
+    global dwell_pts
+    dwell_pts = max(math.ceil(nconsec/2),2)
+    #Rosetta? needs --> dwell_pts = max(math.ceil(nconsec),2)
+
+    print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
+    print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
+    print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
+                
+    npts = len(dates)
+
+    IsSPE = False
+    SPEflag = False
+    
+    SPEstart = [[]]*len(fluxes)
+    SPEend = [[]]*len(fluxes)
+    SPEfluxes = [[]]*len(fluxes)
+    stidx = 0
+    endidx = 0
+    for j in range(len(fluxes)):
+        SPEfluxes[j] = [0]*npts
+        for i in range(npts-nconsec):
+            if fluxes[j][i] > 0 and not IsSPE:
+                IsSPE = True
+                
+                #Check that the increase continues
+                #Flux below threshold will be set to zero
+                nmiss = 0
+                for k in range(i, i+nconsec):
+                    chk_flux = fluxes[j][k]
+                    if chk_flux <= 0 or pd.isnull(chk_flux):
+                        nmiss = nmiss + 1
+                
+                #too many zero points, not an SPE
+                if nmiss > allow_miss: IsSPE = False
+            
+            #Identify the start of an SPE
+            if IsSPE and not SPEflag:
+                SPEflag = True
+                stidx = i
+                if not SPEstart[j]:
+                    SPEstart[j] = [dates[i]]
+                else:
+                    SPEstart[j].append(dates[i])
+                i = min(i+nconsec,npts-nconsec-1) #jump to end of required consecutive points
+              
+            #ONGOING SPE with allowed gap
+            if IsSPE and SPEflag:
+                if fluxes[j][i] <= 0:
+                    IsSPE = False
+                    end_dwell = min(i+dwell_pts,npts-nconsec-1)
+                    for ii in range(i,end_dwell):
+                        chk_flux = fluxes[j][ii]
+                        if chk_flux > 0: IsSPE = True
+                        
+                if not IsSPE or i == npts-nconsec-1:
+                    SPEflag = False
+                    endidx = i
+                    if not SPEend[j]:
+                        SPEend[j] = [dates[i]]
+                    else:
+                        SPEend[j].append(dates[i])
+                
+                    #Fill in the SEP flux array with the SEP points
+                    for kk in range(stidx, endidx+1):
+                        SPEfluxes[j][kk] = fluxes[j][kk]
+                    
+    return SPEstart, SPEend, SPEfluxes, dwell_pts
+
+
+
+def identify_sep_noaa(dates, fluxes, threshold):
+    """ Follow SWPC approach to identifying event start and end 
+        above threshold.
+        
+        Used in OpSEP.
+    
+    """
+    threshold_crossed = False
+    event_ended = False
+    ndates = len(dates)
+    sep_start_time = pd.NaT
+    sep_end_time = pd.NaT
+
+    end_threshold = cfg.endfac*threshold
+            #endfac = 1.0 to get SWPC definition of event end for 5 min data
+            #endfac = 0.85 used by SRAG operators in an alarm code
+            #Included for flexibility, but 1.0 is used for operational values
+
+    time_res = determine_time_resolution(dates)
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    npoints = 3 #require 3 points above threshold as employed by SWPC
+    if time_res_sec/60. > 15:
+        npoints = 1 #time resolution >15 mins, require one point above threshold
+
+    for i in range(ndates):
+        if not threshold_crossed:
+            if(fluxes[i] >= threshold):
+                start_counter = 0
+                if i+(npoints-1) < ndates:
+                    for ii in range(npoints):
+                        if fluxes[i+ii] >= threshold:
+                            start_counter = start_counter + 1
+                if start_counter == npoints:
+                    sep_start_time = dates[i]
+                    threshold_crossed = True
+        if threshold_crossed and not event_ended:
+            if (fluxes[i] >= end_threshold):
+                end_counter = 0  #reset if go back above threshold
+                end_tm0 = dates[i] #will catch the last date above threshold
+            if (fluxes[i] <= end_threshold): #flux drops below endfac*threshold
+                end_counter = end_counter + 1
+                elapse = (dates[i]  - end_tm0).total_seconds()
+                #When looking for an end of an event below an operational threshold
+                #or threshold that isn't the background, apply a dwell time to ensure
+                #the fluxes don't fluctuate above threshold again after a little while.
+                if elapse > cfg.dwell_time: #N consecutive points longer than dwell time
+                    event_ended = True
+                    sep_end_time = dates[i-(end_counter-1)] #correct back time steps
+                    #Double checked some calculated event end times with SWPC and
+                    #this logic gave the correct end times. 2023-04-10 KW
+
+    return sep_start_time, sep_end_time
+
+
 ######### Functions for calculating the onset peak ########
 def residual(fit, data):
     """ Calculate difference between fit and data.
@@ -441,14 +734,18 @@ def ratio(fit, data):
     return resid
 
 
-def normchisq(fit, data):
+def normchisq(fit, data, sigma=np.nan):
     """ Calculate difference between fit and data.
     
     """
     
     resid = []
     for i in range(len(fit)):
-        if data[i] != 0:
+        if not pd.isnull(sigma):
+            err = ((data[i] - fit[i])**2)/sigma
+            resid.append(err)
+    
+        elif data[i] != 0:
             err = ((data[i] - fit[i])**2)/data[i]
             resid.append(err)
  

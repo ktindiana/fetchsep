@@ -685,7 +685,8 @@ class Data:
         self.bgdates = self.original_dates
  
         return self.original_dates, sepfluxes
-  
+        
+ 
 
     def read_in_flux(self):
         """ Read in the appropriate data or user files. Performs
@@ -772,6 +773,7 @@ class Data:
         orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,dointerp=False)
         self.original_dates = orig_dates
         self.original_fluxes = orig_fluxes
+
 
         #IF BACKGROUND SUBTRACTION
         if self.doBGSubOPSEP or self.OPSEPEnhancement:
@@ -950,6 +952,8 @@ class Analyze:
         #Flux in a single energy channel
         self.dates = []
         self.flux = []
+        self.bgmean = np.nan
+        self.bgsigma = np.nan
         
         #Derived values
         self.sep_start_time = pd.NaT
@@ -1056,7 +1060,14 @@ class Analyze:
         idx = data.evaluated_energy_bins.index(energy_bin)
         fluxes = data.evaluated_fluxes[idx]
         dates = data.evaluated_dates
-        
+        try:
+            bgmean = data.bgmeans[idx]
+            bgsigma = data.bgsigmas[idx]
+            self.bgmean = sum(bgmean)/len(bgmean)
+            self.bgsigma = sum(bgsigma)/len(bgsigma)
+        except:
+            pass
+
         self.dates = dates
         self.flux = fluxes
 
@@ -1188,20 +1199,6 @@ class Analyze:
         energy_bin = [event_definition['energy_channel'].min,
                         event_definition['energy_channel'].max]
         threshold = event_definition['threshold'].threshold
-        
-        npoints = 3 #require 3 points above threshold as employed by SWPC
-        if (data.IDSEPEnhancement or data.OPSEPEnhancement \
-        or data.doBGSubIDSEP or data.doBGSubOPSEP)\
-        and threshold == cfg.opsep_min_threshold:
-            npoints = 8
-        if data.time_resolution/60. > 15:
-            npoints = 1 #time resolution >15 mins, require one point above threshold
-            #If identifying enhancement above background, use more points because
-            #all points above mean+3sigma will be present
-            if (data.IDSEPEnhancement or data.OPSEPEnhancement \
-            or data.doBGSubIDSEP or data.doBGSubOPSEP) \
-            and threshold == cfg.opsep_min_threshold:
-                npoints = 3
             
         if energy_bin not in data.evaluated_energy_bins:
             print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
@@ -1210,56 +1207,18 @@ class Analyze:
 
         fluxes = self.flux
         dates = self.dates
-        
-        threshold_crossed = False
-        event_ended = False
         ndates = len(dates)
+        
         sep_start_time = pd.NaT
         sep_end_time = pd.NaT
         
-        end_threshold = cfg.endfac*threshold
-                #endfac = 1.0 to get SWPC definition of event end for 5 min data
-                #endfac = 0.85 used by SRAG operators in an alarm code
-                #Included for flexibility, but 1.0 is used for operational values
+        #When applying a threshold, use NOAA SWPC logic
+        if threshold != cfg.opsep_min_threshold:
+            sep_start_time, sep_end_time = tools.identify_sep_noaa(dates, fluxes, threshold)
 
-        for i in range(ndates):
-            if not threshold_crossed:
-                if(fluxes[i] >= threshold):
-                    start_counter = 0
-                    if i+(npoints-1) < ndates:
-                        for ii in range(npoints):
-                            if fluxes[i+ii] >= threshold:
-                                start_counter = start_counter + 1
-                    if start_counter == npoints:
-                        sep_start_time = dates[i]
-                        threshold_crossed = True
-            if threshold_crossed and not event_ended:
-                if (fluxes[i] >= end_threshold):
-                    end_counter = 0  #reset if go back above threshold
-                    end_tm0 = dates[i] #will catch the last date above threshold
-                if (fluxes[i] <= end_threshold): #flux drops below endfac*threshold
-                    end_counter = end_counter + 1
-                    elapse = (dates[i]  - end_tm0).total_seconds()
-                    #If identifying the end of an enhancement above background,
-                    #the background fluxes are set to zero. The remaining fluxes
-                    #are 3sigma above the mean background. The dwell time may not
-                    #appropriately identify the event end in this case, so end the
-                    #event after npoints are below the background threshold.
-                    if( data.IDSEPEnhancement or data.OPSEPEnhancement \
-                    or data.doBGSubIDSEP or data.doBGSubOPSEP) \
-                    and threshold == cfg.opsep_min_threshold:
-                        if end_counter > npoints:
-                            event_ended = True
-                            sep_end_time = dates[i-(end_counter-1)]
-                    #When looking for an end of an event below an operational threshold
-                    #or threshold that isn't the background, apply a dwell time to ensure
-                    #the fluxes don't fluctuate above threshold again after a little while.
-                    elif elapse > cfg.dwell_time: #N consecutive points longer than dwell time
-                        event_ended = True
-                        sep_end_time = dates[i-(end_counter-1)] #correct back time steps
-                        #Double checked some calculated event end times with SWPC and
-                        #this logic gave the correct end times. 2023-04-10 KW
-
+        #When identifying an event above background, use the same logic as IDSEP
+        if threshold == cfg.opsep_min_threshold:
+            sep_start_time, sep_end_time, SPEfluxes = tools.identify_sep_above_background_one(dates, fluxes)
 
         #In case that date range ended before fell before threshold,
         #use the last time in the file
@@ -1270,7 +1229,9 @@ class Analyze:
                 "Using the last time in the date range as the event end time. "
                 "Extend your date range to get an improved estimate of the event "
                 "end time and duration.")
-        
+
+        print(f"For {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
+
         return sep_start_time, sep_end_time
 
 
@@ -1317,11 +1278,12 @@ class Analyze:
                                     dates, dates)
 
         max_flux = np.nanmax(fluxes)
-        ix = np.nanargmax(fluxes) #First instance, if multiple
-        try:
-            max_flux_time = dates[ix]
-        except:
-            pass
+        if not pd.isnull(max_flux):
+            ix = np.nanargmax(fluxes) #First instance, if multiple
+            try:
+                max_flux_time = dates[ix]
+            except:
+                pass
         
         self.max_flux = max_flux
         self.max_flux_time = max_flux_time
@@ -1394,24 +1356,38 @@ class Analyze:
         dates = self.dates
 
         #Do a fit of the Weibull function for each time profile
+        default_a = -3
+        min_a = -20
+        max_a = -0.1
+        default_b = 10
+        min_b = 1
+        max_b = 500
+        default_Ip = 100
+        min_Ip = 1e-3
+        max_Ip = 1e6
         params_fit = Parameters()
-        params_fit.add('alpha', value = -3, min = -20, max = -0.1) #-3, -5, -0.1
-        params_fit.add('beta', value = 10, min = 1, max =500) #10, 1, 100
-        params_fit.add('peak_intensity', value = 100, min = 1e-3, max =1e6) #100, 1e-3, 1e6
-
-        flxratio = self.max_flux/threshold
+        params_fit.add('alpha', value = default_a, min = min_a, max = max_a) #-3, -5, -0.1
+        params_fit.add('beta', value = default_b, min = min_b, max =max_b) #10, 1, 100
+        params_fit.add('peak_intensity', value = default_Ip, min = min_Ip, max =max_Ip) #100, 1e-3, 1e6
         
         #For mid to strong SEP events, time according to prompt onset and the
         #possibility of a CME arriving around 24 hours later (set timing
         #to approximately exclude CME arrival)
         start_fit_time = max(dates[0], self.sep_start_time - datetime.timedelta(hours=3))
-        end_fit_time = min(self.sep_end_time, self.sep_start_time + datetime.timedelta(hours=24))
+        end_fit_time = min(self.sep_end_time, self.sep_start_time + datetime.timedelta(hours=18))
+
+        #If start time indicates start above background, don't need to extend fit period
+        #back in time
+        if (data.doBGSubIDSEP or data.doBGSubOPSEP or data.IDSEPEnhancement \
+            or data.OPSEPEnhancement) and threshold == cfg.opsep_min_threshold:
+            start_fit_time = self.sep_start_time
 
         
         #For lower intensity events, extend back to initial elevation to
         #capture more of the event and also capture more time
         #after threshold crossing as likely a slower CME or CME that
         #will not arrive at Earth (for very gradual rises)
+        flxratio = self.max_flux/threshold
         if flxratio < 10:
             #Try to find the background level and evaluate the event
             #from the time it first deviates from background
@@ -1445,11 +1421,43 @@ class Analyze:
         best_b = best_pars['beta']
         best_Ip = best_pars['peak_intensity']
         best_fit = tools.modified_weibull(trim_times, best_Ip, best_a, best_b)
-        err = tools.ratio(best_fit, trim_fluxes)
-    
+        
+        #Calculate chisq
+        err = tools.normchisq(best_fit, trim_fluxes, sigma=self.bgsigma)
+
+        ####### Indicators of a poor fit ########
+        if best_a == default_a or best_b == default_b or best_Ip == default_Ip:
+            print(f"calculated_onset_peak_from_fit: Poor fit with "
+                "result using default parameters. Skipping.")
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        if best_a == min_a or best_a == max_a:
+            print(f"calculated_onset_peak_from_fit: Poor fit with "
+                "result using maximized or minimized alpha. Skipping.")
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        if best_b == min_b or best_b == max_b:
+            print(f"calculated_onset_peak_from_fit: Poor fit with "
+                "result using maximized or minimized beta. Skipping.")
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        if best_Ip == min_Ip or best_Ip == max_Ip:
+            print(f"calculated_onset_peak_from_fit: Poor fit with "
+                "result using maximized or minimized Ip. Skipping.")
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+
         print(f"calculate_onset_peak_from_fit ==== {energy_bin} MeV =====")
         print(f"Best fit Weibull for onset peak Ip: {best_Ip}, a: {best_a}, b: {best_b}")
-        print(f"Error in fit: {err}")
+        print(f"Normalized chisq in fit: {err}")
 
         if pd.isnull(best_Ip) or pd.isnull(best_a) or pd.isnull(best_b):
             print("calculate_onset_peak_from_fit: Fit failed for "

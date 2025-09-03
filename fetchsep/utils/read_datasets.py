@@ -610,6 +610,8 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
     endyear = enddate.year
     endmonth = enddate.month
     endday = enddate.day
+    
+    date = pd.NaT
 
     df = read_data_manager() #file completeness record
 
