@@ -4,6 +4,7 @@ output/
 plots/
 lists/
 templates/
+test/
 
 fetchsep.cfg
 
