@@ -430,7 +430,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     if experiment == "user":
         exp_name = user_name
 
-    fig = plt.figure(figname,figsize=(13.5,6))
+    fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
     nbins = len(energy_bins)
     for i in range(nbins):
@@ -465,6 +465,8 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     flux_units = make_math_label(flux_units)
     ax.set_ylabel((f"Flux ({flux_units})"))
     ax.set_xlabel("Date")
+    plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+    plt.xticks(rotation=45, ha="right")
 
     plt.yscale("log")
     chartBox = ax.get_position()
@@ -673,12 +675,12 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
                     label="Max Flux")
 
 
-        if i == nthresh-1: ax[i].set_xlabel('Date')
+        if i == nthresh-1:
+            ax[i].set_xlabel('Date')
+            plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+            plt.xticks(rotation=45, ha="right")
         ax[i].set_ylabel(ylabel)
-#        if sum(maskfluxes) > 0: #If NaN present, returns False
         ax[i].set_yscale("log")
-        #ymin = max(1e-6, min(integral_fluxes[i]))
-        # plt.ylim(ymin, peak_flux[i]+peak_flux[i]*.2)
         ax[i].legend(loc='upper right')
 #        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
 #            item.set_fontsize(12)
@@ -719,7 +721,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
 
     plot_title = f"All Energy Bins with Threshold Crossings\n {exp_name} {title_mod} {flux_type}"
     
-    fig = plt.figure(figname,figsize=(12,6))
+    fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
     colors = define_colors()
     #Plot the fluxes
@@ -767,6 +769,9 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
     plt.xlabel('Date')
+    plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+    plt.xticks(rotation=45, ha="right")
+
     #ax.xaxis_date()
     #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
     plt.yscale("log")
