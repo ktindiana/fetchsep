@@ -419,7 +419,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     #All energy channels in specified date range with event start and stop
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
-    suffix = f"{unique_id}_All_Bins"
+    suffix = f"All_Bins_{unique_id}"
     figname, subdir = tools.opsep_naming_scheme(dates[0], suffix, experiment, flux_type, user_name, options,
         spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
@@ -469,10 +469,16 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     plt.xticks(rotation=45, ha="right")
 
     plt.yscale("log")
+    plt.ylim(5e-5,1e5)
+    plt.xlim(dates[0], dates[-1])
     chartBox = ax.get_position()
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
     ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
+
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(10)
+
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
 
@@ -511,16 +517,16 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
                 f"\n beta: {best_b:.2f}")
     plt.plot(trim_times,best_fit,label=label_fit)
     plt.plot(max_time, max_val,"o",label="max fit")
-    plt.plot(max_meas_time, max_meas,">",label="measured peak near fit max")
+    plt.plot(max_meas_time, max_meas,">",label="measured peak near\nfit max")
     plt.plot(max_curve_model_time, max_curve_model_peak,"D",label="Min 2nd Derivative")
-    plt.plot(max_curve_meas_time, max_curve_meas_peak,"^",label="measured peak near min 2nd Derivative")
+    plt.plot(max_curve_meas_time, max_curve_meas_peak,"^",label="measured peak near\nmin 2nd Derivative")
     #plt.plot(onset_time, onset_peak[i],">",label="onset Weibull")
     plt.legend(loc='lower right')
     plt.title(f"Onset Peak Weibull Fit\n {exp_name} {title_mod} {flux_type}\n {sep_start_time}")
     plt.xlabel("Hours")
     plt.ylabel("Flux")
     plt.yscale("log")
-    plt.ylim(1e-4,1e5)
+    plt.ylim(1e-4,5*max_val)
     
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
@@ -682,8 +688,8 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         ax[i].set_ylabel(ylabel)
         ax[i].set_yscale("log")
         ax[i].legend(loc='upper right')
-#        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
-#            item.set_fontsize(12)
+        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
+            item.set_fontsize(10)
 
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
@@ -779,8 +785,8 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
     ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
-#    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        #item.set_fontsize(12)
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(10)
     if saveplot:
         fname = os.path.join(cfg.plotpath,'opsep',subdir, figname + '.png')
         fig.savefig(fname)
@@ -862,8 +868,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     plt.xscale("log")
     plt.yscale("log")
     ax.legend(loc='upper right')
-#    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
-        #item.set_fontsize(14)
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(14)
 
     if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
 

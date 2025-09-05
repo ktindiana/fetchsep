@@ -1552,7 +1552,7 @@ class Analyze:
         return onset_rise_time, max_rise_time, duration
 
 
-    def calculate_fluence(self,fluxes, time_resolution):
+    def calculate_fluence(self, fluxes, time_resolution):
         """ Calculate fluence for one energy bin of fluxes already trimmed
             to the time period of interest. Sum all the fluxes in the 
             array in time and return a single fluence value.

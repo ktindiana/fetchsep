@@ -493,6 +493,7 @@ def calc_bg_stats(df, nsigma, col):
     return mean, sigma, threshold
 
 
+
 #TESTING
 def plot_dist_hist(df, iteration):
     """ PLOT HISTOGRAMS OF THE DATA TO INVESTIGATE distribution. """
@@ -567,6 +568,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
 
     means = []
     sigmas = []
+    thresholds = []
     ave_dates = []
     df_thresholds = pd.DataFrame()
     for i in range(Ntd):
@@ -574,6 +576,9 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
         endtime = firstdate + (i+1)*td
 
         sub = df.loc[(df['dates'] >= starttime) & (df['dates'] < endtime)]
+        #Check if dates were present
+        if sub.empty:
+            continue
         #Number of dates in this range - need for threshold later
         ndates = len(sub)
         selected_dates = sub['dates'].to_list()
@@ -608,6 +613,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
         #One mean and sigma per averaged time period
         means.append(mean)
         sigmas.append(sigma)
+        thresholds.append(threshold)
         ave_dates.append(ave_date)
 
         #Threshold for every date in the original data set
