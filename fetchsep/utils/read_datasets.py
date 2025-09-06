@@ -1243,14 +1243,15 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
                 url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goess_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
             
             print("Trying to download url: " + url)
-            response = rerequest(url)
-            if response.status_code == 200:
-                data = response.text
-                fileout = open(os.path.join(datapath, 'GOES_RT', fname1),'w')
-                fileout.write(data)
-                fileout.close()
-            else:
-                print(f'Failed to retrieve data. HTTP Status code: {response.status_code}. Skipping.')
+            try:
+                response = rerequest(url)
+                if response.status_code == 200:
+                    data = response.text
+                    fileout = open(os.path.join(datapath, 'GOES_RT', fname1),'w')
+                    fileout.write(data)
+                    fileout.close()
+            except:
+                print(f'Failed to retrieve data. Skipping.')
                 fname1 = None
 
         if fname1 == None:
