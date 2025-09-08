@@ -24,11 +24,11 @@ Made by Clayton Allison and Luke Stegeman
 """
 
 
-def from_fetchsep(idsep_filename):
+def from_fetchsep(fetchsep_filename, flux_files = None, energy_channel = '10.0--1 MeV'):
     # read idsep_file and get start/end time lists
-    headers = ['Start Time', 'End Time', 'Experiment', 'Flux Type', 'User Experiment Name',  'User Filename', 'Options', 'BGStart', 'BGEnd', 'JSON Type', 'Spacecraft', 'IDSEP Path', 'Location', 'Species']
+    headers = ['Start Time', 'End Time', 'Experiment', 'Flux Type', 'Flags', 'User Experiment Name',  'User Filename', 'Options', 'BGStart', 'BGEnd', 'JSON Type', 'Spacecraft', 'IDSEP Path', 'Location', 'Species']
     
-    df = pd.read_csv(test_file, headers = headers)
+    df = pd.read_csv(fetchsep_filename) #
 
 
     
@@ -40,7 +40,7 @@ def from_fetchsep(idsep_filename):
 
 
     # run checksep
-    checksep(df)
+    initial_ends, confirmed_ends = checksep(df, flux_files, energy_channel, fetchsep_filename)
     
 
 
@@ -49,27 +49,117 @@ def from_fetchsep(idsep_filename):
 
 
 
-def checksep(df):
+def checksep(df, flux_files, energy_channel, fetchsep_file):
 
 
     # INITIALIZE TKINTER ROOT WINDOW
     root = tkinter.Tk()
     geometry_string = get_window_geometry(root)
     root.geometry(geometry_string)
-    app = CheckSEPApp(root, df) #, list(event_labels.values()), time_buffer=datetime.timedelta(days=time_buffer), separate_energies=separate_energies)
+    
+    fetchsep_df = df
+    app = CheckSEPApp(root, df, flux_files, energy_channel) #, list(event_labels.values()), time_buffer=datetime.timedelta(days=time_buffer), separate_energies=separate_energies)
     root.mainloop()
     initial_ends, confirmed_ends = app()
 
 
     # get new end time lists
+    print(confirmed_ends)
+    print(pd.isnull(confirmed_ends))
+    filter_ = np.where(pd.isnull(confirmed_ends) == False)
+    print(filter_)
+    filtered_ends = [confirmed_ends[x] for x in filter_[0]]
+    print(filtered_ends)
+    filtered_ends = list(itertools.chain.from_iterable(filtered_ends))
+    print(filtered_ends)
+    new_ends = [pd.to_datetime(x) for x in filtered_ends]
+    print(new_ends)
+    concat_ends = sorted(initial_ends + new_ends)
+    print(concat_ends)
 
     # create output file
 
+    output_file = create_checksep_list(fetchsep_file, concat_ends)
+
+
     # feed back to fetchsep
+    return initial_ends, confirmed_ends, output_file
 
 
-    return initial_ends, confirmed_ends
 
+
+def create_checksep_list(fetchsep_file, checksep_ends):
+
+
+    headers = ['Start Time', 'End Time', 'Experiment', 'Flux Type', 'Flags', 'User Experiment Name',  'User Filename', 'Options', 'BGStart', 'BGEnd', 'JSON Type', 'Spacecraft', 'IDSEP Path', 'Location', 'Species']
+    output_filename = './output/checksep/checksep_batch_event_list.txt'
+    fetchsep_dataframe = pd.read_csv(fetchsep_file)
+    checksep_dataframe = pd.DataFrame()
+    print(fetchsep_dataframe)
+    initial_start = fetchsep_dataframe['#Start Time'][0]
+    for e in range(len(checksep_ends)):
+        if e == 0:
+            start_entry = initial_start
+            end_entry = datetime.datetime.strptime(str(checksep_ends[e]), '%Y-%m-%d %H:%M:%S')
+            
+        else:
+            start_entry = checksep_ends[e-1]
+            end_entry = datetime.datetime.strptime(str(checksep_ends[e]), '%Y-%m-%d %H:%M:%S')
+        for d in range(len(fetchsep_dataframe)):
+            if end_entry == fetchsep_dataframe['End Time'][d]:
+                exp_entry = fetchsep_dataframe['Experiment'][d]
+                flux_entry = fetchsep_dataframe['Flux Type'][d]
+                flag_entry = fetchsep_dataframe['Flags'][d]
+                user_exp_entry = fetchsep_dataframe['User Experiment Name'][d]
+                user_file_entry = fetchsep_dataframe['User Filename'][d]
+                opt_entry = fetchsep_dataframe['Options'][d]
+                bgstart_entry = fetchsep_dataframe['BGStart'][d]
+                bgend_entry = fetchsep_dataframe['BGEnd'][d]
+                json_entry = fetchsep_dataframe['JSON Type'][d]
+                space_entry = fetchsep_dataframe['Spacecraft'][d]
+                path_entry = fetchsep_dataframe['IDSEP Path'][d]
+                loc_entry = fetchsep_dataframe['Location'][d]
+                spec_entry = fetchsep_dataframe['Species'][d]
+            elif checksep_ends[e] > pd.to_datetime(fetchsep_dataframe['#Start Time'][d]) and checksep_ends[e] < pd.to_datetime(fetchsep_dataframe['End Time'][d]):
+                exp_entry = fetchsep_dataframe['Experiment'][d]
+                flux_entry = fetchsep_dataframe['Flux Type'][d]
+                flag_entry = fetchsep_dataframe['Flags'][d]
+                user_exp_entry = fetchsep_dataframe['User Experiment Name'][d]
+                user_file_entry = fetchsep_dataframe['User Filename'][d]
+                opt_entry = fetchsep_dataframe['Options'][d]
+                bgstart_entry = fetchsep_dataframe['BGStart'][d]
+                bgend_entry = fetchsep_dataframe['BGEnd'][d]
+                json_entry = fetchsep_dataframe['JSON Type'][d]
+                space_entry = fetchsep_dataframe['Spacecraft'][d]
+                path_entry = fetchsep_dataframe['IDSEP Path'][d]
+                loc_entry = fetchsep_dataframe['Location'][d]
+                spec_entry = fetchsep_dataframe['Species'][d]
+            else:
+                pass
+        row = pd.DataFrame.from_dict({'#Start Time': [start_entry],
+                'End Time': [end_entry],
+                'Experiment': [exp_entry],
+                'Flux Type': [flux_entry],
+                'Flags': [flag_entry],
+                'User Experiment Name': [user_exp_entry],
+                'User Filename': [user_file_entry],
+                'Options': [opt_entry],
+                'BGStart': [bgstart_entry],
+                'BGEnd': [bgend_entry],
+                'JSON Type': [json_entry],
+                'Spacecraft': [space_entry],
+                'IDSEP Path': [path_entry],
+                'Location': [loc_entry],
+                'Species': [spec_entry]
+                })
+        checksep_dataframe = pd.concat([checksep_dataframe, row], ignore_index = True)
+    
+    checksep_dataframe.to_csv(output_filename, index=False)
+        
+
+
+
+    return output_filename
 
 
 
@@ -84,99 +174,123 @@ def datetime_given_days_since_epoch(days):
     return t
 
 
-def get_proton_data(start_datetime, end_datetime, observation=None, instrument=None):
-    if observation is not None:
-        df = pd.read_csv(observation)
-        df = df.rename(columns={'dates' : 'time_tag'})
-        df['time_tag'] = pd.to_datetime(df['time_tag'])
-        for column in df.columns:
-            if column != 'time_tag':
-                df = df.rename(columns={column : column + ' MeV'})
-    else:
-        if instrument in ['GOES', 'SOHO', 'ACE SIS']:
-            df = download_proton_data(start_datetime, end_datetime, instrument)
+def get_proton_data(start_datetime, end_datetime, observation=None, instrument=None, download = False):
+    
+    
+    
+    if download:
+        if observation is not None:
+            df = pd.read_csv(observation)
+            df = df.rename(columns={'dates' : 'time_tag'})
+            df['time_tag'] = pd.to_datetime(df['time_tag'])
+            for column in df.columns:
+                if column != 'time_tag':
+                    df = df.rename(columns={column : column + ' MeV'})
         else:
-            print('Sorry. This instrument is not currently supported: ', instrument)
-            exit()
-    return df
+            if instrument in ['GOES', 'SOHO', 'ACE SIS']:
+                df = download_proton_data(start_datetime, end_datetime, instrument)
+            else:
+                print('Sorry. This instrument is not currently supported: ', instrument)
+                exit()
+        return df
+    else:
+        if observation is not None:
+            dates_df = pd.DataFrame()
+            for i in range(len(observation)):
+                print(observation[i])
+                foo = pd.read_csv(observation[i])
+                dates_df = pd.concat([foo, dates_df], ignore_index = True)
+            dates_df = dates_df.rename(columns={'dates' : 'time_tag'})
+            # print(dates_df.columns)
+            dates_df['time_tag'] = pd.to_datetime(dates_df['time_tag'])
+            for column in dates_df.columns:
+                if column != 'time_tag':
+                    dates_df = dates_df.rename(columns={column : column + ' MeV'})
+        return dates_df
 
 def download_proton_data(start_datetime, end_datetime, instrument='GOES', energy=[]):
     df = download_proton_flux.download_flux(instrument, 'proton', start_datetime, end_datetime, backfill_flag=False)
     return df
 
-def format_fetchsep_list(event_list, observation=None, instrument=None, index=0):
+def format_fetchsep_list(event_list, observation=None, instrument=None, index=0, energy_channel = '10.0 - -1'):
     a = open(event_list, 'r')
     lines = a.readlines()
     a.close()
     # FIND ENERGY
-    for i in range(0, len(lines)):
-        line = lines[i].split(':')
-        if line[0] == '#Energy channel':
-            energy_channel = line[1].lstrip().rstrip()
-            break
-    if float(energy_channel.split(' - ')[1]) == -1:
-        integral = True
-    else:
-        integral = False
+    # for i in range(0, len(lines)):
+    #     line = lines[i].split(':')
+    #     if line[0] == '#Energy channel':
+    #         energy_channel = line[1].lstrip().rstrip()
+    #         break
+    # print(energy_channel.split('-'))
+    # if float(energy_channel.split(' - ')[1]) == -1:
+    #     integral = True
+    # else:
+    #     integral = False
 
-    energy = energy_channel.replace(' ', '') + ' MeV'
-    event_list_df = pd.read_csv(event_list, skiprows=11, header=None, sep=r'[,\s]+', names=['start_date', 'start_time', 'end_date', 'end_time'])
-    event_list_df['start'] = pd.to_datetime(event_list_df['start_date'] + ' ' + event_list_df['start_time'])
-    event_list_df['end'] = pd.to_datetime(event_list_df['end_date'] + ' ' + event_list_df['end_time'])
-    event_list_df = event_list_df.drop(columns=['start_date', 'start_time', 'end_date', 'end_time'])
+    energy = energy_channel
+    print(event_list)
+    headers = ['Start Time', 'End Time', 'Experiment', 'Flux Type', 'User Experiment Name',  'User Filename', 'Options', 'BGStart', 'BGEnd', 'JSON Type', 'Spacecraft', 'IDSEP Path', 'Location', 'Species']
+    event_list_df = pd.read_csv(event_list)
+    # event_list_df['start'] = pd.to_datetime(event_list_df['Start Time'])
+    # event_list_df['end'] = pd.to_datetime(event_list_df['End Time'])
+    # # event_list_df = event_list_df.drop(columns=['start_date', 'start_time', 'end_date', 'end_time'])
     event_list_df['list_index'] = index
-    event_list_df['energy'] = energy
-    event_list_df['observation'] = observation
-    event_list_df['instrument'] = instrument
-    event_list_df['integral'] = integral
+    # event_list_df['energy'] = energy
+    # event_list_df['observation'] = observation
+    # event_list_df['instrument'] = 
+    # event_list_df['integral'] = integral
     return event_list_df
 
-def find_overlapping_events(dfs : list, labels : dict, separate_energies : bool):
+def find_overlapping_events(dfs : list, labels : dict, separate_energies : bool, energy_channel = '10.0 - -1'):
     main_df = pd.concat(dfs, ignore_index=True)
-    main_df = main_df.sort_values(by=['start', 'end', 'list_index', 'energy'], ignore_index=True).reset_index(drop=True)
+    main_df = main_df.sort_values(by=['#Start Time', 'End Time'], ignore_index=True).reset_index(drop=True)
     # DETERMINE ALL CONTIGUOUS TIME PERIODS
-    current_start = main_df.iloc[0]['start']
-    current_end = main_df.iloc[0]['end']
+    current_start = main_df.iloc[0]['#Start Time']
+    current_end = main_df.iloc[0]['End Time']
     current_index = main_df.iloc[0]['list_index']
-    current_energy = main_df.iloc[0]['energy']
-    current_observation = main_df.iloc[0]['observation']
-    current_instrument = main_df.iloc[0]['instrument']
-    current_integral_status = main_df.iloc[0]['integral']
-    current_group = [[current_start, current_end, current_index, labels[current_index], current_energy, current_observation, current_instrument, current_integral_status]]
+    current_energy = energy_channel
+    # current_observation = main_df.iloc[0]['observation']
+    current_instrument = main_df.iloc[0]['Experiment']
+    current_integral_status = main_df.iloc[0]['Flux Type']
+    current_group = [[current_start, current_end, current_index, labels[current_index], current_energy, current_instrument, current_integral_status]]
     groups = []
     for i in range(1, len(main_df)):
-        start = main_df.iloc[i]['start']
-        end = main_df.iloc[i]['end']
+        start = main_df.iloc[i]['#Start Time']
+        end = main_df.iloc[i]['End Time']
         index = main_df.iloc[i]['list_index']
         label = labels[index]
-        energy = main_df.iloc[i]['energy']
-        observation = main_df.iloc[i]['observation']
-        instrument = main_df.iloc[i]['instrument']
-        integral_status = main_df.iloc[i]['integral']
-        if separate_energies:
-            if (start <= current_end) and (energy == current_energy):
-                current_group.append([start, end, index, label, energy, observation, instrument, integral_status])
-                current_end = max(current_end, end)
-            else:
-                groups.append(current_group)
-                current_group = [[start, end, index, label, energy, observation, instrument, integral_status]]
-                current_start = start
-                current_end = end
-                current_energy = energy
+        print(label)
+        # energy = main_df.iloc[i]['energy']
+        # observation = main_df.iloc[i]['observation']
+        instrument = main_df.iloc[i]['Experiment']
+        integral_status = main_df.iloc[i]['Flux Type']
+        # if separate_energies:
+        #     if (start <= current_end) and (energy == current_energy):
+        #         current_group.append([start, end, index, label, energy, observation, instrument, integral_status])
+        #         current_end = max(current_end, end)
+        #     else:
+            # groups.append(current_group)
+            # current_group = [[start, end, index, label, energy, observation, instrument, integral_status]]
+            # current_start = start
+            # current_end = end
+            # current_energy = energy
+        # print('where does this come from', observation)
+        print(start, current_end)
+        if (start <= current_end):
+            current_group.append([start, end, index, label, current_energy, observation, instrument, integral_status])
+            current_end = max(current_end, end)
         else:
-            if (start <= current_end):
-                current_group.append([start, end, index, label, energy, observation, instrument, integral_status])
-                current_end = max(current_end, end)
-            else:
-                groups.append(current_group)
-                current_group = [[start, end, index, label, energy, observation, instrument, integral_status]]
-                current_start = start
-                current_end = end
+            groups.append(current_group)
+            current_group = [[start, end, index, label, current_energy, observation, instrument, integral_status]]
+            current_start = start
+            current_end = end
     if current_group:
         groups.append(current_group)
-    dfs = []
+    dfs = pd.DataFrame()
     for group in groups:
-        dfs.append(pd.DataFrame(group, columns=['start', 'end', 'list_index', 'list', 'energy', 'observation', 'instrument', 'integral']))
+        foo = pd.DataFrame(group, columns=['start', 'end', 'list_index', 'list', 'energy', 'observation', 'instrument', 'integral'])
+        dfs = pd.concat([foo, dfs], ignore_index = True)
     return dfs
 
 def get_window_geometry(root):
@@ -295,7 +409,7 @@ class PlaceholderEntry(tkinter.Entry):
             self.config(fg='gray')
 
 class CheckSEPApp:
-    def __init__(self, root, events):
+    def __init__(self, root, events, flux_files, energy_channel):
         self.end_times = []
         self.confirmed_times = []
         self.root = root
@@ -319,7 +433,7 @@ class CheckSEPApp:
         self.time_buffer = datetime.timedelta(days=1)
 
         # SAMPLE DATA FOR MULTIPLE PLOTS (X VALUES, Y VALUES, TITLE)
-        self.format_event_data() 
+        self.format_event_data(flux_files, energy_channel) 
         self.current_plot_index = 0
         self.yaxis_log_scale = True
 
@@ -423,34 +537,51 @@ class CheckSEPApp:
         self.update_navigation_buttons()
         
 
-    def format_event_data(self):
+    def format_event_data(self, flux_files, energy_channel):
         counter = 0 
-        for event in self.events:
+        for  index, event in self.events.iterrows():
+            
+            # print(type(self.events))
+            # print('type', type(event), type(self.events))
+            # print(self.events['energy'][0])
+            # input()
             event_interpretations = []
 
-            self.events[counter]['duration'] = ''
-            for row_index, row in event.iterrows():
+            self.events['duration'] = ''# self.events.assign(['duration'][:] = '')
+            # print('this is event', event)
+            # for row_index, row in event.iterrows():
                 # event_data_df = get_proton_data(row['Start Time'], row['End Time'], observation=row['observation'], instrument=row['instrument'])
-                event_data_df = get_proton_data(row['start'], row['end'], observation=row['observation'], instrument=row['instrument'])
-                duration_timedelta = row['end'] - row['start']
-                duration_seconds = duration_timedelta.total_seconds()
-                self.events[counter].loc[row_index, 'duration'] = duration_timedelta
-                condition = (event_data_df['time_tag'] >= row['start']) & (event_data_df['time_tag'] <= row['end'])
-                time = event_data_df[condition]['time_tag']
-                flux = event_data_df[condition][row['energy']]
-
-                event_interpretations.append((duration_seconds, duration_timedelta, time, flux, row['list'], row['list_index'], row['energy'], row['observation'], row['instrument'], row['integral'])) #, buffer_time, buffer_flux))
-                self.end_times.append(time.to_list()[-1])
                 
-                try:
-                    event_interpretations.sort(reverse=True)
-                except ValueError:
-                    try:
-                        event_interpretations.sort(key=lambda x : x[-1])
-                    except ValueError:
-                        pass
-            self.stored_event_plots.append((event_interpretations))
+                
+            event_data_df = get_proton_data(event['start'], event['end'], observation=flux_files, instrument=event['instrument'])
             
+            duration_timedelta = pd.to_datetime(event['end']) - pd.to_datetime(event['start'])
+            duration_seconds = duration_timedelta.total_seconds()
+            # self.events[counter].loc[index, 'duration'] = duration_timedelta
+            event.loc['duration'] = duration_timedelta
+            print(event.loc['duration'])
+            # input()
+            # print(type(duration_timedelta))
+            # input()
+            condition = (event_data_df['time_tag'] >= event['start']) & (event_data_df['time_tag'] <= event['end'])
+            time = event_data_df[condition]['time_tag']
+            
+            flux = event_data_df[condition][energy_channel]
+
+            event_interpretations.append((duration_seconds, duration_timedelta, time, flux)) #, row['list'], row['list_index'], row['energy'], row['observation'], row['instrument'], row['integral'])) #, buffer_time, buffer_flux))
+            self.end_times.append(time.to_list()[-1])
+            
+            # print((duration_seconds, duration_timedelta, time, flux, row['list'], row['list_index'], row['energy'], row['observation'], row['instrument'], row['integral']))
+            # input()
+            try:
+                event_interpretations.sort(reverse=True)
+            except ValueError:
+                try:
+                    event_interpretations.sort(key=lambda x : x[-1])
+                except ValueError:
+                    pass
+            self.stored_event_plots.append((event_interpretations))
+                
             counter += 1
 
     def create_plot(self):
@@ -467,12 +598,16 @@ class CheckSEPApp:
         self.vertical_lines = []
         counter = 0
         for event_interpretation in event_interpretations:
-            duration_seconds, duration_timedelta, x, y, list_name, index, energy, observation, instrument, integral = event_interpretation
+            
+            # duration_seconds, duration_timedelta, x, y, list_name, index, energy, observation, instrument, integral = event_interpretation
+            duration_seconds, duration_timedelta, x, y = event_interpretation
+            print('event info')
+            print(duration_seconds, duration_timedelta) #, x, y)
             x = x.tolist()
             y = y.tolist()
 
             # PLOT MULTIPLE LINES WITH DIFFERENT STYLES
-            self.lines.append(self.ax.plot(x, y, label=list_name, linewidth=1, zorder=10))
+            self.lines.append(self.ax.plot(x, y, label='line', linewidth=1, zorder=10))
           
 
             # PLOT VERTICAL LINES AT THE START AND END OF EACH EVENT INTERPRETATION
@@ -522,10 +657,10 @@ class CheckSEPApp:
         self.ax.set_xlabel('UTC')
         
         # ADD y LABEL
-        if integral:
-            self.ax.set_ylabel('Integral Proton Flux [cm$^\\mathregular{-2}$ sr$^\\mathregular{-1}$ s$^\\mathregular{-1}$]')
-        else:
-            self.ax.set_ylabel('Differential Proton Flux [cm$^\\mathregular{-2}$ sr$^\\mathregular{-1}$ s$^\\mathregular{-1}$ MeV$^\\mathregular{-1}$]')
+        # if integral:
+        self.ax.set_ylabel('Integral Proton Flux [cm$^\\mathregular{-2}$ sr$^\\mathregular{-1}$ s$^\\mathregular{-1}$]')
+        # else:
+        #     self.ax.set_ylabel('Differential Proton Flux [cm$^\\mathregular{-2}$ sr$^\\mathregular{-1}$ s$^\\mathregular{-1}$ MeV$^\\mathregular{-1}$]')
 
         # EMBED THE PLOT IN THE TKINTER WINDOW
         if hasattr(self, 'canvas'):
@@ -570,10 +705,24 @@ class CheckSEPApp:
             self.table.delete(row)
 
         # ADD NEW DATA FOR THE CURRENT PLOT
-        event = self.events[self.current_plot_index]
-        for _, row in event.iterrows():
-            output = [row['start'].strftime('%Y-%m-%d %H:%M'), row['end'].strftime('%Y-%m-%d %H:%M'), '{:.1f}'.format(row['duration'].total_seconds() / 3600), row['list'], row['energy']]
-            self.table.insert("", "end", values=output, tag=(row['list'],))
+        print('update table')
+        # print(self.events)
+        print(self.current_plot_index)
+        event = self.events.iloc[self.current_plot_index]
+        print(event['duration'], type(event['duration']))
+        print(event)
+        print(type(event['start']))
+        try:
+            start_table = event['start'].strftime('%Y-%m-%d %H:%M')
+            end_table = event['end'].strftime('%Y-%m-%d %H:%M')
+            duration_table = event['end'].strftime('%Y-%m-%d %H:%M') - event['start'].strftime('%Y-%m-%d %H:%M')
+            # output = [event['start'].strftime('%Y-%m-%d %H:%M'), event['end'].strftime('%Y-%m-%d %H:%M'), '{:.1f}'.format(event['duration'].total_seconds() / 3600), event['list'], event['energy']]
+        except:
+            start_table = event['start']
+            end_table = event['end']
+        duration_table = pd.to_datetime(end_table) - pd.to_datetime(start_table)
+        output = [start_table, end_table, '{:.1f}'.format(duration_table.total_seconds() / 3600), event['list'], event['energy']]
+        self.table.insert("", "end", values=output, tag=(event['list'],))
 
         self.highlight_rows()
  
@@ -758,9 +907,8 @@ class CheckSEPApp:
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='GUI Program for Comparing SEP Event Definitions')
-    parser.add_argument('-lf',  '--label-file',            type=str,   help='*.csv file where lists are associated with labels.')
-    parser.add_argument('-eld', '--event-list-directory',  type=str,   help='Directory where event lists live.')
-    parser.add_argument('-od',  '--observation-directory', type=str,   help='Directory where observations live.')
+    parser.add_argument('-el', '--event-list',  type=str,   help='Full Filepath to the Event List Output from IDSEP')
+    parser.add_argument('-ff',  '--flux-files', type=str,   help='Full Filepath to the Flux Files, can be an array of multiple files')
     parser.add_argument('-tb',  '--time-buffer',           type=float, help='Fractional number of days to use as a buffer; extends time range of proton flux displayed on plot.', default=1.0)
     parser.add_argument('-di',  '--instrument',            type=str,   help='Select proton measurement instrument.',                                                              default=None)
     parser.add_argument('-se',  '--separate-energies',                 help='Separates fluxes of different energy channels; they are not shown on the same plot.', action='store_true')
@@ -768,36 +916,42 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-    if args.test:
-        args_label_file = os.path.join('test', 'label.csv')
-        args_event_list_directory = os.path.join('test', 'event_lists')
-        args_observation_directory = os.path.join('test', 'observations')
-        args_time_buffer = 2.0
-        args_instrument = None
-        args_separate_energies = False
-    else:
-        args_label_file = args.label_file
-        args_event_list_directory = args.event_list_directory
-        args_observation_directory = args.observation_directory
-        args_time_buffer = args.time_buffer
-        args_instrument = args.instrument
-        args_separate_energies = args.separate_energies
+    # if args.test:
+    #     # args_label_file = 'test/' #os.path.join('test', 'label.csv')
+    #     # args_event_list_directory = 'test/'
+    #      # os.path.join('test', 'event_lists')
+    #     # args_observation_directory = 'test/' #os.path.join('test', 'observations')
+    #     args_time_buffer = 2.0
+    #     args_instrument = None
+    #     args_separate_energies = False
+    # else:
+    
+    args_event_list_directory = args.event_list
+    args_observation_directory = args.flux_files
+    args_time_buffer = args.time_buffer
+    args_instrument = args.instrument
+    args_separate_energies = args.separate_energies
 
-    label_df = pd.read_csv(args_label_file)
+    # label_df = pd.read_csv(args_label_file)
     event_lists = []
     observations = []
     instruments = []
     event_labels = {}
-    event_list_files = label_df['event_list_filename'].to_list()
-    observation_files = label_df['observation_filename'].to_list()
-    instruments = label_df['instrument'].to_list()
-    event_list_labels = label_df['label'].to_list()     
+    # event_list_files = label_df['event_list_filename'].to_list()
+    # observation_files = label_df['observation_filename'].to_list()
+    # instruments = label_df['instrument'].to_list()
+    # event_list_labels = label_df['label'].to_list()     
+    event_list_files = ['./test/batch_event_list_GOES-07_integral.txt']
+    observation_files = ['./test/fluxes_GOES-07_integral_19870301_19960831.csv']
+    instruments = ['GOES']
+    event_list_labels = ['GOES']
     counter = 0
     for f, o, instrument, l in zip(event_list_files, observation_files, instruments, event_list_labels):
         if f.strip()[0] == '#':
             continue
-        event_list_filename = os.path.join(args_event_list_directory, f)
-        observation_filename = os.path.join(args_observation_directory, o)
+        event_list_filename = f #os.path.join(args_event_list_directory, f)
+        observation_filename = o #os.path.join(args_observation_directory, o)
+        
         event_lists.append(event_list_filename)
         observations.append(observation_filename)
         instruments.append(instrument)
@@ -806,16 +960,20 @@ if __name__ == '__main__':
 
     counter = 0
     event_list_dfs = []
+    energy_channel = '10.0--1 MeV'
+    
     for (event_list, observation, instrument) in zip(event_lists, observations, instruments):
-        event_list_df = format_fetchsep_list(event_list, observation=observation, instrument=instrument, index=counter)
+        event_list_df = format_fetchsep_list(event_list, observation=observation, instrument=instrument, index=counter, energy_channel = energy_channel)
         event_list_dfs.append(event_list_df)
         counter += 1
+
     events = find_overlapping_events(event_list_dfs, event_labels, args_separate_energies)
-
-
+    print(events)
+    
     # events = pd.read_csv('batch_event_list_GOES-07_integral.txt')
     # INITIALIZE TKINTER ROOT WINDOW
-    initial_ends, confirmed_ends = checksep(events)
+    initial_ends, confirmed_ends, output_file = checksep(events, observations, energy_channel, event_list_files[0])
+    #  checksep(events, flux_files)
     # root = tkinter.Tk()
     # geometry_string = get_window_geometry(root)
     # root.geometry(geometry_string)
@@ -825,20 +983,7 @@ if __name__ == '__main__':
     # print(initial_ends)
     # elements_to_remove = {pd.NaT}
    
-    print(confirmed_ends)
-    print(pd.isnull(confirmed_ends))
-    # input()
-    filter_ = np.where(pd.isnull(confirmed_ends) == False)
-    print(filter_)
-    filtered_ends = [confirmed_ends[x] for x in filter_[0]]
-    print(filtered_ends)
-    filtered_ends = list(itertools.chain.from_iterable(filtered_ends))
-    print(filtered_ends)
-    new_ends = [pd.to_datetime(x) for x in filtered_ends]
-    print(new_ends)
-    concat_ends = sorted(initial_ends + new_ends)
-    print(concat_ends)
-
+    
     # Now that the end times have be selected - we now build the event
     # list to feed into opsep
     
