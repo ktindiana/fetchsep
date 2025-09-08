@@ -31,19 +31,8 @@ def from_fetchsep(fetchsep_filename, flux_files = None, energy_channel = '10.0--
     df = pd.read_csv(fetchsep_filename) #
 
 
-    
-
-
-
-    
-
-
-
     # run checksep
     initial_ends, confirmed_ends = checksep(df, flux_files, energy_channel, fetchsep_filename)
-    
-
-
 
     return output_filename
 
