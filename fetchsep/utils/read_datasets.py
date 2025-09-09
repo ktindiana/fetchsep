@@ -5310,7 +5310,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                             energy_bin_centers[5] = 177.0
                         if experiment == "GOES-15":
                             energy_bins[4] = [95.9,132.3]
-                            energy_bin_centers = 117.4
+                            energy_bin_centers[4] = 117.4
                             energy_bins[5] = [144.6,202.3]
                             energy_bin_centers[5] = 178.5
                 if "corrected" in options or "uncorrected" not in options: #Z89 applied

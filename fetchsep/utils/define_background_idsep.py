@@ -452,7 +452,7 @@ def check_bg_kurtosis(df, col):
         
     """
     if df[col].dropna().empty:
-        return False, False
+        return False, np.nan
     
     bins = make_log_bins()
     counts, bins = np.histogram(df[col].dropna(), bins=bins)

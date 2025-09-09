@@ -614,22 +614,36 @@ class Data:
         df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.startdate) & (df_sigma['dates'] <= self.enddate)]
         df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.startdate) & (df_thresh['dates'] <= self.enddate)]
         if df_mean.empty:
-            sys.exit("The idsep file containing the mean background does not cover the "
-                    f"dates required. {bgfilename}")
+            sys.exit("read_idsep_files: The idsep file containing the mean background "
+                    f"does not cover the dates required. {bgfilename}")
                     
         mean_dates = df_mean['dates'].to_list()
         if mean_dates != self.original_dates:
-            sys.exit("The idsep file containing the mean background doesn't have the same "
-                    f"dates length. {bgfilename}")
+            sys.exit("read_idsep_files: The idsep file containing the mean background "
+                    f"doesn't have the same dates length. {bgfilename}")
  
         df_mean = df_mean.drop('dates',axis=1) #only flux columns
         
         #Check that the energy bins for the columns match the energy bins
         #of the current data
+        #Bruno2017 energy bins depend on which detector is the west detector
+        #and which spacecraft is used. IDSEP will use the energy bins
+        #for the data at the start of the dataset, so need to relax
+        alt_energy_bins = []
+        if 'Bruno2017' in self.options:
+            alt_energy_bins_A, centers_A = datasets.define_energy_bins(self.experiment,
+                self.flux_type, ["A"], self.options)
+            alt_energy_bins_B, centers_B = datasets.define_energy_bins(self.experiment,
+                self.flux_type, ["B"], self.options)
+            alt_energy_bins = alt_energy_bins_A + alt_energy_bins_B
+
+        all_bins = self.energy_bins + alt_energy_bins
+        bin_keys = [tools.energy_bin_key(bin) for bin in all_bins]
         columns = df_mean.columns
-        for bin in self.energy_bins:
-            key = tools.energy_bin_key(bin)
-            if key not in columns:
+        columns = [col for col in columns if col != 'dates']
+        
+        for col in columns:
+            if col not in bin_keys:
                 sys.exit("read_idsep_files: IDSEP files don't contain energy bins that "
                     f"match the data. IDSEP columns: {columns}, Data energy bins: {self.energy_bins}")
         

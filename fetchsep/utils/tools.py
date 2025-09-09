@@ -155,7 +155,6 @@ def energy_bin_key(bin):
     return f"{bin[0]}-{bin[1]}"
 
 
-
 def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=''):
     """ Create naming scheme for subfolders in output/idsep """
 
