@@ -1009,7 +1009,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
 
     #Create Output object to write out results
     output_data = cl.Output(flux_data, json_type, spase_id=spase_id)
-    jsonfname = output_data.write_ccmc_json()
+    output_data.find_srag_associations() #Associated flare, CME, etc
+    jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()
     event_dict_pkl = output_data.create_pkl_dict()
     output_data.plot_event_definitions()

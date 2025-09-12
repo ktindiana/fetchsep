@@ -156,7 +156,14 @@ def energy_bin_key(bin):
 
 
 def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=''):
-    """ Create naming scheme for subfolders in output/idsep """
+    """ Create naming scheme for subfolders in output/idsep 
+    
+        Used in:
+        SEPTimes files
+        HighPoints files
+        subdirectories in output
+        
+    """
 
     modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft)
     name = (f"{experiment}_{flux_type}{modifier}")
@@ -176,7 +183,7 @@ def opsep_subdir(experiment, flux_type, exp_name, options,
     #Return a corresponding directory name
     dir = (f"{experiment}_{flux_type}{modifier}")
     if experiment == 'user' and exp_name != '':
-        name = (f"{exp_name}_{flux_type}{modifier}")
+        dir = (f"{exp_name}_{flux_type}{modifier}")
  
     return dir
 
@@ -205,7 +212,8 @@ def opsep_naming_scheme(date, suffix, experiment, flux_type, exp_name, options,
 
 
 def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
-    module, spacecraft=""):
+    module, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
+    IDSEPEnhancement=False, suffix=''):
     """ Write dates, fluxes to a standard format csv file with datetime in the 
         first column and fluxes in the remaining column. The energy bins will 
         be indicated in the file comments.
@@ -226,15 +234,26 @@ def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, f
             csv file written to outpath
                  
     """
-    name = idsep_naming_scheme(experiment, flux_type, exp_name, options,
-                    spacecraft=spacecraft)
+    name = ''
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
-    fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
     if module == 'idsep':
+        name = idsep_naming_scheme(experiment, flux_type, exp_name, options,
+                    spacecraft=spacecraft)
+        fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
         fname = os.path.join(cfg.outpath, module, name, fname)
-    else:
-        fname = os.path.join(cfg.outpath,module,fname)
+    elif module == 'opsep':
+        #name like the json schema
+        name, dir = opsep_naming_scheme(dates[0], suffix, experiment, flux_type, exp_name,
+            options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
+            doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
+            IDSEPEnhancement=IDSEPEnhancement)
+        tzulu = ccmc_json.make_ccmc_zulu_time(dates[0])
+        tzulu = tzulu.replace(":","")
+        fname = f"{dir}.{tzulu}.csv"
+        if suffix != '':
+            fname = f"{dir}.{tzulu}_{suffix}.csv"
+        fname = os.path.join(cfg.outpath, module, dir, fname)
         
     keys = []
     for bin in energy_bins:
@@ -247,8 +266,11 @@ def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, f
     df = pd.DataFrame(dict)
     df.to_csv(fname, index=False)
     print("Wrote " + fname + " to file.")
-    
-    
+
+    return fname
+
+
+
 def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
     fluxes, bruno2017=False, energy_bin_centers=[]):
     """ If user selected differential fluxes, convert to integral fluxes to

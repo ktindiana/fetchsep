@@ -194,6 +194,10 @@ def make_ccmc_zulu_time(dt):
     if dt == 0:
         return 0
 
+    if isinstance(dt,str):
+        if ("T" in dt) and ("Z" in dt):
+            return dt
+
     zdt = zulu.create(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     stzdt = str(zdt)
     stzdt = stzdt.split('+00:00')
@@ -344,6 +348,59 @@ def observation_json():
     print("ccmc_json_handler: observation_json: Initilizing observation json.")
     return template
 
+
+def fill_cme_trigger(template, json_type, cme_dict):
+    """ Provided a dictionary with the right fields of the CME trigger
+        block in the CCMC format, create and/or add to trigger block.
+    
+    """
+    
+    if not cme_dict:
+        return template
+
+    if 'start_time' in cme_dict.keys():
+        cme_dict['start_time'] = make_ccmc_zulu_time(cme_dict['start_time'])
+    if 'liftoff_time' in cme_dict.keys():
+        cme_dict['liftoff_time'] = make_ccmc_zulu_time(cme_dict['liftoff_time'])
+    
+    key, type_key, win_key, exp_key = set_keys(json_type)
+    
+    try:
+        check = template[key]['triggers']
+    except:
+        template[key].update({'triggers':[]})
+        
+    template[key]['triggers'].append({"cme":cme_dict})
+    return template
+
+
+def fill_flare_trigger(template, json_type, flare_dict):
+    """ Provided a dictionary with the right fields of the CME trigger
+        block in the CCMC format, create and/or add to trigger block.
+    
+    """
+    if not flare_dict:
+        return template
+        
+    if 'start_time' in flare_dict.keys():
+        flare_dict['start_time'] = make_ccmc_zulu_time(flare_dict['start_time'])
+    if 'peak_time' in flare_dict.keys():
+        flare_dict['peak_time'] = make_ccmc_zulu_time(flare_dict['peak_time'])
+    if 'end_time' in flare_dict.keys():
+        flare_dict['end_time'] = make_ccmc_zulu_time(flare_dict['end_time'])
+    if 'last_data_time' in flare_dict.keys():
+        flare_dict['last_data_time'] = make_ccmc_zulu_time(flare_dict['last_data_time'])
+
+
+    key, type_key, win_key, exp_key = set_keys(json_type)
+    
+    try:
+        check = template[key]['triggers']
+    except:
+        template[key].update({'triggers':[]})
+        
+    template[key]['triggers'].append({"flare":flare_dict})
+    return template
 
 
 def fill_json_header(json_type, issue_time, experiment,

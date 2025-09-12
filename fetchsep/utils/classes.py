@@ -4,6 +4,7 @@ from . import read_datasets as datasets
 from . import tools
 from . import derive_background_opsep as bgsub
 from . import plotting_tools as plt_tools
+from . import associations as assoc
 from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import numpy as np
@@ -814,7 +815,13 @@ class Data:
         
         self.fluxes = fluxes
         self.dates = dates
-        
+
+        #Write the resulting fluxes that will be analyzed to file
+        tools.write_fluxes(self.experiment, self.flux_type, self.user_name, self.options, self.energy_bins, dates, fluxes, 'opsep', spacecraft=self.spacecraft,
+            doBGSubOPSEP=self.doBGSubOPSEP, doBGSubIDSEP=self.doBGSubIDSEP,
+            OPSEPEnhancement=self.OPSEPEnhancement, IDSEPEnhancement=self.IDSEPEnhancement,
+            suffix='fluxes_all_bins')
+
         time_res = tools.determine_time_resolution(dates)
         self.time_resolution = time_res.total_seconds()
 
@@ -1689,6 +1696,7 @@ class Analyze:
         print(f"Channel Fluence: {self.fluence} {self.fluence_units}")
         print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_spectrum_units}")
         print(f"Fluence Energy Bins: {data.energy_bins}")
+        print(f"Fluence Energy Bin Centers: {data.energy_bin_centers}")
         print()
         
         return
@@ -1730,6 +1738,12 @@ class Output:
         self.json_dict = {} #json dictionary from template
         self.json_filename = None #output path and filename
         self.issue_time = pd.NaT
+        
+        #All associations from e.g. SRAG list
+        self.associations = {}
+        #Possible CME and Flare dicts in CCMC json format
+        self.cme = {}
+        self.flare = {}
         
         # Subdirectory with unique string to hold data
         self.subdir = tools.opsep_subdir(self.data.experiment, self.data.flux_type,
@@ -1905,8 +1919,12 @@ class Output:
     
         threshold_label = f"{threshold} {threshold_units}"
 
-        fluence_spectrum_str = str(analyze.fluence_spectrum)
-        fluence_spectrum_str = fluence_spectrum_str.replace(",", ";")
+        if len(analyze.fluence_spectrum) == 0:
+            fluence_spectrum_str = None
+        else:
+            fluence_spectrum_str = str(analyze.fluence_spectrum)
+            fluence_spectrum_str = fluence_spectrum_str.replace(",", ";")
+
         fluence_spectrum_energy_bins = str(self.data.energy_bins)
         fluence_spectrum_energy_bins = fluence_spectrum_energy_bins.replace(",", ";")
         fluence_spectrum_energy_bin_centers = str(self.data.energy_bin_centers)
@@ -1946,6 +1964,18 @@ class Output:
                 f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins,
                 f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": fluence_spectrum_energy_bin_centers
             }
+
+        return dict
+
+
+    def set_all_null_to_none(self, dict):
+        """ Set every null value to a None value. Better for outputting
+            to csv where a user or other kind of program may read the file.
+        
+        """
+        for key in dict.keys():
+            if pd.isnull(dict[key]):
+                dict[key] = None
 
         return dict
 
@@ -2033,6 +2063,48 @@ class Output:
                             ]
  
         return event_info_list
+        
+
+
+    def find_srag_associations(self):
+        """ Identify flare, CME, radio, etc data from Steve Johnson's 
+            SRAG SEP list for an SEP event.
+            
+        """
+        #Cycle through all Analyze objects for the various event definitions
+        ref_energy = 10.0 #to compare with SRAG list, use energy bin around 10 MeV
+        energy_diff = -1
+        best_threshold = -1
+        best_ix = -1
+        for i, analyze in enumerate(self.data.results):
+            diff = analyze.event_definition['energy_channel'].min - ref_energy
+            threshold = analyze.event_definition['threshold'].threshold
+            if energy_diff == -1:
+                energy_diff = diff
+                best_threshold = threshold
+                best_ix = i
+            elif diff < energy_diff:
+                energy_diff = diff
+                best_threshold = threshold
+                best_ix = i
+            elif diff == energy_diff and threshold < best_threshold:
+                #Use timing from lowest threshold applied to get as close
+                #to capturing the start of the full event as possible
+                energy_diff = diff
+                best_threshold = threshold
+                best_ix = i
+ 
+        #Get the event start time from the best event_definition
+        #Returns dictionary; all values will be null if no start time match
+        startdate = self.data.results[best_ix].sep_start_time
+        associations, proton_info = assoc.identify_associations_in_srag_list(startdate)
+
+        self.associations = associations
+
+        self.cme = assoc.srag_to_ccmc_cme(associations) #CCMC CME trigger block
+        self.flare = assoc.srag_to_ccmc_flare(associations) #CCMC flare trigger block
+
+        return
 
 
     def fill_json_header(self):
@@ -2043,6 +2115,21 @@ class Output:
             user_name=self.data.user_name, spacecraft=self.data.spacecraft)
 
         return
+
+
+    def fill_trigger_blocks(self):
+        """ If CME or flare information available, add trigger blocks
+            to json.
+            
+        """
+        if self.cme:
+            self.json_dict = ccmc_json.fill_cme_trigger(self.json_dict, self.json_type,
+                    self.cme)
+        if self.flare:
+            self.json_dict = ccmc_json.fill_flare_trigger(self.json_dict, self.json_type,
+                self.flare)
+        return
+
 
 
     def fill_json_block(self, analyze):
@@ -2100,6 +2187,7 @@ class Output:
         """
         self.set_json_filename()
         self.fill_json_header()
+        self.fill_trigger_blocks()
         
         #Cycle through all Analyze objects for the various event definitions
         for i, analyze in enumerate(self.data.results):
@@ -2127,9 +2215,15 @@ class Output:
         if self.data.doBGSubOPSEP: bgsub = 'OPSEP'
         if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
 
+        opts = ''
+        for k,opt in enumerate(self.data.options):
+            if k < len(self.data.options)-1:
+                opts += opt + ';'
+            else:
+                opts += opt
         dict = {"Experiment": exp_name,
                 "Flux Type": self.data.flux_type,
-                "Options": str(self.data.options).replace(",",";"),
+                "Options": opts,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S")
@@ -2138,23 +2232,18 @@ class Output:
         for analyze in self.data.results:
             analyze_dict = self.event_info_dict_for_csv(analyze)
             dict.update(analyze_dict)
-            
-        header = ''
-        row = ''
-        for key in dict.keys():
-            header += key + ","
-            row += str(dict[key]) + ","
+
+        #Add flare, cme, radio, etc, associations
+        if self.associations:
+            dict.update(self.associations)
         
-        header = header[:-1] + "\n"
-        row = row[:-1] + "\n"
+        dict = self.set_all_null_to_none(dict)
+        df = pd.DataFrame([dict])
         
         filename = self.json_filename
         filename = filename.replace(".json",".csv")
         filename = os.path.join(cfg.outpath,"opsep",self.subdir, filename)
-        fout = open(filename,"w+")
-        fout.write(header)
-        fout.write(row)
-        fout.close()
+        df.to_csv(filename, index=None)
         print(f"create_csv_dict: Wrote {filename}")
 
         return dict
@@ -2182,7 +2271,11 @@ class Output:
         for analyze in self.data.results:
             analyze_dict = self.event_info_dict_for_pkl(analyze)
             dict.update(analyze_dict)
-            
+
+        #Add flare, cme, radio, etc, associations
+        if self.associations:
+            dict.update(self.associations)
+
         header = ''
         row = ''
         for key in dict.keys():
@@ -2235,6 +2328,7 @@ class Output:
         return event_definitions, fluxes, sep_start_times, sep_end_times, onset_peaks,\
             onset_peak_times, max_fluxes, max_flux_times, fluences, fluence_spectra,\
             fluence_spectra_units
+
 
 
     def plot_event_definitions(self):
@@ -2302,6 +2396,10 @@ class Output:
             doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
             OPSEPEnhancement=self.data.OPSEPEnhancement,
             IDSEPEnhancement=self.data.IDSEPEnhancement)
+        
+
+
+        
         
         
 
