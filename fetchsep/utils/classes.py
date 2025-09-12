@@ -170,6 +170,7 @@ class Data:
         self.energy_bin_centers = []
         self.dates = []
         self.fluxes = []
+        self.fluxes_filename = ''
         self.time_resolution = np.nan #seconds
         
         #Flux timeseries to be evaluated from event definitions
@@ -817,10 +818,11 @@ class Data:
         self.dates = dates
 
         #Write the resulting fluxes that will be analyzed to file
-        tools.write_fluxes(self.experiment, self.flux_type, self.user_name, self.options, self.energy_bins, dates, fluxes, 'opsep', spacecraft=self.spacecraft,
+        fluxes_filename = tools.write_fluxes(self.experiment, self.flux_type, self.user_name, self.options, self.energy_bins, dates, fluxes, 'opsep', spacecraft=self.spacecraft,
             doBGSubOPSEP=self.doBGSubOPSEP, doBGSubIDSEP=self.doBGSubIDSEP,
             OPSEPEnhancement=self.OPSEPEnhancement, IDSEPEnhancement=self.IDSEPEnhancement,
             suffix='fluxes_all_bins')
+        self.fluxes_filename = os.path.basename(fluxes_filename)
 
         time_res = tools.determine_time_resolution(dates)
         self.time_resolution = time_res.total_seconds()
@@ -1950,7 +1952,8 @@ class Output:
         else:
             mftime = None
 
-        dict = {f"{channel_label} {threshold_label} SEP Start Time": sttime,
+        dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,
+                f"{channel_label} {threshold_label} SEP Start Time": sttime,
                 f"{channel_label} {threshold_label} SEP End Time": endtime,
                 f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
                 f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
@@ -2001,7 +2004,8 @@ class Output:
         threshold_label = f"{threshold} {threshold_units}"
 
 
-        dict = {f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time,
+        dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,
+                f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time,
                 f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time,
                 f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
                 f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
@@ -2226,7 +2230,8 @@ class Output:
                 "Options": opts,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
-                "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S")
+                "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
+                "All Fluxes Time Series": self.data.fluxes_filename
                 }
         
         for analyze in self.data.results:
@@ -2265,7 +2270,8 @@ class Output:
                 "Options": self.data.options,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate,
-                "Time Period End": self.data.enddate
+                "Time Period End": self.data.enddate,
+                "All Fluxes Time Series": self.data.fluxes_filename
                 }
         
         for analyze in self.data.results:

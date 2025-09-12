@@ -110,13 +110,13 @@ def setup_modifiers(options, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=Fal
         module = 'idsep'
 
     if "uncorrected" in options:
-        modifier = modifier + '_uncorrected'
+        modifier = modifier + '_uncor'
         title_mod = title_mod + 'uncorrected '
     if "S14" in options:
         modifier = modifier + '_S14'
         title_mod = title_mod + 'S14 '
     if "Bruno2017" in options:
-        modifier = modifier + '_Bruno2017'
+        modifier = modifier + '_B17'
         title_mod = title_mod + 'Bruno2017 '
     if spacecraft:
         modifier = modifier + '_' + spacecraft
@@ -125,7 +125,7 @@ def setup_modifiers(options, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=Fal
         modifier = modifier + '_bgsub'
         title_mod = title_mod + 'BG-subtracted '
     if IDSEPEnhancement or OPSEPEnhancement:
-        modifier = modifier + '_enhancement'
+        modifier = modifier + '_enhance'
 
     if module != '':
         modifier = modifier + '_' + module
