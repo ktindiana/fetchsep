@@ -1017,14 +1017,14 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     output_data.plot_all_fluxes()
     output_data.plot_fluence_spectra()
 
-    if not pd.isnull(flux_data.sep_year):
-        print(f"An SEP occurred on {flux_data.sep_year}-{flux_data.sep_month}-{flux_data.sep_day}")
+    if not pd.isnull(flux_data.sep_date):
+        print(f"An SEP occurred on {flux_data.sep_date.year}-{flux_data.sep_date.month}-{flux_data.sep_date.day}")
     else:
         print("No SEP crossed threshold during this period.")
 
     if showplot: plt.show()
     
-    return flux_data.startdate, jsonfname, event_dict_csv, event_dict_pkl
+    return flux_data.startdate, flux_data.sep_date, jsonfname, event_dict_csv, event_dict_pkl
 
 
 

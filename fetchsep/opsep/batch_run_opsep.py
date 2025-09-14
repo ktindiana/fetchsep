@@ -530,7 +530,8 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
 
     #---RUN ALL SEP EVENTS---
     Nsep = len(start_dates)
-    df_all_csv = pd.DataFrame()
+    df_sep_csv = pd.DataFrame()
+    df_quiet_csv = pd.DataFrame()
     dict_all_pkl = {}
     print(f"Read in {Nsep} SEP events.")
     for i in range(Nsep):
@@ -576,7 +577,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_all(start_date,
+            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_all(start_date,
                 end_date, experiment, flux_type, user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
@@ -596,7 +597,10 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
 
             #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
             df_event_csv = pd.DataFrame(event_dict_csv, index=[0])
-            df_all_csv = pd.concat([df_all_csv, df_event_csv])
+            if not pd.isnull(sep_date):
+                df_sep_csv = pd.concat([df_sep_csv, df_event_csv])
+            else:
+                df_quiet_csv = pd.concat([df_quiet_csv, df_event_csv])
 
             if not dict_all_pkl:
                 for key in event_dict_pkl.keys():
@@ -634,11 +638,16 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement) #f"{experiment}_{flux_type}{modifier}"
 
-    all_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.csv"
-    all_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, all_fname_csv)
-    print(f"batch_run_opsep: Writing all events to csv file {all_fname_csv}")
-    df_all_csv.to_csv(all_fname_csv, index=False)
-    
+    sep_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_sep_events.csv"
+    sep_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, sep_fname_csv)
+    print(f"batch_run_opsep: Writing SEP events to csv file {sep_fname_csv}")
+    df_sep_csv.to_csv(sep_fname_csv, index=False)
+
+    quiet_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_non_events.csv"
+    quiet_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, quiet_fname_csv)
+    print(f"batch_run_opsep: Writing non-event periods to csv file {quiet_fname_csv}")
+    df_quiet_csv.to_csv(quiet_fname_csv, index=False)
+
 #    df_all_pkl = pd.DataFrame(dict_all_pkl)
 #    all_fname_pkl = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.pkl"
 #    all_fname_pkl = os.path.join(cfg.outpath, 'opsep', subdir, all_fname_pkl)

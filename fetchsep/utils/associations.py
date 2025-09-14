@@ -215,8 +215,8 @@ def identify_associations_in_srag_list(startdate):
     """
     df = read_srag_list()
     
-    tolerance = datetime.timedelta(hours=4)
-    columns = ["P10_FluxStart", "P10_StartDT"] #["P10_FluxStart", "InitiationDT", "P10_StartDT"]
+    tolerance = datetime.timedelta(hours=6)
+    columns = ["P10_FluxStart"] #["P10_FluxStart", "InitiationDT", "P10_StartDT"]
     
     diff = df[columns] - startdate
     
@@ -224,7 +224,8 @@ def identify_associations_in_srag_list(startdate):
     check_min_diff = np.nan
     for col in columns:
         ix = []
-        min_diff = min(abs(diff[col]))
+        diff[col] = abs(diff[col])
+        min_diff = diff[col].min()
         if min_diff <= tolerance:
             ix = diff[col].index[diff[col] == min_diff]
             
