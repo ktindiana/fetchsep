@@ -210,9 +210,6 @@ def check_paths(path_to_data=''):
     if not os.path.isdir(cfg.plotpath):
         print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
         os.mkdir(cfg.plotpath);
-    if not os.path.isdir(cfg.templatepath):
-        print('check_paths: Directory to store user json templates for opsep does not exist. Creating.')
-        os.mkdir(cfg.templatepath);
 
 
 def read_data_manager():

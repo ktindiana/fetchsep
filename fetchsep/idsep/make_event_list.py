@@ -89,7 +89,7 @@ def revise_sep_times(startdate, enddate, sep_sttimes, sep_endtimes):
     rev_sttimes = sep_sttimes
     rev_endtimes = sep_endtimes
     
-    dt = datetime.timedelta(hours=6)
+    dt = datetime.timedelta(hours=24)
     dt2 = dt + dt
     
     #First SEP start and last SEP end
