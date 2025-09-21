@@ -1,5 +1,5 @@
 #Start Time,End Time,Experiment,Flux Type,Flags,User Experiment Name,User Filename,Options,BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,Location,Species
-2020-03-05 00:00:00,2020-11-29 04:10:00,GOES_RT,integral,IDSEPEnhancement,,,,,,observations,primary,./output/idsep/GOES_RT_integral_primary/csv,earth,protons
+2020-03-08 00:00:00,2020-11-29 04:10:00,GOES_RT,integral,IDSEPEnhancement,,,,,,observations,primary,./output/idsep/GOES_RT_integral_primary/csv,earth,protons
 2020-11-29 04:10:00,2020-12-07 01:20:00,GOES_RT,integral,IDSEPEnhancement,,,,,,observations,primary,./output/idsep/GOES_RT_integral_primary/csv,earth,protons
 2020-12-07 01:20:00,2020-12-10 16:25:00,GOES_RT,integral,IDSEPEnhancement,,,,,,observations,primary,./output/idsep/GOES_RT_integral_primary/csv,earth,protons
 2020-12-10 16:25:00,2021-05-28 00:20:00,GOES_RT,integral,IDSEPEnhancement,,,,,,observations,primary,./output/idsep/GOES_RT_integral_primary/csv,earth,protons

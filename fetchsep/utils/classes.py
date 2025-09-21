@@ -245,6 +245,7 @@ class Data:
         """
         self.startdate = self.str_to_datetime(startdate)
         self.enddate = self.str_to_datetime(enddate)
+        print(f"Set analysis dates {self.startdate} to {self.enddate}")
         return
 
 
@@ -610,17 +611,19 @@ class Data:
         df_thresh = df_thresh.replace(1e6,np.nan)
         
         #Trim to date range
-        df_mean = df_mean.loc[(df_mean['dates'] >= self.startdate) & (df_mean['dates'] <= self.enddate)]
-        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.startdate) & (df_sigma['dates'] <= self.enddate)]
-        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.startdate) & (df_thresh['dates'] <= self.enddate)]
+        df_mean = df_mean.loc[(df_mean['dates'] >= self.startdate) & (df_mean['dates'] < self.enddate)]
+        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.startdate) & (df_sigma['dates'] < self.enddate)]
+        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.startdate) & (df_thresh['dates'] < self.enddate)]
         if df_mean.empty:
             sys.exit("read_idsep_files: The idsep file containing the mean background "
                     f"does not cover the dates required. {bgfilename}")
                     
         mean_dates = df_mean['dates'].to_list()
+ #       print(f"Found background for {mean_dates[0]} to {mean_dates[-1]} for extracted flux dates {self.original_dates[0]} to {self.original_dates[-1]} with requested dates {self.startdate} to {self.enddate}")
         if mean_dates != self.original_dates:
+#            print(f"len(mean_dates) {len(mean_dates)} len(original_dates) {len(self.original_dates)}")
             sys.exit("read_idsep_files: The idsep file containing the mean background "
-                    f"doesn't have the same dates length. {bgfilename}")
+                    f"doesn't have the same dates length for {self.original_dates[0]}. {bgfilename}")
  
         df_mean = df_mean.drop('dates',axis=1) #only flux columns
         

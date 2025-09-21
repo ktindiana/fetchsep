@@ -291,7 +291,7 @@ def write_data_manager(df):
 
 
 
-def file_completeness(df, experiment, flux_type, filename, dates):
+def file_completeness(df, experiment, flux_type, filename, dates, spacecraft=''):
     """Depending on when a file is downloaded, the file may not contain all the data.
         i.e. a yearly file downloaded prior to the end of the year and likewise
         for a monthly or daily file.
@@ -321,17 +321,6 @@ def file_completeness(df, experiment, flux_type, filename, dates):
     
     """
     
-    complete = check_completeness(experiment, flux_type, filename, df=df)
-    if complete:
-        return df
-
-    #If dates happens to be empty
-    if not dates:
-        print(f"file_completeness: The dates array passed for {filename} is empty. Returning with no action.")
-        return df
-
-    #If complete is False or None
-
     #Note that EPHIN must match the res = '5min' variable set in check_ephin_data()
     manager = { 'GOES': {'cadence': 'month',
                         'resolution': datetime.timedelta(minutes=5)},
@@ -365,7 +354,23 @@ def file_completeness(df, experiment, flux_type, filename, dates):
     
     cadence = manager[key]['cadence']
     resolution = manager[key]['resolution']
- 
+
+
+    if experiment == "GOES_RT" and spacecraft != '':
+        experiment = experiment + '_' + spacecraft
+    
+    complete = check_completeness(experiment, flux_type, filename, df=df)
+    if complete:
+        return df
+
+    #If dates happens to be empty
+    if not dates:
+        print(f"file_completeness: The dates array passed for {filename} is empty. Returning with no action.")
+        return df
+
+    #If complete is False or None
+
+
     year = dates[0].year
     month = dates[0].month
     day = dates[0].day
@@ -3248,7 +3253,7 @@ def zulu_to_time(zt):
 
 
 
-def read_in_goes_RT(experiment, flux_type, filenames1):
+def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
     """ Read in GOES_RT real time data from your computer.
         Read in the NOAA SWPC real time integral flux files from
         the 1 day json files for the primary GOES spacecraft.
@@ -3320,7 +3325,8 @@ def read_in_goes_RT(experiment, flux_type, filenames1):
  
         #Update file completeness
         file_dates = df_in[0].to_list()
-        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+        df = file_completeness(df, experiment, flux_type, fullpath, file_dates,
+                spacecraft=spacecraft)
  
         for col in cols_to_drop:
             if col in df_in.columns:
@@ -3421,7 +3427,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
             
         elif (detector[i] == "GOES_RT" or detector[i] in goes_R) and flux_type == "integral":
             all_dates, all_fluxes, west_detector =\
-                read_in_goes_RT(detector[i],flux_type, [filenames1[i]])
+                read_in_goes_RT(detector[i],flux_type, [filenames1[i]], spacecraft=spacecraft)
 
         if len(all_fluxes) == 0: continue
         #Energy bins for this detector
@@ -4508,7 +4514,7 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         
     elif (experiment == "GOES_RT") and flux_type == "integral":
         all_dates, all_fluxes, west_detector =\
-            read_in_goes_RT(experiment,flux_type, filenames1)
+            read_in_goes_RT(experiment,flux_type, filenames1, spacecraft=spacecraft)
 
     elif experiment == "EPHIN":
         all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)
@@ -4759,7 +4765,7 @@ def extract_date_range(startdate,enddate,all_dates,all_fluxes):
     for i in range(ndates):
         if all_dates[i] <= startdate:
             nst = i
-        if all_dates[i] <= enddate:
+        if all_dates[i] < enddate: #exclusive
             nend = i
     if all_dates[nst] < startdate:
         nst = nst + 1 #move one step past the start time if no
