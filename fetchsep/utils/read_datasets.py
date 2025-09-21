@@ -1188,6 +1188,13 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     endyear = enddate.year
     endmonth = enddate.month
     endday = enddate.day
+    
+    #If the end date extends partially into the last day
+    if enddate > datetime.datetime(enddate.year, enddate.month, enddate.day):
+        enddate = enddate + datetime.timedelta(hours=24)
+        endyear = enddate.year
+        endmonth = enddate.month
+        endday = enddate.day
 
     df = read_data_manager() #file completeness record
 

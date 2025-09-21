@@ -186,11 +186,13 @@ parser.add_argument("--IDSEPSubtractBG",
 
 
 ####### BATCH Arguments ######
+#Batch file is a csv, but saved as a txt to avoid opening with excel
+#which will mess up the date format if the user is not careful.
 parser.add_argument("--BatchFile", type=str, default='batch_event_list.csv',
         help=("Specify the name of the batch file. Will create a new"
                 "batch file with this name if StartPoint set to IDSEP or MAKEFILE."
                 "Will look for an existing batch file if StartPoint is BATCH."
-                "Default is batch_event_list.csv."))
+                "Default is batch_event_list.txt."))
 
 parser.add_argument("--ReferenceEnergyBin", type=str, default="10,-1",
         help=("Specify an energy bin array to use to create the batch file. "

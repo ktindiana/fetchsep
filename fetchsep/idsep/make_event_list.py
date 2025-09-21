@@ -202,11 +202,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
     if detector_list != '':
         det = get_detector(startdate, detector_dates, detector)
         if det != None:
-            line = (f"{str_startdate},{sep_sttimes[0]},{det},{flux_type},{flags},,,"
+            line = (f"{startdate:%Y-%m-%d %H:%M:%S},{sep_sttimes[0]:%Y-%m-%d %H:%M:%S},{det},{flux_type},{flags},,,"
                     f"{options},,,{json_type},{spacecraft},{idsep_path},"
                     f"{location},{species}\n")
     else:
-        line = (f"{str_startdate},{sep_sttimes[0]},{experiment},{flux_type},{flags},,,"
+        line = (f"{startdate:%Y-%m-%d %H:%M:%S},{sep_sttimes[0]:%Y-%m-%d %H:%M:%S},{experiment},{flux_type},{flags},,,"
                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
 
@@ -218,11 +218,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
         if detector_list != '':
             det = get_detector(sep_sttimes[i], detector_dates, detector)
             if det == None: continue
-            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{det},{flux_type},{flags},,,"
+            line = (f"{sep_sttimes[i]:%Y-%m-%d %H:%M:%S},{sep_endtimes[i]:%Y-%m-%d %H:%M:%S},{det},{flux_type},{flags},,,"
                  f"{options},,,{json_type},{spacecraft},{idsep_path},"
                  f"{location},{species}\n")
         else:
-            line = (f"{sep_sttimes[i]},{sep_endtimes[i]},{experiment},{flux_type},{flags},,,"
+            line = (f"{sep_sttimes[i]:%Y-%m-%d %H:%M:%S},{sep_endtimes[i]:%Y-%m-%d %H:%M:%S},{experiment},{flux_type},{flags},,,"
                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
             
@@ -235,11 +235,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
             det = get_detector(sep_endtimes[i], detector_dates,
                     detector)
             if det == None: continue
-            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{det},{flux_type},{flags},,,"\
+            line = (f"{sep_endtimes[i]:%Y-%m-%d %H:%M:%S},{sep_sttimes[i+1]:%Y-%m-%d %H:%M:%S},{det},{flux_type},{flags},,,"\
                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
         else:
-            line = (f"{sep_endtimes[i]},{sep_sttimes[i+1]},{experiment},{flux_type},{flags},,,"\
+            line = (f"{sep_endtimes[i]:%Y-%m-%d %H:%M:%S},{sep_sttimes[i+1]:%Y-%m-%d %H:%M:%S},{experiment},{flux_type},{flags},,,"\
                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
         
@@ -251,11 +251,11 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
     if detector_list != '':
         det = get_detector(enddate, detector_dates, detector)
         if det != None:
-            line = (f"{sep_endtimes[-1]},{str_enddate},{det},{flux_type},{flags},,,"\
+            line = (f"{sep_endtimes[-1]:%Y-%m-%d %H:%M:%S},{enddate:%Y-%m-%d %H:%M:%S},{det},{flux_type},{flags},,,"\
                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
     else:
-        line = (f"{sep_endtimes[-1]},{str_enddate},{experiment},{flux_type},{flags},,," \
+        line = (f"{sep_endtimes[-1]:%Y-%m-%d %H:%M:%S},{enddate:%Y-%m-%d %H:%M:%S},{experiment},{flux_type},{flags},,," \
                 f"{options},,,{json_type},{spacecraft},{idsep_path},"
                 f"{location},{species}\n")
     

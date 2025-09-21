@@ -781,9 +781,10 @@ class Data:
         
         ####Save original fluxes with bad points set to None
         #Extract date range that covers any background-subtraction periods
-        print("Reading in original fluxes including any background subtraction periods with no interpolation.")
+        print(f"Reading in original fluxes including any background subtraction periods with no interpolation for {all_dates[0]} to {all_dates[-1]}.")
         orig_dates, orig_fluxes = datasets.extract_date_range(startdate, enddate,
                                         all_dates, all_fluxes)
+
         orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,dointerp=False)
         self.original_dates = orig_dates
         self.original_fluxes = orig_fluxes
