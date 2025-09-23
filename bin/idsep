@@ -55,10 +55,6 @@ parser.add_argument("--options", type=str, default='', help=("You "
 parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
-parser.add_argument("--SubtractBG",
-        help="Set to calculate the background and subtract from the "\
-            "SEP flux. Must define start and end dates for the background.",
-            action="store_true")
 
 parser.add_argument("--RemoveAbove", type=float, default=999999,
         help=("Remove all flux points above a specified value."))
@@ -94,7 +90,6 @@ spacecraft = args.Spacecraft
 exp_name = args.ExperimentName
 user_file = args.UserFile
 is_unixtime = args.Unixtime
-doBGSub = args.SubtractBG
 
 options = args.options
 dointerp = args.DoInterp
