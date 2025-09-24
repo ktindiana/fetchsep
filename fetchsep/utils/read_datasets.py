@@ -682,7 +682,10 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
                 '%i/%02i/%s/csv/%s' % (year,month,satellite,fname1))
             print('Downloading GOES data: ' + url)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(fullpath1):
                     os.remove(fullpath1) # if exist, remove it directly
@@ -708,7 +711,10 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
                    '%i/%02i/%s/csv/%s' % (year,month,satellite,fname2))
                 print('Downloading GOES data: ' + url)
                 try:
-                    urllib.request.urlopen(url)
+                    try:
+                        urllib.request.urlopen(url)
+                    except:
+                        raise
                     
                     if os.path.exists(fullpath2):
                         os.remove(fullpath2) # if exist, remove it directly
@@ -899,7 +905,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                 '%i/%02i/%s/csv/%s' % (year,month,satellite,fname1))
             print('Downloading GOES data: ' + url)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(fullpath1):
                     os.remove(fullpath1) # if exist, remove it directly
@@ -919,7 +928,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                '%i/%02i/%s/csv/%s' % (year,month,satellite,fname2))
             print('Downloading GOES data: ' + url)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(fullpath2):
                     os.remove(fullpath2) # if exist, remove it directly
@@ -937,7 +949,10 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                    '%i/%02i/%s/csv/%s' % (year,month,satellite,fname_orien))
                 print('Downloading GOES data: ' + url)
                 try:
-                    urllib.request.urlopen(url)
+                    try:
+                        urllib.request.urlopen(url)
+                    except:
+                        raise
                 
                     if os.path.exists(fullpath_orien):
                         os.remove(fullpath_orien) # if exist, remove it directly
@@ -1025,7 +1040,10 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         if not exists1:
             url=('https://www.ngdc.noaa.gov/stp/space-weather/satellite-data/satellite-systems/goesr/solar_proton_events/sgps_sep2017_event_data/%s' % (fname1))
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 wget.download(url, fullpath1)
             except urllib.request.HTTPError:
                 sys.exit("Cannot access SEP event file at " + url +
@@ -1088,7 +1106,10 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                 fullpath = os.path.join(datapath,'GOES',fname_data)
                 url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
                 try:
-                    urllib.request.urlopen(url)
+                    try:
+                        urllib.request.urlopen(url)
+                    except:
+                        raise
                 
                     if os.path.exists(fullpath):
                         os.remove(fullpath) # if exist, remove it directly
@@ -1641,7 +1662,10 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
                     % (res,fname))
             print('Downloading EPHIN data: ' + url)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(svfile):
                     os.remove(svfile) # if exist, remove it directly
@@ -1852,7 +1876,10 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
             url = 'https://export.srl.utu.fi/%s' % (fl)
             localfl = os.path.join(ernepath,fl)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 wget.download(url, localfl)
                 datefiles.append(fl) #add to datefiles if not present
             except:
@@ -1888,7 +1915,10 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
                     url = ('https://export.srl.utu.fi/%s' % (fnm))
                     print('Downloading ERNE data: ' + url)
                     try:
-                        urllib.request.urlopen(url)
+                        try:
+                            urllib.request.urlopen(url)
+                        except:
+                            raise
                         wget.download(url, localfnm)
                         #Decompress gzip file
                         tar = tarfile.open(name=localfnm,mode='r:gz')
@@ -2004,7 +2034,10 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
         if not exists1 or not complete:
             url=(let_url_prefix + '%i/Summed/H/%s' % (year,fname1))
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(fullpath1):
                     os.remove(fullpath1) # if exist, remove it directly
@@ -2046,7 +2079,10 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
         if not exists2 or not complete:
             url=het_url_prefix + fname2
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(fullpath2):
                     os.remove(fullpath2) # if exist, remove it directly
@@ -2121,7 +2157,10 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
                     % (fname))
             print('Downloading ACE/SIS integral data: ' + url)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(svfile):
                     os.remove(svfile) # if exist, remove it directly
@@ -2194,7 +2233,10 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
                     % (fname))
             print('Downloading ACE/EPAM data: ' + url)
             try:
-                urllib.request.urlopen(url)
+                try:
+                    urllib.request.urlopen(url)
+                except:
+                    raise
                 
                 if os.path.exists(svfile):
                     os.remove(svfile) # if exist, remove it directly
@@ -2298,7 +2340,10 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
                         % (year, gzfname))
                 print('Downloading IMP-8/CPME data: ' + url)
                 try:
-                    urllib.request.urlopen(url)
+                    try:
+                        urllib.request.urlopen(url)
+                    except:
+                        raise
                     
                     if os.path.exists(gzsvfile):
                         os.remove(gzsvfile) # if exist, remove it directly
