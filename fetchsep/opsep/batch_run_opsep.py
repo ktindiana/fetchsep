@@ -1,9 +1,11 @@
 from . import opsep
+from ..utils import tools
 from ..json import ccmc_json_handler as ccmc_json
 from ..json import keys
 from ..utils import config as cfg
 from importlib import reload
 import matplotlib.pyplot as plt
+import pandas as pd
 import argparse
 import csv
 import datetime
@@ -134,7 +136,7 @@ def read_sep_dates(sep_filename):
         :experiments: (string 1xn array)
         :flux_types: (string 1xn array)
         :flags: (string 1xn array)
-        :model_names: (string 1xn array)
+        :user_names: (string 1xn array)
         :user_files: (string 1xn array)
         :json_types: (string 1xn array)
         :options: (string 1xn array)
@@ -148,14 +150,14 @@ def read_sep_dates(sep_filename):
     experiments = [] #row 1, e.g. GOES-11, GOES-13, GOES-15, SEPEM, user
     flux_types = [] #row 3
     flags = [] #row 4
-    model_names = [] #row 5
+    user_names = [] #row 5
     user_files = [] #row 6
     options = [] #row 7
     bgstartdate = [] #row 8
     bgenddate = [] #row 9
     json_types = [] #row 10 (if user experiment)
     spacecrafts = [] #row 11, primary or secondary for GOES_RT
-    use_idsep_bg = [] #row 12, use background found by idsep for subtraction and threshold
+    idsep_paths = [] #row 12, use background found by idsep for subtraction and threshold
     locations = [] #earth, mars, etc CCMC json
     particles = [] #proton, electron, etc CCMC json
     
@@ -196,9 +198,9 @@ def read_sep_dates(sep_filename):
                 flags.append('')
 
             if len(row) > 5:
-                model_names.append(row[5].strip())
+                user_names.append(row[5].strip())
             else:
-                model_names.append('')
+                user_names.append('')
 
             if len(row) > 6:
                 user_files.append(row[6].strip())
@@ -231,9 +233,9 @@ def read_sep_dates(sep_filename):
                 spacecrafts.append('')
 
             if len(row) > 12:
-                use_idsep_bg.append(bool(row[12].strip()))
+                idsep_paths.append(row[12].strip())
             else:
-                use_idsep_bg.append(False)
+                idsep_paths.append('')
                 
             if len(row) > 13:
                 locations.append(row[13].strip())
@@ -248,8 +250,8 @@ def read_sep_dates(sep_filename):
                 
 
     return start_dates, end_dates, experiments, flux_types, flags,\
-        model_names, user_files, json_types, options, bgstartdate,\
-        bgenddate, spacecrafts, use_idsep_bg, locations, particles
+        user_names, user_files, json_types, options, bgstartdate,\
+        bgenddate, spacecrafts, idsep_paths, locations, particles
 
 
 
@@ -485,7 +487,7 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
+def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=True,
     showplot=False, saveplot=True, detect_prev_event=False, two_peaks=False):
     """ Run all of the time periods and experiments in the list
         file. Extract the values of interest and compile them
@@ -518,9 +520,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
     check_list_path()
 
     #READ IN SEP DATES AND experiments
-    start_dates, end_dates, experiments, flux_types, flags,  model_names,\
+    start_dates, end_dates, experiments, flux_types, flags,  user_names,\
         user_files, json_types, options, bgstart, bgend, spacecrafts,\
-        use_idsep_bg, locations, particles = read_sep_dates(sep_filename)
+        idsep_paths, locations, particles = read_sep_dates(sep_filename)
 
     #Prepare output file listing events and flags
     fout = open(os.path.join(cfg.listpath,"opsep",outfname),"w+")
@@ -528,7 +530,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
 
     #---RUN ALL SEP EVENTS---
     Nsep = len(start_dates)
-    combos = {}
+    df_sep_csv = pd.DataFrame()
+    df_quiet_csv = pd.DataFrame()
+    dict_all_pkl = {}
     print(f"Read in {Nsep} SEP events.")
     for i in range(Nsep):
         start_date = start_dates[i]
@@ -536,21 +540,24 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
         experiment = experiments[i]
         flux_type = flux_types[i]
         flag = flags[i]
-        model_name = model_names[i]
+        user_name = user_names[i]
         user_file = user_files[i]
         json_type = json_types[i]
         option = options[i]
         bgstartdate = bgstart[i]
         bgenddate = bgend[i]
         spacecraft = spacecrafts[i]
-        use_bg_thresholds = use_idsep_bg[i]
+        idsep_path = idsep_paths[i]
         location = locations[i]
         species = particles[i]
 
         spase_id = ''
 
         flag = flag.split(';')
-        doBGSub = False
+        doBGSubOPSEP = False
+        OPSEPEnhancement = False
+        doBGSubIDSEP = False
+        IDSEPEnhancement = False
         nointerp = True #if true, will not do interpolation in time
         if dointerp: nointerp = False
         
@@ -558,33 +565,49 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
             detect_prev_event = True
         if "TwoPeak" in flag:
             two_peaks = True
-        if "SubtractBG" in flag:
-            doBGSub = True
+        if "OPSEPSubtractBG" in flag:
+            doBGSubOPSEP = True
+        if "OPSEPEnhancement" in flag:
+            OPSEPEnhancement = True
+        if "IDSEPSubtractBG" in flag:
+            doBGSubIDSEP = True
+        if "IDSEPEnhancement" in flag:
+            IDSEPEnhancement = True
 
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, jsonfname = opsep.run_all(start_date, end_date,
-                experiment, flux_type, model_name, user_file, json_type,
-                spase_id, showplot, saveplot, detect_prev_event,
-                two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
-                bgenddate, nointerp=nointerp, spacecraft=spacecraft,
-                use_bg_thresholds=use_bg_thresholds, location=location, species=species)
+            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_all(start_date,
+                end_date, experiment, flux_type, user_name=user_name, user_file=user_file,
+                json_type=json_type, spase_id=spase_id, showplot=showplot,
+                saveplot=saveplot, detect_prev_event=detect_prev_event,
+                two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
+                options=option, doBGSubOPSEP=doBGSubOPSEP,
+                OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
+                bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+                doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
+                idsep_path=idsep_path, location=location, species=species)
 
-            if experiment == 'user' and model_name != '':
-                fout.write(model_name + ',')
+            if experiment == 'user' and user_name != '':
+                fout.write(user_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
             fout.write(str(startdate) + ', ')
             fout.write('Success\n')
 
-#            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
-#            #EACH THRESHOLD
-#            if not combos:
-#                combos = initialize_files(jsonfname)
-#            success = write_sep_lists(jsonfname,combos)
-#            if not success:
-#                print('Could not write values to file for ' + jsonfname)
+            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
+            df_event_csv = pd.DataFrame(event_dict_csv, index=[0])
+            if not pd.isnull(sep_date):
+                df_sep_csv = pd.concat([df_sep_csv, df_event_csv])
+            else:
+                df_quiet_csv = pd.concat([df_quiet_csv, df_event_csv])
+
+            if not dict_all_pkl:
+                for key in event_dict_pkl.keys():
+                    dict_all_pkl.update({key: [event_dict_pkl[key]]})
+            else:
+                for key in dict_all_pkl.keys():
+                    dict_all_pkl[key].append(event_dict_pkl[key])
 
             plt.close('all')
             reload(opsep)
@@ -594,13 +617,39 @@ def run_all_events(sep_filename, outfname, threshold, umasep, dointerp=True,
             logger.exception('opsep failed with exception')
             # this log will just include content in sys.exit
             logger.error(str(e))
-            if experiment == 'user' and model_name != '':
-                fout.write(model_name + ',')
+            if experiment == 'user' and user_name != '':
+                fout.write(user_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
-            fout.write(str(startdate) +',' + '\"' + str(e) + '\"' )
+            fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
             fout.write('\n')
             reload(opsep)
             continue
 
     fout.close()
+    
+    #Assuming that options is the same for all files in the batch list
+    opts = options[0]
+    opts = opts.strip().split(";")
+    modifier, title_mod = tools.setup_modifiers(opts, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
+        IDSEPEnhancement=IDSEPEnhancement)
+    subdir = tools.opsep_subdir(experiment, flux_type, user_name, opts, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
+        IDSEPEnhancement=IDSEPEnhancement) #f"{experiment}_{flux_type}{modifier}"
+
+    sep_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_sep_events.csv"
+    sep_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, sep_fname_csv)
+    print(f"batch_run_opsep: Writing SEP events to csv file {sep_fname_csv}")
+    df_sep_csv.to_csv(sep_fname_csv, index=False)
+
+    quiet_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_non_events.csv"
+    quiet_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, quiet_fname_csv)
+    print(f"batch_run_opsep: Writing non-event periods to csv file {quiet_fname_csv}")
+    df_quiet_csv.to_csv(quiet_fname_csv, index=False)
+
+#    df_all_pkl = pd.DataFrame(dict_all_pkl)
+#    all_fname_pkl = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.pkl"
+#    all_fname_pkl = os.path.join(cfg.outpath, 'opsep', subdir, all_fname_pkl)
+#    print(f"batch_run_opsep: Writing all events to pkl file {all_fname_pkl}")
+#    df_all_pkl.to_pickle(all_fname_pkl)

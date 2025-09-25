@@ -1,0 +1,69 @@
+All GOES should be proccessed with a kurtosis cut of 65, except GOES-07, which requires a kurtosis cut 
+of 50 to calculate the background appropriately. This value should be set in fetchsep/fetchsep.cfg.
+
+EXCLUDE BAD GOES-06 TIME PERIODS
+-----------------------
+batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt
+There are sporadic large deviations of intensity values crossing a few orders of magnetude.
+Remove these time periods as a first cut at excluding clearly bad data.
+1986-11-21 23:40:00 to 1986-11-23 06:35:00
+1986-11-26 02:25:00 to 1986-11-26 17:35:00
+1986-12-09 02:50:00 to 1986-12-10 18:40:00
+1989-02-03 15:45:00 to 1989-02-13 07:35:00
+1989-03-10 19:50:00 to 1989-03-17 - SEP event with large data gap in the middle
+1989-06-30 19:05:00 to 1989-07-03 - SEP event with large data gap in the middle
+1990-12-20 12:30:00 to 1990-12-21 18:35:00
+1990-12-22 09:35:00 to 1990-12-24 15:20:00
+1991-07-07 03:35:00 to 1991-07-10 20:00:00 - SEP event with large data gap in the middle
+1992-04-17 04:10:00 to 1992-05-07 23:30:00 - bias shift results in poor background solution and incorrect background removal
+1992-05-14 00:00:00 to 1992-06-08 00:00:00 - bias shift results in poor background solution and incorrect background removal
+1992-09-22 00:00:00 to 1992-09-25 00:00:00
+1993-03-05 05:30:00 to 1993-03-06 13:30:00 - SEP event with data gap
+1994-08-17 18:10:00 to 1994-09-07 22:00:00
+
+EXCLUDE BAD GOES-07 TIME PERIODS
+-------------------------------
+1989-01-25 18:05:00 to 1989-01-26 17:15:00
+1993-02-25 00:10:00 to 1993-03-03 13:15:00 - oscillations in data
+1993-09-24 04:30:00 to 1993-09-26 15:50:00 - SEP event with data gap
+1994-02-23 19:05:00 to 1994-09-02 08:15:00 - bad background solution and incorrect background removal
+1994-10-28 23:15:00 to 1994-11-08 18:40:00
+1994-12-19 15:40:00 to 1994-12-22 10:00:00
+1995-02-01 00:35:00 to 1995-04-07 19:40:00 - oscillations in data
+1995-05-14 19:50:00 to 1995-05-15 21:50:00
+1995-07-26 07:25:00 to 1995-07-29 22:05:00
+1995-08-11 06:20:00 to 1995-08-15 13:45:00
+1995-09-17 13:00:00 to 1995-09-17 18:00:00
+
+EXCLUDE BAD GOES-11 TIME PERIODS
+-------------------------------
+2003-12-01 12:10:00 to 3-12-09 00:00:00 - SEP event with large data gap
+
+EXCLUDE BAD GOES-13 TIME PERIODS
+--------------------------------
+2010-10-27 21:05:00 to 2010-10-30 04:20:00 - noise or bias shift in high energies
+2010-11-16 15:25:00 to 2010-11-19 05:10:00 - noise or bias shift in high energies
+2010-12-27 14:15:00 to 2010-12-29 21:05:00 - noise or bias shift in high energies
+2014-12-13 01:00:00 to 2014-12-16 16:55:00 - SEP event with large data gap
+
+
+EXCLUDE BAD GOES-15 TIME PERIODS
+--------------------------------
+2014-12-13 01:00:00 to 2014-12-16 16:55:00 - SEP event with large data gap
+
+EXCLUDE BAD GOES REAL TIME PRIMARY TIME PERIODS
+-----------------------------------------------
+2024-06-23 22:05:00 to 2024-06-25 22:05:00 - SEP event with large data gap
+2025-05-03 17:35:00 to 2025-05-09 23:55:00 - contamination from electron channels causes increases in the proton channels
+
+
+EXCLUDE BAD GOES REAL TIME PRIMARY TIME PERIODS
+-----------------------------------------------
+2022-09-05 08:10:00 to 2022-09-30 18:25:00  - contamination from electron channels causes increases in the proton channels
+2023-01-31 07:15:00 to 2023-02-10 14:50:00 - SEP event with large data gap
+2023-09-26 09:45:00 to 2023-11-02 09:40:00 - contamination from electron channels causes increases in the proton channels
+2024-06-23 22:05:00 to 2024-07-21 23:10:00 - contamination from electron channels causes increases in the proton channels
+2025-05-03 17:35:00 to 2025-05-09 23:55:00 - contamination from electron channels causes increases in the proton channels
+
+
+

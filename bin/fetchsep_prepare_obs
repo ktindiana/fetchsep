@@ -5,7 +5,7 @@ import fetchsep.idsep.make_event_list as event_list
 import fetchsep.opsep as opsep
 import fetchsep.opsep.batch_run_opsep as batch
 import fetchsep.utils.config as cfg
-import fetchsep.utils.plotting_tools as plt_tools
+import fetchsep.utils.tools as tools
 import argparse
 import matplotlib.pyplot as plt
 import datetime
@@ -22,7 +22,8 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
 
 #Helper
-def septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=""):
+def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
+    doBGSub=False, spacecraft=""):
     """ Create the filename of the file output by
         SEPAutoID (idsep) that contains the SEP start and
         end times of interest.
@@ -32,28 +33,33 @@ def septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=""):
         :experiment: (string) name of experiment
         :flux_type: (string) integral or differential
         :options: (string array)
-        :energy_bins: (1x2 float array) [[low edge],[high edge]]
-            If the bin is >10 MeV, [[10],[-1]]
+        :energy_bins: (1x2 float array) [low edge,high edge]
+            If the bin is >10 MeV, [10,-1]
         
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = plt_tools.setup_modifiers(options, doBGSub, spacecraft=spacecraft)
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
+    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
+    prename = (f"SEPTimes_{name}")
+ 
+    energy_bin[0] = float(energy_bin[0])
+    if energy_bin[1] == -1:
+        energy_bin[1] = int(energy_bin[1])
+    else:
+        energy_bin[1] = float(energy_bin[1])
+ 
+    fname = os.path.join(cfg.outpath,"idsep", name, f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
 
-    prename = (f"SEPTimes_{experiment}_{flux_type}{modifier}")
-    if experiment == 'user' and exp_name != '':
-        prename = (f"SEPTimes_{exp_name}_{flux_type}{modifier}")
- 
-    fname = os.path.join(cfg.outpath,"idsep", f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
- 
     if not os.path.isfile(fname):
         bin0 = int(energy_bin[0])
         bin1 = int(energy_bin[1])
-        fname = os.path.join(cfg.outpath,"idsep", f"{prename}_{bin0}_to_{bin1}.txt")
+        fname = os.path.join(cfg.outpath,"idsep", name, f"{prename}_{bin0}_to_{bin1}.txt")
         
         if not os.path.isfile(fname):
-            sys.exit("septimes_fname: Cannot find file: " + fname)
-    
+            sys.exit(f"septimes_fname: Cannot find either file: {fname} or "
+                f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
+
     return fname
 
 
@@ -119,11 +125,6 @@ parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
 
-parser.add_argument("--SubtractBG",
-        help="Set to calculate the background and subtract from the "\
-                "SEP flux. Must define start and end dates for the background.",
-                action="store_true")
-
 parser.add_argument("--RemoveAbove", type=float, default=999999,
         help=("Remove all flux points above a specified value. "
                 "The same value is applied to all channels."))
@@ -132,16 +133,14 @@ parser.add_argument("--ForInclusive",
         help="Write out end times such that they end 1 second "
                 "before the next data point begins.",
                 action="store_true")
+
 parser.add_argument("--PlotTimeSeriesOnly",
         help="Only plot the flux timeseries without calculating "
                 "background and SEP events.", action="store_true")
 
-parser.add_argument("--UseBackgroundThresholds",
-        help="Pass the mean+nsigma thresholds found by IDSEP as thresholds in OpSEP "
-            "to identify when SEP events increase above background.", action="store_true")
-
 parser.add_argument("--showplot",
         help="Flag to display plots in IDSEP.", action="store_true")
+
 
 ####### OpSEP Arguments #####
 parser.add_argument("--Threshold", type=str, default="",
@@ -175,6 +174,35 @@ parser.add_argument("--Species", type=str, default='protons',
               "enter another location if needed. Default = proton"))
 
 
+parser.add_argument("--IDSEPEnhancement",
+        help="Set flag to use background mean+n*sigma found with IDSEP "
+            "to identify SEP enhancement above background in OpSEP. ",
+            action="store_true")
+
+parser.add_argument("--IDSEPSubtractBG",
+        help="Set flag to subtract the background from the "
+            "SEP flux using the background found with IDSEP in OpSEP. ",
+            action="store_true")
+
+
+####### BATCH Arguments ######
+#Batch file is a csv, but saved as a txt to avoid opening with excel
+#which will mess up the date format if the user is not careful.
+parser.add_argument("--BatchFile", type=str, default='batch_event_list.csv',
+        help=("Specify the name of the batch file. Will create a new"
+                "batch file with this name if StartPoint set to IDSEP or MAKEFILE."
+                "Will look for an existing batch file if StartPoint is BATCH."
+                "Default is batch_event_list.txt."))
+
+parser.add_argument("--ReferenceEnergyBin", type=str, default="10,-1",
+        help=("Specify an energy bin array to use to create the batch file. "
+            "The energy bin must exactly match an energy bin in the dataset. "
+            "The SEP event list for this energy bin created by IDSEP will "
+            "be used to determine the time periods to batch run OpSEP. "
+            "Use quote marks and specify the low edge, high edge. Use -1 "
+            "as the high edge for an integral energy channel."
+            "Default = \"10,-1\""))
+
 #WHERE TO START IN THE WORKFLOW
 parser.add_argument("--StartPoint", type=str, default="IDSEP",
         choices=['IDSEP','MAKEFILE','BATCH'],
@@ -200,7 +228,6 @@ species = args.Species
 exp_name = args.ExperimentName
 user_file = args.UserFile
 is_unixtime = args.Unixtime
-doBGSub = args.SubtractBG
 
 options = args.options
 dointerp = args.DoInterp
@@ -208,7 +235,17 @@ dointerp = args.DoInterp
 remove_above = args.RemoveAbove
 for_inclusive = args.ForInclusive
 plot_timeseries_only = args.PlotTimeSeriesOnly
-use_bg_thresholds = args.UseBackgroundThresholds
+
+doBGSubIDSEP = args.IDSEPSubtractBG
+IDSEPEnhancement = args.IDSEPEnhancement
+flags = ''
+if doBGSubIDSEP: flags = 'IDSEPSubtractBG'
+if IDSEPEnhancement:
+    if flags == '':
+        flags = "IDSEPEnhancement"
+    else:
+        flags = f"{flags};IDSEPEnhancement"
+
 
 showplot = args.showplot
 saveplot = True #args.saveplot #Always saveplot for this script
@@ -217,13 +254,21 @@ threshold = args.Threshold
 umasep = args.UMASEP
 json_type = args.JSONType
 
+energy_bin = args.ReferenceEnergyBin
+energy_bin = energy_bin.strip().split(",")
+energy_bin[0] = float(energy_bin[0])
+if energy_bin[1] != -1: energy_bin[1] = float(energy_bin[1])
+batchfile = args.BatchFile
 startpoint = args.StartPoint
-    
-    
+
+#IDSEP PATH
+idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+
+
 if startpoint == "IDSEP":
     fetchsep.idsep.run_all(str_startdate, str_enddate,
         experiment, flux_type, exp_name, user_file, is_unixtime,
-        options, doBGSub, dointerp, remove_above, for_inclusive,
+        options, dointerp, remove_above, for_inclusive,
         plot_timeseries_only, showplot, saveplot, spacecraft=spacecraft)
 
     if plot_timeseries_only:
@@ -235,7 +280,7 @@ if startpoint == "IDSEP":
 #will be stored here.
 goesfname = ''
 if experiment == "GOES":
-    goesfname = os.path.join(cfg.outpath, "idsep", "goes_experiments_dates.txt")
+    goesfname = os.path.join(cfg.outpath, "idsep", idsep_name, "goes_experiments_dates.txt")
 
 
 #SECOND ########################
@@ -243,17 +288,15 @@ if experiment == "GOES":
 #rewrite in the correct format to batch run quiet and elevated
 #time periods in OpSEP.
 ################################
-energy_bin = cfg.ref_energy_bin
-batchfile = 'batch_event_list.txt'
 
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    septimes_file = septimes_fname(experiment, flux_type, options, energy_bin, spacecraft=spacecraft)
+    septimes_file = septimes_fname(experiment, flux_type, exp_name, options, energy_bin, spacecraft=spacecraft)
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
         septimes_file, detector_list,experiment, flux_type,options, json_type,
-        batchfile, revise, spacecraft=spacecraft, use_bg_thresholds=use_bg_thresholds,
-        location=location, species=species)
+        batchfile, revise, flags=flags, spacecraft=spacecraft,
+        location=location, species=species, add_path=idsep_name)
 
 
 #THIRD #########################
@@ -271,9 +314,9 @@ saveplot = True
 detect_prev_event_default = False #Set to true if get FirstStart flag
 two_peaks_default = False #Set to true if get ShortEvent flag
 ############## END DEFAULTS #################
-sep_filename = os.path.join(cfg.outpath,'idsep',batchfile)
+sep_filename = os.path.join(cfg.outpath, "idsep", idsep_name, batchfile)
 statusfname = 'batch_run_status.csv'
 
-batch.run_all_events(sep_filename, statusfname, threshold, umasep,
+batch.run_all_events(sep_filename, statusfname, threshold, umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
     detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)

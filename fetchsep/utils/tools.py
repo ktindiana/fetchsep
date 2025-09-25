@@ -1,8 +1,9 @@
-from . import plotting_tools as plt_tools
 from . import config as cfg
+from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import datetime
 import os
+import sys
 import math
 import numpy as np
 from statistics import mode
@@ -49,9 +50,9 @@ def sort_bin_order(all_fluxes, energy_bins, energy_bin_centers=[]):
                 midpt = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
                 energy_bin_centers.append(midpt)
             
-    eff_en_np = np.array(energy_bin_centers)
-    sort_index = np.argsort(eff_en_np) #indices in sorted order
-    
+    eff_energies = np.array(energy_bin_centers)
+    sort_index = np.argsort(eff_energies) #indices in sorted order
+
     sort_fluxes = np.array(all_fluxes)
     sort_bins = []
     sort_centers = []
@@ -89,8 +90,130 @@ def determine_time_resolution(dates):
     return time_resolution
 
 
-def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, module,
-    spacecraft=""):
+##### NAMING SCHEMA #####
+def setup_modifiers(options, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=False,
+        OPSEPEnhancement=False, IDSEPEnhancement=False):
+    """ Add modifier strings according to options.
+    
+    """
+    modifier = '' #for appending to filenames
+    title_mod = '' #for appending to plot titles
+
+    doBGSub = False
+    if doBGSubOPSEP == True or doBGSubIDSEP == True:
+        doBGSub = True
+
+    module = ''
+    if doBGSubOPSEP or OPSEPEnhancement:
+        module = 'opsep'
+    if doBGSubIDSEP or IDSEPEnhancement:
+        module = 'idsep'
+
+    if "uncorrected" in options:
+        modifier = modifier + '_uncor'
+        title_mod = title_mod + 'uncorrected '
+    if "S14" in options:
+        modifier = modifier + '_S14'
+        title_mod = title_mod + 'S14 '
+    if "Bruno2017" in options:
+        modifier = modifier + '_B17'
+        title_mod = title_mod + 'Bruno2017 '
+    if spacecraft:
+        modifier = modifier + '_' + spacecraft
+        title_mod = title_mod + spacecraft + ' '
+    if doBGSub:
+        modifier = modifier + '_bgsub'
+        title_mod = title_mod + 'BG-subtracted '
+    if IDSEPEnhancement or OPSEPEnhancement:
+        modifier = modifier + '_enhance'
+
+    if module != '':
+        modifier = modifier + '_' + module
+        title_mod = title_mod + ' (' + module + ')'
+
+    return modifier, title_mod
+
+
+def setup_energy_bin_label(energy_bin):
+    """ Label for a single energy bin.
+    
+    """
+    label = ""
+    if energy_bin[1] != -1:
+        label = (f"{energy_bin[0]}-{energy_bin[1]} {cfg.energy_units}")
+    else:
+        label = (f">{energy_bin[0]} {cfg.energy_units}")
+
+    return label
+
+
+def energy_bin_key(bin):
+    """ Create key for dataframe or columns header in dataframe and
+        csv files.
+        
+    """
+    return f"{bin[0]}-{bin[1]}"
+
+
+def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=''):
+    """ Create naming scheme for subfolders in output/idsep 
+    
+        Used in:
+        SEPTimes files
+        HighPoints files
+        subdirectories in output
+        
+    """
+
+    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft)
+    name = (f"{experiment}_{flux_type}{modifier}")
+    if experiment == 'user' and exp_name != '':
+        name = (f"{exp_name}_{flux_type}{modifier}")
+    
+    return name
+    
+
+def opsep_subdir(experiment, flux_type, exp_name, options,
+    spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
+    IDSEPEnhancement=False):
+
+    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
+    #Return a corresponding directory name
+    dir = (f"{experiment}_{flux_type}{modifier}")
+    if experiment == 'user' and exp_name != '':
+        dir = (f"{exp_name}_{flux_type}{modifier}")
+ 
+    return dir
+
+
+def opsep_naming_scheme(date, suffix, experiment, flux_type, exp_name, options,
+    spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
+    IDSEPEnhancement=False):
+    """ Create naming scheme for subfolders in output/idsep """
+
+    tzulu = ccmc_json.make_ccmc_zulu_time(date)
+    tzulu = tzulu.replace(":","")
+
+    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
+    name = (f"{tzulu}_{experiment}_{flux_type}{modifier}_{suffix}")
+    if experiment == 'user' and exp_name != '':
+        name = (f"{tzulu}_{exp_name}_{flux_type}{modifier}_{suffix}")
+
+    #Return a corresponding directory name
+    dir = opsep_subdir(experiment, flux_type, exp_name, options, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
+    return name, dir
+
+
+def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
+    module, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=False, OPSEPEnhancement=False,
+    IDSEPEnhancement=False, suffix=''):
     """ Write dates, fluxes to a standard format csv file with datetime in the 
         first column and fluxes in the remaining column. The energy bins will 
         be indicated in the file comments.
@@ -111,15 +234,30 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
             csv file written to outpath
                  
     """
-    modifier, title_modifier = plt_tools.setup_modifiers(options,False,spacecraft=spacecraft)
+    name = ''
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
-    fname = (f"fluxes_{experiment}_{flux_type}{modifier}_{stdate}_{enddate}.csv")
-    fname = os.path.join(cfg.outpath,module,fname)
+    if module == 'idsep':
+        name = idsep_naming_scheme(experiment, flux_type, exp_name, options,
+                    spacecraft=spacecraft)
+        fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
+        fname = os.path.join(cfg.outpath, module, name, fname)
+    elif module == 'opsep':
+        #name like the json schema
+        name, dir = opsep_naming_scheme(dates[0], suffix, experiment, flux_type, exp_name,
+            options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
+            doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
+            IDSEPEnhancement=IDSEPEnhancement)
+        tzulu = ccmc_json.make_ccmc_zulu_time(dates[0])
+        tzulu = tzulu.replace(":","")
+        fname = f"{dir}.{tzulu}.csv"
+        if suffix != '':
+            fname = f"{dir}.{tzulu}_{suffix}.csv"
+        fname = os.path.join(cfg.outpath, module, dir, fname)
         
     keys = []
     for bin in energy_bins:
-        keys.append((f"{bin[0]}-{bin[1]}"))
+        keys.append(energy_bin_key(bin))
     
     dict = {"dates":dates}
     for i in range(len(fluxes)):
@@ -128,8 +266,11 @@ def write_fluxes(experiment, flux_type, options, energy_bins, dates, fluxes, mod
     df = pd.DataFrame(dict)
     df.to_csv(fname, index=False)
     print("Wrote " + fname + " to file.")
-    
-    
+
+    return fname
+
+
+
 def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
     fluxes, bruno2017=False, energy_bin_centers=[]):
     """ If user selected differential fluxes, convert to integral fluxes to
@@ -292,6 +433,299 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
 
 
 
+######### SEP event identification ################
+def identify_sep_above_background_one(dates, fluxes):
+    """ Identify which increases above backgrounds
+        are SEP events.
+        
+        Used in IDSEP and OpSEP.
+        
+        INPUTS:
+        
+        :dates: (1xn datetime array) dates for each flux point
+        :fluxes: (1xn float array) m energy channels and n time points
+        
+        OUTPUTS:
+        
+        :dates: (1xn datetime array) same as in
+        :fluxes_sep: (1xn float array) all points set to zero except
+            those identified as SEPs
+            
+    """
+    time_res = determine_time_resolution(dates)
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    #DEPENDS ON TIME RESOLUTION
+    #CAN BE DIFFICULTIES IN IDENTIFYING SEP EVENTS IN VERY
+    #GAPPY DATA
+    time_increase = 86400/4 #86400 #Require an increase above threshold for 6 hrs
+    if time_res_sec <= 60*60:
+        time_increase = 3*60*60 #3 hr increase for hi-res data
+    global nconsec
+    nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
+        #3 consecutive points for Voyager
+    global allow_miss
+    #In this stricter SEP event identification used in OpSEP, allow less
+    #missed points for the identification of SEP onset
+    #20 minutes of points for 5 minute data
+    allow_miss = max(math.ceil(nconsec/10),1)
+    if nconsec == 2 or nconsec == 3: allow_miss = 0
+
+    #This algorithm is being used to identify enhancements above background using
+    #points that are n*sigma above background. There will be sporadic points
+    #that are above this level just due to statistical fluctuations. The dwell
+    #time can't be too long, or those random fluctuations will extend events
+    #artificially. For use in OpSEP, which aims to more precisely identify
+    #SEP events, use a shorter dwell time.
+    global dwell_pts
+    dwell_time = 1*60.*60. #hr
+    dwell_pts = int(dwell_time/time_res_sec)
+    if time_res_sec > dwell_time:
+        dwell_pts = 2
+
+    print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
+    print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
+    print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
+                
+    npts = len(dates)
+
+    IsSPE = False
+    SPEflag = False
+    
+    SPEstart = pd.NaT
+    SPEend = pd.NaT
+    SPEfluxes = [0]*npts
+    stidx = 0
+    endidx = 0
+
+    if npts < (nconsec+dwell_pts+allow_miss):
+        print(f"identify_sep_above_background_one: Time series is too short {npts} to "
+            f"identify a SEP event with the necessary requirements ({nconsec+dwell_pts+allow_miss}).")
+        return SPEstart, SPEend, SPEfluxes
+
+    for i in range(npts-nconsec):
+        #Condition to identify start of SEP
+        if fluxes[i] > 0 and not IsSPE:
+            #Check that the increase continues
+            #Flux below threshold or nan will be counted as a miss
+            nhit = 0
+            for k in range(i, i+nconsec):
+                chk_flux = fluxes[k]
+                if chk_flux > 0:
+                    nhit = nhit + 1
+                elif pd.isnull(chk_flux):
+                    continue
+                elif chk_flux == cfg.badval:
+                    continue
+            
+            #too many zero points, not an SPE
+            if nhit >= (nconsec - allow_miss): IsSPE = True
+        
+        #Identify the start of an SPE
+        if IsSPE and not SPEflag:
+            SPEflag = True
+            stidx = i
+            SPEstart = dates[i]
+            i = i+nconsec #jump to end of required consecutive points
+ 
+ 
+        #ONGOING SPE with allowed gap
+        if IsSPE and SPEflag:
+            if fluxes[i] == 0: #don't consider nan or badval; bg set to zero
+                IsSPE = False
+                end_dwell = min(i+dwell_pts,npts-1)
+                for ii in range(i,end_dwell):
+                    chk_flux = fluxes[ii]
+                    if chk_flux > 0: IsSPE = True
+
+            if not IsSPE or i == npts-1:
+                SPEflag = False
+                endidx = i
+                SPEend = dates[i]
+                if i== npts-1:
+                    print("WARNING!! identify_sep_above_background_one: SEP event ended "
+                        "at end of file. Consider extending the timeframe to get a "
+                        "more accurate end time.")
+            
+                #Fill in the SEP flux array with the SEP points
+                for kk in range(stidx, endidx+1):
+                    SPEfluxes[kk] = fluxes[kk]
+
+                #Return the first SEP found. If not returned here, code
+                #continue looking for next SEP.
+                print("identify_sep_above_background_one: SEP event found from "
+                    f"{SPEstart} and {SPEend}.")
+                return SPEstart, SPEend, SPEfluxes
+
+
+    return SPEstart, SPEend, SPEfluxes
+
+
+
+def identify_sep_above_background(dates, fluxes):
+    """ Identify which increases above backgrounds
+        are SEP events.
+        
+        Used in IDSEP and OpSEP.
+        
+        INPUTS:
+        
+        :dates: (1xn datetime array) dates for each flux point
+        :fluxes: (mxn float array) m energy channels and n time points
+        
+        OUTPUTS:
+        
+        :dates: (1xn datetime array) same as in
+        :fluxes_sep: (mxn float array) all points set to zero except
+            those identified as SEPs
+            
+    """
+    time_res = determine_time_resolution(dates)
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    #DEPENDS ON TIME RESOLUTION
+    #CAN BE DIFFICULTIES IN IDENTIFYING SEP EVENTS IN VERY
+    #GAPPY DATA
+    time_increase = 86400/4 #86400 #Require an increase above threshold for duration
+    if time_res_sec <= 60*60:
+        time_increase = 3*60*60 #6*60*60 #6 hr increase for hi-res data
+    global nconsec
+    nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
+        #3 consecutive points for Voyager
+    global allow_miss
+    allow_miss = max(math.ceil(nconsec/4),1)
+    if nconsec == 2 or nconsec == 3: allow_miss = 0
+    global dwell_pts
+    dwell_pts = max(math.ceil(nconsec/2),2)
+    #Rosetta? needs --> dwell_pts = max(math.ceil(nconsec),2)
+
+    print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
+    print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
+    print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
+                
+    npts = len(dates)
+
+    IsSPE = False
+    SPEflag = False
+    
+    SPEstart = [[]]*len(fluxes)
+    SPEend = [[]]*len(fluxes)
+    SPEfluxes = [[]]*len(fluxes)
+    stidx = 0
+    endidx = 0
+    for j in range(len(fluxes)):
+        SPEfluxes[j] = [0]*npts
+        for i in range(npts-nconsec):
+            if fluxes[j][i] > 0 and not IsSPE:
+                IsSPE = True
+                
+                #Check that the increase continues
+                #Flux below threshold will be set to zero
+                nmiss = 0
+                for k in range(i, i+nconsec):
+                    chk_flux = fluxes[j][k]
+                    if chk_flux <= 0 or pd.isnull(chk_flux):
+                        nmiss = nmiss + 1
+                
+                #too many zero points, not an SPE
+                if nmiss > allow_miss: IsSPE = False
+            
+            #Identify the start of an SPE
+            if IsSPE and not SPEflag:
+                SPEflag = True
+                stidx = i
+                if not SPEstart[j]:
+                    SPEstart[j] = [dates[i]]
+                else:
+                    SPEstart[j].append(dates[i])
+                i = min(i+nconsec,npts-nconsec-1) #jump to end of required consecutive points
+              
+            #ONGOING SPE with allowed gap
+            if IsSPE and SPEflag:
+                if fluxes[j][i] <= 0:
+                    IsSPE = False
+                    end_dwell = min(i+dwell_pts,npts-nconsec-1)
+                    for ii in range(i,end_dwell):
+                        chk_flux = fluxes[j][ii]
+                        if chk_flux > 0: IsSPE = True
+                        
+                if not IsSPE or i == npts-nconsec-1:
+                    SPEflag = False
+                    endidx = i
+                    if not SPEend[j]:
+                        SPEend[j] = [dates[i]]
+                    else:
+                        SPEend[j].append(dates[i])
+                
+                    #Fill in the SEP flux array with the SEP points
+                    for kk in range(stidx, endidx+1):
+                        SPEfluxes[j][kk] = fluxes[j][kk]
+                    
+    return SPEstart, SPEend, SPEfluxes
+
+
+
+def identify_sep_noaa(dates, fluxes, threshold):
+    """ Follow SWPC approach to identifying event start and end 
+        above threshold.
+        
+        Used in OpSEP.
+    
+    """
+    threshold_crossed = False
+    event_ended = False
+    ndates = len(dates)
+    sep_start_time = pd.NaT
+    sep_end_time = pd.NaT
+
+    end_threshold = cfg.endfac*threshold
+            #endfac = 1.0 to get SWPC definition of event end for 5 min data
+            #endfac = 0.85 used by SRAG operators in an alarm code
+            #Included for flexibility, but 1.0 is used for operational values
+
+    time_res = determine_time_resolution(dates)
+    print("Time resolution of the data set is: "
+            + str(time_res.total_seconds()) + " seconds.")
+    time_res_sec = time_res.total_seconds()
+    
+    npoints = 3 #require 3 points above threshold as employed by SWPC
+    if time_res_sec/60. > 15:
+        npoints = 1 #time resolution >15 mins, require one point above threshold
+
+    for i in range(ndates):
+        if not threshold_crossed:
+            if(fluxes[i] >= threshold):
+                start_counter = 0
+                if i+(npoints-1) < ndates:
+                    for ii in range(npoints):
+                        if fluxes[i+ii] >= threshold:
+                            start_counter = start_counter + 1
+                if start_counter == npoints:
+                    sep_start_time = dates[i]
+                    threshold_crossed = True
+        if threshold_crossed and not event_ended:
+            if (fluxes[i] >= end_threshold):
+                end_counter = 0  #reset if go back above threshold
+                end_tm0 = dates[i] #will catch the last date above threshold
+            if (fluxes[i] <= end_threshold): #flux drops below endfac*threshold
+                end_counter = end_counter + 1
+                elapse = (dates[i]  - end_tm0).total_seconds()
+                #When looking for an end of an event below an operational threshold
+                #or threshold that isn't the background, apply a dwell time to ensure
+                #the fluxes don't fluctuate above threshold again after a little while.
+                if elapse > cfg.dwell_time: #N consecutive points longer than dwell time
+                    event_ended = True
+                    sep_end_time = dates[i-(end_counter-1)] #correct back time steps
+                    #Double checked some calculated event end times with SWPC and
+                    #this logic gave the correct end times. 2023-04-10 KW
+
+    return sep_start_time, sep_end_time
+
+
 ######### Functions for calculating the onset peak ########
 def residual(fit, data):
     """ Calculate difference between fit and data.
@@ -302,6 +736,61 @@ def residual(fit, data):
     for i in range(len(fit)):
         resid.append(data[i] - fit[i])
     
+    return resid
+
+
+def ratio(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    resid = []
+    for i in range(len(fit)):
+        if data[i] != 0:
+            err = abs(data[i] - fit[i])/data[i]
+            resid.append(err)
+ 
+    resid = sum(resid)/len(resid)
+ 
+    return resid
+
+
+def normchisq(fit, data, sigma=np.nan):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    resid = []
+    for i in range(len(fit)):
+        if not pd.isnull(sigma):
+            err = ((data[i] - fit[i])**2)/sigma
+            resid.append(err)
+    
+        elif data[i] != 0:
+            err = ((data[i] - fit[i])**2)/data[i]
+            resid.append(err)
+ 
+    resid = sum(resid)/(len(resid)-1)
+ 
+    return resid
+
+
+def determination(fit, data):
+    """ Calculate difference between fit and data.
+    
+    """
+    
+    fiterr = []
+    dataerr = []
+    meandata = [x for x in data if (x > 0 and not pd.isnull(x))]
+    meandata = sum(meandata)/len(meandata)
+    for i in range(len(fit)):
+        if data[i] != 0 and not pd.isnull(data[i]):
+            fiterr.append((data[i] - fit[i])**2)
+            dataerr.append((data[i] - meandata)**2)
+    
+    resid = 1 -  sum(fiterr)/sum(dataerr)
+ 
     return resid
 
 
@@ -351,6 +840,7 @@ def func_residual(params, *args):
 #    fit = lognormal(times, Ip, a, b)
     
     resid = residual(fit, data)
+#    resid = normchisq(fit, data)
 
     return resid
     

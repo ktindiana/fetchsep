@@ -44,10 +44,9 @@ parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
 
-parser.add_argument("--UserFile", type=str, default='tmp.txt', help=("If "
+parser.add_argument("--UserFile", type=str, default='', help=("If "
         "you chose user for experiment, specify the filename containing "
-        "the fluxes. Specify energy bins and delimeter in code at top. "
-        "Default is tmp.txt."))
+        "the fluxes. Specify energy bins and delimeter in code at top."))
 
 parser.add_argument("--JSONType", type=str, choices=['model',
         'observations'], default='observations',
@@ -103,9 +102,34 @@ parser.add_argument("--NoInterp",
                 "linear interpolation in time. Set as None values "
                 "instead."), action="store_true")
 
-parser.add_argument("--SubtractBG",
-        help="Set to calculate the background and subtract from the "\
-            "SEP flux. Must define start and end dates for the background.",
+parser.add_argument("--IDSEPEnhancement",
+        help="Set flag to use background mean+n*sigma found with IDSEP "
+            "to identify SEP enhancement above background. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with IDSEPPath flag.", action="store_true")
+
+parser.add_argument("--IDSEPSubtractBG",
+        help="Set flag to subtract the background from the "
+            "SEP flux using the background found with IDSEP. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with IDSEPPath flag.", action="store_true")
+            
+parser.add_argument("--IDSEPPath", type=str, default='',
+        help="Path to the directory containing the IDSEP "
+            "output files background_mean_fluxes_optimized_FINAL.csv and "
+            "background_threshold_optimized_FINAL.csv.")
+
+parser.add_argument("--OPSEPSubtractBG",
+        help="Set flag to calculate the background and subtract from the "
+            "SEP flux using the algorithm in OpSEP. Must define start "
+            "and end dates for the background with the BGStartDate and "
+            "BGEndDate flags.", action="store_true")
+
+parser.add_argument("--OPSEPEnhancement",
+        help="Set flag to use the background mean+n*sigma found "
+            "with OPSEP to identify SEP enhancement above background. "
+            "Must define start and end dates for the background "
+            "with the BGStartDate and BGEndDate flags.",
             action="store_true")
 
 parser.add_argument("--BGStartDate", type=str, default='',
@@ -155,16 +179,20 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
-model_name = args.ExperimentName
+user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
 spase_id = args.spase_id
 location = args.Location
 species = args.Species
-str_thresh = args.Threshold
-doBGSub = args.SubtractBG
-str_bgstartdate = args.BGStartDate
-str_bgenddate = args.BGEndDate
+user_thresholds = args.Threshold
+doBGSubIDSEP = args.IDSEPSubtractBG
+IDSEPEnhancement = args.IDSEPEnhancement
+idsep_path = args.IDSEPPath
+doBGSubOPSEP = args.OPSEPSubtractBG
+OPSEPEnhancement = args.OPSEPEnhancement
+bgstartdate = args.BGStartDate
+bgenddate = args.BGEndDate
 showplot = args.showplot
 saveplot = args.saveplot
 detect_prev_event = args.DetectPreviousEvent
@@ -174,11 +202,29 @@ options = args.options
 nointerp = args.NoInterp
 
 
-
-sep_year, sep_month, sep_day, jsonfname = fetchsep.opsep.run_all(str_startdate,
-    str_enddate, experiment, flux_type, model_name, user_file, json_type, spase_id,
-    showplot, saveplot, detect_prev_event, two_peaks, umasep, str_thresh, options,
-    doBGSub, str_bgstartdate, str_bgenddate, nointerp=nointerp,
-    spacecraft=spacecraft, location=location, species=species)
+date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(str_startdate,
+    str_enddate, experiment, flux_type,
+    user_name=user_name,
+    user_file=user_file,
+    json_type=json_type,
+    spase_id=spase_id,
+    showplot=showplot,
+    saveplot=saveplot,
+    detect_prev_event=detect_prev_event,
+    two_peaks=two_peaks,
+    umasep=umasep,
+    user_thresholds=user_thresholds,
+    options=options,
+    doBGSubOPSEP=doBGSubOPSEP,
+    OPSEPEnhancement=OPSEPEnhancement,
+    bgstartdate=bgstartdate,
+    bgenddate=bgenddate,
+    nointerp=nointerp,
+    spacecraft=spacecraft,
+    doBGSubIDSEP=doBGSubIDSEP,
+    IDSEPEnhancement=IDSEPEnhancement,
+    idsep_path=idsep_path,
+    location=location,
+    species=species)
 
 if showplot: plt.show()

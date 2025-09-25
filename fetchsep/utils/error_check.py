@@ -6,7 +6,7 @@ import sys
 """ Check inputs and options for errors and incompatabilities."""
 
 
-def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None,
+def error_check_options(experiment, flux_type, options, subroutine=None,
     spacecraft=""):
     """ Make sure the selected options make sense for the experiment.
         
@@ -48,11 +48,6 @@ def error_check_options(experiment, flux_type, options, doBGSub, subroutine=None
         print("Sandberg et al. (2014) effective energies from GOES-11 will be "
             "applied to P2-P5. Bruno (2017) effective energies will be applied "
             "to P6-P11.")
-    if doBGSub and experiment[0:4] == "GOES" and flux_type == "integral":
-        sys.exit("Do not perform background subtraction on GOES integral "
-                "fluxes. Integral fluxes have already been derived by "
-                "applying corrections for cross-contamination and removing "
-                "the instrument background levels.")
     if ("uncorrected" in options or "S14" in options or "Bruno2017" in options)\
                 and experiment[0:4] != "GOES":
         sys.exit("The options you have selected are only applicable to GOES "
@@ -169,3 +164,31 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
             '. Please change your requested dates. Exiting.')
 
 
+def error_check_background(experiment, flux_type, doBGSubOPSEP, doBGSubIDSEP,
+    OPSEPEnhancement, IDSEPEnhancement):
+    """ Check background separatation and background subtraction options.
+    
+    """
+    if doBGSubOPSEP and doBGSubIDSEP:
+        sys.exit("You chose background subtraction applied by both OPSEP and "
+                "IDSEP. Please select only one method to perform background "
+                "subtraction by selecting only --doBGSubOPSEP or --doBGSubIDSEP.")
+                
+    if doBGSubOPSEP and IDSEPEnhancement:
+        sys.exit("You chose to perform background subtraction with OPSEP "
+            "and to identify enhancements above background using IDSEP. "
+            "Please choose only one method to perform background "
+            "subtraction and identify enhancements.")
+            
+    if doBGSubIDSEP and OPSEPEnhancement:
+        sys.exit("You chose to perform background subtraction with IDSEP "
+            "and to identify enhancements above background using OPSEP. "
+            "Please choose only one method to perform background "
+            "subtraction and identify enhancements.")
+
+    if (doBGSubOPSEP or doBGSubIDSEP) and experiment[0:4] == "GOES" and flux_type == "integral":
+        print("WARNING: Do you want to perform background subtraction? "
+                "Do not perform background subtraction on GOES integral "
+                "fluxes. Integral fluxes have already been derived by "
+                "applying corrections for cross-contamination and removing "
+                "the instrument background levels.")
