@@ -36,6 +36,8 @@ FetchSEP can run `idsep` followed by `opsep` to identify and analyze all SEP eve
 
 FetchSEP may be used to download particle data for supported spacecraft and output the fluxes into a simple, easy-to-read csv file.
 
+FetchSEP supported data:
+
 * GOES-05 to GOES-15 (excluding GOES-09) - fluxes are taken from the west-facing detector
 * GOES-R real-time integral (CCMC iSWA archive) and differential (NOAA NCEI) fluxes
 * SOHO/EPHIN 4 energy bins and SOHO/EPHIN REleASE high resolution energy bins
