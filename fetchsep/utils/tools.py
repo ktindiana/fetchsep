@@ -867,8 +867,8 @@ def find_max_curvature(x, y):
     max_k_idx= np.argmin(k_x)
     
     #rescale the curvature to overplot
-    max_y = np.max(yarr)
-    max_y_idx = np.argmax(yarr)
-    k_x = (np.max(yarr)/np.max(k_x))*k_x
+#    max_y = np.max(yarr)
+#    max_y_idx = np.argmax(yarr)
+#    k_x = (np.max(yarr)/np.max(k_x))*k_x
             
     return max_k_idx+2
