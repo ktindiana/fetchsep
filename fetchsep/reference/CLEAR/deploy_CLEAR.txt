@@ -1,14 +1,26 @@
+#The benchmark dataset is created using FetchSEP run in python3.10. 
+
 #The steps in this procedure will download all necessary data, process it, and create individual
 #curated SEP lists for each GOES spacecraft. These lists may be combined to a final list by
 #choosing the primary spacecraft for each time period.
 
+#The steps provided here work on Mac where the command to call python is python3.10. 
+#A script that will work on Mac or linux is provided in deploy_CLEAR.sh. The python
+#command in that script may need to be modified for your specific required call.
+
+#This script assumes the data directory is located in fetchsep/data. If you want your data directory
+#elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR_GOES-07.cfg and fetchsep_CLEAR.cfg must be 
+#edited with the location of your desired data path (and output, plots, etc).
+
+#Execute these commands in the top directory of the repository, fetchsep/
+
 ######################################################################
-####################### SET UP ENVIRONMENT ###########################
+############ SET UP ENVIRONMENT AND CREATE DIRECTORIES ###############
 ######################################################################
 #In the top level fetchsep directory
 export PYTHONPATH="$PYTHONPATH:$PWD"
+python3.10 fetchsep/utils/config.py
 cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
-
 
 ######################################################################
 ################# CALCULATE BACKGROUNDS WITH IDSEP ###################

@@ -1,9 +1,8 @@
-#Information about GOES-Primary Spacecraft
 import pandas as pd
 import datetime
 import os
 
-
+#Information about GOES-Primary Spacecraft
 def import_goes_status():
     """ Read in GOES_Primary_Secondary_Status.csv provided by
         Kim Moreland (NOAA SWPC) on September 5, 2024.
@@ -81,7 +80,7 @@ def goes_primary_lookup(date):
     table_date = datetime.datetime(2024,9,6,23,23,59)
 
     #Date beyond table
-    is date > table_date:
+    if date > table_date:
         print("Do not have information about primary/secondary GOES for this date. "
                 "Returning GOES_RT, but this is only valid for integral fluxes. "
                 "You may check "

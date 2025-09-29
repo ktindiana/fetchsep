@@ -302,8 +302,8 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 #See full program description in all_program_info() below
 datapath = cfg.datapath
-outpath = cfg.outpath + "/opsep"
-plotpath = cfg.plotpath + "/opsep"
+outpath = os.path.join(cfg.outpath, "opsep")
+plotpath = os.path.join(cfg.plotpath, "opsep")
 badval = cfg.badval #bad data points will be set to this value; must be negative
 
 # Prepare directories
