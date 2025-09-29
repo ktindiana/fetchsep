@@ -35,6 +35,7 @@ The mean background and sigma calculated for each day in `idsep` may be used by 
 FetchSEP can run `idsep` followed by `opsep` to identify and analyze all SEP events in a time series. The results of this automated process will not be perfect as some identified enhanced periods may consist of multiple SEP events in succession. A small amount of human intervention to appropriately split those time periods can lead to an automatically generated high-quality list of SEP events and their characteristics. More guidance provided in the fetchsep_prepare_obs section.
 
 FetchSEP may be used to download particle data for supported spacecraft and output the fluxes into a simple, easy-to-read csv file.
+
 * GOES-05 to GOES-15 (excluding GOES-09) - fluxes are taken from the west-facing detector
 * GOES-R real-time integral (CCMC iSWA archive) and differential (NOAA NCEI) fluxes
 * SOHO/EPHIN 4 energy bins and SOHO/EPHIN REleASE high resolution energy bins
