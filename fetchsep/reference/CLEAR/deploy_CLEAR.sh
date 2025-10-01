@@ -19,9 +19,6 @@
 # set up environment and create directories
 export PYTHONPATH="$PYTHONPATH:$PWD"
 python fetchsep/utils/config.py
-#mkdir -p output/idsep/GOES-{06,07,08,10,11,13,15}_integral \
-   output/idsep/GOES_RT_integral_{primary,secondary} \
-   output/idsep/GOES-{13,15}_differential_uncor_S14_B17
 
 
 declare -A start_date=(
