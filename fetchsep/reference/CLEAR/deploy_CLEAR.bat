@@ -72,25 +72,25 @@ for %%G in (06 07 08 10 11 13 15 RT) do (
          > .\output\GOES-%%G_integral_batch.log
       echo
    ) else (
-      for %%type in (primary secondary) do (
-         echo "[GOES-%%G/%%type] Calculate background with idsep"
+      for %%T in (primary secondary) do (
+         echo "[GOES-%%G/%%T] Calculate background with idsep"
          python .\bin\idsep ^
-            --StartDate "!start_date.GOES-%%G.%%type!" --EndDate "!end_date.GOES-%%G.%%type!" ^
-            --Experiment GOES_%%G --Spacecraft %%type --FluxType integral --RemoveAbove 10 --saveplot ^
-            > .\output\GOES_%%G_integral_%%type_idsep.log
+            --StartDate "!start_date.GOES-%%G.%%T!" --EndDate "!end_date.GOES-%%G.%%T!" ^
+            --Experiment GOES_%%G --Spacecraft %%T --FluxType integral --RemoveAbove 10 --saveplot ^
+            > .\output\GOES_%%G_integral_%%T_idsep.log
 
          echo
-         echo "[GOES-%%G/%%type] Copy curated batch files"
-         copy .\fetchsep\reference\CLEAR\batch_event_list_GOES_RT_integral_%%type_enhance_idsep_CLEAR.txt ^
-            .\output\idsep\GOES_RT_integral_%%type\
+         echo "[GOES-%%G/%%T] Copy curated batch files"
+         copy .\fetchsep\reference\CLEAR\batch_event_list_GOES_RT_integral_%%T_enhance_idsep_CLEAR.txt ^
+            .\output\idsep\GOES_RT_integral_%%T\
 
-         echo "[GOES-%%G/%%type] Batch opsep using curated CLEAR lists"
+         echo "[GOES-%%G/%%T] Batch opsep using curated CLEAR lists"
          python .\bin\fetchsep_prepare_obs ^
-            --StartDate "!start_date.GOES-%%G.%%type!" --EndDate "!end_date.GOES-%%G.%%type!" ^
-            --Experiment GOES_%%G --Spacecraft %%type --FluxType integral --Threshold "30,1;50,1" ^
-            --BatchFile batch_event_list_GOES_%%G_integral_%%type_enhance_idsep_CLEAR.txt ^
+            --StartDate "!start_date.GOES-%%G.%%T!" --EndDate "!end_date.GOES-%%G.%%T!" ^
+            --Experiment GOES_%%G --Spacecraft %%T --FluxType integral --Threshold "30,1;50,1" ^
+            --BatchFile batch_event_list_GOES_%%G_integral_%%T_enhance_idsep_CLEAR.txt ^
             --IDSEPEnhancement --StartPoint BATCH ^
-            > .\output\GOES_%%G_integral_%%type_batch.log
+            > .\output\GOES_%%G_integral_%%T_batch.log
          echo
       )
    )
