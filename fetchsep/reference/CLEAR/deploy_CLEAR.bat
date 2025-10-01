@@ -18,7 +18,7 @@ REM Execute this script in the top directory of the repository, fetchsep/
 
 
 REM set up environment and create directories
-export PYTHONPATH="$PYTHONPATH:$PWD"
+$env:PYTHONPATH = "$env:PYTHONPATH;$PWD"
 python .\fetchsep\utils\config.py
 
 
