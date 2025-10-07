@@ -2,6 +2,7 @@ from ..opsep import opsep
 from . import config as cfg
 from ..json import keys
 from ..json import ccmc_json_handler as ccmc_json
+from . import tools
 import datetime
 import sys
 import os
@@ -149,7 +150,7 @@ def make_observation_window_list(path):
 
 
 
-def identify_new_obs(target_dir, enforce_new=True):
+def identify_new_obs(target_dir, subdir='', enforce_new=True):
     """ Identify which of the time periods are new and should
         be added to the target_dir. Do not overwrite observations
         that are already in the directory.
@@ -158,7 +159,7 @@ def identify_new_obs(target_dir, enforce_new=True):
     new_end = []
     
 #    obs_st, obs_end = read_batch_list()
-    sort_obs_st, sort_obs_end = make_observation_window_list(os.path.join(cfg.outpath,"opsep"))
+    sort_obs_st, sort_obs_end = make_observation_window_list(os.path.join(cfg.outpath, "opsep", subdir))
     
     if not sort_obs_st:
         sys.exit("identify_new_obs: No new observations are available. "
@@ -191,7 +192,7 @@ def check_for_sep(path):
     """ Read in json files output by OpSEP and check if SEP events
         are present.
         
-        json files are in outpath/opsep.
+        json files are in outpath/opsep/subdirectory.
         
         INPUT:
             
@@ -333,18 +334,6 @@ def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop
         determine if they can be moved.
         
     """
-    if df_approved.empty:
-        if enforce_sep_stop:
-            sys.exit("move_obs: The observation with observation "
-                "window starting at " + str(obs_st) + " contains an "
-                "SEP event with threshold crossing time\n "
-                + str(df) + ". "
-                "There are NO EVENTS in the approved SEP file "
-                + target_dir + "/approved_SEP.csv. Outputs cannot "
-                "be moved until the SEP event has been approved. "
-                "Exiting.")
-
-
     #Check if there is an SEP event in this observation
     df = df_sep.loc[(df_sep["Observation Window Start"] == obs_st)]
     
@@ -358,7 +347,9 @@ def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop
             if pd.isnull(sep):
                 continue
             
-            df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == str(sep))]
+            df_check = pd.DataFrame()
+            if not df_approved.empty:
+                df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == str(sep))]
             if df_check.empty:
                 if enforce_sep_stop:
                     sys.exit("move_obs: The observation with observation "
@@ -455,7 +446,8 @@ def print_target_info(target_dir):
     
 
 
-def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
+def move_output(target_dir, subdir='', enforce_new=True,
+    enforce_sep_stop=True):
     """ Move the json and supporting files created by OpSEP to
         the target directory. Move the associated plots into
         a plots/ dir inside the target directory.
@@ -473,11 +465,11 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
     check_target(target_dir)
 
     #Check which observations are not already present in the target dir
-    new_obs_st, new_obs_end = identify_new_obs(target_dir, enforce_new)
+    new_obs_st, new_obs_end = identify_new_obs(target_dir, subdir=subdir, enforce_new=enforce_new)
     
     #SEP in fetchsep observations
-    obspath = os.path.join(cfg.outpath, "opsep")
-    df_sep = check_for_sep(obspath)
+    obspath = os.path.join(cfg.outpath, "opsep", subdir)
+    df_sep = check_for_sep(obspath) #True/False columns indicates if SEP
     
     #Approved SEP in target directory
     df_approved = read_approved_sep(target_dir)
@@ -485,7 +477,7 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
     #Identify which files to move and move them
     allfiles = [f for f in os.listdir(obspath) if os.path.isfile(os.path.join(obspath, f))]
     
-    pltpath = os.path.join(cfg.plotpath, "opsep")
+    pltpath = os.path.join(cfg.plotpath, "opsep", subdir)
     allplots = [f for f in os.listdir(pltpath) if os.path.isfile(os.path.join(pltpath, f))]
 
     for i in range(len(new_obs_st)):
@@ -499,6 +491,8 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
         check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop)
 
         ###MOVE FILES
+        print(f"Moving files from {obspath}")
+        print(f"Moving plots from {pltpath}")
         move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep,
             obs_st, obs_end)
 
@@ -508,7 +502,13 @@ def move_output(target_dir, enforce_new=True, enforce_sep_stop=True):
 
 
 def update_observations(target_dir, start_date, end_date, experiment,
-    flux_type, threshold, nointerp=False, two_peaks=False, spacecraft=""):
+    flux_type, threshold, user_name='', user_file='',
+    json_type='observations', spase_id='', showplot=False, saveplot=True,
+    detect_prev_event=False, two_peaks=False, umasep=False, options='',
+    doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
+    nointerp=False, spacecraft='', doBGSubIDSEP=False,
+    IDSEPEnhancement=False, idsep_path='',
+    location='earth', species='proton'):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -537,26 +537,21 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-    #Optimal settings for SEP Scoreboard
-    showplot = False
-    saveplot = True
+    subdir = tools.opsep_subdir(experiment, flux_type, user_name, options,
+        spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
+        doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
+        IDSEPEnhancement=IDSEPEnhancement)
     
-    model_name = ''
-    user_file = ''
-    json_type = 'observations' #not relevant unless input a user file
-    spase_id = ''
-    detect_prev_event = False
-    umasep = False
-    option = ''
-    doBGSub = False
-    bgstartdate = ''
-    bgenddate = ''
-    
-    
-    sep_year, sep_month, \
-    sep_day, jsonfname = opsep.run_all(start_date, end_date,
-        experiment, flux_type, model_name, user_file, json_type,
-        spase_id, showplot, saveplot, detect_prev_event,
-        two_peaks, umasep, threshold, option, doBGSub, bgstartdate,
-        bgenddate, nointerp, spacecraft=spacecraft)
+    startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
+        opsep.run_all(start_date, end_date, experiment, flux_type,
+        user_name=user_name, user_file=user_file,
+        json_type=json_type, spase_id=spase_id, showplot=showplot,
+        saveplot=saveplot, detect_prev_event=detect_prev_event,
+        two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
+        options=options, doBGSubOPSEP=doBGSubOPSEP,
+        OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
+        bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+        doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
+        idsep_path=idsep_path, location=location, species=species)
 
+    return subdir

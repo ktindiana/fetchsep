@@ -82,12 +82,14 @@ spacecraft = args.Spacecraft
 threshold = args.Threshold
 nointerp = args.NoInterp
 two_peaks = args.TwoPeaks
+subdir = ''
 
 if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks, spacecraft=spacecraft)
-    prepsep.move_output(target_dir,enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
+    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks, spacecraft=spacecraft)
+    prepsep.move_output(target_dir, subdir=subdir, enforce_new=enforce_new,
+        enforce_sep_stop=enforce_sep_stop)
 
 
