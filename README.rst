@@ -151,7 +151,7 @@ To see how to add thresholds to differential energy channels, run:
     | python bin/opsep --help
 
 
-Running `opsep` for your own time series
+Running `opsep` (or `idsep`) for your own time series
 ----------------------------------------
 
 Users may input their own time series into `opsep` by specifying some
@@ -178,7 +178,7 @@ For a time profile produced by a satellite or experiment (specify differential o
 
 
 Automatically generate a Processed SEP Event list
--------------------------------------------------
+=================================================
 
 It is possible to run both codes with a single button push to create a preliminary SEP event list.
 
@@ -196,12 +196,12 @@ Note that manual intervention is required to get a truly good event list. The au
 
 
 Support
--------
+=======
 
 Do not hesitate to contact Katie Whitman at kathryn.whitman@nasa.gov for support with this code.
 
 Credits
--------
+=======
 
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
