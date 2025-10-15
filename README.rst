@@ -53,11 +53,11 @@ FetchSEP supported data:
 Set Up
 ======
 
-FetchSEP and requirements may have the best results using
-python version 3.10.
+FetchSEP and requirements are defined for python version 3.10. Recommend setting up a virtual environment then install libraries in requirements.txt with pip.
 
 Add the fetchsep path to your python path. In the top level fetchsep
 path, fetchsep/, run:
+
 Windows:
 
     | $env:PYTHONPATH = "$env:PYTHONPATH;$PWD"
@@ -69,7 +69,7 @@ Mac:
 Export the fetchsep.cfg file from fetchsep > utils > fetchsep.cfg to
 the fetchsep path:
 
-    | python .\fetchsep\utils\config.py
+    | python fetchsep/utils/config.py
 or
 
     | python bin/opsep --ExportConfig
@@ -79,8 +79,6 @@ In fetchsep.cfg, edit the location of the data, output, plots, and lists directo
 By default, `idsep` and `opsep` will create the necessary output directories in the current working directory where the command is executed.  The directories that will be created are `data`, `ouptut`, `plots`, and `lists`.  The directories will not be overwritten if they already exist.  If you would like to choose another output location, generate a config file (`fetchsep.cfg`) with `opsep --ExportConfig` and edit the paths described there.
 
 A configuration file may also be placed in your home directory with the name `.fetchsep`.  The configuration file does not need to be complete; you may specify only the values for which you wish to override the default.  The order of config value precidence is 1. current working directory `fetchsep.cfg`, 2. home directory `.fetchsep`, 3. fetchsep defaults.
-
-Install libraries in requirements.txt with pip.
 
 
 IDSEP
@@ -121,7 +119,7 @@ For more features, run:
 OPSEP
 =====
 
-The `opsep` code was previously supported at https://github.com/ktindiana/operational-sep and is now transitioned to this package going forward. Please see the operational-sep repository for additional documentation until the documentation in this repository can be updated.
+The `opsep` code was previously supported at https://github.com/ktindiana/operational-sep and is now transitioned to this package going forward.
 
 `opsep` is intended to assess each individual SEP event at a time, extracting information such as start and end times, peak fluxes, and event fluence.
 
@@ -182,8 +180,9 @@ For a time profile produced by a satellite or experiment (specify differential o
 Automatically generate a Processed SEP Event list
 -------------------------------------------------
 
-It is possible to run both codes with a single button push to create a preliminary SEP event list. 
-The example below will create a rough SEP event list for the entire history of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics:
+It is possible to run both codes with a single button push to create a preliminary SEP event list.
+
+The example below will create a rough SEP event list for the entire history of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics (NOTE THIS TIME PERIOD MAY TAKE A COUPLE OF HOURS TO RUN.):
 
     | python bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1"
 
