@@ -104,10 +104,10 @@ Note that in fetchsep.cfg, number of sigma, the initial window used to estimate 
 
 To run:
 
-    | python bin/idsep --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --saveplot
+    | python bin/idsep --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --saveplot
 
 
-Note that the command above will download all GOES-13 data from 2010-05-01 to 2018-01-01 to your data/ directory then performan an analysis to identify the mean background and SEP enhancements. This analysis may take a few hours and will results in a few GB of data.
+Note that the command above will download all GOES-13 data from 2017-01-01 to 2018-01-01 to your data/ directory then performan an analysis to identify the mean background and SEP enhancements.
 
 An analysis of a year of GOES data will take around 20 minutes. The time period specified for analysis must exceed init_win number of days. If it is shorter, `idsep` will automatically extend the analysis time window.
 
@@ -182,17 +182,17 @@ Automatically generate a Processed SEP Event list
 
 It is possible to run both codes with a single button push to create a preliminary SEP event list.
 
-The example below will create a rough SEP event list for the entire history of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics (NOTE THIS TIME PERIOD MAY TAKE A COUPLE OF HOURS TO RUN.):
+The example below will create a rough SEP event list for a year of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics:
 
-    | python bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1"
+    | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1"
 
-will first run `idsep` on a specified data set and identify all increases above background. Output files are created that are then used to automatically run `opsep` in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
+will first run `idsep` on a specified data set and identify all increases above background. Note that the first days of the dataset may not have a good background solution. Output files are created that are then used to automatically run `opsep` in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
 
 Note that manual intervention is required to get a truly good event list. The automated method is not perfect at identifying individual SEP events, but it will get you 80% of the way there. 
 
  There will be time periods that contain multiple events. The user may edit the batch_event_list_* file which contains each individual time period and rerun the SEP analysis:
  
-     | python bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1" --StartPoint BATCH
+     | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1" --StartPoint BATCH
 
 
 Support
