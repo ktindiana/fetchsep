@@ -168,7 +168,9 @@ Two operational SEP event definitions are applied automatically for:
 >10 MeV exceeds 10 pfu
 >100 MeV exceeds 1 pfu
 
-You may add addition event definitions with the --Threshold flag.
+If differential fluxes were input into opsep, it will automatically estimate >10 MeV and >100 MeV fluxes from the available energy channels.
+
+You may add additional event definitions with the --Threshold flag.
 
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --Threshold "30,1;50,1" --showplot
 
@@ -202,6 +204,42 @@ For a time profile produced by a satellite or experiment (specify differential o
 
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment user --FluxType differential --ExperimentName MyData --UserFile my/data/timeprofile.txt --JSONType observations --showplot
 
+Perform Background Subtraction and Identify Enhancements Above Background
+=========================================================================
+
+Background-subtraction of particle fluxes may be performed in two different ways in FetchSEP.
+
+With `opsep`: The user may specify a specific time period to use as the background. OpSEP will calculate the mean particle flux and level of variation (sigma) for that time period. Fluxes above mean + n*sigma, where n is specified in fetchsep.cfg in the opsep_nsigma variable, are considered SEP fluxes and will be subtracted by the mean. Fluxes below mean+n*sigma are consered background and are set to zero.
+
+    | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType differential --Threshold "30,1;50,1" --OPSEPSubtractBG --BGStartDate 2012-05-10 --BGEndDate 2012-05-12 --showplot
+
+If background subtraction is performed, the --OPSEPEnhancement flag may be added to identify and analyze SEP events above background. An event definition with a low flux threshold of 1e-6 (e.g. >10 MeV exceeds 1e-6 pfu) indicates that the SEP event was identified for all fluxes above background.
+
+
+With `idsep`: Run `idsep` for a long timeframe (e.g. months, years) to calculate the mean background and sigma with time. Run `opsep` and use the background solution created by idsep to identify SEP enhancements above mean + n*sigma, where n is specified in fetchsep.cfg in the opsep_nsigma variable, subtract the mean background, and set background fluxes to zero. You may calculate the mean background with idsep for, e.g.,  the entire history of an experiment and keep that file around for use in background subtraction with opsep.
+
+    | python bin/idsep --StartDate 2011-05-01 --EndDate 2013-01-01 --Experiment GOES-13 --FluxType differential --RemoveAbove 10 --showplot
+
+    | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType differential --Threshold "30,1;50,1" --IDSEPSubtractBG --IDSEPPath output/idsep/GOES-13_differential/csv --showplot
+
+When using idsep for background identification, the --IDSEPEnhancement flag may be added to identify and analyze SEP events above background WITH OR WITHOUT background subtraction. An event definition with a low flux threshold of 1e-6 (e.g. >10 MeV exceeds 1e-6 pfu) indicates that the SEP event was identified for all fluxes above background.
+
+GOES integral fluxes already have some amount of background-subtraction. SEP enhancements above background may be evaluated without performing a background subtraction by:
+
+    | python bin/idsep --StartDate 2011-05-01 --EndDate 2013-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --showplot
+
+    | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --Threshold "30,1;50,1" --IDSEPEnhancement --IDSEPPath output/idsep/GOES-13_differential/csv --showplot
+
+Although the background has not been subtracted, calling --IDSEPEnhancement will set values below mean + n*sigma to zero.
+
+
+Apply Calibrated Energy Bin Corrections to GOES Data
+====================================================
+
+Sandberg et al. (2014) and Bruno (2017) published energy bin calibrations for selected GOES satellites by comparing with IMP-8 and PAMELA, respectively. These calibrated energy bins may be applied to GOES data within FetchSEP by using the --options flag.
+
+Bruno (2017) corrections depended on the choice of East or West-facing GOES detector, uncorrected versus corrected GOES fluxes, and background subtraction.
+
 
 Automatically generate a Processed SEP Event list
 =================================================
@@ -210,7 +248,7 @@ It is possible to run both codes with a single button push to create a prelimina
 
 The example below will create a rough SEP event list for a year of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics:
 
-    | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1"
+    | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1"
 
 will first run `idsep` on a specified data set and identify all increases above background. Note that the first days of the dataset may not have a good background solution. Output files are created that are then used to automatically run `opsep` in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
 
@@ -218,7 +256,7 @@ Note that manual intervention is required to get a truly good event list. The au
 
  There will be time periods that contain multiple events. The user may edit the batch_event_list_* file which contains each individual time period and rerun the SEP analysis:
  
-     | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1" --StartPoint BATCH
+     | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1" --StartPoint BATCH
 
 
 The CLEAR Space Weather Center of Excellence Benchmark Dataset
