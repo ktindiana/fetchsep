@@ -20,7 +20,7 @@ Identify SEP elevations above background in a time series (`idsep`) and analyze 
 
 
 * Free software: MIT license
-* Documentation: https://fetchsep.readthedocs.io.
+* DEPRECATED. DO NOT USE. WILL UPDATE. Documentation: https://fetchsep.readthedocs.io.
 
 Description
 ===========
