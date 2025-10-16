@@ -158,10 +158,6 @@ For time profile SEP models, `opsep` may be used to create the JSON files that c
 
 To run OpSEP to process individual SEP events:
 
-    | opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
-
-OR
-
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
 
 Two operational SEP event definitions are applied automatically for:
