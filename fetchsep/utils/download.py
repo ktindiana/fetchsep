@@ -135,8 +135,14 @@ def read_in_flux_files(experiment, flux_type, startdate,
                 "specified input file. Exiting.")
 
     if write_fluxes:
+        dir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+        path = os.path.join(outpath, 'idsep', dir)
+        if not os.path.isdir(path):
+            print("Making directory:", path)
+            os.mkdir(path)
+            
         tools.write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
-            "", spacecraft=spacecraft)
+            "idsep", spacecraft=spacecraft)
 
     return dates, fluxes, energy_bins
 

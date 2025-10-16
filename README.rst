@@ -80,6 +80,32 @@ By default, `idsep` and `opsep` will create the necessary output directories in 
 
 A configuration file may also be placed in your home directory with the name `.fetchsep`.  The configuration file does not need to be complete; you may specify only the values for which you wish to override the default.  The order of config value precidence is 1. current working directory `fetchsep.cfg`, 2. home directory `.fetchsep`, 3. fetchsep defaults.
 
+Download Data Only
+==================
+
+FetchSEP includes many "native" experiment datasets and will continue to expand its library. For data handling, it had been built to:
+
+* Pull data from its original source online and save to your computer in the data/ folder
+* Understand file formats to extract particle fluxes
+* Manage occasional problems encountered in data files, including incomplete files or missing data
+* Manage different data versions
+* For GOES-13, -14, and -15, choose the West-facing detector by referring to the orientation files provided by NOAA
+* Output particle time series into a single, easy-to-read csv file
+* Once a file has been successfully downloaded and read in, a file manager keeps track of files that are complete and do not have to be downloaded again
+
+Users might like to download original data and convert to csv files without any of the additional processing performed in FetchSEP. This may be done with the download function:
+
+    | python bin/download --StartDate 2025-01-01 --EndDate 2025-02-01 --Experiment GOES-18 --FluxType differential --showplot
+
+The example downloads the daily netcdf files for GOES-18 differential flux, reads them in, plots them, and exports a single csv file of the full time series. A folder
+
+    | output/idsep/GOES_differential
+
+is created containing the time series file
+
+    | fluxes_GOES-18_differential_20250101_20250131.csv
+
+
 
 IDSEP
 =====
@@ -193,6 +219,13 @@ Note that manual intervention is required to get a truly good event list. The au
  There will be time periods that contain multiple events. The user may edit the batch_event_list_* file which contains each individual time period and rerun the SEP analysis:
  
      | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --Threshold "30,1;50,1" --StartPoint BATCH
+
+
+The CLEAR Space Weather Center of Excellence Benchmark Dataset
+==============================================================
+A set of curated files and scripts have been created to allow any user to run FetchSEP and generate the CLEAR Benchmark SEP dataset. The dataset spans 1986-01-01 to 2025-09-10. When run, the scripts will download all GOES data between those time frames and process each spacecraft to calculate the mean background and SEP enhancements. The `idsep` output and plots folders will contain the mean background and sigma and the `opsep` output and plots folders will contain analysis of each individual SEP event and quite time periods.
+
+When the code is finalized for the generation of the Benchmark dataset, the version of FetchSEP will be tagged and more instructions will be included here.
 
 
 Support
