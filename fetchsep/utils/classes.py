@@ -2152,7 +2152,7 @@ class Output:
 
         energy_channel_dict = analyze.make_energy_channel_dict()
         threshold_dict = analyze.make_threshold_dict()
-        
+
         self.json_dict = ccmc_json.fill_json_block(self.json_dict,
                                     self.json_type,
                                     energy_channel_dict,

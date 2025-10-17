@@ -50,6 +50,6 @@ umasep = args.UMASEP
 
 logger = logging.getLogger('opsep')
 
-batch.run_all_events(sep_filename, outfname, threshold, umasep,
+batch.run_all_events(sep_filename, outfname, threshold, umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
     detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)

@@ -202,8 +202,8 @@ options = args.options
 nointerp = args.NoInterp
 
 
-date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(str_startdate,
-    str_enddate, experiment, flux_type,
+date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(
+    str_startdate, str_enddate, experiment, flux_type,
     user_name=user_name,
     user_file=user_file,
     json_type=json_type,
