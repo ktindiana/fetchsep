@@ -262,6 +262,14 @@ Automatically generate a Processed SEP Event list
 
 It is possible to run both codes with a single button push to create a preliminary SEP event list.
 
+The process described here will take a long time series, generate rough SEP event lists for each energy channel, create a batch file that is split up into quiet periods and enhanced periods, then batch run these time periods through opsep for a more careful analysis and to produce a final SEP event list and non-event list. This automated process will result in enhanced time periods contain multiple SEP events as automatic SEP event discrimination has not yet been perfected. However, it will generate lists that can be used to remove SEP event periods from data sets for GCR studies or to get a good start on creating your own curated SEP event list.
+
+The batch file is built from a list from one of the energy channels, from the files named like SEPTimes_GOES-13_integral_10.0_to_-1.txt. The user may choose the energy channel by setting a variable in fetchsep.cfg. The energy bin must exactly match one of the energy bins in the input data. For example:
+
+    | ref_energy_bin = [10.0,-1] #integral
+    | ref_energy_bin = [11.64,23.27] #differential GOES-18
+    
+
 The example below will create a rough SEP event list for a year of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics:
 
     | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1"
