@@ -16,7 +16,7 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 
 #See full program description in all_program_info() below
-datapath = cfg.datapath
+#datapath = cfg.datapath
 outpath = cfg.outpath
 plotpath = cfg.plotpath
 
@@ -173,9 +173,15 @@ def get_data(str_startdate, str_enddate, experiment,
 
     
     """
+    cfg.configure_for(experiment)
+
     if path_to_data != '':
-        global datapath
-        datapath = path_to_data
+        cfg.set_datapath(path_to_data)
+#        global datapath
+#        datapath = path_to_data
+#        print(f"get_data: Setting datapath to {datapath}")
+
+    cfg.print_configured_values()
 
     # Prepare directories
     cfg.prepare_dirs()
@@ -191,7 +197,7 @@ def get_data(str_startdate, str_enddate, experiment,
 
     error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type)
-    datasets.check_paths(path_to_data=datapath)
+    datasets.check_paths()
 
 
     #READ IN FLUXES

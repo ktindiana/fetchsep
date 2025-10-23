@@ -42,10 +42,13 @@ cwd_configfile = './fetchsep.cfg'
 config = configparser.ConfigParser()
 config.read([pkg_configfile, home_configfile, cwd_configfile])
 
+#Sections to "squash" to bring variables to top level
+sections = ['fetchsep', 'user_tseries', 'idsep', 'prepare_obs', 'opsep']
 pkg_globals = globals()
-for section in config.sections():
-    for k in config[section]:
-        pkg_globals[k] = eval(config[section][k])
+for section in sections:
+    if section in config.sections():
+        for k in config[section]:
+            pkg_globals[k] = eval(config[section][k])
 
 def export_config(overwrite=False):
     if not overwrite and os.path.isfile(cwd_configfile):
@@ -67,6 +70,26 @@ def prepare_dirs():
                     print('Making directory:', subdir)
                     os.makedirs(subdir)
 
+def configure_for(experiment):
+    section = 'experiment.' + experiment
+    if section in config.sections():
+        for k in config[section]:
+            pkg_globals[k] = eval(config[section][k])
+
+def print_configured_values():
+    print()
+    print("====== CONFIG VALUES SET TO ========================")
+    for section in sections:
+        if section in config.sections():
+            for k in config[section]:
+                print(f"{k}: {pkg_globals[k]}")
+    print("======= END CONFIG VALUES =========================")
+    print()
+
+def set_datapath(datapath):
+    #allow user to set the datapath on the fly across all modules
+    pkg_globals['datapath'] = datapath
+    print(f"config: Setting global datapath to {datapath}.")
 
 
 if __name__ == '__main__':

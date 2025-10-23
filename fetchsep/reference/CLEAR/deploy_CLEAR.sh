@@ -5,7 +5,7 @@
 # be combined to a final list by choosing the primary spacecraft for each time
 # period.
 
-#This script using the python call "python". You should modify this to
+#This script using the python call "python". You should modify this to, e.g.,
 #python3 or python3.10 depending on the needs of your system.
 
 #This script assumes the data directory is located in fetchsep/data. If you want
@@ -18,6 +18,7 @@
 
 # set up environment and create directories
 export PYTHONPATH="$PYTHONPATH:$PWD"
+cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
 python fetchsep/utils/config.py
 
 
@@ -45,14 +46,9 @@ declare -A end_date=(
    [GOES-RT/secondary]=2025-09-11
 )
 
+#Calculate the mean background and sigma solutions for each spacecraft
+#This step is very time consuming.
 for n in 06 07 08 10 11 13 15 RT; do
-   # copy customized fetchsep settings
-   [[ $n == 07 ]] && {
-      cp fetchsep/reference/CLEAR/fetchsep_CLEAR_GOES-${n}.cfg ./fetchsep.cfg
-   } || {
-      cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
-   }
-
    if [[ $n != RT ]]; then
       echo "[GOES-${n}] Calculate background with idsep"
       python bin/idsep \
@@ -61,6 +57,38 @@ for n in 06 07 08 10 11 13 15 RT; do
          >output/GOES-${n}_integral_idsep.log
 
       echo
+   else
+      for type in primary secondary; do
+         echo "[GOES-${n}/${type}] Calculate background with idsep"
+         python bin/idsep \
+            --StartDate "${start_date[GOES-${n}/${type}]}" --EndDate "${end_date[GOES-${n}/${type}]}" \
+            --Experiment GOES_${n} --Spacecraft $type --FluxType integral --RemoveAbove 10 --saveplot \
+            >output/GOES_${n}_integral_${type}_idsep.log
+
+         echo
+      done
+   fi
+
+   # Sandberg and Bruno calibrations available only for GOES-13 and GOES-15
+   [[ $n == 13 || $n == 15 ]] && {
+      echo "[GOES-${n}/uncor_S14_B17] Calculate background with idsep"
+      python bin/idsep \
+         --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
+         --Experiment GOES-${n} --FluxType differential --RemoveAbove 10 --saveplot \
+         --options "S14;Bruno2017;uncorrected" \
+         >output/GOES-${n}_differential_uncor_S14_B17_idsep.log
+
+      echo
+   }
+done
+
+
+#Generating the SEP event lists for each spacecraft.
+#If no changes are needed to be made to the background solutions, but there
+#are updates desired for the SEP event lists, then the script may be
+#run starting at this point to regenerate the SEP event lists.
+for n in 06 07 08 10 11 13 15 RT; do
+   if [[ $n != RT ]]; then
       echo "[GOES-${n}] Copy curated batch files"
       cp fetchsep/reference/CLEAR/batch_event_list_GOES-${n}_integral_enhance_idsep_CLEAR.txt \
          output/idsep/GOES-${n}_integral/
@@ -75,13 +103,6 @@ for n in 06 07 08 10 11 13 15 RT; do
       echo
    else
       for type in primary secondary; do
-         echo "[GOES-${n}/${type}] Calculate background with idsep"
-         python bin/idsep \
-            --StartDate "${start_date[GOES-${n}/${type}]}" --EndDate "${end_date[GOES-${n}/${type}]}" \
-            --Experiment GOES_${n} --Spacecraft $type --FluxType integral --RemoveAbove 10 --saveplot \
-            >output/GOES_${n}_integral_${type}_idsep.log
-
-         echo
          echo "[GOES-${n}/${type}] Copy curated batch files"
          cp fetchsep/reference/CLEAR/batch_event_list_GOES_RT_integral_${type}_enhance_idsep_CLEAR.txt \
             output/idsep/GOES_RT_integral_${type}/
@@ -99,14 +120,6 @@ for n in 06 07 08 10 11 13 15 RT; do
 
    # Sandberg and Bruno calibrations available only for GOES-13 and GOES-15
    [[ $n == 13 || $n == 15 ]] && {
-      echo "[GOES-${n}/uncor_S14_B17] Calculate background with idsep"
-      python bin/idsep \
-         --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
-         --Experiment GOES-${n} --FluxType differential --RemoveAbove 10 --saveplot \
-         --options "S14;Bruno2017;uncorrected" \
-         >output/GOES-${n}_differential_uncor_S14_B17_idsep.log
-
-      echo
       echo "[GOES-${n}/uncor_S14_B17 Copy curated batch files"
       cp fetchsep/reference/CLEAR/batch_event_list_GOES-${n}_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt \
          output/idsep/GOES-${n}_differential_uncor_S14_B17/

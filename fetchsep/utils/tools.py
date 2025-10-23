@@ -1,4 +1,5 @@
 from . import config as cfg
+from . import goes
 from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import datetime
@@ -435,10 +436,10 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
 
 ######### SEP event identification ################
 def identify_sep_above_background_one(dates, fluxes):
-    """ Identify which increases above backgrounds
-        are SEP events.
+    """ Identify an enhancement above background as an SEP event.
         
-        Used in IDSEP and OpSEP.
+        Used in OpSEP for identifying single SEP events in short
+        (~week) timescales.
         
         INPUTS:
         
@@ -463,10 +464,10 @@ def identify_sep_above_background_one(dates, fluxes):
     time_increase = 86400/4 #86400 #Require an increase above threshold for 6 hrs
     if time_res_sec <= 60*60:
         time_increase = 3*60*60 #3 hr increase for hi-res data
-    global nconsec
+
     nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
         #3 consecutive points for Voyager
-    global allow_miss
+
     #In this stricter SEP event identification used in OpSEP, allow less
     #missed points for the identification of SEP onset
     #20 minutes of points for 5 minute data
@@ -479,7 +480,7 @@ def identify_sep_above_background_one(dates, fluxes):
     #time can't be too long, or those random fluctuations will extend events
     #artificially. For use in OpSEP, which aims to more precisely identify
     #SEP events, use a shorter dwell time.
-    global dwell_pts
+
     dwell_time = 1*60.*60. #hr
     dwell_pts = int(dwell_time/time_res_sec)
     if time_res_sec > dwell_time:
@@ -565,10 +566,9 @@ def identify_sep_above_background_one(dates, fluxes):
 
 
 def identify_sep_above_background(dates, fluxes):
-    """ Identify which increases above backgrounds
-        are SEP events.
+    """ Identify which increases above backgrounds are SEP events.
         
-        Used in IDSEP and OpSEP.
+        Used in IDSEP to identify multiple SEP events across a time series.
         
         INPUTS:
         
@@ -593,13 +593,13 @@ def identify_sep_above_background(dates, fluxes):
     time_increase = 86400/4 #86400 #Require an increase above threshold for duration
     if time_res_sec <= 60*60:
         time_increase = 3*60*60 #6*60*60 #6 hr increase for hi-res data
-    global nconsec
+    global nconsec #used by idsep.py to record in output file
     nconsec = max(math.ceil(time_increase/time_res_sec) + 1,3) #num points
         #3 consecutive points for Voyager
-    global allow_miss
+    global allow_miss #used by idsep.py to record in output file
     allow_miss = max(math.ceil(nconsec/4),1)
     if nconsec == 2 or nconsec == 3: allow_miss = 0
-    global dwell_pts
+    global dwell_pts #used by idsep.py to record in output file
     dwell_pts = max(math.ceil(nconsec/2),2)
     #Rosetta? needs --> dwell_pts = max(math.ceil(nconsec),2)
 
@@ -676,6 +676,8 @@ def identify_sep_noaa(dates, fluxes, threshold):
         Used in OpSEP.
     
     """
+    dwell_time = 3*60*60 #Hours for flux to be below threshold to determine last point
+    
     threshold_crossed = False
     event_ended = False
     ndates = len(dates)
@@ -717,7 +719,7 @@ def identify_sep_noaa(dates, fluxes, threshold):
                 #When looking for an end of an event below an operational threshold
                 #or threshold that isn't the background, apply a dwell time to ensure
                 #the fluxes don't fluctuate above threshold again after a little while.
-                if elapse > cfg.dwell_time: #N consecutive points longer than dwell time
+                if elapse > dwell_time: #N consecutive points longer than dwell time
                     event_ended = True
                     sep_end_time = dates[i-(end_counter-1)] #correct back time steps
                     #Double checked some calculated event end times with SWPC and
@@ -872,3 +874,114 @@ def find_max_curvature(x, y):
 #    k_x = (np.max(yarr)/np.max(k_x))*k_x
             
     return max_k_idx+2
+
+
+def make_lists_array(lists):
+    """ If lists is a string, make an array of the filenames inside. """
+
+    if not os.path.isfile(lists):
+        sys.exit(f"create_primary_goes_list: File does not exist. {lists}")
+    
+    arr = []
+    with open(lists, 'r') as file:
+        for list in file:
+            list = list.strip()
+            arr.append(list)
+            
+    return arr
+    
+
+def create_primary_goes_sep_list(lists, prefix='GOES'):
+    """ Provided a set of SEP events lists created by batch running
+        opsep for multiple GOES spacecraft, create a single list by extracting 
+        the SEP events from the primary GOES spacecraft, when available. 
+        
+        The lists are named like: 
+        cfg.outpath/opsep/*/GOES-06_integral_enhance_idsep.1986-01-01.1994-11-30_sep_events.csv
+        
+        The current version of this subroutine is good for short periods
+        of time, like the duration of SEP events, for which the primary
+        satellite is unlikely to change. The primary satellite on the
+        date of the Time Period Start will be identified as the GOES primary.
+    
+        INPUT:
+        
+            :lists: (list of strings) List of the full path to each sep_events
+                list that will be read; or filename of a list containing lists
+    
+        OUTPUT:
+        
+            :df_primary: (pandas dataframe) containing a compiled list of one entry
+                per SEP event from only the GOES primary spacecraft
+            
+            outputs a file to cfg.outpath/opsep/GOES_PRIMARY.YYYY-MM-DD.YYYY-MM-DD_sep_events.csv
+    
+    """
+    goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
+    
+    df = pd.DataFrame()
+
+    if isinstance(lists,str):
+        arr = make_lists_array(lists)
+        lists = arr
+
+    for list in lists:
+        list = list.strip()
+        if not os.path.isfile(list):
+            print(f"create_primary_goes_list: File does not exist. Skipping. {list}")
+            continue
+        
+        if 'GOES_RT' in list and 'primary' not in list:
+            #Take GOES_RT from the primary spacecraft only, which will be
+            #indicated in the filename
+            print(f"create_primary_goes_list: Real-time GOES list is for the secondary spacecraft. Skipping. {list}")
+            continue
+        
+        df_in = pd.read_csv(list)
+        df_in['Time Period Start'] = pd.to_datetime(df_in['Time Period Start'])
+        df_in['Time Period End'] = pd.to_datetime(df_in['Time Period End'])
+        df = pd.concat([df, df_in], ignore_index=True)
+        
+    #Sort by time
+    df = df.sort_values(by='Time Period Start')
+    df.reset_index(drop=True, inplace=True)
+    
+    df_primary = pd.DataFrame()
+    
+    for index, row in df.iterrows():
+        date = row['Time Period Start']
+        date_end = row['Time Period End']
+        sc = row['Experiment']
+        
+        goes_primary = goes.goes_primary_lookup(date)
+        goes_primary_end = goes.goes_primary_lookup(date_end)
+        
+
+        #GOES integral fluxes read by FetchSEP are labeled GOES_RT because
+        #NOAA does not yet provide and archive of those files. So any
+        #GOES-R+ integral fluxes will come from CCMC iSWA and are labeled GOES_RT.
+        
+        if sc != goes_primary and sc != "GOES_RT":
+            continue
+        elif sc == "GOES_RT" and goes_primary in goes_R:
+            df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)
+        elif sc == goes_primary and goes_primary == "GOES_RT":
+            df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)
+        elif sc == goes_primary:
+            df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)
+        elif sc == goes_primary_end:
+            df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)
+            
+    start_date = df_primary['Time Period Start'].iloc[0]
+    end_date = df_primary['Time Period End'].iloc[-1]
+    stdate = start_date.strftime("%Y-%m-%d")
+    enddate = end_date.strftime("%Y-%m-%d")
+    
+    fname = f"{prefix}_PRIMARY.{stdate}.{enddate}_sep_events.csv"
+    fname = os.path.join(cfg.outpath,'opsep',fname)
+    df_primary.to_csv(fname, index=False)
+    print(f"create_primary_goes_sep_list: Wrote file {fname}.")
+    
+    
+    return df_primary
+    

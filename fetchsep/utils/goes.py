@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 import os
+import sys
 
 #Information about GOES-Primary Spacecraft
 def import_goes_status():
@@ -22,7 +23,8 @@ def import_goes_status():
     """
 
     filename = 'GOES_Primary_Secondary_Status.csv'
-    if not filename.exists():
+    filename = os.path.join('fetchsep', 'reference', filename)
+    if not os.path.isfile(filename):
         sys.exit(f"The GOES status file, {filename}, is not present in the "
             "fetchsep/utils/ directory. Please download from the fetchsep repository "
             "or contact kathryn.whitman@nasa.gov for assistance. "
@@ -35,7 +37,7 @@ def import_goes_status():
     return df
     
     
-def id_goes_spacecraft(status, instrument, date):
+def id_goes_spacecraft(df, status, instrument, date):
     """ Identify the primary or secondary GOES satellite for protons
         or X-rays in a certain date range.
         
@@ -58,7 +60,7 @@ def id_goes_spacecraft(status, instrument, date):
         print(f"Cannot identify the {status} {instrument} GOES satellite for {date}.")
         return None
 
-    goes = sub['Satellite']
+    goes = sub['Satellite'].iloc[0]
     
     return goes
     
@@ -98,6 +100,6 @@ def goes_primary_lookup(date):
     if date <= datetime.datetime(2024,9,6):
         df = import_goes_status()
         
-        goes = id_goes_spacecraft("Primary","Protons",date)
+        goes = id_goes_spacecraft(df, "Primary","Protons",date)
         
     return goes

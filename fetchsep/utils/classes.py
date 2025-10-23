@@ -1559,7 +1559,7 @@ class Analyze:
         onset_rise_time = pd.NaT
         max_rise_time = pd.NaT
         duration = pd.NaT
-        
+                
         if not pd.isnull(self.sep_start_time):
             if not pd.isnull(self.onset_peak_time):
                 onset_rise_time = (self.onset_peak_time - self.sep_start_time).total_seconds()/60.
@@ -1665,13 +1665,14 @@ class Analyze:
         self.sep_end_time = sep_end_time
         self.calculate_max_flux(data)
         self.calculate_onset_peak_from_fit(data)
-        self.derived_timing_values()
 
         #If the onset peak time is AFTER the max flux time, set the onset peak
         #to the max flux value and time.
         if self.onset_peak_time > self.max_flux_time:
             self.onset_peak = self.max_flux
             self.onset_peak_time = self.max_flux_time
+
+        self.derived_timing_values()
 
         #Fluence
         self.calculate_channel_fluence(data)

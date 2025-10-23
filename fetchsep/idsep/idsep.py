@@ -519,6 +519,11 @@ def run_all(str_startdate, str_enddate, experiment,
     
     """
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
+
+    cfg.configure_for(experiment)
+    cfg.print_configured_values()
+
+
     startdate = dateh.str_to_datetime(str_startdate)
     enddate = dateh.str_to_datetime(str_enddate)
     eff_startdate = startdate

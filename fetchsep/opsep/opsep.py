@@ -982,9 +982,12 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
         :and generates multiple plots:
         
     """
-    
+    cfg.configure_for(experiment)
+    cfg.print_configured_values()
+
     datasets.check_paths()
-    
+
+
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter a valid date range. Exiting.')
