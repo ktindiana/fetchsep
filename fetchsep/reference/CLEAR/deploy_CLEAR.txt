@@ -1,4 +1,7 @@
-#The benchmark dataset is created using FetchSEP run in python3.10. 
+#The benchmark dataset is created using FetchSEP run in python3.10.17. 
+#REPLACE THE "python3.10" CALL FOR YOUR REQUIRED COMMAND.
+
+#STE-BY-STEP PROCEDURE
 
 #The steps in this procedure will download all necessary data, process it, and create individual
 #curated SEP lists for each GOES spacecraft. These lists may be combined to a final list by
@@ -8,9 +11,10 @@
 #A script that will work on Mac or linux is provided in deploy_CLEAR.sh. The python
 #command in that script may need to be modified for your specific required call.
 
-#This script assumes the data directory is located in fetchsep/data. If you want your data directory
-#elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR_GOES-07.cfg and fetchsep_CLEAR.cfg must be 
-#edited with the location of your desired data path (and output, plots, etc).
+#This script assumes the data directory is located in fetchsep/data. If you want
+#your data directory elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg
+#must be edited with the location of your desired data path (and output, plots, etc).
+#Output files are stored in fetchsep/CLEAR/output and fetchsep/CLEAR/plots.
 
 #Execute these commands in the top directory of the repository, fetchsep/
 
@@ -19,16 +23,14 @@
 ######################################################################
 #In the top level fetchsep directory
 export PYTHONPATH="$PYTHONPATH:$PWD"
-python3.10 fetchsep/utils/config.py
 cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
+python3.10 fetchsep/utils/config.py
 
 ######################################################################
 ################# CALCULATE BACKGROUNDS WITH IDSEP ###################
 ######################################################################
 python3.10 bin/idsep --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --RemoveAbove 10 --saveplot > output/GOES-06_integral_idsep.log
-cp fetchsep/reference/CLEAR/fetchsep_CLEAR_GOES-07.cfg ./fetchsep.cfg
 python3.10 bin/idsep --StartDate 1987-03-01 --EndDate 1996-09-01 --Experiment GOES-07 --FluxType integral --RemoveAbove 10 --saveplot > output/GOES-07_integral_idsep.log
-cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
 python3.10 bin/idsep --StartDate 1995-01-01 --EndDate 2003-06-18 --Experiment GOES-08 --FluxType integral --RemoveAbove 10 --saveplot > output/GOES-08_integral_idsep.log
 python3.10 bin/idsep --StartDate 1998-07-09 --EndDate 2004-07-01 --Experiment GOES-10 --FluxType integral --RemoveAbove 10 --saveplot > output/GOES-10_integral_idsep.log
 python3.10 bin/idsep --StartDate 2003-06-01 --EndDate 2011-03-01 --Experiment GOES-11 --FluxType integral --RemoveAbove 10 --saveplot > output/GOES-11_integral_idsep.log

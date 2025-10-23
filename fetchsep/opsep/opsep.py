@@ -300,38 +300,13 @@ __email__ = "kathryn.whitman@nasa.gov"
 #   "event_lengths": [{"threshold":}] --> "event_lengths": [{"threshold_start":}]
 ########################################################################
 
-#See full program description in all_program_info() below
-datapath = cfg.datapath
-outpath = os.path.join(cfg.outpath, "opsep")
-plotpath = os.path.join(cfg.plotpath, "opsep")
-badval = cfg.badval #bad data points will be set to this value; must be negative
-
 # Prepare directories
 cfg.prepare_dirs()
-for path in (outpath, plotpath):
+for path in (cfg.outpath, cfg.plotpath):
+    path = os.path.join(path, 'opsep')
     if not os.path.isdir(path):
         print("Making directory:", path)
         os.mkdir(path)
-
-#####UNITS#####
-energy_units = cfg.energy_units
-flux_units_integral = cfg.flux_units_integral
-fluence_units_integral = cfg.fluence_units_integral
-flux_units_differential = cfg.flux_units_differential
-fluence_units_differential = cfg.fluence_units_differential
-
-######FOR USER DATA SETS######
-#(expect the first (0th) column contains date in YYYY-MM-DD HH:MM:SS format)
-#Identify columns containing fluxes you want to analyze
-user_col = array.array('i', cfg.user_col)
-#DELIMETER between columns; for whitespace separating columns, use " " or ""
-user_delim = cfg.user_delim
-#DEFINE ENERGY BINS associated with user file and columns specified above as:
-user_energy_bins = cfg.user_energy_bins
-############################
-
-#FILENAME(s) containing user input fluxes - WILL BE SET THROUGH ARGUMENT
-user_fname = ['tmp.txt']
 
 
 def about_opsep(): #only for documentation purposes
@@ -659,7 +634,7 @@ def about_opsep(): #only for documentation purposes
     when run from main.
 
     USER VARIABLES: The user must modify the following variables in
-    config/config_opsep.py:
+    fetchsep.cfg:
     
         :user_col: identify columns in your file containing fluxes to analyze;
                 even if your delimeter is white space, consider the date-time
@@ -687,7 +662,7 @@ def about_opsep(): #only for documentation purposes
     
         python3 operational_sep_quantities.py --StartDate 2021-05-29 --EndDate 2021-06-05 --Experiment user --UserFile SEPMOD/Scoreboard/SEPMOD.20210529_000000.20210529_165133.20210529_133005_geo_integral_tseries_timestamped_60min.txt --ModelName SEPMOD_RT_60min --JSONType model --showplot --Threshold "10,0.001;100,0.0001;30,1;50,1;60,0.079" --spase_id "spase://CCMC/SimulationModel/SEPMOD" --FluxType integral
     
-    VALUES SPECIFIED IN config/config_opsep.py:
+    VALUES SPECIFIED IN fetchsep.cfg:
     
         :datapath: directory containing data, 'data'
         :outpath: directory for program output, 'output'

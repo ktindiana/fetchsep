@@ -1,5 +1,10 @@
 #!/bin/bash
 
+#The CLEAR Benchmark Dataset was generated with python 3.10.17.
+
+#SCRIPT TO GENERATE THE BENCHMARK DATASET FROM SCRATCH
+#REPLACE THE "python" CALL TO REFLECT YOUR REQUIRED COMMAND.
+
 # The steps in this procedure will download all necessary data, process it, and
 # create individual curated SEP lists for each GOES spacecraft. These lists may
 # be combined to a final list by choosing the primary spacecraft for each time
@@ -9,9 +14,9 @@
 #python3 or python3.10 depending on the needs of your system.
 
 #This script assumes the data directory is located in fetchsep/data. If you want
-#your data directory elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR_GOES-07.cfg
-#and fetchsep_CLEAR.cfg must be edited with the location of your desired data path
-#(and output, plots, etc).
+#your data directory elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg
+#must be edited with the location of your desired data path (and output, plots, etc).
+#Output files are stored in fetchsep/CLEAR/output and fetchsep/CLEAR/plots.
 
 #Execute this script in the top directory of the repository, fetchsep/
 

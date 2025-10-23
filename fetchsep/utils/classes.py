@@ -186,36 +186,38 @@ class Data:
 
         return
 
-
-    #Allow the user to change various values that are in the config file
-    def set_datapath(self, datapath): #location to measurement data (e.g. GOES)
-        """ Set the path containing the data downloaded and read by FetchSEP """
-        self.datapath = datapath
-        return
-
-
-    def set_outpath(self, outpath):
-        """ Set the path to output files """
-        self.outpath = outpath
-        return
-
-
-    def set_plotpath(self, plotpath):
-        """ Set the path to the output plots """
-        self.plotpath = plotpath
-        return
-
-
-    def set_user_delim(self, user_path):
-        """ Set the path to the output plots """
-        self.user_delim = user_delim
-        return
-
-
-    def set_user_col(self, user_col):
-        """ Set the path to the output plots """
-        self.user_col = user_col
-        return
+    #Don't want to override the paths set in the config file.
+    #If want a class to change the datapath, etc, then should make it
+    #change the global variable and update the value in the object.
+#    #Allow the user to change various values that are in the config file
+#    def set_datapath(self, datapath): #location to measurement data (e.g. GOES)
+#        """ Set the path containing the data downloaded and read by FetchSEP """
+#        self.datapath = datapath
+#        return
+#
+#
+#    def set_outpath(self, outpath):
+#        """ Set the path to output files """
+#        self.outpath = outpath
+#        return
+#
+#
+#    def set_plotpath(self, plotpath):
+#        """ Set the path to the output plots """
+#        self.plotpath = plotpath
+#        return
+#
+#
+#    def set_user_delim(self, user_path):
+#        """ Set the path to the output plots """
+#        self.user_delim = user_delim
+#        return
+#
+#
+#    def set_user_col(self, user_col):
+#        """ Set the path to the output plots """
+#        self.user_col = user_col
+#        return
 
 
     def str_to_datetime(self, date):
@@ -758,8 +760,7 @@ class Data:
                         detector=detector, spacecraft=self.spacecraft)
  
         else:
-            all_dates, all_fluxes = datasets.read_in_user_files(filenames1,
-                        delim=self.user_delim, flux_col=self.user_col)
+            all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
 
 
         #Define energy bins

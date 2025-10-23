@@ -29,13 +29,6 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2021-09-25, changes in 0.2: print out means and sigmas in derive_background
 
 
-######FOR USER DATA SETS######
-user_col = cfg.user_col
-user_delim = cfg.user_delim
-user_energy_bins = cfg.user_energy_bins
-############################
-
-
 def about_derive_background_opsep():
     """ About derive_background_opsep.py
         

@@ -1,6 +1,11 @@
 @ECHO OFF
 setlocal EnableDelayedExpansion
 
+REM The CLEAR Benchmark Dataset was generated with python 3.10.17.
+
+REM SCRIPT TO GENERATE THE BENCHMARK DATASET FROM SCRATCH
+REM REPLACE THE "python" CALL TO REFLECT YOUR REQUIRED COMMAND.
+
 REM The steps in this procedure will download all necessary data, process it, and
 REM create individual curated SEP lists for each GOES spacecraft. These lists may
 REM be combined to a final list by choosing the primary spacecraft for each time
@@ -10,15 +15,16 @@ REM This script using the python call "python". You should modify this to
 REM python3 or python3.10 or py depending on the needs of your system.
 
 REM This script assumes the data directory is located in fetchsep/data. If you want
-REM your data directory elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR_GOES-07.cfg
-REM and fetchsep_CLEAR.cfg must be edited with the location of your desired data path
-REM (and output, plots, etc).
+REM your data directory elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg
+REM must be edited with the location of your desired data path (and outpath, plotpath).
+REM Output files are stored in fetchsep/CLEAR/output and fetchsep/CLEAR/plots.
 
 REM Execute this script in the top directory of the repository, fetchsep/
 
 
 REM set up environment and create directories
 $env:PYTHONPATH = "$env:PYTHONPATH;$PWD"
+copy .\fetchsep\reference\CLEAR\fetchsep_CLEAR.cfg .\fetchsep.cfg
 python .\fetchsep\utils\config.py
 
 
@@ -44,13 +50,6 @@ set end_date.GOES-RT.secondary=2025-09-11
 
 
 for %%G in (06 07 08 10 11 13 15 RT) do (
-   REM copy customized fetchsep settings
-   if "%%G" == "07" (
-      copy .\fetchsep\reference\CLEAR\fetchsep_CLEAR_GOES-%%G.cfg .\fetchsep.cfg
-   ) else (
-      copy .\fetchsep\reference\CLEAR\fetchsep_CLEAR.cfg .\fetchsep.cfg
-   )
-
    if not "%%G" == "RT" (
       echo "[GOES-%%G] Calculate background with idsep"
       python .\bin\idsep ^

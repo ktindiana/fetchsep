@@ -84,12 +84,6 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
-
-badval = cfg.badval #bad data points will be set to this value; must be negative
-user_col = cfg.user_col
-user_delim = cfg.user_delim
-user_energy_bins = cfg.user_energy_bins
-
 #Spacecraft in the GOES-R+ series
 goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
 #Spacecraft prior to GOES-R
@@ -2670,7 +2664,7 @@ def read_in_sepem(experiment, flux_type, filenames1):
                 for j in range(1,ncol):
                     flux = float(row[j])
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
                     fluxes[j-1][count] = flux
                 count = count + 1
         #If reading in multiple files, then combine all data into one array
@@ -2849,7 +2843,7 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
                     for j in range(ncol):
                         flux = float(row[columns[j]])
                         if flux < 0:
-                            flux = badval
+                            flux = cfg.badval
                         fluxes[j][count] = flux
                     count = count + 1
             csvfile.close()
@@ -2874,13 +2868,13 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
                         for j in range(nhcol):
                             #Sometimes GOES datafiles have an incomplete row,
                             #e.g. g13_hepad_ap_5m_20101201_20101231.csv
-                            #If so, rather than crash, set the flux to badval
+                            #If so, rather than crash, set the flux to cfg.badval
                             try:
                                 flux = float(row[hepad_columns[j]])
                             except:
-                                flux = badval
+                                flux = cfg.badval
                             if flux < 0:
-                                flux = badval
+                                flux = cfg.badval
                             fluxes[ncol+j][count] = flux
                         count = count + 1
                 csvfile.close()
@@ -3062,13 +3056,13 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                         if (experiment == "GOES-13" or experiment == "GOES-14"
                             or experiment == "GOES-15"):
                             if west_det == None:
-                                flux = badval
+                                flux = cfg.badval
                             elif west_det == "B":
                                 flux = float(row[columnsB[j]])
                             elif west_det == "Flip":
-                                flux = badval
+                                flux = cfg.badval
                         if flux < 0:
-                            flux = badval
+                            flux = cfg.badval
                         fluxes[j][ix] = flux
                     ix = ix + 1
             csvfile.close()
@@ -3095,13 +3089,13 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                     for j in range(nhcol):
                         #Sometimes GOES datafiles have an incomplete row,
                         #e.g. g13_hepad_ap_5m_20101201_20101231.csv
-                        #If so, rather than crash, set the flux to badval
+                        #If so, rather than crash, set the flux to cfg.badval
                         try:
                             flux = float(row[hepad_columns[j]])
                         except:
-                            flux = badval
+                            flux = cfg.badval
                         if flux < 0:
-                            flux = badval
+                            flux = cfg.badval
                         fluxes[ncol+j][count] = flux
                     count = count + 1
             csvfile.close()
@@ -3230,13 +3224,13 @@ def read_in_goesR(experiment, flux_type, filenames1):
                     
                     flux = data.variables["AvgDiffProtonFlux"][j][idx][k]
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
                     fluxes[k][j] = flux*conversion
                 
 
                 flux = data.variables["AvgIntProtonFlux"][j][idx]
                 if flux < 0:
-                    flux = badval
+                    flux = cfg.badval
                 fluxes[-1][j] = flux
 
             #Update file completeness
@@ -3372,8 +3366,8 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
                 df_in = df_in.drop(col,axis=1)
                         
 
-        #Replace bad data with badval
-        df_in = df_in.replace(to_replace=-100000,value=badval)
+        #Replace bad data with cfg.badval
+        df_in = df_in.replace(to_replace=-100000,value=cfg.badval)
 
         df_data = pd.concat([df_data,df_in],ignore_index=True)
         
@@ -3621,8 +3615,8 @@ def read_in_ephin(experiment, flux_type, filenames1):
                 for j in range(ncol):
                     flux = float(row[fluxcols[j]])
                     if flux < 0:
-                        flux = badval
-                       # print(f"SETTING EPHIN FLUX TO BADVAL {badval} for {j}, {count}")
+                        flux = cfg.badval
+                       # print(f"SETTING EPHIN FLUX TO BADVAL {cfg.badval} for {j}, {count}")
                     fluxes[j][count] = flux
                 count = count + 1
 
@@ -3707,7 +3701,7 @@ def read_in_ephin_hesperia(experiment, flux_type, filenames1):
                 for j in range(ncol):
                     flux = float(row[fluxcols[j]])
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
                     fluxes[j][count] = flux
                 count = count + 1
 
@@ -3796,7 +3790,7 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
                 for j in range(ncol):
                     flux = float(row[fluxcols[j]])
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
                     fluxes.append(flux)
 
                 all_fluxes.append(fluxes)
@@ -3934,7 +3928,7 @@ def read_in_erne(experiment, flux_type, filenames1):
                     else:
                         flux = float(row_hed[fluxcols[j]])
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
                     fluxes[j][count] = flux
                 count = count + 1
 
@@ -4040,7 +4034,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 for j in range(ncolL):
                     flux = float(row[fluxcolsL[j]])
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
 
                     rowL.append(flux)
                 
@@ -4107,7 +4101,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 for j in range(ncolH):
                     flux = float(row[fluxcolsH[j]])
                     if flux < 0:
-                        flux = badval
+                        flux = cfg.badval
 
                     rowH.append(flux)
 
@@ -4140,8 +4134,8 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     print(f"read_in_stereo: There may be missing timestamps in the LET and HET data sets. "
         f"Make a time point for every minute between {first_date} and {last_date}, then fill "
         "in with bad value.")
-    badL = [badval]*ncolL
-    badH = [badval]*ncolH
+    badL = [cfg.badval]*ncolL
+    badH = [cfg.badval]*ncolH
     nmins = math.ceil((last_date - first_date).total_seconds()/60.) + 1
     print(f"There are {len(dfL)} LET time points and {len(dfH)} HET time points between "
         f"{first_date} and {last_date}. There should be {nmins} minutes.")
@@ -4160,7 +4154,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                     badrowL = [time] + badL
                     dfLbad = pd.DataFrame([badrowL],columns=colL)
                     dfL = pd.concat([dfL,dfLbad],ignore_index=True)
-                    print(f"{datetime.datetime.now()} read_in_stereo: Time point missing in LET at {time}. Filled with {badval}.")
+                    print(f"{datetime.datetime.now()} read_in_stereo: Time point missing in LET at {time}. Filled with {cfg.badval}.")
 
             if not isgoodH:
                 have_timeH = dfH['dates'].isin([time]).any()
@@ -4168,7 +4162,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                     badrowH = [time] + badH
                     dfHbad = pd.DataFrame([badrowH], columns=colH)
                     dfH = pd.concat([dfH,dfHbad],ignore_index=True)
-                    print(f"{datetime.datetime.now()} read_in_stereo: Time point missing in HET at {time}. Filled with {badval}.")
+                    print(f"{datetime.datetime.now()} read_in_stereo: Time point missing in HET at {time}. Filled with {cfg.badval}.")
 
 
     #After bad times have been filled in, sort dataframes to be in time order again
@@ -4273,8 +4267,8 @@ def read_in_ace_sis(experiment, flux_type, filenames1):
 
                 flx30 = float(line[7])
                 flx60 = float(line[9])
-                if flx30 < 0: flx30 = badval
-                if flx60 < 0: flx60 = badval
+                if flx30 < 0: flx30 = cfg.badval
+                if flx60 < 0: flx60 = cfg.badval
             
                 all_fluxes.append([flx30, flx60])
                 
@@ -4364,7 +4358,7 @@ def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
                 all_dates.append(date)
 
                 flx = float(line[8])
-                if flx < 0: flx = badval
+                if flx < 0: flx = cfg.badval
             
                 all_fluxes.append(flx)
                 
@@ -4453,7 +4447,7 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
                 flx = [float(line[20]), float(line[22]), float(line[24]), float(line[26]),
                     float(line[28]), float(line[30])]
                 for jj in range(len(flx)):
-                    if flx[jj] < 0: flx[jj] = badval
+                    if flx[jj] < 0: flx[jj] = cfg.badval
             
                 all_fluxes.append(flx)
                 
@@ -4617,13 +4611,12 @@ def convert_frac_year(frac_year):
 
     return date
 
-def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
+def read_in_user_files(filenames1, is_unixtime=False):
     """ Read in file containing flux time profile information that
         was specified by the user.
         The first column MUST contain the date in YYYY-MM-DD HH:MM:SS
         format. The remaining flux columns to be read in are specified
-        by the user in the variable user_col at the very beginning of
-        this program.
+        by the user in the variable cfg.user_col.
         
         The date column should always be considered column 0, even if
         you used whitespace as your delimeter. The code will consider
@@ -4655,22 +4648,13 @@ def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
        
     """
     print('Reading in user-specified files.')
-    global user_delim
-    global user_col
-
-    if delim != "":
-        user_delim = delim
-        
-    if flux_col:
-        user_col = flux_col
-
 
     if cfg.time_shift != 0:
         print("!!!!!!!Shifting times by time_shift in global_vars.py: "
             + str(cfg.time_shift) + " hours. Set to zero if do "
             "not want to shift.")
     NFILES = len(filenames1)
-    ncol = len(user_col) #include column for date
+    ncol = len(cfg.user_col) #include column for date
     for i in range(NFILES):
         print('Reading in ' + filenames1[i])
         with open(filenames1[i]) as csvfile:
@@ -4696,32 +4680,32 @@ def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
                 csvfile.readline()  # Skip header rows.
 
             user_col_mod = []
-            for j in range(len(user_col)):
-                if (user_delim == " " or user_delim == "") and not is_unixtime:
+            for j in range(len(cfg.user_col)):
+                if (cfg.user_delim == " " or cfg.user_delim == "") and not is_unixtime:
                     #date takes two columns if separated by whitespace
                     #adjust the user input columns to account for this
-                    user_col_mod.append(user_col[j] + 1)
+                    user_col_mod.append(cfg.user_col[j] + 1)
                 else:
-                    user_col_mod.append(user_col[j])
+                    user_col_mod.append(cfg.user_col[j])
 
             count = 0
             for line in csvfile:
                 if line == " " or line == "":
                     continue
                 if not is_unixtime:
-                    if user_delim == " " or user_delim == "":
+                    if cfg.user_delim == " " or cfg.user_delim == "":
                         row = line.split()
                         str_date = row[0][0:10] + ' ' + row[1][0:8]
-                    if user_delim != " " and user_delim != "":
-                        row = line.split(user_delim)
+                    if cfg.user_delim != " " and cfg.user_delim != "":
+                        row = line.split(cfg.user_delim)
                         str_date = row[0][0:19]
                     date = datetime.datetime.strptime(str_date,
                                 "%Y-%m-%d %H:%M:%S")
                 
                 if is_unixtime:
-                    if user_delim == " " or user_delim == "":
+                    if cfg.user_delim == " " or cfg.user_delim == "":
                         row = line.split()
-                    else: row = line.split(user_delim)
+                    else: row = line.split(cfg.user_delim)
                     utime = int(row[0])
                     date = datetime.datetime.utcfromtimestamp(utime)
                     
@@ -4735,8 +4719,8 @@ def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
                 dates.append(date)
                 
                 for j in range(len(user_col_mod)):
-                    #print("Read in flux for column " + str(user_col[j]) + ': '\
-                    #    + str(date)) #+ ' ' + row[user_col[j]])
+                    #print("Read in flux for column " + str(cfg.user_col[j]) + ': '\
+                    #    + str(date)) #+ ' ' + row[cfg.user_col[j]])
                     #print(row)
                     if user_col_mod[j] >= len(row):
                         sys.exit("read_datasets: read_in_user_files: "
@@ -4751,7 +4735,7 @@ def read_in_user_files(filenames1, delim='', flux_col=[], is_unixtime=False):
                     else:
                         flux = float(row[user_col_mod[j]])
                         if flux < 0:
-                            flux = badval
+                            flux = cfg.badval
                     fluxes[j][count] = flux
                 count = count + 1
 
@@ -4846,15 +4830,15 @@ def do_interpolation(i,dates,flux):
        
     """
     ndates = len(dates)
-    preflux = badval
-    postflux = badval
+    preflux = cfg.badval
+    postflux = cfg.badval
     
 #    print("ndates: " + str(ndates) + ", i: " + str(i))
 
     #If first point is bad point, use the next good point to fill gap
     if i == 0:
         for j in range(i,ndates-1):
-            if flux[j] != badval and not pd.isnull(flux[j]):
+            if flux[j] != cfg.badval and not pd.isnull(flux[j]):
                 postflux = flux[j]
                 postdate = dates[j]
 #                print('First point in array is bad. The first good value after '
@@ -4866,7 +4850,7 @@ def do_interpolation(i,dates,flux):
     #If last point is bad point, use the first prior good point to fill gap
     if i == ndates - 1:
         for j in range(i,-1,-1):
-            if flux[j] != badval and not pd.isnull(flux[j]):
+            if flux[j] != cfg.badval and not pd.isnull(flux[j]):
                 preflux = flux[j]
                 predate = dates[j]
  #               print('Last point in the array is bad. The first good value '
@@ -4879,7 +4863,7 @@ def do_interpolation(i,dates,flux):
     if i != 0 and i != ndates-1:
         #search for first previous good value prior to the gap
         for j in range(i,-1,-1):
-            if flux[j] != badval and not pd.isnull(flux[j]):
+            if flux[j] != cfg.badval and not pd.isnull(flux[j]):
                 preflux = flux[j]
                 predate = dates[j]
 #                print('The first good value previous to gap is on '
@@ -4888,21 +4872,21 @@ def do_interpolation(i,dates,flux):
             if j == 0:
 #                print('There is a data gap at the beginning of the '
 #                        'selected time period. Program cannot estimate '
-#                        f'flux in data gap. Setting to {badval}.')
-                preflux = badval
+#                        f'flux in data gap. Setting to {cfg.badval}.')
+                preflux = cfg.badval
                 predate = None
 
         #search for first previous good value after to the gap
         for j in range(i,ndates-1):
-            if flux[j] != badval and not pd.isnull(flux[j]):
+            if flux[j] != cfg.badval and not pd.isnull(flux[j]):
                 postflux = flux[j]
                 postdate = dates[j]
 #                print('The first good value after to gap is on '
 #                    + str(dates[j]) + ' with value ' + str(flux[j]))
                 break
             
-            if j == ndates-2 and (flux[j] == badval or pd.isnull(flux[j])):
-                if flux[ndates-1] != badval and not pd.isnull(flux[ndates-1]):
+            if j == ndates-2 and (flux[j] == cfg.badval or pd.isnull(flux[j])):
+                if flux[ndates-1] != cfg.badval and not pd.isnull(flux[ndates-1]):
                     postflux = flux[ndates-1]
                     postdate = dates[ndates-1]
                 else:
@@ -4913,9 +4897,9 @@ def do_interpolation(i,dates,flux):
 #                        + str(postdate) + ' with value ' + str(postflux))
 
             
-    if preflux == badval or postflux == badval:
-        interp_flux = badval
-#        print(f'do_interpolation could not interpolate flux at {i}. Setting to {badval}.')
+    if preflux == cfg.badval or postflux == cfg.badval:
+        interp_flux = cfg.badval
+#        print(f'do_interpolation could not interpolate flux at {i}. Setting to {cfg.badval}.')
     
     else:
         if preflux == postflux:
@@ -5096,7 +5080,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
     spacecraft="primary", user_bins=[]):
     """ Define the energy bins for the selected spacecraft or data set.
         If the user inputs their own file, they must set the
-        user_energy_bins variable in config/config_opsep.py.
+        user_energy_bins variable in fetchsep.cfg.
         User may select options to apply Sandberg et al. (2014)
         effective energies for GOES EPS by specifying "S14" and/or
         apply Bruno (2017) effective energies for GOES-13 or -15 P6, P7
