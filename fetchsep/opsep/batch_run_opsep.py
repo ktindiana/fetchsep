@@ -91,10 +91,10 @@ def about_batch_run_opsep():
 
 def check_list_path():
     """Check if the path listpath (in opsep/config.py) exists"""
-    if not os.path.isdir(cfg.listpath,'opsep'):
+    if not os.path.isdir(os.path.join(cfg.listpath,'opsep')):
         print('check_paths: Directory containing lists, ' + cfg.listpath +
         '/opsep, does not exist. Creating.')
-        os.mkdir(cfg.listpath,'opsep');
+        os.mkdir(os.path.join(cfg.listpath,'opsep'));
 
 
 

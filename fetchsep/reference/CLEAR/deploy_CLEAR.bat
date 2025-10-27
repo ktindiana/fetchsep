@@ -55,12 +55,12 @@ for %%G in (06 07 08 10 11 13 15 RT) do (
       python .\bin\idsep ^
          --StartDate "!start_date.GOES-%%G!" --EndDate "!end_date.GOES-%%G!" ^
          --Experiment GOES-%%G --FluxType integral --RemoveAbove 10 --saveplot ^
-         > .\output\GOES-%%G_integral_idsep.log
+         > .\CLEAR\output\GOES-%%G_integral_idsep.log
 
       echo
       echo "[GOES-%%G] Copy curated batch files"
       copy .\fetchsep\reference\CLEAR\batch_event_list_GOES-%%G_integral_enhance_idsep_CLEAR.txt ^
-         .\output\idsep\GOES-%%G_integral\
+         .\CLEAR\output\idsep\GOES-%%G_integral\
 
       echo "[GOES-%%G] Batch opsep using curated CLEAR lists"
       python .\bin\fetchsep_prepare_obs ^
@@ -68,7 +68,7 @@ for %%G in (06 07 08 10 11 13 15 RT) do (
          --Experiment GOES-%%G --FluxType integral --Threshold "30,1;50,1" ^
          --BatchFile batch_event_list_GOES-%%G_integral_enhance_idsep_CLEAR.txt ^
          --IDSEPEnhancement --StartPoint BATCH ^
-         > .\output\GOES-%%G_integral_batch.log
+         > .\CLEAR\output\GOES-%%G_integral_batch.log
       echo
    ) else (
       for %%T in (primary secondary) do (
@@ -76,12 +76,12 @@ for %%G in (06 07 08 10 11 13 15 RT) do (
          python .\bin\idsep ^
             --StartDate "!start_date.GOES-%%G.%%T!" --EndDate "!end_date.GOES-%%G.%%T!" ^
             --Experiment GOES_%%G --Spacecraft %%T --FluxType integral --RemoveAbove 10 --saveplot ^
-            > .\output\GOES_%%G_integral_%%T_idsep.log
+            > .\CLEAR\output\GOES_%%G_integral_%%T_idsep.log
 
          echo
          echo "[GOES-%%G/%%T] Copy curated batch files"
          copy .\fetchsep\reference\CLEAR\batch_event_list_GOES_RT_integral_%%T_enhance_idsep_CLEAR.txt ^
-            .\output\idsep\GOES_RT_integral_%%T\
+            .\CLEAR\output\idsep\GOES_RT_integral_%%T\
 
          echo "[GOES-%%G/%%T] Batch opsep using curated CLEAR lists"
          python .\bin\fetchsep_prepare_obs ^
@@ -89,7 +89,7 @@ for %%G in (06 07 08 10 11 13 15 RT) do (
             --Experiment GOES_%%G --Spacecraft %%T --FluxType integral --Threshold "30,1;50,1" ^
             --BatchFile batch_event_list_GOES_%%G_integral_%%T_enhance_idsep_CLEAR.txt ^
             --IDSEPEnhancement --StartPoint BATCH ^
-            > .\output\GOES_%%G_integral_%%T_batch.log
+            > .\CLEAR\output\GOES_%%G_integral_%%T_batch.log
          echo
       )
    )
@@ -102,12 +102,12 @@ for %%G in (13 15) do (
 	 --StartDate "!start_date.GOES-%%G!" --EndDate "!end_date.GOES-%%G!" ^
 	 --Experiment GOES-%%G --FluxType differential --RemoveAbove 10 --saveplot ^
 	 --options "S14;Bruno2017;uncorrected" ^
-	 > .\output\GOES-%%G_differential_uncor_S14_B17_idsep.log
+	 > .\CLEAR\output\GOES-%%G_differential_uncor_S14_B17_idsep.log
 
   echo
   echo "[GOES-%%G/uncor_S14_B17 Copy curated batch files"
   copy .\fetchsep\reference\CLEAR\batch_event_list_GOES-%%G_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt ^
-	 .\output\idsep\GOES-%%G_differential_uncor_S14_B17\
+	 .\CLEAR\output\idsep\GOES-%%G_differential_uncor_S14_B17\
 
   echo "[GOES-%%G/uncor_S14_B17] Batch opsep using curated CLEAR lists"
   python .\bin\fetchsep_prepare_obs ^
@@ -115,7 +115,7 @@ for %%G in (13 15) do (
 	 --Experiment GOES-%%G --FluxType differential --Threshold "30,1;50,1" ^
 	 --BatchFile batch_event_list_GOES-%%G_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt ^
 	 --IDSEPEnhancement --IDSEPSubtractBG --StartPoint BATCH --options "S14;Bruno2017;uncorrected" ^
-	 > .\output\GOES-%%G_differential_uncor_S14_B17_bgsub_batch.log
+	 > .\CLEAR\output\GOES-%%G_differential_uncor_S14_B17_bgsub_batch.log
   echo
 
 )

@@ -149,6 +149,13 @@ The `opsep` code was previously supported at https://github.com/ktindiana/operat
 
 `opsep` is intended to assess each individual SEP event at a time, extracting information such as start and end times, peak fluxes, and event fluence.
 
+**Two operational SEP event definitions are applied automatically for:**
+
+* >10 MeV exceeds 10 pfu
+* >100 MeV exceeds 1 pfu
+
+If differential fluxes were input into opsep, it will automatically estimate >10 MeV and >100 MeV fluxes from the available energy channels.
+
 The code will output various csv files and a json file with accompany txt files. The JSON file is in the same format as required by the SEP Scoreboard to submit forecasts.
 
 `opsep` creates files from observations that can be directly compared to SEP model forecasts sent to the SEP Scoreboard.
@@ -160,11 +167,6 @@ To run OpSEP to process individual SEP events:
 
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --showplot
 
-Two operational SEP event definitions are applied automatically for:
->10 MeV exceeds 10 pfu
->100 MeV exceeds 1 pfu
-
-If differential fluxes were input into opsep, it will automatically estimate >10 MeV and >100 MeV fluxes from the available energy channels.
 
 You may add additional event definitions with the --Threshold flag.
 
@@ -205,8 +207,8 @@ Perform Background Subtraction and Identify Enhancements Above Background
 
 Background-subtraction of particle fluxes may be performed in two different ways in FetchSEP.
 
-OpSEP
------
+With OpSEP-calculated Background
+--------------------------------
 
 With `opsep`: The user may specify a specific time period to use as the background. OpSEP will calculate the mean particle flux and level of variation (sigma) for that time period. Fluxes above mean + n*sigma, where n is specified in fetchsep.cfg in the opsep_nsigma variable, are considered SEP fluxes and will be subtracted by the mean. Fluxes below mean+n*sigma are consered background and are set to zero.
 
@@ -222,8 +224,8 @@ GOES integral fluxes provided by NOAA already have some amount of background-sub
 
 Although the background has not been subtracted, calling --IDSEPEnhancement will set values below mean + n*sigma to zero.
 
-IDSEP
------
+With IDSEP-calculated Background
+--------------------------------
 
 With `idsep`: Run `idsep` for a long timeframe (e.g. months, years) to calculate the mean background and sigma with time. Run `opsep` and use the background solution created by idsep to identify SEP enhancements above mean + n*sigma, where n is specified in fetchsep.cfg in the opsep_nsigma variable, subtract the mean background, and set background fluxes to zero. You may calculate the mean background with idsep for, e.g.,  the entire history of an experiment and keep that file around for use in background subtraction with opsep.
 
