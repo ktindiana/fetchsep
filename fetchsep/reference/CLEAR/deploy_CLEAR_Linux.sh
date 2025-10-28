@@ -172,7 +172,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
              --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
              --Experiment GOES-${n} --FluxType integral --Threshold "30,1;50,1" \
              --BatchFile batch_event_list_GOES-${n}_integral_enhance_idsep_CLEAR.txt \
-             --IDSEPEnhancement --StartPoint BATCH \
+             --IDSEPEnhancement --Associations --StartPoint BATCH \
              >CLEAR/output/GOES-${n}_integral_batch.log
           echo
        else
@@ -188,7 +188,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
                 --StartDate "${start_date[GOES-${n}/${type}]}" --EndDate "${end_date[GOES-${n}/${type}]}" \
                 --Experiment GOES_${n} --Spacecraft $type --FluxType integral --Threshold "30,1;50,1" \
                 --BatchFile batch_event_list_GOES_${n}_integral_${type}_enhance_idsep_CLEAR.txt \
-                --IDSEPEnhancement --StartPoint BATCH \
+                --IDSEPEnhancement --Associations --StartPoint BATCH \
                 >CLEAR/output/GOES_${n}_integral_${type}_batch.log
              echo
           done
@@ -207,7 +207,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
              --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
              --Experiment GOES-${n} --FluxType differential --Threshold "30,1;50,1" \
              --BatchFile batch_event_list_GOES-${n}_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt \
-             --IDSEPEnhancement --IDSEPSubtractBG --StartPoint BATCH --options "S14;Bruno2017;uncorrected" \
+             --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH --options "S14;Bruno2017;uncorrected" \
              >CLEAR/output/GOES-${n}_differential_uncor_S14_B17_bgsub_batch.log
           echo
        }

@@ -904,7 +904,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
     nointerp=False, spacecraft='', doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton'):
+    location='earth', species='proton', associations=False):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -942,6 +942,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
         :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
+        :associations: (bool) If True, will look for flare, CME, etc associations
+            in reference/SRAG_SEP_List_R11_CLEARversion.csv
         
         OUTPUTS:
         
@@ -987,7 +989,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
 
     #Create Output object to write out results
     output_data = cl.Output(flux_data, json_type, spase_id=spase_id)
-    output_data.find_srag_associations() #Associated flare, CME, etc
+    if associations:
+        output_data.find_srag_associations() #Associated flare, CME, etc
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()
     event_dict_pkl = output_data.create_pkl_dict()

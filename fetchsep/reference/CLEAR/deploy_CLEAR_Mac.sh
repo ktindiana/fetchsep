@@ -154,47 +154,47 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     #overwritten by a new run of idsep within fetchsep_prepare_obs
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-06] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --StartPoint BATCH  > CLEAR/output/GOES-06_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH  > CLEAR/output/GOES-06_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-07] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 1987-03-01 --EndDate 1996-09-01 --Experiment GOES-07 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-07_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --StartPoint BATCH > CLEAR/output/GOES-07_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 1987-03-01 --EndDate 1996-09-01 --Experiment GOES-07 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-07_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH > CLEAR/output/GOES-07_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-08] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 1995-01-01 --EndDate 2003-06-18 --Experiment GOES-08 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-08_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --StartPoint BATCH > CLEAR/output/GOES-08_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 1995-01-01 --EndDate 2003-06-18 --Experiment GOES-08 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-08_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH > CLEAR/output/GOES-08_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-10] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 1998-07-09 --EndDate 2004-07-01 --Experiment GOES-10 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-10_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --StartPoint BATCH > CLEAR/output/GOES-10_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 1998-07-09 --EndDate 2004-07-01 --Experiment GOES-10 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-10_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH > CLEAR/output/GOES-10_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-11] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 2003-06-01 --EndDate 2011-03-01 --Experiment GOES-11 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-11_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement  --StartPoint BATCH > CLEAR/output/GOES-11_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 2003-06-01 --EndDate 2011-03-01 --Experiment GOES-11 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-11_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH > CLEAR/output/GOES-11_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-13] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement  --StartPoint BATCH   > CLEAR/output/GOES-13_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH   > CLEAR/output/GOES-13_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-15] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --StartPoint BATCH  > CLEAR/output/GOES-15_integral_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH  > CLEAR/output/GOES-15_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES_RT/primary] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 2020-03-08 --EndDate 2025-09-11 --Experiment GOES_RT --Spacecraft primary --FluxType integral --BatchFile batch_event_list_GOES_RT_integral_primary_enhance_idsep_CLEAR.txt --IDSEPEnhancement --Threshold "30,1;50,1"  --StartPoint BATCH > CLEAR/output/GOES_RT_integral_primary_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 2020-03-08 --EndDate 2025-09-11 --Experiment GOES_RT --Spacecraft primary --FluxType integral --BatchFile batch_event_list_GOES_RT_integral_primary_enhance_idsep_CLEAR.txt --IDSEPEnhancement --Associations --Threshold "30,1;50,1"  --StartPoint BATCH > CLEAR/output/GOES_RT_integral_primary_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES_RT/secondary] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate "2021-09-23 15:45:00" --EndDate 2025-09-11 --Experiment GOES_RT --Spacecraft secondary --FluxType integral  --BatchFile batch_event_list_GOES_RT_integral_secondary_enhance_idsep_CLEAR.txt --IDSEPEnhancement --Threshold "30,1;50,1" --StartPoint BATCH > CLEAR/output/GOES_RT_integral_secondary_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate "2021-09-23 15:45:00" --EndDate 2025-09-11 --Experiment GOES_RT --Spacecraft secondary --FluxType integral  --BatchFile batch_event_list_GOES_RT_integral_secondary_enhance_idsep_CLEAR.txt --IDSEPEnhancement --Threshold "30,1;50,1" --Associations --StartPoint BATCH > CLEAR/output/GOES_RT_integral_secondary_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-13 energy bin calibrated] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType differential --options "S14;Bruno2017;uncorrected" --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --StartPoint BATCH  > CLEAR/output/GOES-13_differential_uncor_S14_B17_bgsub_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType differential --options "S14;Bruno2017;uncorrected" --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH  > CLEAR/output/GOES-13_differential_uncor_S14_B17_bgsub_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-15 energy bin calibrated] Generating SEP events lists with opsep"
-    python3.10 bin/fetchsep_prepare_obs --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType differential --options "S14;Bruno2017;uncorrected"  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --StartPoint BATCH > CLEAR/output/GOES-15_differential_S14_B17_uncor_bgsub_batch.log
+    python3.10 bin/fetchsep_prepare_obs --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType differential --options "S14;Bruno2017;uncorrected"  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH > CLEAR/output/GOES-15_differential_S14_B17_uncor_bgsub_batch.log
 
 fi
 

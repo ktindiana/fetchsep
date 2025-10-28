@@ -172,6 +172,10 @@ You may add additional event definitions with the --Threshold flag.
 
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --Threshold "30,1;50,1" --showplot
 
+You may search for associated flare, CME, radio, etc information by including the --Associations flag. If the SEP event is in in fetchsep/reference/SRAG_SEP_List_R11_CLEARversion.csv, the flare, etc, information will be saved to the output json and csv files.
+
+    | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --Threshold "30,1;50,1" --Associations --showplot
+
 To see how to add thresholds to differential energy channels, run:
 
     | python bin/opsep --help

@@ -29,9 +29,11 @@ parser.add_argument("--DontEnforceSEPCheck",
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes. Not required."))
+
 parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
+
 parser.add_argument("--Experiment", type=str, choices=['GOES-05',
         'GOES-06', 'GOES-07', 'GOES-08',
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
@@ -40,12 +42,19 @@ parser.add_argument("--Experiment", type=str, choices=['GOES-05',
         'ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B', 'ACE_SIS',
         'ACE_EPAM_electrons', 'IMP8_CPME', 'user'],
         default='', help="Enter name of spacecraft or dataset")
+
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Do you want to use integral or differential fluxes?"))
+
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES_RT is selected, choose the primary or secondary spacecraft."))
+
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "if an SEP event is found in the data. "), action="store_true")
+
 parser.add_argument("--Threshold", type=str, default="",
         help=("Additional energy and flux threshold which will be used to "
                 "define the event. To define an integral flux threshold: "
@@ -57,10 +66,12 @@ parser.add_argument("--Threshold", type=str, default="",
                 "Multiple thresholds may be entered separated by a "
                 "semi-colon with no spaces and surrounded by quotes, "
                 "e.g. \"30,1;50,1;25-40.9,0.001\""))
+
 parser.add_argument("--NoInterp",
         help=("Do not fill in negative or missing fluxes via "
                 "linear interpolation in time. Set as None values "
                 "instead."), action="store_true")
+
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
@@ -79,6 +90,7 @@ end_date = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+associations = args.Associations
 threshold = args.Threshold
 nointerp = args.NoInterp
 two_peaks = args.TwoPeaks
@@ -88,7 +100,8 @@ if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks, spacecraft=spacecraft)
+    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks, spacecraft=spacecraft,
+        associations=associations)
     prepsep.move_output(target_dir, subdir=subdir, enforce_new=enforce_new,
         enforce_sep_stop=enforce_sep_stop)
 

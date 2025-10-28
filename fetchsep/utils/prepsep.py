@@ -508,7 +508,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
     nointerp=False, spacecraft='', doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton'):
+    location='earth', species='proton', associations=False):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -525,6 +525,8 @@ def update_observations(target_dir, start_date, end_date, experiment,
             :threshold: (string) additional thresholds to apply to fluxes, see opsep for
                 more guidance
             :ninterp: (bool) False means that will not apply interpolation in data gaps
+            :associations: (bool) set to True to find flare, CME, radio info
+                associated with SEP events
                 
         OUTPUTS:
         

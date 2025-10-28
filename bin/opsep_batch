@@ -19,37 +19,48 @@ two_peaks_default = False #Set to true if get ShortEvent flag
 
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument("--Filename", type=str, default='tmp.csv', \
         help=("Name of csv file containing list of SEP start dates and files."
         "Default is tmp.csv."))
+
 parser.add_argument("--OutFilename", type=str, default='out.csv', \
         help=("Name of csv file containing list of SEP dates with "
             "flags indicating status after run with "
             "operational_sep_quantities.py. Default is lists/out.csv."))
+
 parser.add_argument("--Threshold", type=str, default="",
         help=("An additional energy and flux thresholds (written as 100,1 "
                 "with no spaces) which will be used to define the event. "
                 "e.g. 100,1 indicates >100 MeV fluxes crossing 1 pfu "
                 "(1/[cm^2 s sr]). Multiple thresholds may be written "
                 "as \"30,1;50,1\" separated by a semi-colon."))
+
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "if an SEP event is found in the data. "), action="store_true")
+
 parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
-parser.add_argument("--UMASEP",
-        help=("Flag to calculate flux values and thresholds specific to "
-            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
-            "flux values at 3, 4, 5, 6, 7 hours after "
-            "crossing thresholds."), action="store_true")
+
+#parser.add_argument("--UMASEP",
+#        help=("Flag to calculate flux values and thresholds specific to "
+#            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
+#            "flux values at 3, 4, 5, 6, 7 hours after "
+#            "crossing thresholds."), action="store_true")
 
 args = parser.parse_args()
 sep_filename = args.Filename
 outfname = args.OutFilename
 threshold = args.Threshold
+associations = args.Associations
 dointerp=args.DoInterp
-umasep = args.UMASEP
+umasep = False #args.UMASEP
 
 logger = logging.getLogger('opsep')
 
 batch.run_all_events(sep_filename, outfname, threshold, umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
-    detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)
+    associations=associations, detect_prev_event=detect_prev_event_default,
+    two_peaks=two_peaks_default)

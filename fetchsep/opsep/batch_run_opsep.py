@@ -483,7 +483,8 @@ def write_sep_lists(jsonfname, combos):
 
 
 def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=True,
-    showplot=False, saveplot=True, detect_prev_event=False, two_peaks=False):
+    showplot=False, saveplot=True, associations=False, detect_prev_event=False,
+    two_peaks=False):
     """ Run all of the time periods and experiments in the list
         file. Extract the values of interest and compile them
         in event lists, one list per energy channel and threshold
@@ -502,6 +503,8 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
             the UMASEP model
         :dointerp: (bool) if set to true will do interpolation of bad points
             with time
+        :associations: (bool) set to true to find flare, CME, radio associated
+            with each SEP event
 
         OUTPUTS:
 
@@ -581,7 +584,8 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                 OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
                 bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
                 doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
-                idsep_path=idsep_path, location=location, species=species)
+                idsep_path=idsep_path, location=location, species=species,
+                associations=associations)
 
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')

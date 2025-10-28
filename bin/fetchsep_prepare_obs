@@ -151,11 +151,15 @@ parser.add_argument("--Threshold", type=str, default="",
                 "Multiple thresholds may be written as \"30,1;50,1\" "
                 "separated by a semi-colon."))
 
-parser.add_argument("--UMASEP",
-        help=("Set flag to calculate flux values and thresholds "
-                "specific to the UMASEP model. Thresholds for >10, >30, "
-                ">50, >100 MeV and flux values at 3, 4, 5, 6, 7 hours "
-                "after crossing thresholds."), action="store_true")
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "if an SEP event is found in the data. "), action="store_true")
+
+#parser.add_argument("--UMASEP",
+#        help=("Set flag to calculate flux values and thresholds "
+#                "specific to the UMASEP model. Thresholds for >10, >30, "
+#                ">50, >100 MeV and flux values at 3, 4, 5, 6, 7 hours "
+#                "after crossing thresholds."), action="store_true")
 
 parser.add_argument("--JSONType", type=str, choices=['model',
         'observations'], default='observations',
@@ -251,7 +255,8 @@ showplot = args.showplot
 saveplot = True #args.saveplot #Always saveplot for this script
 
 threshold = args.Threshold
-umasep = args.UMASEP
+associations = args.Associations
+umasep = False #args.UMASEP
 json_type = args.JSONType
 
 energy_bin = args.ReferenceEnergyBin
@@ -318,5 +323,5 @@ sep_filename = os.path.join(cfg.outpath, "idsep", idsep_name, batchfile)
 statusfname = 'batch_run_status.csv'
 
 batch.run_all_events(sep_filename, statusfname, threshold, umasep=umasep,
-    dointerp=dointerp, showplot=showplot, saveplot=saveplot,
+    dointerp=dointerp, showplot=showplot, saveplot=saveplot, associations=associations,
     detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)

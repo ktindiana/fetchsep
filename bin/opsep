@@ -40,6 +40,10 @@ parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
 
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "if an SEP event is found in the data. "), action="store_true")
+
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
@@ -156,11 +160,11 @@ parser.add_argument("--TwoPeaks",
                 "before increasing again to the true peak of the event."),
                 action="store_true")
 
-parser.add_argument("--UMASEP",
-        help=("Flag to calculate flux values and thresholds specific to "
-            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
-            "flux values at various time periods after crossing "
-            "thresholds."), action="store_true")
+#parser.add_argument("--UMASEP",
+#        help=("Flag to calculate flux values and thresholds specific to "
+#            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
+#            "flux values at various time periods after crossing "
+#            "thresholds."), action="store_true")
 
 parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
@@ -179,6 +183,7 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+associations = args.Associations
 user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
@@ -197,7 +202,7 @@ showplot = args.showplot
 saveplot = args.saveplot
 detect_prev_event = args.DetectPreviousEvent
 two_peaks = args.TwoPeaks
-umasep = args.UMASEP
+umasep = False #args.UMASEP
 options = args.options
 nointerp = args.NoInterp
 
@@ -225,6 +230,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_a
     IDSEPEnhancement=IDSEPEnhancement,
     idsep_path=idsep_path,
     location=location,
-    species=species)
+    species=species,
+    associations=associations)
 
 if showplot: plt.show()
