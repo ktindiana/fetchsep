@@ -42,8 +42,9 @@
 #COMMAND LINE ARGUMENTS
 #----------------------
 #In the command line, the argument LISTS may be added to skip the calculation of
-#the mean background with IDSEP. The background calculation is extremely time consuming.
-#If it has already been done and the user only wants to regenerate the SEP lists,
+#the mean background with IDSEP IF IT WAS ALREADY DONE PREVIOUSLY.
+#The background calculation is extremely time consuming and it needn't be repeated.
+#If the user only wants to regenerate the SEP lists,
 #the argument LISTS will skip to that part of the script.
 
 #When run without an argument, will default to startpoint ALL and the script will:
@@ -199,5 +200,8 @@ fi
 
 #Remove CLEAR config file so that running FetchSEP will not overwrite files in the
 #CLEAR/ directory. Return to FetchSEP defaults.
+echo "Returning config file to FetchSEP defaults."
 rm fetchsep.cfg
 python3.10 fetchsep/utils/config.py
+date '+%Y-%m-%d %H:%M:%S'
+echo "Completed"

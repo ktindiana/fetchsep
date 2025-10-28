@@ -43,8 +43,9 @@
 #COMMAND LINE ARGUMENTS
 #----------------------
 #In the command line, the argument LISTS may be added to skip the calculation of
-#the mean background with IDSEP. The background calculation is extremely time consuming.
-#If it has already been done and the user only wants to regenerate the SEP lists,
+#the mean background with IDSEP IF IT WAS ALREADY DONE PREVIOUSLY.
+#The background calculation is extremely time consuming and it needn't be repeated.
+#If the user only wants to regenerate the SEP lists,
 #the argument LISTS will skip to that part of the script.
 
 #When run without an argument, will default to startpoint ALL and the script will:
@@ -165,6 +166,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
           cp fetchsep/reference/CLEAR/batch_event_list_GOES-${n}_integral_enhance_idsep_CLEAR.txt \
              CLEAR/output/idsep/GOES-${n}_integral/
 
+          date '+%Y-%m-%d %H:%M:%S'
           echo "[GOES-${n}] Batch opsep using curated CLEAR lists"
           python bin/fetchsep_prepare_obs \
              --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
@@ -180,6 +182,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
              cp fetchsep/reference/CLEAR/batch_event_list_GOES_RT_integral_${type}_enhance_idsep_CLEAR.txt \
                 CLEAR/output/idsep/GOES_RT_integral_${type}/
 
+             date '+%Y-%m-%d %H:%M:%S'
              echo "[GOES-${n}/${type}] Batch opsep using curated CLEAR lists"
              python bin/fetchsep_prepare_obs \
                 --StartDate "${start_date[GOES-${n}/${type}]}" --EndDate "${end_date[GOES-${n}/${type}]}" \
@@ -198,6 +201,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
           cp fetchsep/reference/CLEAR/batch_event_list_GOES-${n}_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt \
              CLEAR/output/idsep/GOES-${n}_differential_uncor_S14_B17/
 
+          date '+%Y-%m-%d %H:%M:%S'
           echo "[GOES-${n}/uncor_S14_B17] Batch opsep using curated CLEAR lists"
           python bin/fetchsep_prepare_obs \
              --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
@@ -212,5 +216,8 @@ fi
 
 #Remove CLEAR config file so that running FetchSEP will not overwrite files in the
 #CLEAR/ directory. Return to FetchSEP defaults.
+echo "Returning config file to FetchSEP defaults."
 rm fetchsep.cfg
 python fetchsep/utils/config.py
+date '+%Y-%m-%d %H:%M:%S'
+echo "Completed"
