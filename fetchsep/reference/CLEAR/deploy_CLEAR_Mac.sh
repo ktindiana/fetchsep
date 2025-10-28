@@ -1,9 +1,11 @@
 #!/bin/bash
 
-#The benchmark dataset is created using FetchSEP run in python3.10.17.
-#REPLACE THE "python3.10" CALL FOR YOUR REQUIRED COMMAND.
+#PLEASE READ IN ENTIRETY BEFORE RUNNING
 
-#STEP-BY-STEP PROCEDURE for Mac
+#STEP-BY-STEP PROCEDURE TO GENERATE THE CLEAR BENCHMARK DATASET for Mac
+#The benchmark dataset is created using FetchSEP run in python3.10.17.
+
+#REPLACE THE "python3.10" CALL FOR YOUR REQUIRED COMMAND.
 
 #The steps in this procedure will download all necessary data, process it,
 #and create individual curated SEP lists for each GOES spacecraft.
@@ -17,9 +19,15 @@
 
 #CONFIG FILE
 #-----------
-#This script assumes the data directory is located in fetchsep/data. If you want
-#your data directory elsewhere, then fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg
+#!!!!If you already have a fetchsep.cfg file in the main fetchsep directory
+#that you have customized, copy it to a different name (e.g. fetchsep.cfg.bak)
+#so that it will not be overwritten. !!!!
+
+#This script assumes the data directory is located in fetchsep/data and all GOES data
+#will be downloaded here. If you want your data directory elsewhere, then
+#fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg
 #must be edited with the location of your desired data path.
+
 #Output files are stored in fetchsep/CLEAR/output and fetchsep/CLEAR/plots and should
 #not be modified to ensure the script works properly.
 
@@ -27,9 +35,9 @@
 #------------------
 #Run the script in the top directory of the repository, fetchsep/
 #You may need to change your execution permissions:
-#chmod u+x ./fetchsep/reference/CLEAR/deploy_CLEAR_steps.sh
+#chmod u+x ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh
 #Run in the terminal as:
-#./fetchsep/reference/CLEAR/deploy_CLEAR_steps.sh
+#./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh
 
 #COMMAND LINE ARGUMENTS
 #----------------------
@@ -42,12 +50,12 @@
 #    - Set up environment
 #    - Download data and calculate mean background and sigma with IDSEP (12+ hours)
 #    - Copy CLEAR curated batch files
-#    - Generate SEP lists
+#    - Generate SEP lists (2+ hours)
 
 #When run with the argument LISTS, the script will:
 #    - Set up environment
 #    - Copy CLEAR curated batch files
-#    - Generate SEP lists
+#    - Generate SEP lists (2+ hours)
 
 startpoint=${1:-"ALL"}
 if [ -z "$1" ]; then
@@ -141,7 +149,8 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     ######################################################################
     ############## BATCH OPSEP USING CURATED CLEAR LISTS #################
     ######################################################################
-    # MAKE SURE TO INCLUDE --StartPoint BATCH or the batch file will be overwritten by a new run of idsep
+    # MAKE SURE TO INCLUDE --StartPoint BATCH or the batch file will be
+    #overwritten by a new run of idsep within fetchsep_prepare_obs
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-06] Generating SEP events lists with opsep"
     python3.10 bin/fetchsep_prepare_obs --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --StartPoint BATCH  > CLEAR/output/GOES-06_integral_batch.log
@@ -187,3 +196,8 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     python3.10 bin/fetchsep_prepare_obs --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType differential --options "S14;Bruno2017;uncorrected"  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --StartPoint BATCH > CLEAR/output/GOES-15_differential_S14_B17_uncor_bgsub_batch.log
 
 fi
+
+#Remove CLEAR config file so that running FetchSEP will not overwrite files in the
+#CLEAR/ directory. Return to FetchSEP defaults.
+rm fetchsep.cfg
+python3.10 fetchsep/utils/config.py
