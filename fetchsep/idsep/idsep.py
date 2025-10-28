@@ -19,10 +19,6 @@ __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
 
-#See full program description in all_program_info() below
-datapath = cfg.datapath
-outpath = os.path.join(cfg.outpath, "idsep")
-plotpath = os.path.join(cfg.plotpath, "idsep")
 
 #Background subtraction automatically done where makes sense
 #This field does nothing except it's needed for plotting.
@@ -31,7 +27,8 @@ doBGSub=False
 
 # Prepare directories
 cfg.prepare_dirs()
-for path in (outpath, plotpath):
+for path in (cfg.outpath, cfg.plotpath):
+    path = os.path.join(path, 'idsep')
     if not os.path.isdir(path):
         print("Making directory:", path)
         os.mkdir(path)
@@ -232,7 +229,7 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(SEPstart)):
         fname = (f"{prename}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
-        fname = os.path.join(outpath, name, fname)
+        fname = os.path.join(cfg.outpath,'idsep', name, fname)
         outfile = open(fname,"w")
         outfile.write("#SEP times calculated by idsep\n")
         if experiment == "user" and exp_name != '':
@@ -314,7 +311,7 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(fluxes_high)):
         fname = (f"{prename}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
-        fname = os.path.join(outpath, name, fname)
+        fname = os.path.join(cfg.outpath,'idsep', name, fname)
         outfile = open(fname,"w")
         outfile.write("#All high points above mean background + 3*sigma calculated by idsep\n")
         if experiment == "user" and exp_name != '':
@@ -519,6 +516,11 @@ def run_all(str_startdate, str_enddate, experiment,
     
     """
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
+
+    cfg.configure_for(experiment)
+    cfg.print_configured_values()
+
+
     startdate = dateh.str_to_datetime(str_startdate)
     enddate = dateh.str_to_datetime(str_enddate)
     eff_startdate = startdate

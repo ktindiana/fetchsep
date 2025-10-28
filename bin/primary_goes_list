@@ -1,0 +1,17 @@
+#!/usr/bin/env python
+
+import fetchsep.utils.tools as tools
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--lists", type=str, default='',
+        help=("Name of file containing filenames of SEP lists from GOES spacecraft."))
+        
+parser.add_argument("--prefix", type=str, default='GOES',
+        help=("Prefix to add to output file. Default = GOES. "
+            "File will be named like: "
+            "prefix_PRIMARY.YYYY-MM-DD.YYYY-MM-DD_sep_events.csv"))
+
+args = parser.parse_args()
+
+tools.create_primary_goes_sep_list(args.lists, prefix=args.prefix)

@@ -15,13 +15,6 @@ __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
 
-#See full program description in all_program_info() below
-datapath = cfg.datapath
-outpath = cfg.outpath
-plotpath = cfg.plotpath
-
-
-
 """ About download.py
     
     Download data from internet sources into FetchSEP's
@@ -136,7 +129,7 @@ def read_in_flux_files(experiment, flux_type, startdate,
 
     if write_fluxes:
         dir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-        path = os.path.join(outpath, 'idsep', dir)
+        path = os.path.join(cfg.outpath, 'idsep', dir)
         if not os.path.isdir(path):
             print("Making directory:", path)
             os.mkdir(path)
@@ -173,13 +166,19 @@ def get_data(str_startdate, str_enddate, experiment,
 
     
     """
+    cfg.configure_for(experiment)
+
     if path_to_data != '':
-        global datapath
-        datapath = path_to_data
+        cfg.set_datapath(path_to_data)
+#        global datapath
+#        datapath = path_to_data
+#        print(f"get_data: Setting datapath to {datapath}")
+
+    cfg.print_configured_values()
 
     # Prepare directories
     cfg.prepare_dirs()
-    for path in (outpath, plotpath):
+    for path in (cfg.outpath, cfg.plotpath):
         if not os.path.isdir(path):
             print("Making directory:", path)
             os.mkdir(path)
@@ -191,7 +190,7 @@ def get_data(str_startdate, str_enddate, experiment,
 
     error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type)
-    datasets.check_paths(path_to_data=datapath)
+    datasets.check_paths()
 
 
     #READ IN FLUXES

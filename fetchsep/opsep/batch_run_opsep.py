@@ -40,11 +40,6 @@ __email__ = "kathryn.whitman@nasa.gov"
 #2021-09-16, changes in 0.7: Add support for the JSONType (json_type)
 #   variable added in operational_sep_quantities.py v3.2.
 
-
-datapath = cfg.datapath
-outpath = os.path.join(cfg.outpath, "opsep")
-listpath = os.path.join(cfg.listpath, "opsep")
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('opsep')
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
@@ -96,10 +91,10 @@ def about_batch_run_opsep():
 
 def check_list_path():
     """Check if the path listpath (in opsep/config.py) exists"""
-    if not os.path.isdir(listpath):
-        print('check_paths: Directory containing lists, ' + listpath +
-        ', does not exist. Creating.')
-        os.mkdir(listpath);
+    if not os.path.isdir(os.path.join(cfg.listpath,'opsep')):
+        print('check_paths: Directory containing lists, ' + cfg.listpath +
+        '/opsep, does not exist. Creating.')
+        os.mkdir(os.path.join(cfg.listpath,'opsep'));
 
 
 
@@ -327,17 +322,17 @@ def initialize_files(jsonfname):
         #quantities for all SEPs in input list
         #NOTE WILL WRITE OVER LIST FROM PREVIOUS RUNS UNLESS RENAMED
         if energy_max == -1:  #integral channel
-            threshfile = listpath + '/' +'sep_list_' + str(energy_min) + 'MeV_' \
-                    + str(thresh) + 'pfu.csv'
-            bin_def = '>'+str(energy_min) + ' MeV [cm-2 sr-1]'
+            nm = 'sep_list_' + str(energy_min) + 'MeV_' + str(thresh) + 'pfu.csv'
+            threshfile = os.path.join(cfg.listpath, 'opsep', nm)
+            fluence_bin_def = '>'+str(energy_min) + ' MeV ' + cfg.fluence_units_integral
         else:
-            threshfile = listpath + '/' +'sep_list_' + str(energy_min) +'-'\
-                    + str(energy_max) + 'MeV_' + str(thresh) + 'dpfu.csv'
-            bin_def = str(energy_min) + '-' + str(energy_max) + ' MeV [MeV-1 cm-2 sr-1]'
+            nm = 'sep_list_' + str(energy_min) +'-' + str(energy_max) + 'MeV_' + str(thresh) + 'dpfu.csv'
+            threshfile = os.path.join(cfg.listpath, 'opsep', nm)
+            fluence_bin_def = str(energy_min) + '-' + str(energy_max) + ' MeV ' + cfg.fluence_units_differential
         
         fin = open(threshfile,'w+')
         fin.write('#Experiment,SEP Date,Start Time,End Time,Onset Peak Flux,'
-                    'Onset Peak Time,Max Flux,Max Flux Time,Channel Fluence '+bin_def)
+                    'Onset Peak Time,Max Flux,Max Flux Time,Channel Fluence '+fluence_bin_def)
         fin.write('\n')
         fin.close()
         print('Created file ' + threshfile)
@@ -406,22 +401,22 @@ def write_sep_lists(jsonfname, combos):
             #RUN WITH run_multi_sep
             #NOTE WILL WRITE OVER LIST FROM PREVIOUS RUNS UNLESS RENAMED
             if energy_max == -1:  #integral channel
-                threshfile = listpath + '/' +'sep_list_' + str(energy_min) + 'MeV_' \
-                        + str(thresh) + 'pfu.csv'
+                nm = 'sep_list_' + str(energy_min) + 'MeV_' + str(thresh) + 'pfu.csv'
+                threshfile = os.path.join(cfg.listpath, 'opsep',nm)
             else:
-                threshfile = listpath + '/' +'sep_list_' + str(energy_min) +'-'\
-                        + str(energy_max) + 'MeV_' + str(thresh) + 'dpfu.csv'
+                nm = 'sep_list_' + str(energy_min) +'-' + str(energy_max) + 'MeV_' + str(thresh) + 'dpfu.csv'
+                threshfile = os.path.join(cfg.listpath, 'opsep',nm)
             
             isgood = os.path.isfile(threshfile)
             if not isgood:
                 #In case a new threshold is encoutered
-                bin_def = '>'+str(energy_min) + ' MeV [cm-2 sr-1]'
+                fluence_bin_def = '>'+str(energy_min) + ' MeV ' + cfg.fluence_units_integral
                 if energy_max != -1:
-                    bin_def = str(energy_min) + '-' + str(energy_max) + ' MeV [MeV-1 cm-2 sr-1]'
+                    fluence_bin_def = str(energy_min) + '-' + str(energy_max) + ' MeV ' + cfg.fluence_units_differential
                 fin = open(threshfile,'w+')
                 fin.write('#Experiment,SEP Date,Start Time,End Time,'
                         'Onset Peak Flux,Onset Peak Time,Max Flux,'
-                        'Max Flux Time,Channel Fluence ' + bin_def)
+                        'Max Flux Time,Channel Fluence ' + fluence_bin_def)
                 fin.write('\n')
                 fin.close()
                 print('Creating file ' + threshfile)

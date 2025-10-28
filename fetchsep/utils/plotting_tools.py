@@ -555,7 +555,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
 #        #plt.yscale("log")
 #        #plt.ylim(1e-4,1e6)
 #        if saveplot:
-#            fig.savefig(plotpath + '/' + figname + '.png')
+#            fig.savefig(cfg.plotpath + '/opsep/' + figname + '.png')
 #        if not showplot:
 #            plt.close(fig)
 

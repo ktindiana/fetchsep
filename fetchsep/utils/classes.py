@@ -186,36 +186,38 @@ class Data:
 
         return
 
-
-    #Allow the user to change various values that are in the config file
-    def set_datapath(self, datapath): #location to measurement data (e.g. GOES)
-        """ Set the path containing the data downloaded and read by FetchSEP """
-        self.datapath = datapath
-        return
-
-
-    def set_outpath(self, outpath):
-        """ Set the path to output files """
-        self.outpath = outpath
-        return
-
-
-    def set_plotpath(self, plotpath):
-        """ Set the path to the output plots """
-        self.plotpath = plotpath
-        return
-
-
-    def set_user_delim(self, user_path):
-        """ Set the path to the output plots """
-        self.user_delim = user_delim
-        return
-
-
-    def set_user_col(self, user_col):
-        """ Set the path to the output plots """
-        self.user_col = user_col
-        return
+    #Don't want to override the paths set in the config file.
+    #If want a class to change the datapath, etc, then should make it
+    #change the global variable and update the value in the object.
+#    #Allow the user to change various values that are in the config file
+#    def set_datapath(self, datapath): #location to measurement data (e.g. GOES)
+#        """ Set the path containing the data downloaded and read by FetchSEP """
+#        self.datapath = datapath
+#        return
+#
+#
+#    def set_outpath(self, outpath):
+#        """ Set the path to output files """
+#        self.outpath = outpath
+#        return
+#
+#
+#    def set_plotpath(self, plotpath):
+#        """ Set the path to the output plots """
+#        self.plotpath = plotpath
+#        return
+#
+#
+#    def set_user_delim(self, user_path):
+#        """ Set the path to the output plots """
+#        self.user_delim = user_delim
+#        return
+#
+#
+#    def set_user_col(self, user_col):
+#        """ Set the path to the output plots """
+#        self.user_col = user_col
+#        return
 
 
     def str_to_datetime(self, date):
@@ -758,8 +760,7 @@ class Data:
                         detector=detector, spacecraft=self.spacecraft)
  
         else:
-            all_dates, all_fluxes = datasets.read_in_user_files(filenames1,
-                        delim=self.user_delim, flux_col=self.user_col)
+            all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
 
 
         #Define energy bins
@@ -1559,7 +1560,7 @@ class Analyze:
         onset_rise_time = pd.NaT
         max_rise_time = pd.NaT
         duration = pd.NaT
-        
+                
         if not pd.isnull(self.sep_start_time):
             if not pd.isnull(self.onset_peak_time):
                 onset_rise_time = (self.onset_peak_time - self.sep_start_time).total_seconds()/60.
@@ -1665,13 +1666,14 @@ class Analyze:
         self.sep_end_time = sep_end_time
         self.calculate_max_flux(data)
         self.calculate_onset_peak_from_fit(data)
-        self.derived_timing_values()
 
         #If the onset peak time is AFTER the max flux time, set the onset peak
         #to the max flux value and time.
         if self.onset_peak_time > self.max_flux_time:
             self.onset_peak = self.max_flux
             self.onset_peak_time = self.max_flux_time
+
+        self.derived_timing_values()
 
         #Fluence
         self.calculate_channel_fluence(data)
