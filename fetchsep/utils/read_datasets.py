@@ -24,6 +24,7 @@ import ssl
 import subprocess
 import gzip
 import shutil
+import json
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -1037,7 +1038,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                 sys.exit("Cannot access SEP event file at " + url +
                ". Please check that the url is still active. Skipping.")
                 
-
+        print("check_goesR_data: Special file containing 2017-09-10 data is {fname1}")
         filenames1.append(os.path.join('GOES',fname1))
         return filenames1, filenames2, filenames_orien, startdate
     
@@ -1278,6 +1279,31 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
             filenames1.append(os.path.join('GOES_RT', fname1))
 
     return filenames1, filenames2, filenames_orien, date
+
+
+def check_goes_RT_differential_data():
+    """ Download the NOAA SWPC most recent 7-day json of differential protons. 
+        User has no control of time periods. Will grab the current file at 
+        the time of running.
+        
+    """
+    url = "https://services.swpc.noaa.gov/json/goes/primary/differential-protons-7-day.json"
+    fname1 = "differential-protons-7-day.json"
+    filenames1 = []
+    print("Trying to download url: " + url)
+    try:
+        response = rerequest(url)
+        if response.status_code == 200:
+            data = response.text
+            fileout = open(os.path.join(cfg.datapath, 'GOES_RT', fname1),'w')
+            fileout.write(data)
+            fileout.close()
+    except:
+        print(f'Failed to retrieve data. Skipping.')
+        fname1 = None
+
+    filenames1.append(fname1)
+    return filenames1
 
 
 
@@ -3181,7 +3207,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
     #Read in fluxes from files
     for i in range(NFILES):
         file_dates = []
-        if filenames1 != None:
+        if filenames1[i] != None:
             print(filenames1[i])
             fullpath = os.path.join(cfg.datapath, filenames1[i])
             infile = os.path.expanduser(fullpath)
@@ -3380,6 +3406,61 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
         write_data_manager(df)
 
     return all_dates, all_fluxes, west_detector
+
+
+
+def read_in_goes_RT_differential():
+    """ Read in differential-protons-7-day.json """
+    fname = os.path.join(cfg.datapath,"GOES_RT", "differential-protons-7-day.json")
+    
+    fluxes_dict = {"P1": [],
+              "P2A": [],
+              "P2B": [],
+              "P3": [],
+              "P4": [],
+              "P5": [],
+              "P6": [],
+              "P7": [],
+              "P8A": [],
+              "P8B": [],
+              "P8C": [],
+              "P9": [],
+              "P10": []
+            }
+    all_dates = []
+    
+    with open(fname, 'r') as f:
+        # Load the JSON data from the file object
+        data = json.load(f)
+        
+        for entry in data:
+#            {
+#                "time_tag": "2025-11-04T17:40:00Z",
+#                "satellite": 18,
+#                "flux": 0.0010243832366541,
+#                "energy": "1020-1860 keV",
+#                "yaw_flip": 0,
+#                "channel": "P1"
+#            }
+    
+            date = zulu_to_time(entry["time_tag"])
+            flux = float(entry["flux"])*1000.
+            channel = entry["channel"]
+            
+            if date not in all_dates:
+                all_dates.append(date)
+            fluxes_dict[channel].append(flux)
+
+
+    df = pd.DataFrame(fluxes_dict)
+    cols_to_drop = ["P1","P2A","P2B","P3"]
+    for col in cols_to_drop:
+        df = df.drop(col, axis=1)
+        
+    all_fluxes = df.values.T
+
+    print(f"len(dates) = {len(all_dates)}, len(fluxes) = {len(all_fluxes)}, len(fluxes[0]) = {len(all_fluxes[0])}")
+    return all_dates, all_fluxes
 
 
 def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
@@ -4549,6 +4630,9 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes, west_detector =\
             read_in_goes_RT(experiment,flux_type, filenames1, spacecraft=spacecraft)
 
+    elif (experiment == "GOES_RT") and flux_type == "differential":
+        all_dates, all_fluxes = read_in_goes_RT_differential()
+
     elif experiment == "EPHIN":
         all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)
         
@@ -5419,6 +5503,12 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                  #energy bins of >700 MeV!!!!!
             energy_bin_centers = calculate_geometric_means(energy_bins)
 
+        if flux_type == "differential":
+            # "P4" "P5" "P6" "P7" "P8A" "P8B" "P8C" "P9" "P10"
+            energy_bins = [[5.84,11.00],[11.64,23.27],[24.90, 38.10],[40.30,73.40],
+                           [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],
+                           [276.0,404.0]]
+            energy_bin_centers = calculate_geometric_means(energy_bins)
     
     if experiment == "STEREO-A" or experiment == "STEREO-B":
         #Uses the SUMMED LET bins with the HET bins

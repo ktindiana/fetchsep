@@ -104,21 +104,14 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
     if (("EPHIN" in experiment) and flux_type == "integral"):
         sys.exit('The SOHO/EPHIN data set only provides differential fluxes.'
             ' Please change your FluxType to differential. Exiting.')
-    
-    #UNTIL NOAA PROVIDES A SUPPORTED INTEGRAL PRODUCT
-    if ((experiment in goes_R) and flux_type == "integral"):
-        sys.exit('Note: The GOES-R integral fluxes are only available as real time fluxes '
-            'for the primary GOES spacecraft served by NOAA and archived at CCMC (as of 2024-09-06). '
-            'When NOAA\'s official L2 fluxes, become available, they will be included in FetchSEP. '
-            'Please specify GOES_RT for --Experiment to use GOES-R integral fluxes.')
 
-    if experiment == "GOES_RT" and flux_type == "differential":
-        sys.exit('GOES_RT real time fluxes are only available as integral fluxes. Change FluxType to '
-            '\"integral\" or select a different GOES experiment.')
 
-    if experiment == "GOES_RT":
+    if experiment == "GOES_RT" and flux_type == "integral":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '
             'and archived by CCMC. Available starting 2010-04-14.')
+
+    if experiment == "GOES_RT" and flux_type == "differential":
+        print('Using GOES primary satellite real time fluxes as provided by SWPC in their 7-day jsons.')
 
 #    if experiment == "user" and (json_type != "model" and json_type != "observations"):
 #        sys.exit('User experiments must specify a JSONType of \"model\" or '
@@ -155,7 +148,14 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
             sys.exit('The GOES-R real time integral fluxes are only available '
                     + 'starting on '+ str(goes16_integral_stdate) +
                 '. Please change your requested dates and use GOES_RT for the experiment. Exiting.')
-            
+    elif (experiment in goes_R) and flux_type == "integral":
+        #UNTIL NOAA PROVIDES A SUPPORTED INTEGRAL PRODUCT
+        sys.exit('Note: The GOES-R integral fluxes are only available as real time fluxes '
+            'for the primary GOES spacecraft served by NOAA and archived at CCMC (as of 2024-09-06). '
+            'When NOAA\'s official L2 fluxes, become available, they will be included in FetchSEP. '
+            'Please specify GOES_RT for --Experiment to use GOES-R integral fluxes.')
+  
+  
     stereoB_end_date = datetime.datetime(2014,9,27,16,26,00)
     if(experiment == "STEREO-B" and (startdate > stereoB_end_date or
                    enddate > stereoB_end_date + datetime.timedelta(days=1))):

@@ -741,6 +741,8 @@ class Data:
         if self.experiment == "GOES": #Extra output
             filenames1, filenames2, filenames_orien, detector = \
                 datasets.check_data(startdate, enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
+        elif self.experiment == "GOES_RT" and self.flux_type == "differential":
+            filenames1 = datasets.check_goes_RT_differential_data()
         else:
             filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
                     enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
@@ -752,6 +754,10 @@ class Data:
                 all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
                     datasets.read_in_files(self.experiment, self.flux_type,
                             filenames1, filenames2, filenames_orien, self.options,
+                            detector=detector, spacecraft=self.spacecraft)
+            elif self.experiment == "GOES_RT" and self.flux_type == "differential":
+                all_dates, all_fluxes, west_detector = datasets.read_in_files(self.experiment, self.flux_type,
+                            filenames1, [], [], self.options,
                             detector=detector, spacecraft=self.spacecraft)
             else:
                 all_dates, all_fluxes, west_detector = \
@@ -1749,9 +1755,9 @@ class Output:
         
         #All associations from e.g. SRAG list
         self.associations = {}
-        #Possible CME and Flare dicts in CCMC json format
-        self.cme = {}
-        self.flare = {}
+        #Lists of CME and Flare dicts in CCMC json format
+        self.cmes = []
+        self.flares = []
         
         # Subdirectory with unique string to hold data
         self.subdir = tools.opsep_subdir(self.data.experiment, self.data.flux_type,
@@ -2115,8 +2121,10 @@ class Output:
 
         self.associations = associations
 
-        self.cme = assoc.srag_to_ccmc_cme(associations) #CCMC CME trigger block
-        self.flare = assoc.srag_to_ccmc_flare(associations) #CCMC flare trigger block
+        cme = assoc.srag_to_ccmc_cme(associations) #list of CCMC CME trigger blocks
+        self.cmes = self.cmes + cme
+        flare = assoc.srag_to_ccmc_flare(associations) #list of CCMC flare trigger blocks
+        self.flares = self.flares + flare
 
         return
 
@@ -2136,12 +2144,14 @@ class Output:
             to json.
             
         """
-        if self.cme:
-            self.json_dict = ccmc_json.fill_cme_trigger(self.json_dict, self.json_type,
-                    self.cme)
-        if self.flare:
-            self.json_dict = ccmc_json.fill_flare_trigger(self.json_dict, self.json_type,
-                self.flare)
+        if len(self.cmes) > 0:
+            for cme in self.cmes:
+                self.json_dict = ccmc_json.fill_cme_trigger(self.json_dict, self.json_type,
+                        cme)
+        if len(self.flares) > 0:
+            for flare in self.flares:
+                self.json_dict = ccmc_json.fill_flare_trigger(self.json_dict, self.json_type,
+                        flare)
         return
 
 

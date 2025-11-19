@@ -664,7 +664,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         #Don't want to plot negative values, particularly in background-subtracted plots
 #        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
-        ax[i].plot_date(dates,maskfluxes,'-',label=data_label,marker=".")
+        ax[i].plot_date(dates,maskfluxes,'-',label=data_label)#,marker=".")
 #        else:
 #            ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
 
@@ -746,7 +746,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
 #        maskfluxes = np.ma.masked_invalid(all_fluxes[j])
 #        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
-        ax.plot_date(all_dates,maskfluxes,'-',label=legend_label, marker='.')
+        ax.plot_date(all_dates,maskfluxes,'-',label=legend_label) #, marker='.')
 #        else:
 #            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
 
@@ -771,6 +771,8 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
             ax.axvline(sep_end_times[i],color=colors[i],linestyle=':')
 
     plt.title(plot_title)
+    threshold = event_definitions[0]['threshold'].threshold
+    flux_units = event_definitions[0]['threshold'].threshold_units
     ylabel = f"Flux [${flux_units}$]"
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
