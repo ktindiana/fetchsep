@@ -113,12 +113,12 @@ def srag_int_columns():
 
 
 def srag_string_columns():
-    columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Location Source', 'Event Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+    columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Location Source', 'Event Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
     return columns
 
 
 def srag_clear_columns():
-    columns = ['Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location Source', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Event Location Source 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'ESP_CME', 'GLE Event Number', 'PRF', 'Comments']
+    columns = ['Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location Source', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Event Location Source 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF', 'Comments']
     return columns
 
 
@@ -217,7 +217,8 @@ def read_srag_list():
     df = pd.read_csv(srag_list)
     
     #Combine two separate comments columns into one
-    #df = combine_srag_list_comments(df)
+    if 'Comments1' in df.columns:
+        df = combine_srag_list_comments(df)
     
     #Cast time columns as datetime
     df = cast_srag_list_time_columns(df)
@@ -324,7 +325,11 @@ def srag_to_ccmc_cme(associations):
         cme['speed'] = associations['DONKI CME Speed']
         cme['catalog'] = 'DONKI'
         cme['derivation_technique']['process'] = 'manual'
-        cme['derivation_technique']['method'] = 'SWPC_CAT'
+
+        if not pd.isnull(associations['DONKI CME Measurement Technique']):
+            cme['derivation_technique']['method'] = associations['DONKI CME Measurement Technique']
+        else:
+            del cme['derivation_technique']['method']
 
         if not pd.isnull(associations['DONKI CME Start Time']):
             cme['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['DONKI CME Start Time'])
@@ -1491,7 +1496,8 @@ def get_cme(starttime):
                   "DONKI CME Feature": cme_feature[ix],
                   "DONKI CME Note": cme_notes[ix],
                   "DONKI CME Linked Events": cme_linked_events[ix],
-                  "DONKI CME Link": cme_links[ix]
+                  "DONKI CME Link": cme_links[ix],
+                  "DONKI CME Measurement Technique": cme_techniques[ix]
                   }
 
     return cme_select
@@ -1500,13 +1506,13 @@ def get_cme(starttime):
 def update_srag_list_donki_cme(df):
     """ Add DONKI CME information to SRAG SEP list """
     
-    #Add a column
-    # Get the index of column 'A'
+    #Add a column for DONKI CME Feature
     idx = df.columns.get_loc('DONKI CME Time at 21.5')
-
-    # Insert a new column named 'B' after 'A'
     df.insert(loc=idx + 1, column='DONKI CME Feature', value=[None]*len(df['DONKI CME Time at 21.5']))
-    
+    #Add a column for DONKI CME Measurement Technique
+    idx = df.columns.get_loc('DONKI CME Feature')
+    df.insert(loc=idx + 1, column='DONKI CME Measurement Technique', value=[None]*len(df['DONKI CME Feature']))
+
     for index, row in df.iterrows():
         starttime = row['CDAW CME First Look Time']
         if pd.isnull(starttime):
@@ -1524,6 +1530,7 @@ def update_srag_list_donki_cme(df):
         df.loc[index,'DONKI CME Lon'] = cme_info['DONKI CME Lon']
         df.loc[index,'DONKI CME Time at 21.5'] = cme_info['DONKI CME Time at 21.5']
         df.loc[index,'DONKI CME Feature'] = cme_info['DONKI CME Feature']
+        df.loc[index,'DONKI CME Measurement Technique'] = cme_info['DONKI CME Measurement Technique']
         df.loc[index,'DONKI CME Catalog ID'] = cme_info['DONKI CME Catalog ID']
 
     return df
