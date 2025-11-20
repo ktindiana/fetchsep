@@ -764,7 +764,7 @@ def clean_json(template, experiment, json_type):
 
 def write_json(template, filename):
     """Write json template to json file. """
-
+    print(template)
     with open(filename, "w") as outfile:
         json.dump(template, outfile)
 

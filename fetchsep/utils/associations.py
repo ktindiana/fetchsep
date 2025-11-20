@@ -1,4 +1,5 @@
 from . import config as cfg
+from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import os
 import sys
@@ -81,12 +82,14 @@ def string_location(lat, lon):
     if lat >= 0:
         ns='N'
     else:
+        lat = abs(lat)
         ns = 'S'
         
     ew = ''
     if lon >= 0:
         ew = 'W'
     else:
+        lon = abs(lon)
         ew = 'E'
         
     location = f"{ns}{lat:02d}{ew}{lon:02d}"
@@ -105,17 +108,17 @@ def srag_float_columns():
 
 
 def srag_int_columns():
-    columns = ['Cycle', 'Active Region', 'GOES Xray Satellite', 'GOES Protons Satellite']
+    columns = ['Flare Catalog ID', 'Cycle', 'Active Region', 'GOES Xray Satellite', 'GOES Protons Satellite']
     return columns
 
 
 def srag_string_columns():
-    columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Location Source', 'Event Location Source 2', 'Radio Station', 'Radio DH Note', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+    columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Location Source', 'Event Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
     return columns
 
 
 def srag_clear_columns():
-    columns = ['Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location Source', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Event Location Source 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'ESP_CME', 'GLE Event Number', 'PRF', 'Comments']
+    columns = ['Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location Source', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Event Location Source 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'ESP_CME', 'GLE Event Number', 'PRF', 'Comments']
     return columns
 
 
@@ -214,7 +217,7 @@ def read_srag_list():
     df = pd.read_csv(srag_list)
     
     #Combine two separate comments columns into one
-    df = combine_srag_list_comments(df)
+    #df = combine_srag_list_comments(df)
     
     #Cast time columns as datetime
     df = cast_srag_list_time_columns(df)
@@ -324,7 +327,7 @@ def srag_to_ccmc_cme(associations):
         cme['derivation_technique']['method'] = 'SWPC_CAT'
 
         if not pd.isnull(associations['DONKI CME Start Time']):
-            cme['start_time'] = associations['DONKI CME Start Time']
+            cme['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['DONKI CME Start Time'])
         else:
             del cme['start_time']
 
@@ -352,7 +355,7 @@ def srag_to_ccmc_cme(associations):
             del cme['half_width']
 
         if not pd.isnull(associations['DONKI CME Time at 21.5']):
-            cme['time_at_height']['time'] = associations['DONKI CME Time at 21.5']
+            cme['time_at_height']['time'] = ccmc_json.make_ccmc_zulu_time(associations['DONKI CME Time at 21.5'])
             cme['time_at_height']['height'] = 21.5
         else:
             del cme['time_at_height']
@@ -381,7 +384,7 @@ def srag_to_ccmc_cme(associations):
         cme['derivation_technique']['method'] = 'Plane-of-sky'
 
         if not pd.isnull(associations['CDAW CME First Look Time']):
-            cme['start_time'] = associations['CDAW CME First Look Time']
+            cme['start_time'] = associations['CDAW CME First Look Time'].to_pydatetime()
         else:
             del cme['start_time']
 
@@ -457,15 +460,15 @@ def srag_to_ccmc_flare(associations):
     #SWPC Xray Science Data
     if not pd.isnull(associations['Flare Xray Start Time']):
         flare = ccmc_flare_block()
-        flare['start_time'] = associations['Flare Xray Start Time']
+        flare['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Start Time'])
 
         if not pd.isnull(associations['Flare Xray Peak Time']):
-            flare['peak_time'] = associations['Flare Xray Peak Time']
+            flare['peak_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Peak Time'])
         else:
             del flare['peak_time']
             
         if not pd.isnull(associations['Flare Xray End Time']):
-            flare['end_time'] = associations['Flare Xray End Time']
+            flare['end_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray End Time'])
         else:
             del flare['end_time']
         
@@ -492,11 +495,15 @@ def srag_to_ccmc_flare(associations):
             flare['noaa_region'] = associations['Active Region']
         else:
             del flare['noaa_region']
-        
+
+        if not pd.isnull(associations['Flare Catalog ID']):
+            flare['catalog_id'] = int(associations['Flare Catalog ID'])
+        else:
+            del flare['catalog_id']
+
         #Remove unused entries
         del flare['last_data_time']
         del flare['peak_ratio']
-        del flare['catalog_id']
         del flare['urls']
  
         all_flares.append(flare)
@@ -504,15 +511,15 @@ def srag_to_ccmc_flare(associations):
     #SWPC X-ray operational data that is now deprecated after GOES-R launched
     if not pd.isnull(associations['Flare Xray Start Time Deprecated']):
         flare = ccmc_flare_block()
-        flare['start_time'] = associations['Flare Xray Start Time Deprecated']
+        flare['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Start Time Deprecated'])
 
         if not pd.isnull(associations['Flare Xray Peak Time Deprecated']):
-            flare['peak_time'] = associations['Flare Xray Peak Time Deprecated']
+            flare['peak_time'] = associations['Flare Xray Peak Time Deprecated'].to_pydatetime()
         else:
             del flare['peak_time']
             
         if not pd.isnull(associations['Flare Xray End Time Deprecated']):
-            flare['end_time'] = associations['Flare Xray End Time Deprecated']
+            flare['end_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray End Time Deprecated'])
         else:
             del flare['end_time']
         
