@@ -431,7 +431,6 @@ def srag_to_ccmc_cme(associations):
         del cme['acceleration']
         del cme['height']
         del cme['time_at_height']
-        del cme['coordinates']
         del cme['catalog_id']
         del cme['urls']
         try:

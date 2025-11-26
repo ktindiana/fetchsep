@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+
+import fetchsep.utils.tools as tools
+import argparse
+
+
+""" Create a single SEP list compiled from multiple lists
+    produced for each GOES satellite. For any given time,
+    there are always at least two GOES satellites (primary
+    and secondary) taking measurements. If used together,
+    GOES satellite SEP lists will contain multiple observations
+    of the same SEP event.
+    
+    This routine will extract the measurements made by the
+    primary GOES satellite at the time for each SEP event.
+    These are compiled to make a single list with one entry
+    per SEP event.
+    
+    Provide the name of a file that lists all of the
+    GOES SEP lists. Or provide the SEP list filenames
+    separated by a comma.
+    
+"""
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--Filename", type=str, default='',
+        help=("Name of file with a list of all SEP lists produced for individual GOES satellites, e.g. ./output/opsep/GOES-06_integral_enhance_idsep/GOES-06_integral_enhance_idsep.1986-01-01.1994-11-30_sep_events.csv."))
+
+parser.add_argument("--Files", type=str, default='',
+        help=("Comma separated list of filenames of SEP lists produced for individual GOES satellites. Put quotes around the list of filenames if any whitespace is included."))
+
+parser.add_argument("--Prefix", type=str, default='GOES',
+        help=("The final SEP list will be named like prefix_PRIMARY.YYYY-MM-DD.YYYY-MM-DD_sep_events.csv. Default=GOES"))
+
+args = parser.parse_args()
+
+filename = args.Filename
+files = args.Files
+prefix = args.Prefix
+
+lists = ''
+if filename != '':
+    lists = filename
+elif files != '':
+    files = files.strip().split(",")
+    lists = files
+
+tools.create_primary_goes_sep_list(lists, prefix=prefix)
+
+
