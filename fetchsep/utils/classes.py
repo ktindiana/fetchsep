@@ -1189,6 +1189,47 @@ class Analyze:
 #        return
 
 
+    def extend_two_peaks(self, first_start_time, first_end_time, threshold):
+        """ If user indicates that the same event has an initial threshold
+            crossing, then temporarily drops below threshold, then continues
+            again, try to extend the first threshold crossing to include
+            the complete event. 
+            
+            If data.two_peaks is True, search for extended event.
+            
+            INPUTS:
+            
+                :first_start_time: (datetime) start of first threshold crossing
+                :first_end_time: (datetime) end of first threshold crossing
+                :threshold: (float) threshold used in event definitions
+            
+            OUTPUTS:
+            
+                :start_time: (datetime) start of first threshold crossing
+                :end_time: (datetime) modified end of second threshold crossing
+
+            
+        """
+        dates = self.dates
+        flux = self.flux
+        
+        lastdate = dates[-1]
+        
+        trim_flux = self.trim_to_date_range(first_end_time, lastdate, dates, flux)
+        trim_dates = self.trim_to_date_range(first_end_time, lastdate, dates, dates)
+        
+        if len(trim_flux) == 0:
+            return first_start_time, first_end_time
+        
+        sep_start_time, sep_end_time = tools.identify_sep_noaa(trim_dates, trim_flux, threshold)
+        if pd.isnull(sep_start_time) or pd.isnull(sep_end_time):
+            return first_start_time, first_end_time
+        else:
+            print("User specified that event has two peaks. Extending "
+                  "event to second decrease below threshold.")
+            return first_start_time, sep_end_time
+
+
 
     def calculate_threshold_crossing(self, data, event_definition):
         """ Calculate the threshold crossing times for a given energy bin
@@ -1245,6 +1286,8 @@ class Analyze:
         #When applying a threshold, use NOAA SWPC logic
         if threshold != cfg.opsep_min_threshold:
             sep_start_time, sep_end_time = tools.identify_sep_noaa(dates, fluxes, threshold)
+            if data.two_peaks:
+                sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
@@ -1348,11 +1391,6 @@ class Analyze:
                 print("check_onset_peak_fit_quality: Fit failed. Rejecting.")
                 return False
 
-            if best_pars[par] == default_pars[par].value:
-                print(f"check_onset_peak_fit_quality: Poor fit with "
-                    f"result using default parameters for {par}. Rejecting.")
-                return False
-
             if best_pars[par] == default_pars[par].min or best_pars[par] == default_pars[par].max:
                 print(f"check_onset_peak_fit_quality: Poor fit with "
                     f"result using maximized or minimized {par} value. Rejecting.")
@@ -1367,7 +1405,15 @@ class Analyze:
                     f"result using parameters to close to max or min for {par}. Rejecting.")
                 return False
 
-        return True
+        is_good = False
+        for par in params:
+            if best_pars[par] != default_pars[par].value:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using default parameters for {par}. Rejecting.")
+                is_good = True
+
+
+        return is_good
 
  
     def check_onset_peak_id_quality(self, max_curve_idx, yderiv, yderiv2, npoints):
@@ -1726,11 +1772,11 @@ class Analyze:
         #If fit didn't find a good onset peak time, set onset peak
         #to max flux if max flux within 18 hours of start time,
         #i.e. before CME could arrive and cause ESP
-        if pd.isnull(self.onset_peak_time):
-            if not pd.isnull(self.max_flux_time) and not pd.isnull(self.sep_start_time):
-                if (self.max_flux_time - self.sep_start_time) < datetime.timedelta(hours=18):
-                    self.onset_peak = self.max_flux
-                    self.onset_peak_time = self.max_flux_time
+#        if pd.isnull(self.onset_peak_time):
+#            if not pd.isnull(self.max_flux_time) and not pd.isnull(self.sep_start_time):
+#                if (self.max_flux_time - self.sep_start_time) < datetime.timedelta(hours=18):
+#                    self.onset_peak = self.max_flux
+#                    self.onset_peak_time = self.max_flux_time
 
         self.derived_timing_values()
 

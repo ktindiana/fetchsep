@@ -75,7 +75,9 @@ echo "Starting at $startpoint"
 date '+%Y-%m-%d %H:%M:%S'
 echo "Setting up environment"
 export PYTHONPATH="$PYTHONPATH:$PWD"
+echo "Copying CLEAR config file to ./fetchsep.cfg"
 cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
+echo  "Configuring fetchsep directories"
 python fetchsep/utils/config.py
 
 ######################################################################

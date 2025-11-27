@@ -61,7 +61,7 @@
 1989-03-17 17:10:00,1989-03-22 08:00:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-03-22 08:00:00,1989-03-29 01:10:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-03-29 01:10:00,1989-04-09 20:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
-1989-04-09 20:55:00,1989-04-19 15:45:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
+1989-04-09 20:55:00,1989-04-19 15:45:00,GOES-06,integral,IDSEPEnhancement;TwoPeaks,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-04-19 15:45:00,1989-04-21 14:00:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-04-21 14:00:00,1989-04-30 10:10:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-04-30 10:10:00,1989-05-05 23:30:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
@@ -82,7 +82,7 @@
 1989-08-11 15:00:00,1989-08-15 06:15:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-08-15 06:15:00,1989-08-16 00:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-08-16 00:55:00,1989-08-19 17:10:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
-1989-08-19 17:10:00,1989-09-02 23:20:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
+1989-08-19 17:10:00,1989-09-02 23:20:00,GOES-06,integral,IDSEPEnhancement;TwoPeaks,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-09-02 23:20:00,1989-09-03 21:35:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-09-03 21:35:00,1989-09-07 23:30:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1989-09-07 23:30:00,1989-09-11 12:05:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
@@ -162,7 +162,7 @@
 1991-03-18 18:10:00,1991-03-22 05:25:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-03-22 05:25:00,1991-04-01 16:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-04-01 16:55:00,1991-04-02 19:30:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
-1991-04-02 19:30:00,1991-04-09 17:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
+1991-04-02 19:30:00,1991-04-09 17:55:00,GOES-06,integral,IDSEPEnhancement;TwoPeaks,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-04-09 17:55:00,1991-04-21 10:50:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-04-21 10:50:00,1991-04-26 14:15:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-04-26 14:15:00,1991-05-03 06:30:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
@@ -174,7 +174,7 @@
 1991-05-17 21:50:00,1991-05-23 08:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-05-23 08:55:00,1991-05-30 01:45:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-05-30 01:45:00,1991-06-04 05:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
-1991-06-04 05:55:00,1991-06-11 01:55:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
+1991-06-04 05:55:00,1991-06-11 01:55:00,GOES-06,integral,IDSEPEnhancement;TwoPeaks,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-06-11 01:55:00,1991-06-15 08:25:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-06-15 08:25:00,1991-06-26 02:40:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
 1991-06-26 02:40:00,1991-07-07 03:35:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./output/idsep/GOES-06_integral/csv,earth,protons
