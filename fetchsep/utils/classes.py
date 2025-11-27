@@ -1416,9 +1416,28 @@ class Analyze:
         return is_good
 
  
-    def check_onset_peak_id_quality(self, max_curve_idx, yderiv, yderiv2, npoints):
+    def check_onset_peak_id_quality(self, max_curve_idx, yderiv, yderiv2, npoints,
+        weibull_max, data_max):
         """ After identify the location of the onset peak,
             check is the results are meaningful.
+            
+            INPUTS:
+            
+                :max_curve_idx: (int) index location of the minimum value of the
+                    second derivative, indicating the location of rollover of
+                    the Weibull fit
+                :yderiv: (float) maximum value of the first derivative of
+                    the Weibull fit
+                :yderiv2: (float) minimum value of the second derivative of
+                    the Weibull fit
+                :npoint: (int) number of data points that were used for the
+                    Weibull fit
+                :weibull_max: (float) value of the Weibull at max_curve_idx
+                :data_max: (float) value of the identified onset peak in the data
+                
+            OUTPUTS:
+            
+                bool True/False indicating if fit is good
             
         """
         #Minimum of second derivative is positive
@@ -1435,6 +1454,10 @@ class Analyze:
 
         if max_curve_idx == 2 or max_curve_idx == npoints:
             print("check_onset_peak_id_quality: Found onset peak at end of fitted period. Rejecting.")
+            return False
+
+        if weibull_max/data_max >= 10. or weibull_max/data_max <= 0.1:
+            print(f"check_onset_peak_id_quality: Weibull fit peak is more than an order of magnitude difference from the identified peak. ratio = {weibull_max/data_max}. Rejecting.")
             return False
 
         return True
@@ -1581,14 +1604,6 @@ class Analyze:
         #Find maximum curvature in the fit using the second derivative
         max_curve_idx, yderiv, yderiv2 = tools.find_max_curvature(trim_times, best_fit)
         npoints = len(trim_times)
-        
-        #Check the derivative values and location of onset peak
-        is_good = self.check_onset_peak_id_quality(max_curve_idx, yderiv, yderiv2, npoints)
-        if not is_good:
-            self.onset_peak = onset_peak
-            self.onset_peak_time = onset_peak_time
-            return onset_peak, onset_peak_time
-
 
         max_curve_model_time = trim_times[max_curve_idx]
         max_curve_model_date = trim_dates[max_curve_idx]
@@ -1608,6 +1623,17 @@ class Analyze:
                     max_curve_meas_peak = trim_fluxes[k]
                     max_curve_meas_time = trim_times[k]
                     max_curve_meas_date = trim_dates[k]
+
+
+        #Check the derivative values and location of onset peak
+        weibull_max = best_fit[max_curve_idx]
+        data_max = max_curve_meas_peak
+        is_good = self.check_onset_peak_id_quality(max_curve_idx, yderiv, yderiv2, npoints, weibull_max, data_max)
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
 
         onset_peak = max_curve_meas_peak
         onset_peak_time = max_curve_meas_date
