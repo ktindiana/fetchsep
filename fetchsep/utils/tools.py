@@ -866,14 +866,20 @@ def find_max_curvature(x, y):
     
     k_x = yderiv2 #/((1 + yderiv[1:]**2))**(3./2.)
     
-    max_k_idx= np.argmin(k_x)
-    
+    min_k_idx= np.argmin(k_x)
+ 
+    max_deriv_idx = np.argmax(yderiv)
+    print(f"find_max_curvature: max yderiv: {yderiv[max_deriv_idx]}, min yderiv2: {k_x[min_k_idx]}")
+ 
     #rescale the curvature to overplot
 #    max_y = np.max(yarr)
 #    max_y_idx = np.argmax(yarr)
 #    k_x = (np.max(yarr)/np.max(k_x))*k_x
-            
-    return max_k_idx+2
+   
+    #return the location of the min 2nd derivative
+    #Max of the first derivative
+    #Min of 2nd derivative
+    return min_k_idx+2, yderiv[max_deriv_idx], yderiv2[min_k_idx]
 
 
 def make_lists_array(lists):
