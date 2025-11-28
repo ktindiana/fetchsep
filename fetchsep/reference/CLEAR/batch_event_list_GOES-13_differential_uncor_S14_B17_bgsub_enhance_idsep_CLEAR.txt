@@ -36,7 +36,7 @@
 2011-09-05 02:50:00,2011-09-06 23:05:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
 2011-09-06 23:05:00,2011-09-13 00:00:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
 2011-09-13 00:00:00,2011-09-21 17:55:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
-2011-09-21 17:55:00,2011-10-02 00:50:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
+2011-09-21 17:55:00,2011-10-02 00:50:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement;TwoPeaks,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
 2011-10-02 00:50:00,2011-10-21 13:10:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
 2011-10-21 13:10:00,2011-10-27 06:05:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
 2011-10-27 06:05:00,2011-11-03 00:55:00,GOES-13,differential,IDSEPSubtractBG;IDSEPEnhancement,,,S14;Bruno2017;uncorrected,,,observations,,./CLEAR/output/idsep/GOES-13_differential_uncor_S14_B17/csv,earth,protons
