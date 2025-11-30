@@ -206,7 +206,7 @@ fi
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 find ./CLEAR/output/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_integral --Files CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
 rm CLEARlists.txt
 
 
@@ -214,7 +214,7 @@ rm CLEARlists.txt
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 find ./CLEAR/output/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Files ${files}
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
 rm CLEARlists.txt
 
 #Remove CLEAR config file so that running FetchSEP will not overwrite files in the

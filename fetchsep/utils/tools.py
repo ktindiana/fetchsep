@@ -796,6 +796,52 @@ def determination(fit, data):
     return resid
 
 
+def mean_log_error(fit, data):
+    """ Calculate mean log error between fit and data. 
+        data may have zero values.
+    """
+    MLE = np.nan
+    LE = []
+    for index, val in enumerate(data):
+        if data[index]  <= 0: continue
+        if fit[index] <= 0: continue
+        if pd.isnull(data[index]): continue
+        if pd.isnull(fit[index]): continue
+
+        LE.append(np.log10(fit[index]) - np.log10(data[index]))
+    
+    if len(LE) > 0:
+        MLE = sum(LE)/len(LE)
+    
+    return MLE
+
+
+def within_factor(fit, data):
+    """ Number of fit points within a factor of 2 and 10. """
+
+    n2 = 0
+    n10 = 0
+    for index, val in enumerate(data):
+        if data[index] <= 0: continue
+        if fit[index] <= 0: continue
+        if pd.isnull(data[index]): continue
+        if pd.isnull(fit[index]): continue
+
+        ratio = fit[index]/data[index]
+        
+        if ratio <= 2. and ratio >= 0.5:
+            n2 += 1
+            
+        if ratio <= 10 and ratio >= 0.1:
+            n10 += 1
+    
+    n2 = n2/len(data)*100.
+    n10 = n10/len(data)*100.
+    
+    return n2, n10
+
+
+
 def modified_weibull(times, Ip, a, b):
     """ Create a Weibull for times in seconds since first
         date with params a and b.
@@ -848,7 +894,7 @@ def func_residual(params, *args):
     
 
 
-def find_max_curvature(x, y):
+def find_max_curvature(y):
     """ Calculate the curvature along a curve
         and find the maximum curvature location.
         
@@ -859,19 +905,25 @@ def find_max_curvature(x, y):
         :y: (float 1xn array) weibull fit points
     
     """
-    xarr = np.array(x)
     yarr = np.array(y)
     yderiv = yarr[1:] - yarr[:-1]
     yderiv2 = yderiv[1:] - yderiv[:-1]
     
-    k_x = yderiv2 #/((1 + yderiv[1:]**2))**(3./2.)
-    
-    min_k_idx= np.argmin(k_x)
- 
+    min_deriv2_idx= np.argmin(yderiv2)
     max_deriv_idx = np.argmax(yderiv)
-    print(f"find_max_curvature: max yderiv: {yderiv[max_deriv_idx]}, min yderiv2: {k_x[min_k_idx]}")
- 
+    peak = yarr[min_deriv2_idx+2]
+
+    #normalize derivative to curve with onset peak of 1.0
+    if peak != 0 and not pd.isnull(peak):
+        norm_yarr = yarr/peak
+    else:
+        return min_deriv2_idx+2, yderiv[max_deriv_idx], yderiv2[min_deriv2_idx], np.nan, np.nan
+
+    norm_yderiv = norm_yarr[1:] - norm_yarr[:-1]
+    norm_yderiv2 = norm_yderiv[1:] - norm_yderiv[:-1]
+
     #rescale the curvature to overplot
+    #k_x = yderiv2 #/((1 + yderiv[1:]**2))**(3./2.)
 #    max_y = np.max(yarr)
 #    max_y_idx = np.argmax(yarr)
 #    k_x = (np.max(yarr)/np.max(k_x))*k_x
@@ -879,7 +931,7 @@ def find_max_curvature(x, y):
     #return the location of the min 2nd derivative
     #Max of the first derivative
     #Min of 2nd derivative
-    return min_k_idx+2, yderiv[max_deriv_idx], yderiv2[min_k_idx]
+    return min_deriv2_idx+2, yderiv[max_deriv_idx], yderiv2[min_deriv2_idx], norm_yderiv[max_deriv_idx], norm_yderiv2[min_deriv2_idx]
 
 
 def make_lists_array(lists):
@@ -942,7 +994,7 @@ def create_primary_goes_sep_list(lists, prefix='GOES'):
             #indicated in the filename
             print(f"create_primary_goes_list: Real-time GOES list is for the secondary spacecraft. Skipping. {list}")
             continue
-        
+        print(f"processing {list}")
         df_in = pd.read_csv(list)
         df_in['Time Period Start'] = pd.to_datetime(df_in['Time Period Start'])
         df_in['Time Period End'] = pd.to_datetime(df_in['Time Period End'])

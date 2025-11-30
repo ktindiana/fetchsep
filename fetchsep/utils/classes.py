@@ -1402,16 +1402,18 @@ class Analyze:
             
             if rel_diff_min < 1e-4 or rel_diff_max < 1e-4:
                 print(f"check_onset_peak_fit_quality: Poor fit with "
-                    f"result using parameters to close to max or min for {par}. Rejecting.")
+                    f"result using parameters too close to max or min for {par}. Rejecting.")
                 return False
 
         is_good = False
         for par in params:
             if best_pars[par] != default_pars[par].value:
-                print(f"check_onset_peak_fit_quality: Poor fit with "
-                    f"result using default parameters for {par}. Rejecting.")
                 is_good = True
-
+            else:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using default parameters for {par}.")
+        if not is_good:
+            print(f"check_onset_peak_fit_quality: All parameters using default values. Rejecting.")
 
         return is_good
 
@@ -1461,6 +1463,19 @@ class Analyze:
             return False
 
         return True
+
+
+    def check_onset_peak_metrics_quality(self, norm_yderiv, norm_yderiv2, n2):
+        """ Reject onset peak fit based off of various metrics. 
+            n2 is the percent of points within a factor of 2.
+        
+        """
+        
+        is_good = True
+        if norm_yderiv < 0.01: is_good = False
+        if norm_yderiv2 >  -0.00013: is_good = False
+        if n2 < 65: is_good = False
+        return is_good
 
 
     def calculate_onset_peak_from_fit(self, data):
@@ -1602,8 +1617,7 @@ class Analyze:
 
         #IF WEIBULL FIT SUCCESSFUL
         #Find maximum curvature in the fit using the second derivative
-        max_curve_idx, yderiv, yderiv2 = tools.find_max_curvature(trim_times, best_fit)
-        npoints = len(trim_times)
+        max_curve_idx, yderiv, yderiv2, norm_yderiv, norm_yderiv2 = tools.find_max_curvature(best_fit)
 
         max_curve_model_time = trim_times[max_curve_idx]
         max_curve_model_date = trim_dates[max_curve_idx]
@@ -1628,18 +1642,46 @@ class Analyze:
         #Check the derivative values and location of onset peak
         weibull_max = best_fit[max_curve_idx]
         data_max = max_curve_meas_peak
+        npoints = len(trim_times)
         is_good = self.check_onset_peak_id_quality(max_curve_idx, yderiv, yderiv2, npoints, weibull_max, data_max)
         if not is_good:
             self.onset_peak = onset_peak
             self.onset_peak_time = onset_peak_time
             return onset_peak, onset_peak_time
 
+        #Weibull fit metrics
+        print(f"WEIBULL DERIVATIVE: max yderiv: {yderiv}, norm max yderiv: {norm_yderiv}, min yderiv2: {yderiv2}, norm min yderiv2: {norm_yderiv2}")
 
+        MLE = tools.mean_log_error(best_fit, trim_fluxes)
+        print(f"MEAN LOG ERROR OF WEIBULL FIT: {MLE}")
+        n2, n10 = tools.within_factor(best_fit, trim_fluxes)
+        print(f"WEIBULL FIT percent within factor of 2: {n2}%, within a factor of 10: {n10}%")
+
+
+        #Check quality of fit with respect to various metrics
+        is_good = self.check_onset_peak_metrics_quality(norm_yderiv, norm_yderiv2, n2)
+
+        ###TESTING, write out onset peak fit parameters and metrics, appending
+#        fitfname = os.path.join(cfg.outpath,f"Weibull_fit_params_{data.experiment}_{data.flux_type}.csv")
+#        with open(fitfname, "a") as file:
+#            line = f"{energy_bin[0]},{threshold},{start_fit_time},{end_fit_time},{best_Ip},{best_a},{best_b},{err},{yderiv},{norm_yderiv},{yderiv2},{norm_yderiv2},{MLE},{n10},{n2},{is_good}\n"
+#            file.write(line)
+#        file.close()
+
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        #FIT IS GOOD
         onset_peak = max_curve_meas_peak
         onset_peak_time = max_curve_meas_date
 
-        ### VALUES ONLY USED IN PLOTS
-        ####FIND PEAK BY JUST TAKING MAXIMUM OF WEIBULL
+        self.onset_peak = onset_peak
+        self.onset_peak_time = onset_peak_time
+
+        ####PLOT GOOD ONSET PEAK FIT
+        ####VALUES ONLY USED IN PLOTS
         max_val = np.max(best_fit)
         max_idx = np.where(best_fit == max_val)
         max_time = trim_times[max_idx[0][0]]
@@ -1670,8 +1712,6 @@ class Analyze:
                 OPSEPEnhancement=data.OPSEPEnhancement,
                 IDSEPEnhancement=data.IDSEPEnhancement)
 
-        self.onset_peak = onset_peak
-        self.onset_peak_time = onset_peak_time
         
         return onset_peak, onset_peak_time
 
