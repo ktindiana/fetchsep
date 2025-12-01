@@ -214,6 +214,19 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     done
 fi
 
+#Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
+date '+%Y-%m-%d %H:%M:%S'
+echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
+find ./CLEAR/output/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
+rm CLEARlists.txt
+
+date '+%Y-%m-%d %H:%M:%S'
+echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
+find ./CLEAR/output/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
+rm CLEARlists.txt
+
 #Remove CLEAR config file so that running FetchSEP will not overwrite files in the
 #CLEAR/ directory. Return to FetchSEP defaults.
 echo "Returning config file to FetchSEP defaults."

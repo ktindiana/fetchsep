@@ -204,6 +204,21 @@ for %%G in (13 15) do (
 
 )
 
+
+REM Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
+Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
+Get-ChildItem -Path .\CLEAR\output\opsep\ -Filter "*_integral_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
+del CLEARlists.txt
+
+Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
+Get-ChildItem -Path .\CLEAR\output\opsep\ -Filter "*_differential_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
+del CLEARlists.txt
+
+
 REM Remove CLEAR config file so that running FetchSEP will not overwrite files in the
 REM CLEAR/ directory. Return to FetchSEP defaults.
 

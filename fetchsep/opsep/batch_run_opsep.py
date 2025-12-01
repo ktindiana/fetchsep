@@ -561,7 +561,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         
         if "DetectPreviousEvent" in flag:
             detect_prev_event = True
-        if "TwoPeak" in flag:
+        if "TwoPeaks" in flag:
             two_peaks = True
         if "OPSEPSubtractBG" in flag:
             doBGSubOPSEP = True

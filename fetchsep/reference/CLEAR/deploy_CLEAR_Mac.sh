@@ -75,7 +75,9 @@ echo "Starting at $startpoint"
 date '+%Y-%m-%d %H:%M:%S'
 echo "Setting up environment"
 export PYTHONPATH="$PYTHONPATH:$PWD"
+echo "Copying CLEAR config file to ./fetchsep.cfg"
 cp fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg ./fetchsep.cfg
+echo  "Configuring fetchsep directories"
 python fetchsep/utils/config.py
 
 ######################################################################
@@ -200,19 +202,16 @@ fi
 
 
 #Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
-#files="CLEAR/output/opsep/GOES_RT_integral_primary_enhance_idsep/GOES_RT_integral_primary_enhance_idsep.2020-03-08.2025-09-10_sep_events.csv,CLEAR/output/opsep/GOES_RT_integral_secondary_enhance_idsep/GOES_RT_integral_secondary_enhance_idsep.2021-09-23.2025-09-10_sep_events.csv,CLEAR/output/opsep/GOES-06_integral_enhance_idsep/GOES-06_integral_enhance_idsep.1986-01-01.1994-11-30_sep_events.csv,CLEAR/output/opsep/GOES-07_integral_enhance_idsep/GOES-07_integral_enhance_idsep.1987-03-01.1996-08-31_sep_events.csv,CLEAR/output/opsep/GOES-08_integral_enhance_idsep/GOES-08_integral_enhance_idsep.1995-01-01.2003-06-16_sep_events.csv,CLEAR/output/opsep/GOES-10_integral_enhance_idsep/GOES-10_integral_enhance_idsep.1998-07-01.2004-07-01_sep_events.csv,CLEAR/output/opsep/GOES-11_integral_enhance_idsep/GOES-11_integral_enhance_idsep.2003-06-19.2011-02-28_sep_events.csv,CLEAR/output/opsep/GOES-13_integral_enhance_idsep/GOES-13_integral_enhance_idsep.2010-05-01.2017-12-14_sep_events.csv,CLEAR/output/opsep/GOES-15_integral_enhance_idsep/GOES-15_integral_enhance_idsep.2011-01-01.2020-03-04_sep_events.csv"
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 find ./CLEAR/output/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_integral --Files CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
 rm CLEARlists.txt
 
-
-#files="CLEAR/output/opsep/GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep/GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep.2010-05-01.2017-12-14_sep_events.csv,CLEAR/output/opsep/GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep/GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep.2011-01-01.2020-03-04_sep_events.csv"
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 find ./CLEAR/output/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Files ${files}
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
 rm CLEARlists.txt
 
 #Remove CLEAR config file so that running FetchSEP will not overwrite files in the

@@ -1189,6 +1189,47 @@ class Analyze:
 #        return
 
 
+    def extend_two_peaks(self, first_start_time, first_end_time, threshold):
+        """ If user indicates that the same event has an initial threshold
+            crossing, then temporarily drops below threshold, then continues
+            again, try to extend the first threshold crossing to include
+            the complete event. 
+            
+            If data.two_peaks is True, search for extended event.
+            
+            INPUTS:
+            
+                :first_start_time: (datetime) start of first threshold crossing
+                :first_end_time: (datetime) end of first threshold crossing
+                :threshold: (float) threshold used in event definitions
+            
+            OUTPUTS:
+            
+                :start_time: (datetime) start of first threshold crossing
+                :end_time: (datetime) modified end of second threshold crossing
+
+            
+        """
+        dates = self.dates
+        flux = self.flux
+        
+        lastdate = dates[-1]
+        
+        trim_flux = self.trim_to_date_range(first_end_time, lastdate, dates, flux)
+        trim_dates = self.trim_to_date_range(first_end_time, lastdate, dates, dates)
+        
+        if len(trim_flux) == 0:
+            return first_start_time, first_end_time
+        
+        sep_start_time, sep_end_time = tools.identify_sep_noaa(trim_dates, trim_flux, threshold)
+        if pd.isnull(sep_start_time) or pd.isnull(sep_end_time):
+            return first_start_time, first_end_time
+        else:
+            print("User specified that event has two peaks. Extending "
+                  "event to second decrease below threshold.")
+            return first_start_time, sep_end_time
+
+
 
     def calculate_threshold_crossing(self, data, event_definition):
         """ Calculate the threshold crossing times for a given energy bin
@@ -1245,6 +1286,8 @@ class Analyze:
         #When applying a threshold, use NOAA SWPC logic
         if threshold != cfg.opsep_min_threshold:
             sep_start_time, sep_end_time = tools.identify_sep_noaa(dates, fluxes, threshold)
+            if data.two_peaks:
+                sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
@@ -1321,6 +1364,120 @@ class Analyze:
         return max_flux, max_flux_time
 
 
+
+    def check_onset_peak_fit_quality(self, default_pars, best_pars):
+        """ Onset peak fit quality control 
+            Compare default parameters with best-fit parameters.
+            Apply cuts on best-fit parameters when in a range that
+            indicates the fit is likely bad.
+            
+            INPUTS:
+            
+                :params_fit: (Parameters) parameters set with default 
+                    values and min/max ranges
+                :best_pars: (Parameters) parameters from best Weibull fit
+                
+            OUTPUT:
+            
+                (bool) True if good fit, False if bad fit
+        
+        """
+
+        params = ['alpha', 'beta', 'peak_intensity']
+
+        #### Indicators of a bad fit ####
+        for par in params:
+            if pd.isnull(best_pars[par]):
+                print("check_onset_peak_fit_quality: Fit failed. Rejecting.")
+                return False
+
+            if best_pars[par] == default_pars[par].min or best_pars[par] == default_pars[par].max:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using maximized or minimized {par} value. Rejecting.")
+                return False
+
+            #Best-fit parameters too close to the end of the range
+            rel_diff_min = abs(best_pars[par] - default_pars[par].min)/abs(default_pars[par].min)
+            rel_diff_max = abs(best_pars[par] - default_pars[par].max)/abs(default_pars[par].max)
+            
+            if rel_diff_min < 1e-4 or rel_diff_max < 1e-4:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using parameters too close to max or min for {par}. Rejecting.")
+                return False
+
+        is_good = False
+        for par in params:
+            if best_pars[par] != default_pars[par].value:
+                is_good = True
+            else:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using default parameters for {par}.")
+        if not is_good:
+            print(f"check_onset_peak_fit_quality: All parameters using default values. Rejecting.")
+
+        return is_good
+
+ 
+    def check_onset_peak_id_quality(self, max_curve_idx, yderiv, yderiv2, npoints,
+        weibull_max, data_max):
+        """ After identify the location of the onset peak,
+            check is the results are meaningful.
+            
+            INPUTS:
+            
+                :max_curve_idx: (int) index location of the minimum value of the
+                    second derivative, indicating the location of rollover of
+                    the Weibull fit
+                :yderiv: (float) maximum value of the first derivative of
+                    the Weibull fit
+                :yderiv2: (float) minimum value of the second derivative of
+                    the Weibull fit
+                :npoint: (int) number of data points that were used for the
+                    Weibull fit
+                :weibull_max: (float) value of the Weibull at max_curve_idx
+                :data_max: (float) value of the identified onset peak in the data
+                
+            OUTPUTS:
+            
+                bool True/False indicating if fit is good
+            
+        """
+        #Minimum of second derivative is positive
+        if yderiv2 >= 0:
+            print("check_onset_peak_id_quality: Minimum second derivative of Weibull "
+                  "fit is zero or positive. Bad fit. Rejecting.")
+            return False
+
+        #Max of the derivative is too small (little curvature)
+        if yderiv <= 1e-3:
+            print("check_onset_peak_id_quality: Maximum first derivative of Weibull "
+                  "fit is too small. Bad fit. Rejecting.")
+            return False
+
+        if max_curve_idx == 2 or max_curve_idx == npoints:
+            print("check_onset_peak_id_quality: Found onset peak at end of fitted period. Rejecting.")
+            return False
+
+        if weibull_max/data_max >= 10. or weibull_max/data_max <= 0.1:
+            print(f"check_onset_peak_id_quality: Weibull fit peak is more than an order of magnitude difference from the identified peak. ratio = {weibull_max/data_max}. Rejecting.")
+            return False
+
+        return True
+
+
+    def check_onset_peak_metrics_quality(self, norm_yderiv, norm_yderiv2, n2):
+        """ Reject onset peak fit based off of various metrics. 
+            n2 is the percent of points within a factor of 2.
+        
+        """
+        
+        is_good = True
+        if norm_yderiv < 0.01: is_good = False
+        if norm_yderiv2 >  -0.00013: is_good = False
+        if n2 < 65: is_good = False
+        return is_good
+
+
     def calculate_onset_peak_from_fit(self, data):
         """Calculate the peak associated with the initial SEP onset. This subroutine
             searches for the rollover that typically occurs after the SEP onset.
@@ -1386,19 +1543,10 @@ class Analyze:
         dates = self.dates
 
         #Do a fit of the Weibull function for each time profile
-        default_a = -3
-        min_a = -20
-        max_a = -0.1
-        default_b = 10
-        min_b = 1
-        max_b = 500
-        default_Ip = 100
-        min_Ip = 1e-3
-        max_Ip = 1e6
-        params_fit = Parameters()
-        params_fit.add('alpha', value = default_a, min = min_a, max = max_a) #-3, -5, -0.1
-        params_fit.add('beta', value = default_b, min = min_b, max =max_b) #10, 1, 100
-        params_fit.add('peak_intensity', value = default_Ip, min = min_Ip, max =max_Ip) #100, 1e-3, 1e6
+        default_pars = Parameters()
+        default_pars.add('alpha', value = -3, min = -20, max = -0.1)
+        default_pars.add('beta', value = 10, min = 1, max =500) #10, 1, 100
+        default_pars.add('peak_intensity', value = 100, min = 1e-3, max =1e6) #100, 1e-3, 1e6
         
         #For mid to strong SEP events, time according to prompt onset and the
         #possibility of a CME arriving around 24 hours later (set timing
@@ -1441,10 +1589,10 @@ class Analyze:
         #Convert dates into a series of times in hours for fitting
         trim_times = [((t - dates[0]).total_seconds() + 60)/(60*60) for t in trim_dates]
  
-        minimize_func = minimize(tools.func_residual, params_fit,
+        minimize_func = minimize(tools.func_residual, default_pars,
                     args = [trim_times, trim_fluxes],
                     nan_policy= 'propagate', max_nfev=np.inf)
-                
+
         #Get Weibull fit parameters
         best_pars = minimize_func.params.valuesdict()
         best_a = best_pars['alpha']
@@ -1455,50 +1603,21 @@ class Analyze:
         #Calculate chisq
         err = tools.normchisq(best_fit, trim_fluxes, sigma=self.bgsigma)
 
-        ####### Indicators of a poor fit ########
-        if best_a == default_a or best_b == default_b or best_Ip == default_Ip:
-            print(f"calculated_onset_peak_from_fit: Poor fit with "
-                "result using default parameters. Skipping.")
-            self.onset_peak = onset_peak
-            self.onset_peak_time = onset_peak_time
-            return onset_peak, onset_peak_time
-
-        if best_a == min_a or best_a == max_a:
-            print(f"calculated_onset_peak_from_fit: Poor fit with "
-                "result using maximized or minimized alpha. Skipping.")
-            self.onset_peak = onset_peak
-            self.onset_peak_time = onset_peak_time
-            return onset_peak, onset_peak_time
-
-        if best_b == min_b or best_b == max_b:
-            print(f"calculated_onset_peak_from_fit: Poor fit with "
-                "result using maximized or minimized beta. Skipping.")
-            self.onset_peak = onset_peak
-            self.onset_peak_time = onset_peak_time
-            return onset_peak, onset_peak_time
-
-        if best_Ip == min_Ip or best_Ip == max_Ip:
-            print(f"calculated_onset_peak_from_fit: Poor fit with "
-                "result using maximized or minimized Ip. Skipping.")
-            self.onset_peak = onset_peak
-            self.onset_peak_time = onset_peak_time
-            return onset_peak, onset_peak_time
-
-
         print(f"calculate_onset_peak_from_fit ==== {energy_bin} MeV =====")
         print(f"Best fit Weibull for onset peak Ip: {best_Ip}, a: {best_a}, b: {best_b}")
         print(f"Normalized chisq in fit: {err}")
 
-        if pd.isnull(best_Ip) or pd.isnull(best_a) or pd.isnull(best_b):
-            print("calculate_onset_peak_from_fit: Fit failed for "
-                f"{energy_bin}, {threshold}. Returning null values.")
+        #Check fit quality
+        is_good = self.check_onset_peak_fit_quality(default_pars, best_pars)
+        if not is_good:
             self.onset_peak = onset_peak
             self.onset_peak_time = onset_peak_time
             return onset_peak, onset_peak_time
 
+
         #IF WEIBULL FIT SUCCESSFUL
         #Find maximum curvature in the fit using the second derivative
-        max_curve_idx = tools.find_max_curvature(trim_times, best_fit)
+        max_curve_idx, yderiv, yderiv2, norm_yderiv, norm_yderiv2 = tools.find_max_curvature(best_fit)
 
         max_curve_model_time = trim_times[max_curve_idx]
         max_curve_model_date = trim_dates[max_curve_idx]
@@ -1519,11 +1638,50 @@ class Analyze:
                     max_curve_meas_time = trim_times[k]
                     max_curve_meas_date = trim_dates[k]
 
+
+        #Check the derivative values and location of onset peak
+        weibull_max = best_fit[max_curve_idx]
+        data_max = max_curve_meas_peak
+        npoints = len(trim_times)
+        is_good = self.check_onset_peak_id_quality(max_curve_idx, yderiv, yderiv2, npoints, weibull_max, data_max)
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        #Weibull fit metrics
+        print(f"WEIBULL DERIVATIVE: max yderiv: {yderiv}, norm max yderiv: {norm_yderiv}, min yderiv2: {yderiv2}, norm min yderiv2: {norm_yderiv2}")
+
+        MLE = tools.mean_log_error(best_fit, trim_fluxes)
+        print(f"MEAN LOG ERROR OF WEIBULL FIT: {MLE}")
+        n2, n10 = tools.within_factor(best_fit, trim_fluxes)
+        print(f"WEIBULL FIT percent within factor of 2: {n2}%, within a factor of 10: {n10}%")
+
+
+        #Check quality of fit with respect to various metrics
+        is_good = self.check_onset_peak_metrics_quality(norm_yderiv, norm_yderiv2, n2)
+
+        ###TESTING, write out onset peak fit parameters and metrics, appending
+#        fitfname = os.path.join(cfg.outpath,f"Weibull_fit_params_{data.experiment}_{data.flux_type}.csv")
+#        with open(fitfname, "a") as file:
+#            line = f"{energy_bin[0]},{threshold},{start_fit_time},{end_fit_time},{best_Ip},{best_a},{best_b},{err},{yderiv},{norm_yderiv},{yderiv2},{norm_yderiv2},{MLE},{n10},{n2},{is_good}\n"
+#            file.write(line)
+#        file.close()
+
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        #FIT IS GOOD
         onset_peak = max_curve_meas_peak
         onset_peak_time = max_curve_meas_date
 
-        ### VALUES ONLY USED IN PLOTS
-        ####FIND PEAK BY JUST TAKING MAXIMUM OF WEIBULL
+        self.onset_peak = onset_peak
+        self.onset_peak_time = onset_peak_time
+
+        ####PLOT GOOD ONSET PEAK FIT
+        ####VALUES ONLY USED IN PLOTS
         max_val = np.max(best_fit)
         max_idx = np.where(best_fit == max_val)
         max_time = trim_times[max_idx[0][0]]
@@ -1554,8 +1712,6 @@ class Analyze:
                 OPSEPEnhancement=data.OPSEPEnhancement,
                 IDSEPEnhancement=data.IDSEPEnhancement)
 
-        self.onset_peak = onset_peak
-        self.onset_peak_time = onset_peak_time
         
         return onset_peak, onset_peak_time
 
@@ -1678,6 +1834,15 @@ class Analyze:
         if self.onset_peak_time > self.max_flux_time:
             self.onset_peak = self.max_flux
             self.onset_peak_time = self.max_flux_time
+
+        #If fit didn't find a good onset peak time, set onset peak
+        #to max flux if max flux within 18 hours of start time,
+        #i.e. before CME could arrive and cause ESP
+#        if pd.isnull(self.onset_peak_time):
+#            if not pd.isnull(self.max_flux_time) and not pd.isnull(self.sep_start_time):
+#                if (self.max_flux_time - self.sep_start_time) < datetime.timedelta(hours=18):
+#                    self.onset_peak = self.max_flux
+#                    self.onset_peak_time = self.max_flux_time
 
         self.derived_timing_values()
 
