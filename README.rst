@@ -306,10 +306,10 @@ Generating the Benchmark dataset from scratch requires about 15 - 20 hours of pr
 * Processes each time period and calculates values for each quiet period or SEP event, generating an SEP event list for each GOES spacecraft (3 - 4 hours 3 GB of data)
 * Combines the SEP parameters from only the primary GOES spacecraft at the time to create a single SEP event list from 1986-01-01 to 2025-09-10 (The CLEAR Benchmark List)
 
-Two Benchmark lists and supporting data are produced at the end:
+**Two Benchmark lists and supporting data are produced at the end:**
 
-* Operational list - GOES integral fluxes as-is (1.7 MB)
-* Energy Bin Calibrated List - GOES uncorrected differential fluxes with background subtracted and Sandberg et al. (2014) and Bruno 2017 effective energy bins applied (423 KB)
+* **Operational list** - GOES integral fluxes as-is (1.7 MB)
+* **Energy Bin Calibrated List** - GOES uncorrected differential fluxes with background subtracted and Sandberg et al. (2014) and Bruno 2017 effective energy bins applied (423 KB)
 
 Create the full Benchmark dataset from scratch by running the scripts from the base fetchsep directory:
 
