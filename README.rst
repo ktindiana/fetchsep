@@ -324,7 +324,7 @@ Linux:
 
 Windows:
 
-    | .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
+    | .\\fetchsep\\reference\\CLEAR\\deploy_CLEAR_Windows.bat
 
 If you have already created the dataset once and you have the mean background solutions (everything in the output/idsep and plots/idsep folders), you can reprocess the SEP event analysis without having to rerun everything. Say you want to add a new event definition to your analysis (e.g. >10 MeV exceeds 100 pfu), you can modify the appropriate deploy script and rerun only the SEP analysis using the LISTS flag to skip the background calculation.
 
@@ -339,7 +339,7 @@ Linux:
 
 Windows:
 
-    | .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat LISTS
+    | .\\fetchsep\\reference\\CLEAR\\deploy_CLEAR_Windows.bat LISTS
 
 **Note:** The deploy_CLEAR_Mac.sh script shows each command step-by-step. This is a good primer on how to use FetchSEP. You can use these commands as an example and modify them to run other experiments, e.g. to produce a similar dataset for STEREO or SOHO, including applying thresholds to differential energy channels.
 
