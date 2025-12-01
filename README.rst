@@ -285,7 +285,7 @@ will first run `idsep` on a specified data set and identify all increases above 
 
 Note that manual intervention is required to get a truly good event list. The automated method is not perfect at identifying individual SEP events, but it will get you 80% of the way there. 
 
- There will be time periods that contain multiple events. The user may edit the batch_event_list_* file which contains each individual time period and rerun the SEP analysis:
+There will be time periods that contain multiple events. The user may edit the batch_event_list_* file which contains each individual time period and rerun the SEP analysis:
  
      | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1" --StartPoint BATCH
 
@@ -313,19 +313,37 @@ Two Benchmark lists and supporting data are produced at the end:
 
 Create the full Benchmark dataset from scratch by running the scripts from the base fetchsep directory:
 
-* Mac: ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh
-* Linux: ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh
-* Windows: .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
+Mac:
+
+    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh
+
+Linux:
+
+    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh
+
+
+Windows:
+
+    | .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
 
 If you have already created the dataset once and you have the mean background solutions (everything in the output/idsep and plots/idsep folders), you can reprocess the SEP event analysis without having to rerun everything. Say you want to add a new event definition to your analysis (e.g. >10 MeV exceeds 100 pfu), you can modify the appropriate deploy script and rerun only the SEP analysis using the LISTS flag to skip the background calculation.
 
-* Mac: ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh LISTS
-* Linux: ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh LISTS
-* Windows: .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat LISTS
+Mac:
+
+    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh LISTS
+
+Linux:
+
+    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh LISTS
+
+
+Windows:
+
+    | .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat LISTS
 
 **Note:** The deploy_CLEAR_Mac.sh script shows each command step-by-step. This is a good primer on how to use FetchSEP. You can use these commands as an example and modify them to run other experiments, e.g. to produce a similar dataset for STEREO or SOHO, including applying thresholds to differential energy channels.
 
-**Note:** The CLEAR batch_event_list_* files were curated by hand to ensure that each time period to be analyzed contained on a quiet period or a single SEP event. If a user would like to follow this procedue to create their own list, the bin/fetchsep_prepare_obs command described above will perform full workflow for an experiment and make a rough draft of the batch_event_list file in the process. That batch file can be curated by the user and bin/fetchsep_prepare_obs can be run with the --StartPoint BATCH flag to reanalyze the individual quiet and SEP time periods without recalculating the mean backgrounds. 
+**Note:** The CLEAR batch_event_list_* files were curated by hand to ensure that each time period to be analyzed contained on a quiet period or a single SEP event. If a user would like to follow this procedue to create their own list, the bin/fetchsep_prepare_obs command described above will perform the full workflow for an experiment and make a rough draft of the batch_event_list file in the process. That batch file can be curated by the user and bin/fetchsep_prepare_obs can be run with the --StartPoint BATCH flag to reanalyze the individual quiet and SEP time periods without recalculating the mean backgrounds.
 
 
 Support
