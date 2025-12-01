@@ -296,7 +296,9 @@ A set of curated files and scripts have been created to allow any user to run Fe
 
 The Benchmark dataset can be produced in its entirety using the deploy_* scripts in fetchsep/references/CLEAR.
 
-Generating the Benchmark dataset from scratch requires about 15 - 20 hours of processing time and a reliable internet connection. The deploy scripts will perform the following steps:
+** ---> Generating the Benchmark dataset from scratch requires about 15 - 20 hours of processing time and a reliable internet connection. <--- **
+
+The deploy scripts will perform the following steps:
 
 * Configure your environment to use the default settings in fetchsep/reference/fetchsep_CLEAR.cfg
 * Set up the CLEAR/ folder to hold the Benchmark dataset results
