@@ -109,7 +109,7 @@ def read_in_flux_files(experiment, flux_type, user_file, exp_name, startdate,
         #a long time series. Only works for integral channels, since
         #GOES differential channels differ across experiments.
         if experiment == "GOES":
-            all_dates, all_fluxes, west_detector, energy_bins = \
+            all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
                 datasets.read_in_files(experiment, flux_type,
                 filenames1, filenames2, filenames_orien, options, detector,
                 spacecraft=spacecraft)
