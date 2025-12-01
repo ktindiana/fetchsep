@@ -294,7 +294,38 @@ The CLEAR Space Weather Center of Excellence Benchmark Dataset
 ==============================================================
 A set of curated files and scripts have been created to allow any user to run FetchSEP and generate the CLEAR Benchmark SEP dataset. The dataset spans 1986-01-01 to 2025-09-10. When run, the scripts will download all GOES data between those time frames and process each spacecraft to calculate the mean background and SEP enhancements. The `idsep` output and plots folders will contain the mean background and sigma and the `opsep` output and plots folders will contain analysis of each individual SEP event and quite time periods.
 
-When the code is finalized for the generation of the Benchmark dataset, the version of FetchSEP will be tagged and more instructions will be included here.
+The Benchmark dataset can be produced in its entirety using the deploy_* scripts in fetchsep/references/CLEAR.
+
+Generating the Benchmark dataset from scratch requires about 15 - 20 hours of processing time and a reliable internet connection. The deploy scripts will perform the following steps:
+
+* Configure your environment to use the default settings in fetchsep/reference/fetchsep_CLEAR.cfg
+* Set up the CLEAR/ folder to hold the Benchmark dataset results
+* Download all GOES-06 to present data from NOAA and CCMC iSWA to your data/ folder
+* Calculate the mean background and level of variation (sigma) for the full time series of each GOES spacecraft (most time consuming step of 15+ hours and produces about 20 GB of data)
+* Generates "batch" lists used to analyze quiet time periods and individual SEP events
+* Processes each time period and calculates values for each quiet period or SEP event, generating an SEP event list for each GOES spacecraft (3 - 4 hours 3 GB of data)
+* Combines the SEP parameters from only the primary GOES spacecraft at the time to create a single SEP event list from 1986-01-01 to 2025-09-10 (The CLEAR Benchmark List)
+
+Two Benchmark lists and supporting data are produced at the end:
+
+* Operational list - GOES integral fluxes as-is (1.7 MB)
+* Energy Bin Calibrated List - GOES uncorrected differential fluxes with background subtracted and Sandberg et al. (2014) and Bruno 2017 effective energy bins applied (423 KB)
+
+Create the full Benchmark dataset from scratch by running the scripts from the base fetchsep directory:
+
+* Mac: ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh
+* Linux: ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh
+* Windows: .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
+
+If you have already created the dataset once and you have the mean background solutions (everything in the output/idsep and plots/idsep folders), you can reprocess the SEP event analysis without having to rerun everything. Say you want to add a new event definition to your analysis (e.g. >10 MeV exceeds 100 pfu), you can modify the appropriate deploy script and rerun only the SEP analysis using the LISTS flag to skip the background calculation.
+
+* Mac: ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh LISTS
+* Linux: ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh LISTS
+* Windows: .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat LISTS
+
+**Note:** The deploy_CLEAR_Mac.sh script shows each command step-by-step. This is a good primer on how to use FetchSEP. You can use these commands as an example and modify them to run other experiments, e.g. to produce a similar dataset for STEREO or SOHO, including applying thresholds to differential energy channels.
+
+**Note:** The CLEAR batch_event_list_* files were curated by hand to ensure that each time period to be analyzed contained on a quiet period or a single SEP event. If a user would like to follow this procedue to create their own list, the bin/fetchsep_prepare_obs command described above will perform full workflow for an experiment and make a rough draft of the batch_event_list file in the process. That batch file can be curated by the user and bin/fetchsep_prepare_obs can be run with the --StartPoint BATCH flag to reanalyze the individual quiet and SEP time periods without recalculating the mean backgrounds. 
 
 
 Support
