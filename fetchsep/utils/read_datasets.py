@@ -2206,15 +2206,18 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
                 wget.download(url, svfile)
  
             except urllib.request.HTTPError as e:
-                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
+                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname=None
             except socket.timeout as e:
-                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname=None
             except Exception as e:
-                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname=None
  
  
- 
-        filenames1.append(os.path.join('ACE', 'SIS', fname))
+        if fname != None:
+            filenames1.append(os.path.join('ACE', 'SIS', fname))
         
     return filenames1
 
