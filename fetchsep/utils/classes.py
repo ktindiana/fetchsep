@@ -1823,8 +1823,9 @@ class Analyze:
         if pd.isnull(self.sep_start_time): return
         time_resolution = datetime.timedelta(seconds=time_resolution)
         
-        #Gap duration exceeds 30 minutes or 4% of SEP event duration
-        ref_duration = max(0.5, 0.04*self.duration)
+        #Gap duration exceeds 30 minutes, 1 hour, or 4% of SEP event duration
+        ref_duration = max(0.5, 0.04*self.duration) #30 mins for shorter events
+        ref_duration = min(1, ref_duration) #1 hr for longer events
         
         gap_start = pd.NaT
         gap_end = pd.NaT

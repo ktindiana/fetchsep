@@ -10,6 +10,8 @@ import os
 import wget
 from calendar import monthrange
 import urllib.request
+import urllib.error
+import socket
 import csv
 from dateutil.parser import parse
 import numpy as np
@@ -670,20 +672,25 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
             url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
                 '%i/%02i/%s/csv/%s' % (year,month,satellite,fname1))
             print('Downloading GOES data: ' + url)
+
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(fullpath1):
                     os.remove(fullpath1) # if exist, remove it directly
                 
                 wget.download(url, fullpath1)
-            except urllib.request.HTTPError:
-                print("Cannot access file at " + url +
-                ". Please check that selected spacecraft covers date range. Skipping.")
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
                 fname1 = None
+            except socket.timeout as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
+                fname1 = None
+            except Exception as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
+                fname1 = None
+
+
 
         fname2 = None
         if prefix2 != '':
@@ -700,18 +707,20 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
                    '%i/%02i/%s/csv/%s' % (year,month,satellite,fname2))
                 print('Downloading GOES data: ' + url)
                 try:
-                    try:
-                        urllib.request.urlopen(url)
-                    except:
-                        raise
+                    urllib.request.urlopen(url, timeout=5)
                     
                     if os.path.exists(fullpath2):
                         os.remove(fullpath2) # if exist, remove it directly
                     
                     wget.download(url, fullpath2)
-                except urllib.request.HTTPError:
-                    print("Cannot access file at " + url +
-                   ". Please check that selected spacecraft covers date range. Skipping.")
+                except urllib.request.HTTPError as e:
+                    print(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                    fname2 = None
+                except socket.timeout as e:
+                    print(f"Cannot access file at {url} because {e}. Skipping.")
+                    fname2 = None
+                except Exception as e:
+                    print(f"Cannot access file at {url} because {e}. Skipping.")
                     fname2 = None
 
         if fname1 == None:
@@ -894,18 +903,20 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                 '%i/%02i/%s/csv/%s' % (year,month,satellite,fname1))
             print('Downloading GOES data: ' + url)
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(fullpath1):
                     os.remove(fullpath1) # if exist, remove it directly
                 
                 wget.download(url, fullpath1)
-            except urllib.request.HTTPError:
-                print("Cannot access file at " + url +
-                ". Please check that selected spacecraft covers date range. Skipping.")
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname1 = None
+            except socket.timeout as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
+                fname1 = None
+            except Exception as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
                 fname1 = None
 
         complete = None
@@ -917,18 +928,20 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                '%i/%02i/%s/csv/%s' % (year,month,satellite,fname2))
             print('Downloading GOES data: ' + url)
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(fullpath2):
                     os.remove(fullpath2) # if exist, remove it directly
                 
                 wget.download(url, fullpath2)
-            except urllib.request.HTTPError:
-                print("Cannot access file at " + url +
-               ". Please check that selected spacecraft covers date range. Skipping.")
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname2 = None
+            except socket.timeout as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
+                fname2 = None
+            except Exception as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
                 fname2 = None
 
         if (experiment == "GOES-13" or experiment == "GOES-14"
@@ -938,19 +951,20 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
                    '%i/%02i/%s/csv/%s' % (year,month,satellite,fname_orien))
                 print('Downloading GOES data: ' + url)
                 try:
-                    try:
-                        urllib.request.urlopen(url)
-                    except:
-                        raise
+                    urllib.request.urlopen(url, timeout=5)
                 
                     if os.path.exists(fullpath_orien):
                         os.remove(fullpath_orien) # if exist, remove it directly
                     
                     wget.download(url, fullpath_orien)
-                except urllib.request.HTTPError:
-                    print("Cannot access orientation file at "
-                        + url + ". Please check that selected "
-                        + "spacecraft covers date range. Skipping.")
+                except urllib.request.HTTPError as e:
+                    print(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                    fname_orien = None
+                except socket.timeout as e:
+                    print(f"Cannot access file at {url} because {e}. Skipping.")
+                    fname_orien = None
+                except Exception as e:
+                    print(f"Cannot access file at {url} because {e}. Skipping.")
                     fname_orien = None
 
         if fname1 == None:
@@ -1029,15 +1043,17 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         if not exists1:
             url=('https://www.ngdc.noaa.gov/stp/space-weather/satellite-data/satellite-systems/goesr/solar_proton_events/sgps_sep2017_event_data/%s' % (fname1))
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 wget.download(url, fullpath1)
             except urllib.request.HTTPError:
                 sys.exit("Cannot access SEP event file at " + url +
-               ". Please check that the url is still active. Skipping.")
-                
+               ". Please check that the url is still active. Exiting.")
+            except socket.timeout as e:
+                sys.exit(f"Cannot access file at {url} because {e}. Exiting.")
+            except Exception as e:
+                sys.exit(f"Cannot access file at {url} because {e}. Exiting.")
+
+
         print("check_goesR_data: Special file containing 2017-09-10 data is {fname1}")
         filenames1.append(os.path.join('GOES',fname1))
         return filenames1, filenames2, filenames_orien, startdate
@@ -1095,10 +1111,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                 fullpath = os.path.join(cfg.datapath,'GOES',fname_data)
                 url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
                 try:
-                    try:
-                        urllib.request.urlopen(url)
-                    except:
-                        raise
+                    urllib.request.urlopen(url, timeout=5)
                 
                     if os.path.exists(fullpath):
                         os.remove(fullpath) # if exist, remove it directly
@@ -1108,12 +1121,18 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                     foundfile = fname_data
                     print(f"\ncheck_goesR_data: Downloaded {url}")
                     break
-                except urllib.request.HTTPError:
+
+                except urllib.request.HTTPError as e:
                     foundfile = None
+                except socket.timeout as e:
+                    foundfile = None
+                except Exception as e:
+                     foundfile = None
+
 
         if foundfile == None:
             print("Cannot access GOES file at " + url +
-               ". Tried file versions " + str(file_ext) + ". Please check that selected spacecraft covers date range. Skipping.")
+               ". Tried file versions " + str(file_ext) + ". Please check that selected spacecraft covers date range and you have a good internet connection. Skipping.")
             
         if foundfile == None:
             filenames1.append(None)
@@ -1676,20 +1695,26 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
                     % (res,fname))
             print('Downloading EPHIN data: ' + url)
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(svfile):
                     os.remove(svfile) # if exist, remove it directly
   
                 wget.download(url, svfile)
-            except urllib.request.HTTPError:
-                sys.exit("Cannot access EPHIN file at " + url +
-               ". Please check that selected spacecraft covers date range.")
-               
-        filenames1.append(os.path.join('EPHIN', fname))
+
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname = None
+            except socket.timeout as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
+                fname = None
+            except Exception as e:
+                print(f"Cannot access file at {url} because {e}. Skipping.")
+                fname = None
+
+
+        if fname != None:
+            filenames1.append(os.path.join('EPHIN', fname))
         
     return filenames1
 
@@ -1738,9 +1763,9 @@ def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type):
         fname = 'HESPERIA_SOHO_PROTON_' + str(year) + '.txt'
 
         exists = os.path.isfile(os.path.join(cfg.datapath, 'EPHIN_HESPERIA', fname))
-        if not exists: #download file if not found on your computer
+        if not exists:
                 sys.exit("check_ephin_hesperia_data: Cannot access EPHIN file " + fname +
-               ". Please check that selected spacecraft covers date range.")
+               ". Please manually download yearly data from https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool and put files in data/EPHIN_HESPERIA/HESPERIA_SOHO_PROTON_YYYY.txt")
        
         filenames1.append(os.path.join('EPHIN_HESPERIA', fname))
         
@@ -1830,7 +1855,7 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
         exists = os.path.isfile(os.path.join(cfg.datapath, 'EPHIN_REleASE', fname))
         if not exists: #download file if not found on your computer
                 sys.exit("Cannot access EPHIN file " + fname +
-               ". Please check that selected spacecraft covers date range.")
+               ". Please download the data from https://zenodo.org/records/14191918 and put in data/EPHIN_REleASE/.")
        
         filenames1.append(os.path.join('EPHIN_REleASE', fname))
         
@@ -1890,10 +1915,7 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
             url = 'https://export.srl.utu.fi/%s' % (fl)
             localfl = os.path.join(ernepath,fl)
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 wget.download(url, localfl)
                 datefiles.append(fl) #add to datefiles if not present
             except:
@@ -1929,18 +1951,19 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
                     url = ('https://export.srl.utu.fi/%s' % (fnm))
                     print('Downloading ERNE data: ' + url)
                     try:
-                        try:
-                            urllib.request.urlopen(url)
-                        except:
-                            raise
+                        urllib.request.urlopen(url, timeout=5)
                         wget.download(url, localfnm)
                         #Decompress gzip file
                         tar = tarfile.open(name=localfnm,mode='r:gz')
                         tar.extractall(path=unzipdir)
                         
-                    except urllib.request.HTTPError:
-                        sys.exit("Cannot access EPHIN file at " + url +
-                       ". Please check that selected spacecraft covers date range.")
+                    except urllib.request.HTTPError as e:
+                        sys.exit(f"Cannot access file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
+                    except socket.timeout as e:
+                        sys.exit(f"Cannot access file at {url} because {e}. Exiting.")
+                    except Exception as e:
+                        sys.exit(f"Cannot access file at {url} because {e}. Exiting.")
+
 
                 dfiles = os.listdir(os.path.join(unzipdir,'export.src'))
                 dfiles = [os.path.join(unzipdir,'export.src',x) for x in dfiles if (('HED' in x or 'LED' in x) and ('SL2' in x))]
@@ -2048,10 +2071,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
         if not exists1 or not complete:
             url=(let_url_prefix + '%i/Summed/H/%s' % (year,fname1))
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(fullpath1):
                     os.remove(fullpath1) # if exist, remove it directly
@@ -2059,9 +2079,14 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
                 wget.download(url, fullpath1)
                 print("Downloaded file --> " + fullpath1)
                 filenames1.append(os.path.join(experiment,'LET',fname1))
-            except urllib.request.HTTPError:
-                sys.exit("Cannot access " + experiment + " file at " + url +
-                ". Please check that selected spacecraft covers date range.")
+
+            except urllib.request.HTTPError as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
+            except socket.timeout as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+            except Exception as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+
 
 
     #HET data - monthly
@@ -2093,10 +2118,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
         if not exists2 or not complete:
             url=het_url_prefix + fname2
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(fullpath2):
                     os.remove(fullpath2) # if exist, remove it directly
@@ -2104,9 +2126,14 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
                 wget.download(url,fullpath2)
                 print("Downloaded file --> " + fullpath2)
                 filenames2.append(os.path.join(experiment,'HET',fname2))
-            except urllib.request.HTTPError:
-                sys.exit("Cannot access " + experiment + " file at " + url +
-                    ". Please check that selected spacecraft covers date range.")
+
+            except urllib.request.HTTPError as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
+            except socket.timeout as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+            except Exception as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+
 
         month += 1
 
@@ -2171,19 +2198,22 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
                     % (fname))
             print('Downloading ACE/SIS integral data: ' + url)
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(svfile):
                     os.remove(svfile) # if exist, remove it directly
   
                 wget.download(url, svfile)
-            except urllib.request.HTTPError:
-                sys.exit("Cannot access ACE/SIS file at " + url +
-               ". Please check that selected spacecraft covers date range.")
-               
+ 
+            except urllib.request.HTTPError as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
+            except socket.timeout as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+            except Exception as e:
+                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+ 
+ 
+ 
         filenames1.append(os.path.join('ACE', 'SIS', fname))
         
     return filenames1
@@ -2247,20 +2277,25 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
                     % (fname))
             print('Downloading ACE/EPAM data: ' + url)
             try:
-                try:
-                    urllib.request.urlopen(url)
-                except:
-                    raise
+                urllib.request.urlopen(url, timeout=5)
                 
                 if os.path.exists(svfile):
                     os.remove(svfile) # if exist, remove it directly
   
                 wget.download(url, svfile)
-            except urllib.request.HTTPError:
-                sys.exit("Cannot access ACE/EPAM file at " + url +
-               ". Please check that selected spacecraft covers date range.")
-               
-        filenames1.append(os.path.join('ACE', 'EPAM', fname))
+
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname = None
+            except socket.timeout as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname = None
+            except Exception as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname = None
+
+        if fname != None:
+            filenames1.append(os.path.join('ACE', 'EPAM', fname))
         
     return filenames1
 
@@ -2354,10 +2389,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
                         % (year, gzfname))
                 print('Downloading IMP-8/CPME data: ' + url)
                 try:
-                    try:
-                        urllib.request.urlopen(url)
-                    except:
-                        raise
+                    urllib.request.urlopen(url,timeout=5)
                     
                     if os.path.exists(gzsvfile):
                         os.remove(gzsvfile) # if exist, remove it directly
@@ -2372,12 +2404,19 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
                         with open(svfile, 'wb') as f_out:
                             # Copy the decompressed data from the input to the output file
                             shutil.copyfileobj(f_in, f_out)
-                    
-                except urllib.request.HTTPError:
-                    sys.exit("Cannot access IMP-8/CPME file at " + url +
-                   ". Please check that selected spacecraft covers date range.")
-                   
-            filenames1.append(svfile)
+
+                except urllib.request.HTTPError as e:
+                    print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                    svfile = None
+                except socket.timeout as e:
+                    print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                    svfile = None
+                except Exception as e:
+                    print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                    svfile = None
+
+            if svfile != None:
+                filenames1.append(svfile)
         
     return filenames1
 
@@ -2472,16 +2511,6 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             check_goes_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
-    #FILE FOR 2017-09 SEP events, but have to have this file.
- #   if (experiment == "GOES-16" or experiment == "GOES-17") and flux_type == "differential"\
- #       and enddate < datetime.datetime(2020,12,1):
- #       filenames1 = ['GOES-R/' + \
- #                   "se_sgps-l2-avg5m_g16_s20172440000000_e20172732355000_v2_0_0.nc"]
- #       filenames2 = []
- #       filenames_orien =[]
- #       return filenames1, filenames2, filenames_orien
-
-
     if (experiment in goes_R) and flux_type == "differential":
         filenames1, filenames2, filenames_orien, date =\
             check_goesR_data(startdate,enddate, experiment, flux_type)
@@ -2497,12 +2526,10 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
         filenames1 = check_ephin_data(startdate, enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
-
     if experiment == "EPHIN_HESPERIA":
         filenames1 = check_ephin_hesperia_data(startdate, enddate,
             experiment, flux_type)
         return filenames1, filenames2, filenames_orien
-
 
     if experiment == "EPHIN_REleASE":
         filenames1 = check_ephin_release_data(startdate, enddate,
