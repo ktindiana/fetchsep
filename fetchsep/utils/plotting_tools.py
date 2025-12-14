@@ -561,9 +561,9 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
 
 
 def make_math_label(label):
-    label = label.replace("^-1", "^{-1}")
-    label = label.replace("^-2", "^{-2}")
-    label = label.replace("*", "")
+    label = label.replace("^-1", "$^\\mathregular{-1}$")
+    label = label.replace("^-2", "$^\\mathregular{-2}$")
+    label = label.replace("*", " ")
     return label
 
 def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
@@ -650,7 +650,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             continue
         
         #Create labels
-        ylabel = f"Flux [${flux_units}$]"
+        ylabel = f"Flux [{flux_units}]"
         ylabel = make_math_label(ylabel)
         if energy_bin[1] == -1 and flux_type == "integral":
             data_label = f"{exp_name} >{energy_bin[0]} {energy_units}"
@@ -664,7 +664,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         #Don't want to plot negative values, particularly in background-subtracted plots
 #        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
-        ax[i].plot_date(dates,maskfluxes,'-',label=data_label)#,marker=".")
+        ax[i].plot(dates,maskfluxes,'.-', markersize=3, label=data_label)#,marker=".")
 #        else:
 #            ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
 
@@ -746,7 +746,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
 #        maskfluxes = np.ma.masked_invalid(all_fluxes[j])
 #        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
-        ax.plot_date(all_dates,maskfluxes,'-',label=legend_label) #, marker='.')
+        ax.plot(all_dates, maskfluxes,'.-', markersize=3, label=legend_label) #, marker='.')
 #        else:
 #            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
 
@@ -757,7 +757,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         threshold = event_definitions[i]['threshold'].threshold
         flux_units = event_definitions[i]['threshold'].threshold_units
 
-        threshold_label = f"{threshold} ${flux_units}$"
+        threshold_label = f"{threshold} {flux_units}"
         threshold_label = make_math_label(threshold_label)
 
         if energy_bin[1] == -1:
@@ -773,7 +773,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     plt.title(plot_title)
     threshold = event_definitions[0]['threshold'].threshold
     flux_units = event_definitions[0]['threshold'].threshold_units
-    ylabel = f"Flux [${flux_units}$]"
+    ylabel = f"Flux [{flux_units}]"
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
     plt.xlabel('Date')
@@ -847,7 +847,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
 
         energy_bin = [event_definitions[i]['energy_channel'].min, event_definitions[i]['energy_channel'].max]
         flspec_units = fluence_spectra_units[i]
-        threshold_label = f"{event_definitions[i]['threshold'].threshold} ${event_definitions[i]['threshold'].threshold_units}$"
+        threshold_label = f"{event_definitions[i]['threshold'].threshold} {event_definitions[i]['threshold'].threshold_units}"
         threshold_label = make_math_label(threshold_label)
 
         #Create labels
@@ -863,13 +863,13 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     plot_title = f"Event-Integrated Fluence Spectra\n {exp_name} {title_mod} {flux_type}"
     plt.title(plot_title)
     plt.xlabel(f"Energy [{energy_units}]")
-    ylabel = f"Fluence [${fluence_units}$]"
+    ylabel = f"Fluence [{fluence_units}]"
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
 
     plt.xscale("log")
     plt.yscale("log")
-    ax.legend(loc='upper right')
+    ax.legend(loc='upper left')
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(14)
 
@@ -883,19 +883,18 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
 
 
 ############ IDSEP PLOTS ##############
-def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units):
-    """ Set up figure and axes for idsep 3 row plots.
+def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow):
+    """ Set up figure and axes for idsep nrow row plots.
     
     """
-    nrow = 3 #number of rows of subplots
-    
-    plt.rcParams.update({'font.size': 16})
-    fig, ax = plt.subplots(nrow, 1, sharex=True, figsize=(13,8), gridspec_kw={'height_ratios' : [1, 1, 1], 'hspace' : 0.4})
+    plt.rcParams.update({'font.size': 14})
+    fig, ax = plt.subplots(nrow, 1, sharex=True, figsize=(13,8), gridspec_kw={'height_ratios' : [1, 1, 1], 'hspace' : 0.1})
     fig.canvas.manager.set_window_title(figname)
     fig.suptitle((f"{experiment} {title_mod} {unique_id}"))
     
     #Formatting of axes
-    ax[1].set_ylabel((f"Flux ({flux_units})"))
+    flux_label = make_math_label(f"Flux ({flux_units})")
+    ax[1].set_ylabel(flux_label)
     ax[2].set_xlabel("Date")
     
     #Apply tight layout and suppress warnings
@@ -961,33 +960,51 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     if flux_type == "differential": flux_units = cfg.flux_units_differential
 
     nbins = len(energy_bins)
+    nrow = 3 #3 plots per page
     for i in range(nbins):
         if not i%3:
             exp = experiment
             if experiment == 'user' and exp_name != '':
                 exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            ax_right = [0]*len(ax)
             iax = 0
 
         legend_label = tools.setup_energy_bin_label(energy_bins[i])
             
         #PLOT FLUXES
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
-        ax[iax].plot_date(dates,maskfluxes,'.-',label=legend_label,color='tab:blue')
+        if np.isnan(maskfluxes).all():
+            print(f"idsep_make_plots: All values in flux array for {legend_label} are nan. Skipping.")
+            iax += 1
+            continue
+        ax[iax].plot(dates,maskfluxes,'.-', markersize=3, label="Background Fluxes", color='tab:blue')
     
         #PLOT BACKGROUND
         if not disable_sigma:
-            ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='.', yerr=ave_sigma[i], label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
+            ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='.', yerr=ave_sigma[i], label=(f"Mean Background and Sigma"),zorder=100, color='tab:orange')
         if disable_sigma:
             ax[iax].errorbar(ave_dates, ave_fluxes[i],fmt='-',
-                label=(f"ave bg {legend_label}"),zorder=100, color='tab:orange')
+                label=(f"Mean Background"),zorder=100, color='tab:orange')
         
         #PLOT THRESHOLD = n*sigma (n in config file)
-        ax[iax].plot_date(threshold_dates,threshold[i],'-',label=(f"threshold {legend_label}"), zorder=200, color='tab:green')
+        ax[iax].plot(threshold_dates,threshold[i],'-',label=(f"Threshold"), zorder=200, color='tab:green')
 
-        ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+        if iax == 0:
+            ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
                       ncol=3, mode="expand", borderaxespad=0., fontsize=11,
-                      facecolor='lightgray', edgecolor='black')
+                      facecolor='whitesmoke', edgecolor='black')
+
+        #Put energy channel label on right y-axis
+        ax_right[iax] = ax[iax].twinx()
+        ax_right[iax].set_ylabel(f"{legend_label}\n ", rotation=270, labelpad=20)
+        ax_right[iax].set_yticks([])
+    
+        #Set clean y-axis ranges
+        ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes)))
+        ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes)))
+        ax[iax].set_ylim([ymin, ymax])
+
 
         if saveplot and (iax ==2 or i == nbins-1):
             fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
@@ -1017,23 +1034,35 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
     if flux_type == "differential": flux_units = cfg.flux_units_differential
 
     nbins = len(energy_bins)
+    nrow = 3 #3 plots per page
     for i in range(nbins):
-        if not i%3:
+        if not i%nrow:
             exp = experiment
             if experiment == 'user' and exp_name != '':
                 exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            ax_right = [0]*len(ax)
             iax = 0
 
         legend_label = tools.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
-        ax[iax].plot_date(dates,maskfluxes,'.-',label=legend_label)
+        if np.isnan(maskfluxes).all():
+            print(f"idsep_make_timeseries_plot: All values in flux array for {legend_label} are nan. Skipping.")
+            iax += 1
+            continue
+        ax[iax].plot(dates,maskfluxes,'.-', markersize=3, label=legend_label)
+
+        #Put energy channel label on right y-axis
+        ax_right[iax] = ax[iax].twinx()
+        ax_right[iax].set_ylabel(f"{legend_label}\n ", rotation=270, labelpad=20)
+        ax_right[iax].set_yticks([])
     
-        ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
-                      ncol=3, mode="expand", borderaxespad=0., fontsize=11,
-                      facecolor='lightgray', edgecolor='black')
-                      
+        #Set clean y-axis ranges
+        ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes)))
+        ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes)))
+        ax[iax].set_ylim([ymin, ymax])
+        
         if saveplot and (iax ==2 or i == nbins-1):
             fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
             if not showplot:
@@ -1063,25 +1092,47 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
     if flux_type == "differential": flux_units = cfg.flux_units_differential
 
     nbins = len(energy_bins)
+    nrow = 3
     for i in range(nbins):
         if not i%3:
             exp = experiment
             if experiment == 'user' and exp_name != '':
                 exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units)
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            ax_right = [0]*len(ax)
             iax = 0
 
         legend_label = tools.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
-        ax[iax].plot_date(dates,maskfluxes_bg,'.-',label=(f"Background {legend_label}"))
+        if np.isnan(maskfluxes_bg).all():
+            print(f"idsep_make_bg_sep_plot: All values in flux array for {legend_label} are nan. Skipping.")
+            iax += 1
+            continue
+        ax[iax].plot(dates,maskfluxes_bg,'.-', markersize=3, label=(f"Background"))
         maskfluxes_sep = np.ma.masked_less_equal(fluxes_sep[i], 0)
-        ax[iax].plot_date(dates,maskfluxes_sep,'.-',label=(f"SEP {legend_label}"), zorder=100)
+        ax[iax].plot(dates,maskfluxes_sep,'.-', markersize=3, label=(f"Enhanced"), zorder=100)
 
-        ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
+        if iax == 0:
+            ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
                       ncol=3, mode="expand", borderaxespad=0., fontsize=11,
-                      facecolor='lightgray', edgecolor='black')
-        
+                      facecolor='whitesmoke', edgecolor='black')
+
+
+#        ax[iax].legend(loc='upper left', fontsize=11)
+
+
+        #Put energy channel label on right y-axis
+        ax_right[iax] = ax[iax].twinx()
+        ax_right[iax].set_ylabel(f"{legend_label}\n ", rotation=270, labelpad=20)
+        ax_right[iax].set_yticks([])
+    
+        #Set clean y-axis ranges
+        ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes_bg)))
+        ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes_sep)))
+        ax[iax].set_ylim([ymin, ymax])
+
+
         if saveplot and (iax ==2 or i == nbins-1):
             fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
             if not showplot:
@@ -1091,89 +1142,3 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         
         #increment to next axis
         iax += 1
-    
-    
-
-
-
-
-#def idsep_make_diff_plot(unique_id, experiment, flux_type, exp_name, options, dates,\
-#            diff_fluxes, ave_sigma, energy_bins, doBGSub, showplot, saveplot,
-#            close_plot=False):
-#    #NEEDS TO BE CLEANED UP
-#    #Additions to titles and filenames according to user-selected options
-#    modifier = ''
-#    title_mod = ''
-#    if "uncorrected" in options:
-#        modifier = modifier + '_uncorrected'
-#        title_mod = title_mod + 'uncorrected '
-#    if doBGSub:
-#        modifier = modifier + '_bgsub'
-#        title_mod = title_mod + 'BG-subtracted '
-#    if "S14" in options:
-#        modifier = modifier + '_S14'
-#        title_mod = title_mod + 'S14 '
-#    if "Bruno2017" in options:
-#        modifier = modifier + '_Bruno2017'
-#        title_mod = title_mod + 'Bruno2017 '
-#
-#
-#    figname = experiment + '_' + flux_type + modifier \
-#            + '_' + 'Diff_' + unique_id
-#    if experiment == 'user' and exp_name != '':
-#        figname = exp_name + '_' + flux_type + modifier \
-#                + '_' + 'Diff_' + unique_id
-#    
-#    fig = plt.figure(figname,figsize=(12,8))
-#    plt.rcParams.update({'font.size': 16})
-#    ax = plt.subplot(111)
-#    nbins = len(energy_bins)
-#    ifig = 0
-#    for i in range(nbins):
-#        thresh = np.multiply(ave_sigma[i][1],nsigma)
-#        if i != 0 and not i%3:
-#            if saveplot:
-#                fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
-#            figname = figname + str(i)
-#            fig = plt.figure(figname,figsize=(12,8))
-#            ax = plt.subplot(111)
-#            ifig = 0
-#
-#        ax = plt.subplot(min(3,nbins), 1, ifig+1)
-#        ifig = ifig + 1
-#        legend_label = ""
-#        if energy_bins[i][1] != -1:
-#            legend_label = str(energy_bins[i][0]) + '-' \
-#                    + str(energy_bins[i][1]) + ' ' + cfg.energy_units
-#        else:
-#            legend_label = '>'+ str(energy_bins[i][0]) + ' ' + cfg.energy_units
-#
-#        ax.plot_date(dates,diff_fluxes[i],'.',label="diff " + legend_label)
-#        ax.plot_date(dates,thresh,'-',label="threshold " + legend_label, zorder=100)
-#        
-#        flux_units = ''
-#        if flux_type == "integral": flux_units = cfg.flux_units_integral
-#        if flux_type == "differential": flux_units = cfg.flux_units_differential
-#        
-#        if i==0:
-#            plt.title(experiment + ' '+ title_mod + ' ' + unique_id\
-#                    + "\nDiff = Flux - Mean BG")
-#            if experiment == 'user' and exp_name != '':
-#                plt.title(exp_name + ' '+ title_mod + ' ' + unique_id\
-#                    + "\nDiff = Flux - Mean BG")
-#        plt.xlabel('Date')
-#        #plt.ylabel('Flux [' + flux_units + ']')
-#        plt.ylabel(r'Flux (MeV$^{-1}$ cm$^{-2}$ s$^{-1}$ sr$^{-1}$)')
-#        fig.autofmt_xdate(rotation=45)
-#        chartBox = ax.get_position()
-##        ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-##                         chartBox.height])
-##        ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05),fontsize=11)
-# 
-# 
-#        if saveplot and i == nbins-1:
-#            fig.savefig(cfg.plotpath + '/idsep/' +figname + '.png')
-#            if not showplot:
-#                plt.close(fig)
-#            if close_plot:
-#                plt.close(fig)

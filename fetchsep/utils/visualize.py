@@ -109,7 +109,7 @@ def read_ccmc_time_series(filename):
     return dates, fluxes
 
 
-def choose_flux_units(flux_type):
+def choose_flux_units_exp(flux_type):
     flux_units = ''
     if flux_type == 'integral':
         flux_units = cfg.flux_units_integral
@@ -118,6 +118,14 @@ def choose_flux_units(flux_type):
         
     return flux_units
 
+
+def choose_flux_units_bin(energy_bin):
+    if energy_bin[1] == -1:
+        flux_units = cfg.flux_units_integral
+    else:
+        flux_units = cfg.flux_units_differential
+        
+    return flux_units
 
 
 def setup_labels(experiment='', flux_type='', options='',
@@ -132,9 +140,9 @@ def setup_labels(experiment='', flux_type='', options='',
 
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP)
 
-    flux_units = choose_flux_units(flux_type)
+    flux_units = choose_flux_units_exp(flux_type)
 
-    ylabel = f"Flux [${flux_units}$]"
+    ylabel = f"Flux [{flux_units}]"
     ylabel = plt_tools.make_math_label(ylabel)
 
     return title_mod, ylabel
@@ -182,8 +190,6 @@ def plot_fluxes_all_bins(filename, experiment='', flux_type='',
         flux_type=flux_type, options=options, bgsub=bgsub,
         spacecraft=spacecraft)
 
-    flux_units = choose_flux_units(flux_type)
-
     plot_title = f"All Energy Bins\n {experiment} {title_mod} {flux_type}"
 
     fig = plt.figure(figsize=(13.5,8))
@@ -203,12 +209,29 @@ def plot_fluxes_all_bins(filename, experiment='', flux_type='',
     plt.grid(True, which="both")
     
 
+# Define the callback function for button press events
+def onclick(event):
+    if event.button == 1: # Left mouse button
+        print(f"Clicked at x={event.xdata}, y={event.ydata:.2f}")
+#        # Optionally, you can add a marker at the clicked point
+#        ax.plot(event.xdata, event.ydata, 'rx') # Red 'x' marker
+#        fig.canvas.draw_idle() # Redraw the canvas to show the new marker
+
+def onpick(event):
+    thisline = event.artist
+    xdata = thisline.get_xdata()
+    ydata = thisline.get_ydata()
+    ind = event.ind
+    points = tuple(zip(xdata[ind], ydata[ind]))
+    print(f"Selected point: {xdata[ind][0].strftime('%Y-%m-%d %H:%M:%S')} {ydata[ind][0]}")
+
+
 
 def plot_event_definition(filename, experiment='', flux_type='', options='',
     bgsub=None, spacecraft='', energy_bin=[], threshold=np.nan,
     sep_start_time=pd.NaT, sep_end_time=pd.NaT,
     max_flux=np.nan, max_time=pd.NaT,
-    onset_peak=np.nan, onset_time=pd.NaT, ylog = True):
+    onset_peak=np.nan, onset_time=pd.NaT, ylog = True, pick_point=False):
     """ Plot any threshold crossings, start and end times, max flux, 
         and onset peak, if available.
     
@@ -225,17 +248,18 @@ def plot_event_definition(filename, experiment='', flux_type='', options='',
         flux_type=flux_type, options=options, bgsub=bgsub,
         spacecraft=spacecraft)
 
-    flux_units = choose_flux_units(flux_type)
+    flux_units = choose_flux_units_bin(energy_bin)
+    flux_units = plt_tools.make_math_label(flux_units)
 
     bin_label = tools.setup_energy_bin_label(energy_bin)
     plot_title = f"SEP Event Definition {bin_label}, {threshold} {flux_units}\n {experiment} {title_mod} {flux_type}"
-
+    
     fig = plt.figure(figsize=(13.5,8))
     ax = plt.subplot(111)
     
     fluxes = np.array(fluxes)
     maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
-    plt.plot(dates, maskfluxes, label=bin_label, marker='.')
+    plt.plot(dates, maskfluxes, label=bin_label, marker='.', picker=True, pickradius=5)
     
     if not pd.isnull(threshold):
         ax.axhline(threshold,color='red',linestyle=':', label="Threshold")
@@ -251,11 +275,15 @@ def plot_event_definition(filename, experiment='', flux_type='', options='',
         ax.plot_date(max_time,max_flux,'ro',mfc='none', label="Max Flux")
 
     plt.xlabel("Date")
-    plt.ylabel(ylabel)
+    plt.ylabel(f"Flux [{flux_units}]")
     plt.title(plot_title)
     if ylog: plt.yscale("log")
     plt.legend(loc="upper right")
     plt.grid(True, which="both")
+
+    # Connect the callback function to the 'pick_event'
+    if pick_point:
+        cid = fig.canvas.mpl_connect('pick_event', onpick)
 
 
 def cast_time_columns(df):
@@ -271,7 +299,7 @@ def cast_time_columns(df):
 def sep_column_label(flux_type, energy_bin, threshold):
     """ Create the column names used in the SEP lists """
 
-    threshold_units = choose_flux_units(flux_type)
+    threshold_units = choose_flux_units_bin(energy_bin)
     energy_units = cfg.energy_units
     
     if energy_bin[1] == -1:
@@ -309,22 +337,19 @@ def extract_sep_info(df, index, sep_cols):
         definition. e.g. all cols with >10.0 MeV 10 pfu in label
     
     """
-    flux_type = df['Flux Type'].values[index]
-    flux_units = choose_flux_units(flux_type)
-
     col = find_column(sep_cols, 'SEP Start Time')
     sep_start_time = df[col].values[index]
 
     col = find_column(sep_cols, 'SEP End Time')
     sep_end_time = df[col].values[index]
 
-    col = find_column(sep_cols, f"Onset Peak ({flux_units})")
+    col = find_column(sep_cols, f"Onset Peak (")
     onset_peak = df[col].values[index]
 
     col = find_column(sep_cols, f"Onset Peak Time")
     onset_time = df[col].values[index]
 
-    col = find_column(sep_cols, f"Max Flux ({flux_units})")
+    col = find_column(sep_cols, f"Max Flux (")
     max_flux = df[col].values[index]
 
     col = find_column(sep_cols, f"Max Flux Time")
@@ -361,7 +386,8 @@ def derive_path(sep_list, time_series_filename):
 
 
 
-def plot_list(sep_list, energy_bin, threshold):
+def plot_list(sep_list, energy_bin, threshold, pick_point=False,
+    start_date=None, end_date=None, ylog=True):
     """ SEP event list or non-event list produced after batch running
         opsep. e.g. CLEAR Benchmark dataset or single experiment lists:
         GOES_integral_PRIMARY.1986-02-03.2025-09-10_sep_events.csv
@@ -375,6 +401,11 @@ def plot_list(sep_list, energy_bin, threshold):
             :sep_list: full path name to SEP or non-event list
             :energy_bin: (list) [10,-1]
             :threshold: (float) 10
+            :pick_point: (bool) set to True to be able to select a 
+                point in the event definition plot and print the
+                x, y coordinates of the selected point
+            :start_date: (datetime) start plotting at this date
+            :end_date: (datetime) stop plotting after this date
             
         OUTPUTS:
         
@@ -399,9 +430,19 @@ def plot_list(sep_list, energy_bin, threshold):
         if pd.isnull(options): options = ''
         options = options.strip().split(';')
         bgsub = row['Background Subtraction']
+        period_start_time = row['Time Period Start']
+        period_end_time = row['Time Period End']
+
+        if start_date != None:
+            if period_start_time < start_date:
+                continue
+        
+        if end_date != None:
+            if period_start_time > end_date:
+                continue
 
         sep_label = sep_column_label(flux_type, energy_bin, threshold)
-        print(f"Plotting SEP information for {sep_label}")
+        print(f"Plotting SEP information for {sep_label} for {period_start_time} to {period_end_time}")
         #Pull all relevant SEP columns
         sep_cols = [col for col in cols if sep_label in col]
         if len(sep_cols) == 0: continue
@@ -416,11 +457,14 @@ def plot_list(sep_list, energy_bin, threshold):
 
         sep_start_time, sep_end_time, onset_peak, onset_time, max_flux, max_time = extract_sep_info(df, index, sep_cols)
 
+        if pd.isnull(sep_start_time): continue #No SEP
+        
         plot_event_definition(event_def_filename, experiment=experiment, flux_type=flux_type, options=options,
             bgsub=bgsub, energy_bin=energy_bin, threshold=threshold,
             sep_start_time=sep_start_time, sep_end_time=sep_end_time,
             max_flux=max_flux, max_time=max_time,
-            onset_peak=onset_peak, onset_time=onset_time)
+            onset_peak=onset_peak, onset_time=onset_time,
+            pick_point=pick_point, ylog=ylog)
 
 
         #Plot all fluxes in the timeframe
