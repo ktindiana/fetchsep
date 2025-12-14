@@ -18,13 +18,13 @@
 1988-07-24 13:35:00,1988-08-04 23:40:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-08-04 23:40:00,1988-08-23 10:45:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-08-23 10:45:00,1988-09-02 07:50:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
-1988-09-02 07:50:00,1988-09-08 20:10:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
+1988-09-02 07:50:00,1988-09-08 20:10:00,GOES-07,integral,IDSEPEnhancement;TwoPeaks,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-09-08 20:10:00,1988-09-13 20:15:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-09-13 20:15:00,1988-09-19 00:20:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-09-19 00:20:00,1988-09-27 04:45:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-09-27 04:45:00,1988-09-30 15:50:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-09-30 15:50:00,1988-10-03 04:50:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
-1988-10-03 04:50:00,1988-10-07 20:05:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
+1988-10-03 04:50:00,1988-10-07 20:05:00,GOES-07,integral,IDSEPEnhancement;TwoPeaks,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-10-07 20:05:00,1988-10-11 05:25:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-10-11 05:25:00,1988-10-13 16:50:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons
 1988-10-13 16:50:00,1988-10-17 04:25:00,GOES-07,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-07_integral/csv,earth,protons

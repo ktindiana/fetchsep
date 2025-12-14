@@ -637,12 +637,12 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
     df_sigmas.insert(0,'dates',ave_dates)
 
     #Write fluxes to file for testing and use
-    write_df(df_means,'background_mean_fluxes_ndays_optimized',
-            add_path=add_path)
-    write_df(df_sigmas,'background_sigma_ndays_optimized',
-            add_path=add_path)
-    write_df(df_thresholds,'background_threshold_ndays_optimized',
-            add_path=add_path)
+#    write_df(df_means,'background_mean_fluxes_ndays_optimized',
+#            add_path=add_path)
+#    write_df(df_sigmas,'background_sigma_ndays_optimized',
+#            add_path=add_path)
+#    write_df(df_thresholds,'background_threshold_ndays_optimized',
+#            add_path=add_path)
 
     return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
 
@@ -828,7 +828,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
         df_thresholds = pd.concat([df_thresholds,df_thresh],ignore_index=True)
         
         if current_dates:
-            df_s1 = pd.DataFrame(sstats1)
+            df_s1 = pd.DataFrame([sstats1])
             df_s1.insert(0,'dates',current_dates[0])
             df_stats1 = pd.concat([df_stats1,df_s1],ignore_index=True)
 
@@ -840,14 +840,15 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
 
     #Write fluxes to file for testing and use
     appx = '_it'+str(iteration)
-    if is_final: appx = '_FINAL'
-    write_df(df_means,'background_mean_fluxes_optimized'+appx,
-            add_path=add_path)
-    write_df(df_sigmas,'background_sigma_optimized'+appx,
-            add_path=add_path)
-    write_df(df_thresholds,'background_threshold_optimized'+appx,
-            add_path=add_path)
-    write_df(df_stats1,'kurtosis'+appx, add_path=add_path)
+    if is_final:
+        appx = '_FINAL'
+        write_df(df_means,'background_mean_fluxes_optimized'+appx,
+                add_path=add_path)
+        write_df(df_sigmas,'background_sigma_optimized'+appx,
+                add_path=add_path)
+        write_df(df_thresholds,'background_threshold_optimized'+appx,
+                add_path=add_path)
+        write_df(df_stats1,'kurtosis'+appx, add_path=add_path)
 
     return mean_background, ave_sigma, threshold
 

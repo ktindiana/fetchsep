@@ -14,6 +14,7 @@ from lmfit import minimize, Parameters
 import datetime
 import math
 import pickle
+import matplotlib.pyplot as plt
 
 #########################################################
 ################# General-use Classes ###################
@@ -1009,6 +1010,7 @@ class Analyze:
             #datetime column and flux column for this event definition
 
         self.isgood = self.check_event_definition(data)
+        self.quality_flags = ''
 
  
     def check_event_definition(self, data):
@@ -1036,11 +1038,11 @@ class Analyze:
                 sys.exit("You are requesting to identify enhancement "
                     "above background, but background and SEP separation "
                     "has not been performed. Choose to do background subtraction "
-                    "--OPSEPSubtractBG, variable=doBGSubOPSEP or --IDSEPSubtractBG, "
-                    "variable=doBGSubIDSEP) "
+                    "--OPSEPSubtractBG, variable: doBGSubOPSEP or --IDSEPSubtractBG, "
+                    "variable: doBGSubIDSEP) "
                     "or set flags to identify enhancements above background "
-                    "(--OPSEPEnhancement, variable=OPSEPEnhancement or "
-                    "--IDSEPEnhancement, variable=IDSEPEnhancement)")
+                    "(--OPSEPEnhancement, variable: OPSEPEnhancement or "
+                    "--IDSEPEnhancement, variable: IDSEPEnhancement)")
                     
             print("-1 threshold indicates you have selected to identify "
                 "enhancement above background. Setting threshold to "
@@ -1231,7 +1233,7 @@ class Analyze:
 
 
 
-    def calculate_threshold_crossing(self, data, event_definition):
+    def calculate_threshold_crossing(self, data, event_definition, check_quality=False):
         """ Calculate the threshold crossing times for a given energy bin
             and flux threshold. 
 
@@ -1261,6 +1263,8 @@ class Analyze:
             
                 :data: (Data object) contains flux information
                 :event_definition: (dict) dict of EnergyBin and Threshold objects
+                :check_quality: (bool) set to True to determine if time period ends
+                    before event crosses below threshold or returns to background
                 
             OUTPUT:
             
@@ -1302,6 +1306,8 @@ class Analyze:
                 "Using the last time in the date range as the event end time. "
                 "Extend your date range to get an improved estimate of the event "
                 "end time and duration.")
+            if check_quality and 'I' not in self.quality_flags:
+                self.quality_flags += 'I'
 
         print(f"For {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
 
@@ -1804,6 +1810,155 @@ class Analyze:
         return fluence_spectrum
 
 
+    def check_for_data_gaps(self, time_resolution):
+        """ Check if an extended data gap occurs during SEP event.
+            Set quality flag with G if significant gap occurs.
+            
+            Gap indicated if no data for 30 minutes or 4% of event 
+            duration, whichever is more.
+            
+            :timer_resolution: (float) time resolution in seconds
+            
+        """
+        if pd.isnull(self.sep_start_time): return
+        time_resolution = datetime.timedelta(seconds=time_resolution)
+        
+        #Gap duration exceeds 30 minutes or 4% of SEP event duration
+        ref_duration = max(0.5, 0.04*self.duration)
+        
+        gap_start = pd.NaT
+        gap_end = pd.NaT
+        ref_flx = self.flux[0]
+        if pd.isnull(self.flux[0]): gap_start = self.dates[0]
+        
+        for i, flx in enumerate(self.flux):
+            #Encounter the start of a gap
+            if not pd.isnull(ref_flx) and pd.isnull(flx):
+                gap_start = self.dates[i]
+                ref_flx = flx
+                #If SEP event end time is the same as gap start time, then
+                #gap likely ended the event early
+                if gap_start == self.sep_end_time:
+                    if 'T' not in self.quality_flags:
+                        self.quality_flags += 'T'
+                        
+            #Encounter end of gap and check if long enough
+            elif not pd.isnull(flx) and pd.isnull(ref_flx):
+                gap_end = self.dates[i]
+                #If SEP event start time is right after gap end time, then
+                #gap likely obscured the start of the event
+                if abs(self.sep_start_time - gap_end) <= 3*time_resolution:
+                    if 'T' not in self.quality_flags:
+                        self.quality_flags += 'T'
+                
+                #If the gap is long, it may affect the quality of the event characteristics
+                #if the gap occurs within the sep start and end time
+                if gap_start > self.sep_start_time and gap_start < self.sep_end_time:
+                    check_duration = (gap_end - gap_start).total_seconds()/(60.*60.) #hours
+                    if check_duration >= ref_duration:
+                        if 'G' not in self.quality_flags:
+                            self.quality_flags += 'G'
+
+                #Reset and look for next gap
+                gap_start = pd.NaT
+                gap_end = pd.NaT
+                ref_flx = flx
+
+        return
+
+
+    def check_already_enhanced(self):
+        """ Check if the particles are already enhanced at the start of the
+            SEP event. If the SEP event starts on the very first date, 
+            then the fluxes were already enhanced at the start of the 
+            analyzed period.
+    
+            This could mean that there was a previous SEP event at the time
+            of the start of this one. Or it could mean that the user chose 
+            a time period within an ongoing SEP event. 
+        
+        """
+        if pd.isnull(self.sep_start_time): return
+        
+        if self.sep_start_time == self.dates[0]:
+            self.quality_flags += 'E'
+            
+        return
+
+
+    def check_spike(self):
+        """ Check if max value is the result of a data spike. 
+            Reported for both SEP events and non-event periods.
+        
+        """
+
+        spike = 10 #over factor of 10 compared to neighboring points
+
+        if not pd.isnull(self.sep_start_time):
+            flux = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, self.dates, self.flux)
+            dates = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, self.dates, self.dates)
+        else:
+            flux = self.flux
+            dates = self.dates
+
+        ratio = []
+        index = []
+        for i in range(1,len(flux)-1):
+            if pd.isnull(flux[i]) or pd.isnull(flux[i-1]) or pd.isnull(flux[i+1]):
+                continue
+            if flux[i] == 0: continue
+            
+            prev_flx = flux[i-1]
+            if prev_flx == 0:
+                if pd.isnull(self.bgmean): continue
+                prev_flx = self.bgmean
+ 
+            post_flx = flux[i+1]
+            if post_flx == 0:
+                if pd.isnull(self.bgmean): continue
+                post_flx = self.bgmean
+ 
+            rat = (flux[i]/prev_flx + flux[i]/post_flx)/2
+            ratio.append(rat)
+            index.append(i)
+
+        mean_ratio = np.mean(ratio)
+        sigma = np.std(ratio)
+
+        for i, rat in enumerate(ratio):
+            if rat > mean_ratio + 5.*sigma:
+                if flux[index[i]] == self.max_flux:
+                    print(f"Spike {dates[index[i]]} {flux[index[i]]} {self.flux_units} ")
+                    if 'S' not in self.quality_flags:
+                        self.quality_flags += 'S'
+
+        return
+
+
+#    def check_cyclic_data(self, data):
+#        """ Sometimes GOES data has very strange cyclic behavior. Try to 
+#            identify when this is happening and flag the data for potentially 
+#            poor quality.
+#        
+#        """
+#        for i in range(len(data.original_fluxes)):
+#            signal = data.original_fluxes[i]
+#            yf = np.fft.rfft(signal)
+#            print(f"FFT: {yf[0]}, {yf[-1]} {np.max(yf)}")
+#            T= 300 #seconds
+#            N = len(signal)
+#            xf = np.fft.rfftfreq(N, d=T)
+#            plt.figure(figsize=(8, 6))
+#            plt.plot(xf, 2.0/N * np.abs(yf))
+#
+#            plt.xlabel('Frequency (Hz)')
+#            plt.ylabel('Amplitude')
+#            plt.title('Frequency Spectrum (rfft)')
+#            plt.grid()
+#            plt.show()
+#            
+#        return
+    
 
     def calculate_event_info(self, data):
         """ Calculate SEP event characteristics for a single event
@@ -1823,7 +1978,7 @@ class Analyze:
         #calculate event values and fill in a dictionary that will
         #save info needed for Observation or Forecast objects
         self.select_fluxes(data, self.event_definition) #Load fluxes to obj
-        sep_start_time, sep_end_time = self.calculate_threshold_crossing(data, self.event_definition)
+        sep_start_time, sep_end_time = self.calculate_threshold_crossing(data, self.event_definition, check_quality=True)
         self.sep_start_time = sep_start_time
         self.sep_end_time = sep_end_time
         self.calculate_max_flux(data)
@@ -1846,6 +2001,18 @@ class Analyze:
 
         self.derived_timing_values()
 
+        #Check for data gaps
+        self.check_for_data_gaps(data.time_resolution)
+        
+        #Check if fluxes already enhanced at time of SEP start
+        self.check_already_enhanced()
+        
+        #Check if max value due to a spike
+        self.check_spike()
+        
+        #Check for cyclic behavior that could indicate bad data
+        #self.check_cyclic_data(data)
+        
         #Fluence
         self.calculate_channel_fluence(data)
         self.calculate_fluence_spectrum(data)
@@ -1872,6 +2039,7 @@ class Analyze:
         print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_spectrum_units}")
         print(f"Fluence Energy Bins: {data.energy_bins}")
         print(f"Fluence Energy Bin Centers: {data.energy_bin_centers}")
+        print(f"Data Quality Flags: {self.quality_flags}")
         print()
         
         return
@@ -2071,7 +2239,8 @@ class Output:
                 'fluence_spectrum_units': analyze.fluence_spectrum_units, #str
                 'rise_time_units': analyze.rise_time_units, #str
                 'duration_units': analyze.duration_units, #str
-                'sep_profile': analyze.sep_profile #str
+                'sep_profile': analyze.sep_profile, #str
+                'quality_flags': analyze.quality_flags #str
             
         }
 
@@ -2142,7 +2311,8 @@ class Output:
                 f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
                 f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": fluence_spectrum_str,
                 f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins,
-                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": fluence_spectrum_energy_bin_centers
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": fluence_spectrum_energy_bin_centers,
+                f"{channel_label} {threshold_label} Quality Flags": analyze.quality_flags
             }
 
         return dict
@@ -2194,7 +2364,8 @@ class Output:
                 f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
                 f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": analyze.fluence_spectrum,
                 f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": self.data.energy_bins,
-                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": self.data.energy_bin_centers
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": self.data.energy_bin_centers,
+                f"{channel_label} {threshold_label} Quality Flags": analyze.quality_flags
             }
 
         return dict
@@ -2240,7 +2411,8 @@ class Output:
                             analyze.fluence_spectrum_units,
                             analyze.rise_time_units,
                             analyze.duration_units,
-                            analyze.sep_profile
+                            analyze.sep_profile,
+                            analyze.quality_flags
                             ]
  
         return event_info_list
