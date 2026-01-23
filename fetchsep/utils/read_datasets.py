@@ -1,5 +1,6 @@
 from . import config as cfg
 from . import tools
+from . import experiments as expts
 import pandas as pd
 import re
 import calendar
@@ -88,12 +89,13 @@ __email__ = "kathryn.whitman@nasa.gov"
 ssl._create_default_https_context = ssl._create_unverified_context
 
 #Spacecraft in the GOES-R+ series
-goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
+goes_R = expts.goes_R()
 #Spacecraft prior to GOES-R
-goes_sc = ["GOES-08", "GOES-09","GOES-10","GOES-11",
-            "GOES-12","GOES-13","GOES-14","GOES-15"]
+goes_sc = expts.goes_sc()
 #Spacecraft prior to GOES-08
-old_goes_sc = ["GOES-05", "GOES-06", "GOES-07"]
+old_goes_sc = expts.old_goes_sc()
+#Neutron monitors
+valid_nm = expts.valid_neutron_monitors()
 
 def about_read_datasets():
     """ About read_datasets.py
@@ -128,80 +130,81 @@ def about_read_datasets():
         
     """
 
-def check_paths():
+def check_paths(experiment):
     """Check that the paths that hold the data and output exist. If not, create.
     """
-    
+    #General paths
+    if not os.path.isdir(cfg.outpath):
+        print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
+        os.mkdir(cfg.outpath)
+
+    if not os.path.isdir(cfg.plotpath):
+        print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
+        os.mkdir(cfg.plotpath)
+        
     print('Checking that paths exist: ' + cfg.datapath + ' and ' + cfg.outpath)
     if not os.path.isdir(cfg.datapath):
         print('check_paths: Directory containing fluxes, ' + cfg.datapath +
         ', does not exist. Creating.')
-        os.mkdir(cfg.datapath);
+        os.mkdir(cfg.datapath)
 
-    if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
-        print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + cfg.datapath + '/GOES')
-        os.mkdir(os.path.join(cfg.datapath, 'GOES'));
+    #Paths to store data for each experiment
+    if experiment == 'GOES_RT':
+        if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
+            print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES_RT')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+            
+    elif 'GOES' in experiment:
+        if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
+            print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + cfg.datapath + '/GOES')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
-        print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES_RT')
-        os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+    elif experiment in valid_nm:
+        if not os.path.isdir(os.path.join(cfg.datapath,'NeutronMonitor')):
+            print('check_paths: Directory containing Neutron Monitor measurements does not exist. Creating ' + cfg.datapath + '/NeutronMonitor')
+            os.mkdir(os.path.join(cfg.datapath,'NeutronMonitor'))
+        if not os.path.isdir(os.path.join(cfg.datapath,'NeutronMonitor',experiment)):
+            os.mkdir(os.path.join(cfg.datapath,'NeutronMonitor',experiment))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'SEPEM')):
-        print('check_paths: Directory containing SEPEM fluxes does not exist. Creating ' + cfg.datapath + '/SEPEM')
-        os.mkdir(os.path.join(cfg.datapath,'SEPEM'));
+    elif 'STEREO' in experiment:
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment)):
+            print(f"check_paths: Directory containing {experiment} fluxes does not exist. Creating {cfg.datapath}/{experiment}")
+            os.mkdir(os.path.join(cfg.datapath,experiment))
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment,'LET')):
+            os.mkdir(os.path.join(cfg.datapath,experiment,'LET'))
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment,'HET')):
+            os.mkdir(os.path.join(cfg.datapath,experiment,'HET'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'SEPEMv3')):
-        print('check_paths: Directory containing SEPEMv3 fluxes does not exist. Creating ' + cfg.datapath + '/SEPEMv3')
-        os.mkdir(os.path.join(cfg.datapath,'SEPEMv3'));
+    elif experiment == 'ACE_SIS':
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
+            print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
+            '/ACE')
+            os.mkdir(os.path.join(cfg.datapath,'ACE'))
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','SIS')):
+            os.mkdir(os.path.join(cfg.datapath,'ACE','SIS'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath, 'EPHIN')):
-        print('check_paths: Directory containing EPHIN fluxes does not exist. Creating ' + cfg.datapath + '/EPHIN')
-        os.mkdir(os.path.join(cfg.datapath, 'EPHIN'));
+    elif experiment == 'ACE_EPAM_electrons':
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
+            print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
+            '/ACE')
+            os.mkdir(os.path.join(cfg.datapath,'ACE'))
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','EPAM')):
+            os.mkdir(os.path.join(cfg.datapath,'ACE','EPAM'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
-        print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + cfg.datapath + '/ERNE')
-        os.mkdir(os.path.join(cfg.datapath,'ERNE'));
-    if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
-        print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + cfg.datapath + '/ERNE/export.srl.utu.fi')
-        os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'));
+    elif experiment == 'ERNE':
+        if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
+            print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + cfg.datapath + '/ERNE')
+            os.mkdir(os.path.join(cfg.datapath,'ERNE'))
+        if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
+            print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + cfg.datapath + '/ERNE/export.srl.utu.fi')
+            os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'CalGOES')):
-        print('check_paths: Directory containing CalGOES fluxes does not exist. Creating ' + cfg.datapath + '/CalGOES')
-        os.mkdir(os.path.join(cfg.datapath,'CalGOES'));
+    else:
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment)):
+            print(f"check_paths: Directory containing {experiment} fluxes does not exist. Creating {cfg.datapath}/{experiment}")
+            os.mkdir(os.path.join(cfg.datapath,experiment))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A')):
-        print('check_paths: Directory containing STEREO-A fluxes does not exist. Creating ' + cfg.datapath +
-        '/STEREO-A')
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-A'));
-    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A','LET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-A','LET'));
-    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A','HET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-A','HET'));
 
-    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B')):
-        print('check_paths: Directory containing STEREO-B fluxes does not exist. Creating ' + cfg.datapath +
-        '/STEREO-B')
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-B'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B','LET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-B','LET'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B','HET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-B','HET'));
-        
-    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
-        print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
-        '/ACE')
-        os.mkdir(os.path.join(cfg.datapath,'ACE'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','SIS')):
-        os.mkdir(os.path.join(cfg.datapath,'ACE','SIS'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','EPAM')):
-        os.mkdir(os.path.join(cfg.datapath,'ACE','EPAM'));
-        
-    if not os.path.isdir(cfg.outpath):
-        print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
-        os.mkdir(cfg.outpath);
-    if not os.path.isdir(cfg.plotpath):
-        print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
-        os.mkdir(cfg.plotpath);
 
 
 def read_data_manager():
@@ -2427,7 +2430,83 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
     return filenames1
 
 
+def check_neutron_monitor_data(startdate, enddate, experiment):
+    """ Check if neutron monitor data is present in the data directory. 
+        Download if needed.
+        
+        The data are queried from https://www.nmdb.eu/nest/ via API.
+        
+        Neutron monitor data are requested to be corrected for efficiency
+        (and hopefully this includes pressure). 
+        Units are in Counts/s.
+        
+        Data begins in 1956 for some NM. Only currently active NM are included.
+        
+        INPUTS:
+            
+            :startdate: (datetime) start of time period specified by user
+            :enddate: (datetime) end of time period entered by user
+            :experiment: (string) name of neutron monitor as used by NEST   
+                 
+    """
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
 
+    startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
+    enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
+    Ndays = int((enddt - startdt)/datetime.timedelta(hours=24)) + 1
+
+    df = read_data_manager() #file completeness record
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []
+
+    for i in range(Ndays):
+        getday = startdt + i*datetime.timedelta(hours=24)
+        #20010807_OULU.txt
+        fname = f"{getday.strftime('%Y%m%d')}_{experiment}.txt"
+        
+        svfile = os.path.join(cfg.datapath,'NeutronMonitor',experiment,fname)
+        exists = os.path.isfile(svfile)
+        
+        complete = False
+        if exists:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, svfile, df=df)
+        
+        if not exists or not complete: #download file if not found on your computer
+            url = ('https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/%s'
+                    % (fname))
+            print('Downloading ACE/EPAM data: ' + url)
+            try:
+                urllib.request.urlopen(url, timeout=5)
+                
+                if os.path.exists(svfile):
+                    os.remove(svfile) # if exist, remove it directly
+  
+                wget.download(url, svfile)
+
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname = None
+            except socket.timeout as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname = None
+            except Exception as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname = None
+
+        if fname != None:
+            filenames1.append(os.path.join('ACE', 'EPAM', fname))
+        
+    return filenames1
+    
+    
+#https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]=KERG&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year=2009&start_month=09&start_day=01&start_hour=00&start_min=00&end_year=2009&end_month=09&end_day=01&end_hour=23&end_min=59&yunits=0
 
 def check_data(startdate, enddate, experiment, flux_type, user_file,
     spacecraft="primary"):

@@ -962,7 +962,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
     cfg.configure_for(experiment)
     cfg.print_configured_values()
 
-    datasets.check_paths()
+    datasets.check_paths(experiment)
 
 
     #Check for empty dates

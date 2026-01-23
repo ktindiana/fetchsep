@@ -548,7 +548,7 @@ def run_all(str_startdate, str_enddate, experiment,
     error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
         subroutine='idsep')
-    datasets.check_paths()
+    datasets.check_paths(experiment)
 
     idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
