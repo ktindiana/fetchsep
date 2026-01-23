@@ -1076,6 +1076,9 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         prefix = 'sci_sgps-l2-avg5m_g18_'
         satellite = 'goes18'
 
+    if experiment == "GOES-19": #2022-09-13 forward
+        prefix = 'sci_sgps-l2-avg5m_g19_'
+        satellite = 'goes19'
 
     #for every day that data is required, check if file is present or
     #needs to be downloaded.
@@ -1092,7 +1095,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                     f"Last available date for GOES-16 is {g16_last_date}. Continuing.")
  
         #GOES-R differential data has three possible version numbers
-        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc']
+        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc', '_v3-0-3.nc']
         
         foundfile = None
         for ext in file_ext:
@@ -1967,7 +1970,7 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
 
                 dfiles = os.listdir(os.path.join(unzipdir,'export.src'))
                 dfiles = [os.path.join(unzipdir,'export.src',x) for x in dfiles if (('HED' in x or 'LED' in x) and ('SL2' in x))]
-                #HED, LET files
+                #HED, LED files
                 filenames1.extend(dfiles) #save filenames
 
     return filenames1
@@ -3968,6 +3971,9 @@ def read_in_erne(experiment, flux_type, filenames1):
     fluxcols.extend(fluxcols) #2x for LED and HED
     ncol= len(fluxcols) #HED and LED each has 10 channels
 
+    all_dates = []
+    all_fluxes = []
+
     for i in range(NFILES):
         print('Reading in file ' + LEDfiles[i])
         with open(LEDfiles[i], 'r') as ledfile, open(HEDfiles[i], 'r') as hedfile:
@@ -4793,35 +4799,49 @@ def read_in_user_files(filenames1, is_unixtime=False):
             for k in range(nhead):
                 csvfile.readline()  # Skip header rows.
 
-            user_col_mod = []
-            for j in range(len(cfg.user_col)):
-                if (cfg.user_delim == " " or cfg.user_delim == "") and not is_unixtime:
-                    #date takes two columns if separated by whitespace
-                    #adjust the user input columns to account for this
-                    user_col_mod.append(cfg.user_col[j] + 1)
-                else:
-                    user_col_mod.append(cfg.user_col[j])
+            user_col_mod = cfg.user_col #Flux columns in user file
 
             count = 0
             for line in csvfile:
                 if line == " " or line == "":
                     continue
-                if not is_unixtime:
-                    if cfg.user_delim == " " or cfg.user_delim == "":
-                        row = line.split()
-                        str_date = row[0][0:10] + ' ' + row[1][0:8]
-                    if cfg.user_delim != " " and cfg.user_delim != "":
-                        row = line.split(cfg.user_delim)
-                        str_date = row[0][0:19]
-                    date = datetime.datetime.strptime(str_date,
-                                "%Y-%m-%d %H:%M:%S")
-                
+
+                #Date specified in unixtime
                 if is_unixtime:
                     if cfg.user_delim == " " or cfg.user_delim == "":
                         row = line.split()
                     else: row = line.split(cfg.user_delim)
                     utime = int(row[0])
                     date = datetime.datetime.utcfromtimestamp(utime)
+
+                #Dates specified in:
+                #YYYY-MM-DD HH:MM:SS, YYYY-MM-DDTHH:MM:SS, YYYY-MM-DDTHH:MM:SSZ
+                else:
+                    #A delimeter other than whitespace
+                    if cfg.user_delim != " " and cfg.user_delim != "":
+                        row = line.split(cfg.user_delim)
+                        str_date = row[0][0:19]
+                        #Allow possibility that date is in zulu or similar time
+                        if 'T' in str_date:
+                            str_date = str_date.replace('T', ' ')
+ 
+                    #White space as a delimeter
+                    if cfg.user_delim == " " or cfg.user_delim == "":
+                        row = line.split()
+                        if 'T' in row[0]:
+                            str_date = row[0].replace('T', ' ')
+                            if 'Z' in str_date:
+                                str_date = str_date.replace('Z','')
+ 
+                        else:
+                            str_date = row[0][0:10] + ' ' + row[1][0:8]
+                            #Shift flux columns in user file by 1 b/c date in first two cols
+                            #and user was told to consider the date as a single column
+                            user_col_mod = [ix+1 for ix in cfg.user_col]
+
+
+                    date = datetime.datetime.strptime(str_date, "%Y-%m-%d %H:%M:%S")
+                
                     
                 #apply a time shift to user data with the variable
                 #set in config.py
@@ -4833,15 +4853,10 @@ def read_in_user_files(filenames1, is_unixtime=False):
                 dates.append(date)
                 
                 for j in range(len(user_col_mod)):
-                    #print("Read in flux for column " + str(cfg.user_col[j]) + ': '\
-                    #    + str(date)) #+ ' ' + row[cfg.user_col[j]])
-                    #print(row)
                     if user_col_mod[j] >= len(row):
                         sys.exit("read_datasets: read_in_user_files: "
-                            "Something is wrong with reading in the "
-                            "user files (mismatch in number of "
-                            "columns). Did you set the correct "
-                            "information in config.py, "
+                            "Something is wrong with reading in the user files (mismatch in number of "
+                            "columns). Did you set the correct information in config.py, "
                             "including the delimeter?")
                     row[user_col_mod[j]] = row[user_col_mod[j]].rstrip()
                     if row[user_col_mod[j]] == 'n/a': #REleASE
@@ -5314,7 +5329,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     [11.22, 12.59], [12.59, 14.13], [14.13, 15.85], [15.85, 17.78],
                     [17.78, 19.95], [19.95, 22.39], [22.39, 25.12], [25.12, 28.18],
                     [28.18, 31.62], [31.62, 35.48], [35.48, 39.81], [39.81, 44.67],
-                    [44.67, 50.12] ]
+                    [44.67, 50.12]]
         energy_bin_centers = calculate_geometric_means(energy_bins)
 
 
@@ -5508,6 +5523,12 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
 
 
     if experiment in goes_R:
+        if flux_type == "integral":
+            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
+                            [60,-1],[500,-1]]
+            energy_bin_centers = calculate_geometric_means(energy_bins)
+
+    if experiment == "GOES-16":
         if flux_type == "differential":
             energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
                            [3.4,6.48],[5.84,11.0],[11.64,23.27],
@@ -5515,22 +5536,35 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                            [99.9,118.0],[115.0,143.0],[160.0,242.0],
                            [276.0,404.0],[500.0,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
-        if flux_type == "integral":
-            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                            [60,-1],[500,-1]]
+
+    if experiment == "GOES-17":
+        if flux_type == "differential":
+            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
+                           [3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],
+                           [40.7,68.2],[83.9,98.4],[99.7,118.0],[123.0,148.0],
+                           [156.0,237.0],[267.0,390.0],[500.0,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
 
+    if experiment == "GOES-18":
+        if flux_type == "differential":
+            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
+                           [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],
+                           [41.0,77.0],[80.9,97.6],[96.3,118.4],[114.88,138.4],
+                           [153.3,229.3],[267.0,390.0],[500.0,-1]]
+            energy_bin_centers = calculate_geometric_means(energy_bins)
+            
+    if experiment == "GOES-19":
+        if flux_type == "differential":
+            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
+                           [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],
+                           [41.0,74.0],[78.0,100.7],[97.9,120.6],[114.6,142.4],
+                           [150.7,231.5],[267.0,390.0],[500.0,-1]]
+            energy_bin_centers = calculate_geometric_means(energy_bins)
 
     if experiment == "GOES_RT":
         if flux_type == "integral":
-            if spacecraft == "primary":
-                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                                [60,-1],[500,-1]]
-            if spacecraft == "secondary":
-                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                                [60,-1],[500,-1]]
-                 #GOES_RT when spacecraft is prior to GOES-R will have upper
-                 #energy bins of >700 MeV!!!!!
+            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
+                            [60,-1],[500,-1]]
             energy_bin_centers = calculate_geometric_means(energy_bins)
 
         if flux_type == "differential":
