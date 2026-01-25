@@ -2,9 +2,9 @@
 
 import fetchsep.utils.download
 import argparse
-import fetchsep.utils.experiments as expt
+import fetchsep.utils.experiments as expts
 
-valid_experiments = expt.valid_experiments()
+valid_experiments = expts.valid_experiments()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--StartDate", type=str, default='',
@@ -20,7 +20,7 @@ parser.add_argument("--Experiment", type=str, choices=valid_experiments,
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
-        help=("Do you want to use integral or differential fluxes?"))
+        help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
@@ -80,7 +80,10 @@ dointerp = args.DoInterp
 showplot = args.showplot
 saveplot = args.saveplot
 path_to_data = args.datapath
-    
+
+if flux_type == '':
+    flux_type = expts.set_flux_type(experiment)
+
 fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
     flux_type, options, dointerp, showplot, saveplot, spacecraft=spacecraft,
     path_to_data=path_to_data)

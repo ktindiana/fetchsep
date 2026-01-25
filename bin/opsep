@@ -3,7 +3,7 @@
 import fetchsep.opsep
 import argparse
 import matplotlib.pyplot as plt
-import fetchsep.utils.experiments as expt
+import fetchsep.utils.experiments as expts
 
 #INPUTS:
 #   Start and end dates of SEP event
@@ -17,7 +17,7 @@ import fetchsep.utils.experiments as expt
 #   showplot: set this flag to plot the SEP fluxes or background-
 #       subtracted SEP fluxes; also plot fluence
 
-valid_experiments = expt.valid_experiments()
+valid_experiments = expts.valid_experiments()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--StartDate", type=str, default='',
@@ -33,7 +33,7 @@ parser.add_argument("--Experiment", type=str, choices=valid_experiments,
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
-        help=("Do you want to use integral or differential fluxes?"))
+        help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
@@ -207,7 +207,8 @@ nointerp = args.NoInterp
 
 
 date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(
-    str_startdate, str_enddate, experiment, flux_type,
+    str_startdate, str_enddate, experiment,
+    flux_type=flux_type,
     user_name=user_name,
     user_file=user_file,
     json_type=json_type,

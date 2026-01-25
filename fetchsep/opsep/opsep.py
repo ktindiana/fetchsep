@@ -1,13 +1,13 @@
 from ..utils import classes as cl
 from ..utils import read_datasets as datasets
 from ..utils import config as cfg
+from ..utils import experiments as expts
 import matplotlib.pyplot as plt
 import sys
 import os
 import pandas as pd
 import array
 
-__version__ = "3.7"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -897,7 +897,7 @@ def calculate_event_info(flux_data):
 
 
 ######## MAIN PROGRAM #########
-def run_all(str_startdate, str_enddate, experiment, flux_type,
+def run_all(str_startdate, str_enddate, experiment, flux_type='',
     user_name='', user_file='', json_type='observations',
     spase_id='', showplot=False, saveplot=False, detect_prev_event=False,
     two_peaks=False, umasep=False, user_thresholds='', options='',
@@ -967,12 +967,19 @@ def run_all(str_startdate, str_enddate, experiment, flux_type,
 
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
-        sys.exit('You must enter a valid date range. Exiting.')
+        sys.exit('You must enter start and end dates. Exiting.')
     
     if experiment == "GOES_RT":
         if spacecraft != "primary" and spacecraft != "secondary":
             sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
-        
+ 
+    if flux_type == '':
+        flux_type = expts.set_flux_type(experiment)
+
+    if experiment != 'user':
+        exp_info = expts.experiment_info(experiment)
+        location = exp_info['location']
+        species = exp_info['species']
 
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes

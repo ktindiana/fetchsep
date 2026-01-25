@@ -2,10 +2,10 @@
 
 import fetchsep.idsep.make_event_list as event_list
 import argparse
-import fetchsep.utils.experiments as expt
+import fetchsep.utils.experiments as expts
 
 
-valid_experiments = expt.valid_experiments()
+valid_experiments = expts.valid_experiments()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--SEPTimes", type=str, default='',
@@ -20,7 +20,7 @@ parser.add_argument("--Experiment", type=str, choices=valid_experiments,
             "create the SEP event list. Otherwise ignore."))
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
-        help=("Do you want to use integral or differential fluxes?"))
+        help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 parser.add_argument("--options", type=str, default='', help=("You "
         "may specify a series of options as a semi-colon separated list "
         "surrounded by quotations.\n"
@@ -49,6 +49,8 @@ flux_type = args.FluxType
 options = args.options
 outfile = args.OutFile
 
+if flux_type == '':
+    flux_type = expts.set_flux_type(experiment)
 
 event_list.make_event_list(septimes_file,detector_list,experiment,
         flux_type,options,outfile)

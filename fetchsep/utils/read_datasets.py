@@ -336,7 +336,9 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
                 'ACE_EPAM_electrons': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
                 'IMP8_CPME': {'cadence': 'variable',
-                        'resolution': datetime.timedelta(seconds=330)}
+                        'resolution': datetime.timedelta(seconds=330)},
+                'NeutronMonitor':{'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=1)},
     }
 
     key = experiment
@@ -346,7 +348,8 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
     if 'STEREO' in experiment:
         if 'HET' in filename: key = 'STEREO HET'
         if 'LET' in filename: key = 'STEREO LET'
-    
+    if experiment in valid_nm: key = 'NeutronMonitor'
+
     cadence = manager[key]['cadence']
     resolution = manager[key]['resolution']
 
@@ -2430,7 +2433,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
     return filenames1
 
 
-def check_neutron_monitor_data(startdate, enddate, experiment):
+def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
     """ Check if neutron monitor data is present in the data directory. 
         Download if needed.
         
@@ -2479,9 +2482,8 @@ def check_neutron_monitor_data(startdate, enddate, experiment):
             complete = check_completeness(experiment, flux_type, svfile, df=df)
         
         if not exists or not complete: #download file if not found on your computer
-            url = ('https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/%s'
-                    % (fname))
-            print('Downloading ACE/EPAM data: ' + url)
+            url = (f"https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]={experiment}&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year={getday.year}&start_month={getday.month}&start_day={getday.day}&start_hour=00&start_min=00&end_year={getday.year}&end_month={getday.month}&end_day={getday.day}&end_hour=23&end_min=59&yunits=0")
+            print(f"Downloading {experiment} data: {url}")
             try:
                 urllib.request.urlopen(url, timeout=5)
                 
@@ -2501,7 +2503,7 @@ def check_neutron_monitor_data(startdate, enddate, experiment):
                 fname = None
 
         if fname != None:
-            filenames1.append(os.path.join('ACE', 'EPAM', fname))
+            filenames1.append(svfile)
         
     return filenames1
     
@@ -2645,6 +2647,10 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
+    if experiment in valid_nm:
+        filenames1 = check_neutron_monitor_data(startdate,
+            enddate, experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
 
     return filenames1, filenames2, filenames_orien
 
@@ -4659,6 +4665,66 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
+def read_in_neutron_monitor(experiment, flux_type, filenames1):
+    """ Read in data downloaded from nmdb.eu """
+
+    n_chan = 1
+
+    NFILES = len(filenames1)
+    all_dates = []
+    all_fluxes = []
+
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+    
+    #Read in fluxes from files
+    for i in range(NFILES):
+        file_dates = []
+        if filenames1[i] == None:
+            continue
+
+        if not os.path.isfile(filenames1[i]):
+            print(f"read_in_neutron_monitor: Cannot read {filenames1[i]}. Skipping.")
+            continue
+        with open(filenames1[i], 'r') as file:
+            print(f"read_in_neutron_monitor: Reading {filenames1[i]}.")
+            found_data = False
+            for line in file:
+                line = line.strip()
+                if 'QUERY RESULTS SUMMARY' in line:
+                    found_data = True
+                    continue
+
+                if not found_data: continue
+                if "<" in line: continue
+                if "#" in line: continue
+                if "start_date_time" in line: continue
+                if line == '': continue
+
+                line = line.split(";")
+
+                #Date
+                date = datetime.datetime.strptime(line[0], "%Y-%m-%d %H:%M:%S")
+                file_dates.append(date)
+                all_dates.append(date)
+                flx_val = float(line[1])
+                if flx_val < 0: flx_val = cfg.badval
+                flx = [flx_val]
+            
+                all_fluxes.append(flx)
+                
+
+        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+
+    print(f"{datetime.datetime.now()} read_in_neutron_monitor: Finished reading {experiment} data.")
+    write_data_manager(df)
+    
+    all_fluxes = np.array(all_fluxes).T
+
+    return all_dates, all_fluxes
+
+    
+
 
 def read_in_files(experiment, flux_type, filenames1, filenames2,
                 filenames_orien, options, detector=[], spacecraft=""):
@@ -4774,6 +4840,9 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         
     elif experiment == "IMP8_CPME":
         all_dates, all_fluxes = read_in_imp8_cpme(experiment, flux_type, filenames1)
+
+    elif experiment in valid_nm:
+        all_dates, all_fluxes = read_in_neutron_monitor(experiment, flux_type, filenames1)
 
     return all_dates, all_fluxes, west_detector
 
@@ -5676,6 +5745,10 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
         energy_bins = [[4.60, 15.0], [15.0, 25.0], [25.0, 48.0], [48.0, 96.0],
                         [96.0, 145.0], [145.0, 440.0]]
         energy_bin_centers = calculate_geometric_means(energy_bins)
+
+    if experiment in valid_nm:
+        energy_bins = []
+        energy_bin_centers = []
 
 
     if experiment == "user":

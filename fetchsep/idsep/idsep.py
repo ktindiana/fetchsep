@@ -5,6 +5,7 @@ from ..utils import define_background_idsep as defbg
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
 from ..utils import tools
+from ..utils import experiments as expts
 import datetime
 from datetime import timedelta
 import os
@@ -520,6 +521,8 @@ def run_all(str_startdate, str_enddate, experiment,
     cfg.configure_for(experiment)
     cfg.print_configured_values()
 
+    if flux_type == '':
+        flux_type = expts.set_flux_type(experiment)
 
     startdate = dateh.str_to_datetime(str_startdate)
     enddate = dateh.str_to_datetime(str_enddate)
