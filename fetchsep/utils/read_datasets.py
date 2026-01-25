@@ -5331,28 +5331,6 @@ def which_erne(startdate, enddate):
                 + str(date_f40) + " to present")
 
 
-def calculate_geometric_means(energy_bins):
-    """ Define the bin centers as the geometric means:
-        center = sqrt(Elow*Ehigh)
-        
-        This approach is typically used to define the bin center of 
-        proton experiments if not better known.
-        
-        This should only be applied to differential channels. 
-        If a channel is an integral channel, will return the bottom
-        energy of the channel.
-        
-    """
-    centers = []
-    for bin in energy_bins:
-        if bin[1] == -1:
-            centers.append(bin[0])
-        else:
-            centers.append(math.sqrt(bin[0]*bin[1]))
-        
-    return centers
-
-
 def define_energy_bins(experiment, flux_type, west_detector, options,
     spacecraft="primary", user_bins=[]):
     """ Define the energy bins for the selected spacecraft or data set.
@@ -5382,178 +5360,27 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
     energy_bins = None
     energy_bin_centers = []
     
-    #use corrected proton flux for GOES eps or epead; include hepad
-    #-1 indicates infinity ([700, -1] means all particles above 700 MeV)
-    if experiment == "SEPEM":
-        energy_bins = [[5.00,7.23],[7.23,10.46],[10.46,15.12],[15.12,21.87],
-                       [21.87,31.62],[31.62,45.73],[45.73,66.13],
-                       [66.13,95.64],[95.64,138.3],[138.3,200.0],
-                       [200.0,289.2]]
+
+    if experiment == "user":
+        #modify to match your energy bins or integral channels
+        #use -1 in the second edge of the bin for integral channel (infinity)
+        if user_bins:
+            energy_bins = user_bins #input into subroutine
+        else:
+            energy_bins = cfg.user_energy_bins #global from cfg
         energy_bin_centers = calculate_geometric_means(energy_bins)
 
-    if experiment == "SEPEMv3":
-        energy_bins = [[5.00,7.23],[7.23,10.46],[10.46,15.12],[15.12,21.87],
-                       [21.87,31.62],[31.62,45.73],[45.73,66.13],
-                       [66.13,95.64],[95.64,138.3],[138.3,200.0],
-                       [200.0,289.2],[289.2,418.3],[418.3,604.9],
-                       [604.9,874.7]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "CalGOES":
-        energy_bins = [[10.0,10.0],[15.8,15.8],[25.1,25.1],[39.8,39.8],
-                        [65.1,65.1],[100.0,100.0],[158.5,158.5],[251.2,251.2],
-                        [398.1,398.1],[630.9,630.9],[1000.0,1000.0]]
-        energy_bin_centers = [10.0, 15.8, 25.1, 39.8, 65.1, 100.0, 158.5, 251.2,
-                        398.1,630.9,1000.0]
-   
-    if experiment == "ERNEf10":
-        #The highest energy 3 channels tend to saturate and show incorrect
-        #values during high intensity SEP events. For this reason, only the
-        #>10 MeV integral fluxes should be used from ERNE data during the
-        #most intense part of intense SEP events.
-        #f10 format, from 2 December 1996
-        #f10     2 Dec 1995     Original launch format
-        energy_bins = [[1.5,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0,22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[41.0,51.0],
-                       [51.0,67.0],[54.0,79.0],[79.0,114.0],[111.0,140.]]
-        energy_bin_centers = [1.6, 2.0, 2.4, 3.0, 3.7, 4.6, 5.8, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.0, 36.4, 45.6, 54.1, 67.5, 95.0, 116]
-
-    if experiment == "ERNEf40":
-        #f40 format, from 19 May 2000
-        #f40    19 Apr 2000     Major update of the on-board program
-        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
-                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
-                       
-    if experiment == "ERNEf40brk":
-        #f40brk format, from 21 Nov 2000
-        #f40brk 21 Nov 2000     HED S1X H2 E-amplifier breakdown at 00:15:44.833
-        #NOTE: all the f40brk HED data are left out from this data set. The
-        #corresponding files are provided but are empty.
-        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
-                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
- 
-    if experiment == "ERNEf50":
-        #f50 format, from 3 Jul 2001
-        #f50     3 Jul 2001     On-board SW updated to (partially) fix the HED S1X
-        #               E-amplifier breakdown.
-        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
-                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
-                       
-    if experiment == "EPHIN":
-        #http://ulysses.physik.uni-kiel.de/costep/level3/l3i/
-        #DOCUMENTATION-COSTEP-EPHIN-L3-20181002.pdf
-        energy_bins = [[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "EPHIN_HESPERIA":
-        #This data may be downloaded by hand through a web interface at:
-        #https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool
-        energy_bins = [[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "EPHIN_REleASE":
-        #This data may be downloaded by hand through a web interface at:
-        #https://zenodo.org/records/14191918
-        energy_bins = [[3.98, 4.47],[4.47, 5.01],[5.01, 5.62],[5.62, 6.31],
-                    [6.31, 7.08], [7.08, 7.94], [7.94, 8.91], [8.91, 10.00], [10.00, 11.22],
-                    [11.22, 12.59], [12.59, 14.13], [14.13, 15.85], [15.85, 17.78],
-                    [17.78, 19.95], [19.95, 22.39], [22.39, 25.12], [25.12, 28.18],
-                    [28.18, 31.62], [31.62, 35.48], [35.48, 39.81], [39.81, 44.67],
-                    [44.67, 50.12]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
+    else:
+        exp_info = expts.experiment_info(experiment)
+        energy_bins = exp_info[flux_type]['energy_bins']
+        energy_bin_centers = exp_info[flux_type]['energy_bin_centers']
 
 
-    ##### GOES SPACECRAFT ########
-    #### GOES DOCUMENTATION USES THE GEOMETRIC MEAN AS THE BIN CENTER####
-    #GOES-05 EPS starts in 1984-01-01 (magneto only previously)
-    #Available files do not contain integral fluxes
-    if experiment == "GOES-05":
-        if flux_type == "differential":
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
-                           [39.0,82.0],[84.0,200.0],[110.0,500.0]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-            if "S14" in options:
-                    energy_bins = [[5.0,7.6],[8.7,13.1],[14.2,20.7],
-                               [40.1,56.5],[96.3,133.0],[177.0,247.0],
-                               [350.0,420.0],[420.0,510.0],[510.0,700.0],
-                               [700.0,-1]]
-                    energy_bin_centers = [6.3, 11.1, 17.9, 48.7, 114.0, 218.0,
-                                math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
-                                math.sqrt(510.0*700.0), 700]
-        if (flux_type == "integral"):
-             energy_bins = []
-             energy_bin_centers = []
-
-
-
-
-    if experiment == "GOES-06":
-        #The highest energy bin is >685 MeV. For the
-        #purposes of this code, it will be labeled as
-        #>700 MeV and treated as consistent with the
-        #other GOES spacecraft that specify >700 MeV
-        print("define_energy_bins: Note that GOES-06 highest energy channel "
-            "is >685 MeV. Setting to >700 MeV here to enable combining with other "
-            "GOES spacecraft if selecting --Experiment GOES option.")
-        if flux_type == "differential":
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
-                           [39.0,82.0],[84.0,200.0],[110.0,500.0],
-                           [375, 375],[465,465],[605,605], [700,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1], [700,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
-    if experiment == "GOES-07":
-        print("define_energy_bins: Note that no HEPAD data is available at NCEI "
-            "for GOES-07.")
-        if flux_type == "differential":
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
-                           [39.0,82.0],[84.0,200.0],[110.0,500.0]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-            if "S14" in options:
-                    energy_bins = [[4.4,8.2],[7.8,14.6],[18.0,24.2],
-                               [41.0,57.3],[89.5,139.0],[166.0,299.0]]
-                    energy_bin_centers = [6.6, 11.2, 21.1, 50.5, 114.0, 243.0]
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
+    ####APPLY CALIBRATED ENERGY BINS FROM LITERATURE
     if (experiment == "GOES-08" or experiment == "GOES-09"
         or experiment == "GOES-10" or experiment == "GOES-11"
         or experiment == "GOES-12"):
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "differential"):
-            #files named e.g. g08_eps_5m_yyyymmdd_yyyymmdd.csv
-            energy_bins = [[4.0,9.0],[9.0,15.0],[15.0,44.0],
-                           [40.0,80.0],[80.0,165.0],[165.0,500.0],
-                           [350.0,420.0],[420.0,510.0],[510.0,700.0],
-                           [700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
             if "S14" in options:
                 if experiment == "GOES-08":
                     energy_bins = [[4.0,7.9],[7.4,15.0],[13.3,21.3],
@@ -5574,16 +5401,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
 
     if (experiment == "GOES-13" or experiment == "GOES-14" or
         experiment == "GOES-15"):
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "differential"):
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,40.0],
-                            [38.0,82.0],[84.0,200.0],[110.0,900.0],
-                            [330.0,420.0],[420.0,510.0],[510.0,700.0],
-                            [700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
             if "S14" in options:
                 #S14 is not specifically calibrated to these GOES, but
                 #apply the GOES-11 EPS energy bins for P2 - P7
@@ -5668,98 +5486,5 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     energy_bin_centers[8] = 516.0
                     energy_bins[9] = [878.6,1230.0] #P11
                     energy_bin_centers[9] = 1094.7
-
-
-    if experiment in goes_R:
-        if flux_type == "integral":
-            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                            [60,-1],[500,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "GOES-16":
-        if flux_type == "differential":
-            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                           [3.4,6.48],[5.84,11.0],[11.64,23.27],
-                           [24.9,38.1],[40.3,73.4],[83.7,98.5],
-                           [99.9,118.0],[115.0,143.0],[160.0,242.0],
-                           [276.0,404.0],[500.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "GOES-17":
-        if flux_type == "differential":
-            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                           [3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],
-                           [40.7,68.2],[83.9,98.4],[99.7,118.0],[123.0,148.0],
-                           [156.0,237.0],[267.0,390.0],[500.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "GOES-18":
-        if flux_type == "differential":
-            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                           [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],
-                           [41.0,77.0],[80.9,97.6],[96.3,118.4],[114.88,138.4],
-                           [153.3,229.3],[267.0,390.0],[500.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-            
-    if experiment == "GOES-19":
-        if flux_type == "differential":
-            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                           [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],
-                           [41.0,74.0],[78.0,100.7],[97.9,120.6],[114.6,142.4],
-                           [150.7,231.5],[267.0,390.0],[500.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "GOES_RT":
-        if flux_type == "integral":
-            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                            [60,-1],[500,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-        if flux_type == "differential":
-            # "P4" "P5" "P6" "P7" "P8A" "P8B" "P8C" "P9" "P10"
-            energy_bins = [[5.84,11.00],[11.64,23.27],[24.90, 38.10],[40.30,73.40],
-                           [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],
-                           [276.0,404.0]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-    
-    if experiment == "STEREO-A" or experiment == "STEREO-B":
-        #Uses the SUMMED LET bins with the HET bins
-        energy_bins = [[1.8,3.6],[4.0,6.0],[6.0,10.0],[13.6,15.1],
-                        [14.9,17.1],[17.0,19.3],[20.8,23.8],
-                        [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
-                        [35.5,40.5],[40.0,60.0],[60.0,100.0]]
-
-
-    if experiment == "ACE_SIS":
-        #https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
-        energy_bins = [[30,-1],[60,-1]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "ACE_EPAM_electrons":
-        #https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
-        energy_bins = [[0.175,0.315]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "IMP8_CPME":
-        #http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/
-        energy_bins = [[4.60, 15.0], [15.0, 25.0], [25.0, 48.0], [48.0, 96.0],
-                        [96.0, 145.0], [145.0, 440.0]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment in valid_nm:
-        energy_bins = []
-        energy_bin_centers = []
-
-
-    if experiment == "user":
-        #modify to match your energy bins or integral channels
-        #use -1 in the second edge of the bin for integral channel (infinity)
-        if user_bins:
-            energy_bins = user_bins #input into subroutine
-        else:
-            energy_bins = cfg.user_energy_bins #global from cfg
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
 
     return energy_bins, energy_bin_centers
