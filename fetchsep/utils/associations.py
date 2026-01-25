@@ -1,5 +1,6 @@
 from . import config as cfg
 from ..json import ccmc_json_handler as ccmc_json
+from . import experiments as expts
 import pandas as pd
 import os
 import sys
@@ -15,12 +16,11 @@ import inspect
 
 #GOES spacecraft categories needed for GOES X-ray data
 #Spacecraft in the GOES-R+ series
-goes_R = ["GOES-16", "GOES-17", "GOES-18"]
+goes_R = expts.goes_R()
 #Spacecraft prior to GOES-R
-goes_sc = ["GOES-08", "GOES-09","GOES-10","GOES-11",
-            "GOES-12","GOES-13","GOES-14","GOES-15"]
+goes_sc = expts.goes_sc()
 #Spacecraft prior to GOES-08
-old_goes_sc = ["GOES-05", "GOES-06", "GOES-07"]
+old_goes_sc = expts.old_goes_sc()
 
 
 def clean_file(input_path, output_path):
