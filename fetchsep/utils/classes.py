@@ -5,6 +5,7 @@ from . import tools
 from . import derive_background_opsep as bgsub
 from . import plotting_tools as plt_tools
 from . import associations as assoc
+from . import experiments as expts
 from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import numpy as np
@@ -17,7 +18,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 #########################################################
-################# General-use Classes ###################
+################# Classes for OpSEP #####################
 #########################################################
 class EnergyBin:
     def __init__(self, min, max, units, bin_center=np.nan):
@@ -187,39 +188,6 @@ class Data:
 
         return
 
-    #Don't want to override the paths set in the config file.
-    #If want a class to change the datapath, etc, then should make it
-    #change the global variable and update the value in the object.
-#    #Allow the user to change various values that are in the config file
-#    def set_datapath(self, datapath): #location to measurement data (e.g. GOES)
-#        """ Set the path containing the data downloaded and read by FetchSEP """
-#        self.datapath = datapath
-#        return
-#
-#
-#    def set_outpath(self, outpath):
-#        """ Set the path to output files """
-#        self.outpath = outpath
-#        return
-#
-#
-#    def set_plotpath(self, plotpath):
-#        """ Set the path to the output plots """
-#        self.plotpath = plotpath
-#        return
-#
-#
-#    def set_user_delim(self, user_path):
-#        """ Set the path to the output plots """
-#        self.user_delim = user_delim
-#        return
-#
-#
-#    def set_user_col(self, user_col):
-#        """ Set the path to the output plots """
-#        self.user_col = user_col
-#        return
-
 
     def str_to_datetime(self, date):
         """ Convert string date to datetime. """
@@ -368,7 +336,7 @@ class Data:
         return event_definition
 
 
-    def set_event_definitions(self, definitions, reset=True):
+    def set_event_definitions(self, definitions, append=False, default=True):
         """ Set the energy channel and applied threshold
             for each event definition requested by the user.
             FORMAT: "30,1;50,1;4.5-9.2,0.1"
@@ -377,7 +345,7 @@ class Data:
             "4-7,0.01" for 4-7 MeV differential channel exceeds 0.01.  
             "30,1;4-7,0.01" multiple thresholds separated by semi-colon.
             
-            Always apply default operational definitions:
+            Apply default operational definitions if default set to True:
                 >10 MeV exceeds 10 pfu
                 >100 MeV exceed 1 pfu 
             
@@ -396,25 +364,31 @@ class Data:
                     Definitions separated by semi-colons and
                     energy channel and threshold separated by
                     commas
-                :reset: (bool) True means all existing event definitions
-                    will be reset and filled in again. False means 
+                :append: (bool) False means all existing event definitions
+                    will be reset and filled in again. True means 
                     provided event definitions will be appended to
                     existing.
+                :default: (bool) True to apply the operational thresholds 
+                    >10 MeV, 10 pfu and >100 MeV, 1 pfu
                 
             Output:
             
                 Fill self.event_definitions Data attribute
                 
         """
-        #First, reset
-        if reset:
-            self.event_definitions = []
-            #Default operational thresholds
-            bins = [[10.0,-1], [100.0,-1]]
-            thresholds = [10.0, 1.0]
-        else:
+
+        if append:
             bins = []
             thresholds = []
+        else:
+            self.event_definitions = []
+            bins = []
+            thresholds = []
+            #Default operational thresholds
+            if default:
+                bins = [[10.0,-1], [100.0,-1]]
+                thresholds = [10.0, 1.0]
+
         
         definitions = definitions.strip().split(";")
         if definitions[0] != "":
@@ -427,15 +401,20 @@ class Data:
                     bins.append([float(evdef[0]), -1])
                     
                 thresholds.append(float(evdef[1]))
-        
+
+        #Get units from appropriate source
+        exp_info = expts.experiment_info(self.experiment)
+        flux_units=''
+        energy_units=''
+        if self.experiment == "user":
+            if flux_type == "integral": flux_units = cfg.flux_units_integral
+            if flux_type == "differential": flux_units = cfg.flux_units_differential
+            energy_units = cfg.energy_units
+        else:
+            flux_units = exp_info[self.flux_type]['flux_units']
+            energy_units = exp_info[self.flux_type]['energy_units']
 
         for index, (bin, thresh) in enumerate(zip(bins, thresholds)):
-            energy_units = cfg.energy_units
-            flux_units = ''
-            if -1 in bin:
-                flux_units = cfg.flux_units_integral
-            else:
-                flux_units = cfg.flux_units_differential
                 
             energy_bin_obj = EnergyBin(bin[0],bin[1],energy_units)
             threshold_obj = Threshold(thresh, flux_units)
@@ -497,12 +476,19 @@ class Data:
                 :input_data: (Data Object)
         
         """
-        
+        exp_info = expts.experiment_info(experiment)
+        flux_units=''
+        energy_units=''
         if experiment == "user":
             self.user = True
             self.label = f"{user_name} {flux_type}"
+            if flux_type == "integral": flux_units = cfg.flux_units_integral
+            if flux_type == "differential": flux_units = cfg.flux_units_differential
+            energy_units = cfg.energy_units
         else:
             self.label = f"{experiment} {flux_type}"
+            flux_units = exp_info[flux_type]['flux_units']
+            energy_units = exp_info[flux_type]['energy_units']
 
         self.experiment = experiment
         self.flux_type = flux_type
@@ -516,7 +502,12 @@ class Data:
         self.set_options(options)
         self.set_opsep_background_info(doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate)
         self.set_idsep_background_info(doBGSubIDSEP, idsep_path, IDSEPEnhancement)
-        self.set_event_definitions(definitions)
+
+        default=True
+        if (energy_units != 'MeV') or (species != 'proton') or ('counts' in flux_type):
+            default=False
+        self.set_event_definitions(definitions,default=default)
+        
         self.two_peaks = two_peaks
         self.showplot = showplot
         self.saveplot = saveplot
@@ -568,6 +559,15 @@ class Data:
             plt.show()
         
         return
+
+    def plot_fluxes_basic(self):
+        """ Simple plot of fluxes to allow user to see values prior to 
+            any analysis. Used to choose event definition if in units
+            other than MeV and species other than protons.
+            
+        """
+        plt_tools.plot_fluxes_basic(self.experiment, self.flux_type, self.dates,
+                self.fluxes, self.energy_bins, self.showplot)
 
 
     def opsep_background_and_sep_separation(self, all_dates, all_fluxes):

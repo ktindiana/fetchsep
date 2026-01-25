@@ -1,6 +1,7 @@
 from . import config as cfg
 from . import tools
 from ..json import ccmc_json_handler as ccmc_json
+from . import experiments as expts
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
@@ -42,7 +43,9 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
                 date_format="year", save="time_profile",
                 showplot=False, closeplot=False, saveplot=False):
     """
-    Plots multiple time profiles in same plot
+    Plots multiple time profiles in same plot.
+    Includes specialized formatting for specific models or datasets, 
+    but can be called generically.
 
     Parameters
     ----------
@@ -109,12 +112,6 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
 
     register_matplotlib_converters()
 
-    #check_consistent_length(date, metric)
-
-    # checking if items in date are datetime objects
-    #if not all(isinstance(x, datetime.datetime) for x in date):
-    #    raise TypeError("Dates must be datetime objects.")
-
     plt.style.use('seaborn-whitegrid')
 
     fig = plt.figure(figsize=(13,8))
@@ -130,14 +127,7 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
         if 0 in values[i]:
             y_values = np.array(values[i])
             values[i] = np.ma.masked_where(y_values <= 0 , y_values)
-#            values[i] = np.ma.masked_invalid(y_values)
 
-        # getting indices where the metric is nan or +/-inf
-        #indices = [j for j, arr in enumerate(metric[i]) if not np.isfinite(arr).all()]
-
-        # replacing nan and +/-inf with None types so the results are still plottable
-        #values[i] = [None if np.isnan(x) else x for x in values[i]]
-        #values[i] = [None if x==np.inf else x for x in values[i]]
         if dy==None:
             if "REleASE" in labels[i]:
                 ax.plot(date[i], values[i], label=labels[i], marker=".", linestyle=":")
@@ -162,10 +152,6 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
                 ax.errorbar(date[i], values[i], label=labels[i], yerr=dy[i], elinewidth=2)
 
         #ax.axhline(mean[i])
-
-    # plotting vertical dashed lines where the metric is nan or +/-inf
-    #for i in indices:
-    #    plt.axvline(x=date[i], color=color_nans, linestyle='--')
 
     ax.grid(True, linestyle=':', alpha=0.5)
 
@@ -416,6 +402,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         Plot to screen and plot saved to file
         
     """
+    exp_info = expts.experiment_info(experiment)
     #All energy channels in specified date range with event start and stop
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
@@ -426,9 +413,17 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
 
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
+    flux_units = ''
     exp_name = experiment
     if experiment == "user":
         exp_name = user_name
+        if flux_type == "integral": flux_units = cfg.flux_units_integral
+        if flux_type == "differential": flux_units = cfg.flux_units_differential
+    else:
+        flux_units = exp_info[flux_type]['flux_units']
+
+    flux_units = make_math_label(flux_units)
 
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
@@ -456,13 +451,9 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
             plt.axhline(mean,color=color,linestyle=':')
 
 
-    if flux_type == "integral": flux_units = cfg.flux_units_integral
-    if flux_type == "differential": flux_units = cfg.flux_units_differential
-
     fig.suptitle((f"{unique_id}\n {exp_name} {title_mod} {flux_type}"))
     
     #Formatting of axes
-    flux_units = make_math_label(flux_units)
     ax.set_ylabel((f"Flux ({flux_units})"))
     ax.set_xlabel("Date")
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
@@ -492,25 +483,40 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     OPSEPEnhancement=False, IDSEPEnhancement=False):
     """ Plot Weibull fit used to get onset peak """
 
+    exp_info = expts.experiment_info(experiment)
+    flux_units = ''
+    energy_units = ''
+    exp_name = experiment
+    if experiment == "user":
+        exp_name = user_name
+        if flux_type == "integral": flux_units = cfg.flux_units_integral
+        if flux_type == "differential": flux_units = cfg.flux_units_differential
+        energy_units = cfg.energy_units
+    else:
+        flux_units = exp_info[flux_type]['flux_units']
+        energy_units = exp_info[flux_type]['energy_units']
+
+    flux_units = make_math_label(flux_units)
+
+
     best_a = best_pars['alpha']
     best_b = best_pars['beta']
     best_Ip = best_pars['peak_intensity']
 
-    suffix = f"Weibull_profile_fit_{energy_bin[0]}MeV"
+    suffix = f"Weibull_profile_fit_{energy_bin[0]}{energy_units}"
     figname, subdir = tools.opsep_naming_scheme(sep_start_time, suffix, experiment, flux_type, user_name,
         options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-    exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
+
+
 
     fig = plt.figure(figname,figsize=(9,5))
-    label = f"{energy_bin[0]} - {energy_bin[1]} MeV"
+    label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
     if energy_bin[1] == -1:
-        label = f">{energy_bin[0]} MeV"
+        label = f">{energy_bin[0]} {energy_units}"
     plt.plot(trim_times,trim_fluxes,label=label,marker='.', linestyle='none')
     label_fit = (f"Fit\n Ip: {best_Ip:.2f}"
                 f"\n alpha: {best_a:.2f}"
@@ -524,7 +530,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     plt.legend(loc='lower right')
     plt.title(f"Onset Peak Weibull Fit\n {exp_name} {title_mod} {flux_type}\n {sep_start_time}")
     plt.xlabel("Hours")
-    plt.ylabel("Flux")
+    plt.ylabel(flux_units)
     plt.yscale("log")
     plt.ylim(1e-4,5*max_val)
     
@@ -565,6 +571,85 @@ def make_math_label(label):
     label = label.replace("^-2", "$^\\mathregular{-2}$")
     label = label.replace("*", " ")
     return label
+
+
+def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
+    energy_bins, showplot, ylog=True):
+    """ Plot the fluxes for visualization only.
+        
+        INPUT:
+        
+            :experiment: (str) e.g. "GOES-13" or "user" for user input
+            :flux_type: (str) integral or differential
+            :dates: (arr) dates for the fluxes that were evaluated
+                using event definitions, called evaluated_dates in Data obj
+            :fluxes: (2D arr, probably numpy) all fluxes that were
+                evaluted with event definitions, called evaluated_fluxes in Data obj
+
+        OUTPUT:
+        
+            Multi-pane plot showing event definitions
+    
+    """
+    exp_info = expts.experiment_info(experiment)
+    figname = f"{experiment}_Data"
+
+    flux_units = ''
+    energy_units = ''
+    if experiment == "user":
+        exp_name = user_name
+        if flux_type == "integral": flux_units = cfg.flux_units_integral
+        if flux_type == "differential": flux_units = cfg.flux_units_differential
+        energy_units = cfg.energy_units
+    else:
+        flux_units = exp_info[flux_type]['flux_units']
+        energy_units = exp_info[flux_type]['energy_units']
+
+    flux_units = make_math_label(flux_units)
+
+    plot_title = f"{experiment} Data"
+    
+    fig = plt.figure(figname,figsize=(13.5,8))
+    ax = plt.subplot(111)
+    colors = define_colors()
+    #Plot the fluxes
+    for j in range(len(energy_bins)):
+        energy_bin = energy_bins[j]
+
+        if energy_bin[1] == -1:
+            legend_label = f">{energy_bin[0]} {energy_units}"
+        else:
+            legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+
+        is_good = check_for_good_fluxes(fluxes[j])
+        if not is_good:
+            continue
+
+        maskfluxes = np.ma.masked_where(fluxes[j] <=0, fluxes[j])
+        ax.plot(dates, maskfluxes,'.-', markersize=3, label=legend_label) #, marker='.')
+
+    plt.title(plot_title)
+    ylabel = f"Flux [{flux_units}]"
+    plt.ylabel(ylabel)
+    plt.xlabel('Date')
+    plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+    plt.xticks(rotation=45, ha="right")
+
+    #ax.xaxis_date()
+    #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
+    if 'counts' in flux_units: ylog=False
+    if ylog: plt.yscale("log")
+    chartBox = ax.get_position()
+    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+                     chartBox.height])
+    ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(10)
+
+    if not showplot:
+        plt.close(fig)
+
+
 
 def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
     evaluated_dates, evaluated_fluxes, evaluated_energy_bins, event_definitions,

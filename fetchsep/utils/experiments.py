@@ -10,7 +10,7 @@ def valid_experiments():
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
         'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES_RT', 'SEPEM', 'SEPEMv3',
         'EPHIN', 'EPHIN_REleASE','ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B',
-        'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME', 'BKSN', 'user']
+        'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME', 'BKSN', 'OULU', 'user']
 
     return valid_experiments
 
@@ -18,7 +18,7 @@ def valid_experiments():
 def valid_neutron_monitors():
     """ Return a list of neutron monitors that can be processed by FetchSEP """
 
-    valid_nm = ['BKSN']
+    valid_nm = ['BKSN','OULU']
 
     return valid_nm
 
@@ -97,6 +97,9 @@ def experiment_info(experiment):
         Returns a dictionary with parameters for requested experiment.
     
     """
+    if experiment == "user":
+        return {}
+
     experiments = {
             'ACE_SIS':{
                 'first_date': datetime.datetime(2001,8,7),#2001-08-07
@@ -893,17 +896,41 @@ def experiment_info(experiment):
                 'cadence': 'day', #after processeing by FetchSEP
                 'resolution': datetime.timedelta(minutes=1),
                 'integral': {
-                    'energy_units': None,
+                    'energy_units': 'GV',
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
-                    'energy_bins': [],
-                    'energy_bin_centers': [],
+                    'energy_bins': [[5.70,-1]],
+                    'energy_bin_centers': [5.70],
                     'url': 'https://www.nmdb.eu/nest/'
                 }
             
             },
+
+            'OULU': {
+                'info': 'Oulu (R=0.81, Alt=15 m)',
+                'first_date': datetime.datetime(1964,4,1),#1964-04-01
+                'last_date': None,
+                'flux_type': ['integral'],
+                'species': 'neutron',
+                'location': 'earth',
+                'cadence': 'day', #after processeing by FetchSEP
+                'resolution': datetime.timedelta(minutes=1),
+                'integral': {
+                    'energy_units': 'GV',
+                    'flux_units': 'counts*s^-1',
+                    'fluence_units': 'counts',
+                    'energy_bins': [[0.81,-1]],
+                    'energy_bin_centers': [0.81],
+                    'url': 'https://www.nmdb.eu/nest/'
+                }
             
+            },
+
+
     } #end of experiments json
 
+    if experiment not in experiments:
+        print(f"{experiment} is not a valid experiment choice. Returning empty dictionary.")
+        return {}
 
     return experiments[experiment]

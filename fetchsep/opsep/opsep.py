@@ -852,6 +852,16 @@ def load_input_data(str_startdate, str_enddate, experiment,
     #separation (for enhancement above background), or interpolation
     flux_data.read_in_flux()
 
+    #If no event definitions loaded
+    if len(flux_data.event_definitions) == 0:
+            print("No event definitons were specified. If energy is other than MeV and species is not protons, user must specify energy and threshold to define an SEP event. If showplot, a plot of the data will be provided to aid in choosing an event definition.")
+            flux_data.plot_fluxes_basic()
+            if showplot:
+                plt.show()
+                
+            sys.exit()
+        
+
     #If want to use IDSEP background and threshold outputs to define an
     #event definition for the flux to exceed background levels, this would be
     #the place to add a new event definition.
@@ -989,7 +999,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
                 doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
                 doBGSubIDSEP, IDSEPEnhancement, idsep_path,
                 nointerp, spacecraft, location, species)
-
+            
 
     #Calculate SEP info for each event definition and create Analyze objects.
     flux_data = calculate_event_info(flux_data)
