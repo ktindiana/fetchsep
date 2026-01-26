@@ -608,13 +608,9 @@ def about_opsep(): #only for documentation purposes
     config/config_opsep.py file.
     
     You can use any units, as long as you are consistent with energy units in
-    energy channel/bin definition and in fluxes and you MODIFY THE THRESHOLD
-    VALUES TO REFLECT YOUR UNITS. If you want to use different units, but
-    still have the correct operational definitions, you need to modify these
-    lines in define_thresholds() below:
-    
-        * energy_thresholds = [10,100] #MeV; flux for particles of > this MeV
-        * flux_thresholds = [10,1] #pfu; exceed this level of intensity
+    energy channel/bin definition and in fluxes. If using units other than
+    MeV and cm^2 or species other than protons, the operational energy 
+    channels and thresholds will not be applied as event definitions. 
     
     NOTE: The first column in your flux file is assumed to be time in format
     YYYY-MM-DD HH:MM:SS. IMPORTANT FORMATTING!!
@@ -691,7 +687,7 @@ def about_opsep(): #only for documentation purposes
         accordingly by hand)
         
     """
-    print("The docstring in about_opsep describes the full code in detail.")
+    print("The docstring in about_opsep describes the full code in detail, but is currently outdated.")
 
 
 def make_dirs():

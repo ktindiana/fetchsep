@@ -1,7 +1,6 @@
 from . import config as cfg
 from . import tools
 from ..json import ccmc_json_handler as ccmc_json
-from . import experiments as expts
 import numpy as np
 import pandas as pd
 import matplotlib.pylab as plt
@@ -19,20 +18,8 @@ import warnings
 import os
 
 __author__ = "Phil Quinn, Kathryn Whitman"
-__maintainer__ = "Phil Quinn"
-__email__ = "philip.r.quinn@nasa.gov"
-
-'''Contains functions for plotting data from forecasting
-    models and observations.
-    Written on 2020-07-17.
-
-    Phil Quinn may be reached at philip.r.quinn@nasa.gov.
-    Kathryn Whitman may be reached at kathryn.whitman@nasa.gov.
-'''
-
-#Changes in 0.5: correlation_plot subroutine added by K. Whitman
-#2021-09-03, changes in 0.6: Set a limiting value or 1e-4 on the
-#   axes in correlation_plot
+__maintainer__ = "Kathryn Whitman"
+__email__ = "kathryn.whitman@nasa.gov"
 
 
 
@@ -197,172 +184,6 @@ def plot_time_profile(date, values, labels, dy=None, dyl=None,
 
 
 
-
-def correlation_plot(obs_values, model_values, plot_title, \
-                        xlabel="Observations", ylabel="Model",  value="Value",
-                        use_log = False, use_logx = False, use_logy = False):
-    '''Make a correlation plot of two arrays.
-        
-        obs_values (1D array of floats) for x-axis
-        
-        model_values (1D array of floats) for y-axis)
-        
-        plot_title (string) is title for plot
-        
-        value (string) indicates which value you are comparing, e.g. Peak Flux
-            (not used)
-            
-        returns plt
-    '''
-    corr = 0
-    obs_np = []
-    model_np = []
-    slope = 0
-    yint = 0
-    
-    obs_np = np.array(obs_values)
-    model_np = np.array(model_values)
-    
-    if use_log or use_logx:
-        log_obs = [log10(val) for val in obs_values]
-        obs_np = np.array(log_obs)
-
-    if use_log or use_logy:
-        log_model = [log10(val) for val in model_values]
-        model_np = np.array(log_model)
-    
-
-    #CORRELATION
-    corr, _ = pearsonr(obs_np, model_np)
-
-    #LINEAR REGRESSION
-    slope, yint = np.polyfit(obs_np, model_np, 1)
-
-    #1-to-1 Line
-    mx = max(np.amax(obs_np),np.amax(model_np))
-    mn = min(np.amin(obs_np), np.amin(model_np))
-    if use_log or use_logx or use_logy:
-        mn = max(-4,mn)
-    step = (mx - mn)/10.
-    x1to1 = np.arange(mn, mx, step).tolist()
-    y1to1 = x1to1
-
-
-    ######MAKE CORRELATION PLOT########
-    plt.figure(figsize=(8,5))
-    ax = plt.subplot(111)
-    plt.style.use('default')
-    plt.grid(which="both", axis="both")
-    plt.title(plot_title)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    ax.set_ylim([mn-0.1*abs(mn),mx+0.1*mx])
-    ax.set_xlim([mn-0.1*abs(mn),mx+0.1*mx])
-
-    ax.plot(obs_np, model_np, 'bo', \
-                label=(f'Pearsons Correlation \nCoefficient: ' \
-                        + ' {0:.3f}'.format(corr)))
-    ax.plot(np.sort(obs_np), slope*np.sort(obs_np) + yint,\
-                color='red', label=(f'Linear Regression \nSlope: '+ \
-                '{0:.3f} \ny-intercept: {1:.3f}'.format(slope, yint)))
-    ax.plot(x1to1, y1to1, color='black', label="1:1 Line", linestyle="dashed")
-
-    chartBox = ax.get_position()
-    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.75,
-                    chartBox.height])
-    ax.legend(loc='upper center', bbox_to_anchor=(1.25, 0.95))
-
-    return plt
-
-
-
-def box_plot(values, labels, x_label="Model", y_label="Metric",
-             title=None, save="boxes", uselog=False, showplot=False,
-             closeplot=False):
-    """
-    Plots ratio or skill score for vary thresholds
-    and for each model subtype
-
-    Parameters
-    ----------
-    values : array-like float, shape=(n model subtypes, n values)
-        Values to plot for each model subtype
-
-    labels : array-like string, shape=(n model subtypes, n labels)
-        Labels of the model subtype
-
-    x_label : string
-        Label for x-axis
-        Optional. Defaults to "Model"
-
-    y_label : string
-        Label for y-axis
-        Optional. Defaults to "Metric"
-
-    title : string
-        Title for plot
-        Optional
-
-    save : string
-        Name to save PNG as (should not include ".png")
-        Optional. Defaults to "boxes"
-
-    showplot : boolean
-        Indicator for displaying the plot on screen or not
-        Optional. Defaults to False
-
-    closeplot : boolean
-        Indicator for clearing the figure from memory
-        Optional. Defaults to False
-
-    Returns
-    -------
-    None
-    """
-    if len(values) <= 4:
-        fig = plt.figure(figsize=(9, 6))
-    if len(values) > 4 and len(values) <= 7:
-        fig = plt.figure(figsize=(12, 6))
-    if len(values) > 7:
-        fig = plt.figure(figsize=(16, 6))
-    ax = fig.add_subplot(111)
-
-    sns.boxplot(data=values, fliersize=0, meanline=True, showmeans=True, \
-                medianprops = {'color': 'w', 'linewidth': 1},
-                meanprops = {'color': 'k', 'linewidth': 1})
-
-    means = [np.mean(list) for list in values]
-    medians = [np.median(list) for list in values]
-
-    for i in range(len(values)):
-        if means[i] == max(means[i], medians[i]):
-            vmean = 'bottom'
-            vmed = 'top'
-        else:
-            vmean = 'top'
-            vmed = 'bottom'
-        ax.text(i, means[i], "\u03BC=" + str(np.round(means[i], 2)), size='large', \
-                color='k', weight='semibold', horizontalalignment='center', \
-                verticalalignment=vmean)
-        ax.text(i, medians[i], "M=" + str(np.round(medians[i], 2)), size='large', \
-                color='b', weight='semibold', horizontalalignment='center', \
-                verticalalignment=vmed)
-
-    sns.stripplot(data=values, linewidth=0.5)
-
-    ax.set_title(title)
-    #ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    ax.set_xticklabels(labels, rotation=45)
-
-    if uselog:
-        ax.set_yscale('log')
-
-    return fig
-
-
-
-
 ############ OPSEP PLOTS ##############
 def check_for_good_fluxes(flux):
     """ Check that there are some non-zero points. """
@@ -402,7 +223,6 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         Plot to screen and plot saved to file
         
     """
-    exp_info = expts.experiment_info(experiment)
     #All energy channels in specified date range with event start and stop
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
@@ -415,10 +235,6 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
     exp_name = experiment
-    energy_units = tools.get_energy_bin(experiment)
-    flux_units = tools.get_flux_units(experiment)
-
-    flux_units = make_math_label(flux_units)
 
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
@@ -437,7 +253,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         if isinstance(means[i], list):
             mean = np.nanmean(np.array(means[i]))
             
-        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
         p = ax.plot_date(dates,maskfluxes, '-', label=legend_label)
         color = p[0].get_color()
         if i==0:
@@ -576,10 +392,9 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
             Multi-pane plot showing event definitions
     
     """
-    exp_info = expts.experiment_info(experiment)
     figname = f"{experiment}_Data"
 
-    flux_units = tools.get_flux_units()
+    flux_units = tools.get_flux_units(flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = tools.get_energy_units()
 
@@ -589,7 +404,7 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
 
     plot_title = f"{experiment} Data"
     
-    fig = plt.figure(figname,figsize=(13.5,8))
+    fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)
     colors = define_colors()
     #Plot the fluxes
@@ -609,7 +424,7 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
         ax.plot(dates, maskfluxes,'.-', markersize=3, label=legend_label) #, marker='.')
 
     plt.title(plot_title)
-    ylabel = f"Flux [{flux_units}]"
+    ylabel = f"Intensity [{flux_units}]"
     plt.ylabel(ylabel)
     plt.xlabel('Date')
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
@@ -622,8 +437,10 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
     chartBox = ax.get_position()
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
-    ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), fontsize=12)
+    for item in ([ax.title, ax.yaxis.label] + ax.get_yticklabels()):
+        item.set_fontsize(14)
+    for item in ([ax.xaxis.label] + ax.get_xticklabels()):
         item.set_fontsize(10)
 
     if not showplot:
@@ -696,6 +513,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9))
         if nthresh == 1: ax = [ax]
 
+    fig.canvas.manager.set_window_title(figname)
     plot_title = f"Event Definitions\n {exp_name} {title_mod} {flux_type} Fluxes"
     plt.suptitle(plot_title)
 
@@ -715,7 +533,7 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             continue
         
         #Create labels
-        ylabel = f"Flux [{flux_units}]"
+        ylabel = f"Intensity\n[{flux_units}]"
         ylabel = make_math_label(ylabel)
         if energy_bin[1] == -1 and flux_type == "integral":
             data_label = f"{exp_name} >{energy_bin[0]} {energy_units}"
@@ -840,7 +658,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     
     #Flux in original energy bins
     flux_units = tools.get_flux_units(flux_type)
-    ylabel = f"Flux [{flux_units}]"
+    ylabel = f"Intensity [{flux_units}]"
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
     plt.xlabel('Date')
@@ -853,8 +671,10 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     chartBox = ax.get_position()
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
-    ax.legend(loc='upper center', bbox_to_anchor=(1.17, 1.05))
-    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), fontsize=12)
+    for item in ([ax.title, ax.yaxis.label] + ax.get_yticklabels()):
+        item.set_fontsize(14)
+    for item in ([ax.xaxis.label] + ax.get_xticklabels()):
         item.set_fontsize(10)
     if saveplot:
         fname = os.path.join(cfg.plotpath,'opsep',subdir, figname + '.png')
@@ -960,7 +780,7 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow
     fig.suptitle((f"{experiment} {title_mod} {unique_id}"))
     
     #Formatting of axes
-    flux_label = make_math_label(f"Flux ({flux_units})")
+    flux_label = make_math_label(f"Intensity ({flux_units})")
     ax[1].set_ylabel(flux_label)
     ax[2].set_xlabel("Date")
     
@@ -1023,7 +843,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     figname = (f"{name}_FluxWithThreshold_{unique_id}")
     
     #UNITS
-    flux_units = tools.get_flux_units()
+    flux_units = tools.get_flux_units(flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = tools.get_energy_units()
 
@@ -1038,7 +858,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
             
         #PLOT FLUXES
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
@@ -1098,7 +918,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
     figname = (f"{name}_{unique_id}")
  
     #UNITS
-    flux_units = tools.get_flux_units()
+    flux_units = tools.get_flux_units(flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = tools.get_energy_units()
     
@@ -1113,7 +933,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
         if np.isnan(maskfluxes).all():
@@ -1157,7 +977,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
     figname = (f"{name}_SEP_BG_{unique_id}")
 
     #UNITS
-    flux_units = tools.get_flux_units()
+    flux_units = tools.get_flux_units(flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = tools.get_energy_units()
 
@@ -1172,7 +992,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
+        legend_label = tools.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
         if np.isnan(maskfluxes_bg).all():

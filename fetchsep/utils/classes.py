@@ -319,7 +319,8 @@ class Data:
             is not used in opsep. It is meant to be a helper when 
             interfacing with the object manually.
             
-            For units, refers to units specified in fetchsep.cfg.
+            For units, refers to units specified in fetchsep.cfg and
+            experiments.py.
            
             INPUT:
             
@@ -575,10 +576,13 @@ class Data:
             self.saveplot, nsigma=self.nsigma, doBGSub=self.doBGSubOPSEP)
         self.bgmeans = means
         self.bgsigmas = sigmas
-        self.bgfluxes = bgfluxes
-        self.bgdates = all_dates
         #Extract the date range specified by the user for the
-        #background-subtracted fluxes
+        #background and background-removed SEP fluxes
+        bgdates, bgfluxes = datasets.extract_date_range(self.bgstartdate, self.enddate,
+                            all_dates, bgfluxes)
+        self.bgfluxes = bgfluxes
+        self.bgdates = bgdates
+
         dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
                             all_dates, sepfluxes)
 
@@ -828,6 +832,11 @@ class Data:
 
         time_res = tools.determine_time_resolution(dates)
         self.time_resolution = time_res.total_seconds()
+
+        #A plain plot of the data that is visualized for the user
+        #and could be manually saved, but is not written out as a default.
+        if self.showplot:
+            self.plot_fluxes_basic()
 
         #Plot background and SEP separation, may or may not include background
         #subtraction

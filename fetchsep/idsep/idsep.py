@@ -519,7 +519,11 @@ def run_all(str_startdate, str_enddate, experiment,
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
 
     cfg.configure_for(experiment)
+    expts.set_config_energy_units(experiment)
+    expts.set_config_flux_units(experiment)
     cfg.print_configured_values()
+
+    datasets.check_paths(experiment)
 
     if flux_type == '':
         flux_type = expts.set_flux_type(experiment)
@@ -530,8 +534,7 @@ def run_all(str_startdate, str_enddate, experiment,
     
     options = options.split(";")
     #If the user entered a date range shorter than required for the
-    #initial window used to identify the background, extend the date
-    #range
+    #initial window used to identify the background, extend the date range
     #Note that the user should consider adding up to two months prior to the dates
     #of interest because the background solution for the first dates of the
     #timeseries are not accurate
@@ -549,9 +552,7 @@ def run_all(str_startdate, str_enddate, experiment,
         
     
     error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
-    error_check.error_check_inputs(startdate, enddate, experiment, flux_type,
-        subroutine='idsep')
-    datasets.check_paths(experiment)
+    error_check.error_check_inputs(startdate, enddate, experiment, flux_type, subroutine='idsep')
 
     idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
