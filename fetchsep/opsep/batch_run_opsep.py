@@ -482,7 +482,7 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=True,
+def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=False,
     showplot=False, saveplot=True, associations=False, detect_prev_event=False,
     two_peaks=False):
     """ Run all of the time periods and experiments in the list
@@ -556,8 +556,6 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         OPSEPEnhancement = False
         doBGSubIDSEP = False
         IDSEPEnhancement = False
-        nointerp = True #if true, will not do interpolation in time
-        if dointerp: nointerp = False
         
         if "DetectPreviousEvent" in flag:
             detect_prev_event = True
@@ -582,7 +580,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                 two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
                 options=option, doBGSubOPSEP=doBGSubOPSEP,
                 OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
-                bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+                bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,
                 doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
                 idsep_path=idsep_path, location=location, species=species,
                 associations=associations)

@@ -506,7 +506,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
     json_type='observations', spase_id='', showplot=False, saveplot=True,
     detect_prev_event=False, two_peaks=False, umasep=False, options='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-    nointerp=False, spacecraft='', doBGSubIDSEP=False,
+    dointerp=False, spacecraft='', doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
     location='earth', species='proton', associations=False):
     """ Run opsep for a time period that starts where the last set of observations
@@ -552,7 +552,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
         options=options, doBGSubOPSEP=doBGSubOPSEP,
         OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
-        bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+        bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,
         doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
         idsep_path=idsep_path, location=location, species=species)
 

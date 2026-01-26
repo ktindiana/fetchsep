@@ -63,10 +63,10 @@ parser.add_argument("--Threshold", type=str, default="",
                 "semi-colon with no spaces and surrounded by quotes, "
                 "e.g. \"30,1;50,1;25-40.9,0.001\""))
 
-parser.add_argument("--NoInterp",
-        help=("Do not fill in negative or missing fluxes via "
-                "linear interpolation in time. Set as None values "
-                "instead."), action="store_true")
+parser.add_argument("--DoInterp",
+        help=("Fill in negative or missing fluxes via "
+                "linear interpolation in time. Default it to set as nan."),
+                action="store_true")
 
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
@@ -88,7 +88,7 @@ flux_type = args.FluxType
 spacecraft = args.Spacecraft
 associations = args.Associations
 threshold = args.Threshold
-nointerp = args.NoInterp
+dointerp = args.DoInterp
 two_peaks = args.TwoPeaks
 subdir = ''
 
@@ -99,7 +99,7 @@ if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks, spacecraft=spacecraft,
+    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, dointerp=dointerp, two_peaks=two_peaks, spacecraft=spacecraft,
         associations=associations)
     prepsep.move_output(target_dir, subdir=subdir, enforce_new=enforce_new,
         enforce_sep_stop=enforce_sep_stop)

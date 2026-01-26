@@ -792,7 +792,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
     user_thresholds, options,
     doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
     doBGSubIDSEP, IDSEPEnhancement, idsep_path,
-    nointerp, spacecraft, location, species):
+    dointerp, spacecraft, location, species):
     """ Instantiate an InputData object. Load all data.
         If differential fluxes specified, estimate integral fluxes.
 
@@ -818,8 +818,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
             for >30 MeV exceeds 1 pfu, "4-7,0.01" for 4-7 MeV differential
             channel exceeds 0.01.  "30,1;4-7,0.01" multiple thresholds
             separated by semi-colon.
-        :nointerp: (boolean) - set to true to fill in negative fluxes with None
-            value rather than filling in via linear interpolation in time
+        :dointerp: (boolean) - set to true to fill in bad values via linear interpolation in time
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
         :IDSEPEnhancement: (bool) Set to true to use the threshold calculated
             by idsep
@@ -840,7 +839,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
         doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
         bgstartdate=bgstartdate, bgenddate=bgenddate,
         doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
-        idsep_path=idsep_path, nointerp=nointerp, spacecraft=spacecraft,
+        idsep_path=idsep_path, dointerp=dointerp, spacecraft=spacecraft,
         location=location, species=species)
 
 
@@ -908,7 +907,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
     spase_id='', showplot=False, saveplot=False, detect_prev_event=False,
     two_peaks=False, umasep=False, user_thresholds='', options='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-    nointerp=False, spacecraft='', doBGSubIDSEP=False,
+    dointerp=False, spacecraft='', doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
     location='earth', species='proton', associations=False):
     """"Runs all subroutines and gets all needed values. Takes the command line
@@ -942,8 +941,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
             for >30 MeV exceeds 1 pfu, "4-7,0.01" for 4-7 MeV differential
             channel exceeds 0.01.  "30,1;4-7,0.01" multiple thresholds
             separated by semi-colon.
-        :nointerp: (boolean) - set to true to fill in negative fluxes with None
-            value rather than filling in via linear interpolation in time
+        :dointerp: (boolean) - set to true to fill in data gaps via linear interpolation in time, otherwise fill with nan values
         :templatename: (string) optional name of user json template located in
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES_RT
@@ -996,7 +994,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
                 user_thresholds, options,
                 doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
                 doBGSubIDSEP, IDSEPEnhancement, idsep_path,
-                nointerp, spacecraft, location, species)
+                dointerp, spacecraft, location, species)
             
 
     #Calculate SEP info for each event definition and create Analyze objects.

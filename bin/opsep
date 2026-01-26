@@ -100,10 +100,9 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
 
-parser.add_argument("--NoInterp",
-        help=("Do not fill in negative or missing fluxes via "
-                "linear interpolation in time. Set as None values "
-                "instead."), action="store_true")
+parser.add_argument("--DoInterp",
+        help=("Fill in negative or missing fluxes via "
+                "linear interpolation in time. Default is to set as nan values."), action="store_true")
 
 parser.add_argument("--IDSEPEnhancement",
         help="Set flag to use background mean+n*sigma found with IDSEP "
@@ -203,7 +202,7 @@ detect_prev_event = args.DetectPreviousEvent
 two_peaks = args.TwoPeaks
 umasep = False #args.UMASEP
 options = args.options
-nointerp = args.NoInterp
+dointerp = args.DoInterp
 
 
 date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(
@@ -224,7 +223,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_a
     OPSEPEnhancement=OPSEPEnhancement,
     bgstartdate=bgstartdate,
     bgenddate=bgenddate,
-    nointerp=nointerp,
+    dointerp=dointerp,
     spacecraft=spacecraft,
     doBGSubIDSEP=doBGSubIDSEP,
     IDSEPEnhancement=IDSEPEnhancement,

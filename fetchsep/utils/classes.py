@@ -139,9 +139,8 @@ class Data:
         self.IDSEPenhancement = False #Get threshold from idsep output files
         #Use threshold to set background to zero and leave only enhancement
 
-        #Apply linear interpolation in time to data gaps when
-        #time steps exist that have bad data values (negative, NaN)
-        self.do_interpolation = True
+        #Fill bad fluxes with nan values (default)
+        self.do_interpolation = False
         
         #Two peaks may extend an event if it crosses threshold,
         #temporarily drops below, then increases above threshold again
@@ -437,7 +436,7 @@ class Data:
         two_peaks=False, definitions='', options='',
         doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
         doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='output/idsep/csv/',
-        nointerp=False, spacecraft='', location='earth', species='proton'):
+        dointerp=False, spacecraft='', location='earth', species='proton'):
         """ Create new Data object and load with all values.
         
             INPUT:
@@ -458,8 +457,8 @@ class Data:
                 :definitions: (string) - user-input thresholds in the 
                     format "30,1;4-7,0.01" multiple thresholds
                     separated by semi-colon. Same as user_thresholds in opsep
-                :nointerp: (boolean) - True to fill in negative fluxes 
-                    with None instead of linear interpolation in time
+                :dointerp: (boolean) - True to fill in bad fluxes 
+                    via linear interpolation in time
                 :spacecraft: (string) primary or secondary 
                 
             OUTPUT:
@@ -497,7 +496,7 @@ class Data:
         self.two_peaks = two_peaks
         self.showplot = showplot
         self.saveplot = saveplot
-        self.do_interpolation = not(nointerp)
+        self.do_interpolation = dointerp
         self.error_check()
  
         #Create subdirectory to hold values
