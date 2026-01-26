@@ -335,15 +335,14 @@ def about_opsep(): #only for documentation purposes
     minutes from 1974 to 2015 for RSDv2 and to 2017 for RSDv3), the program will
     break up the data into yearly files for faster reading.
     
-    --NoInterp: Data sets are checked for bad data point (negative or None value
-    fluxes) and the default behavior is to fill in those bad data points by
-    performing a linear interpolation with time. This choice was made to
-    calculate more accurate event-intergrated fluence values from data.
+    --DoInterp: Data sets are checked for bad data points (negative or None value
+    fluxes) and the default behavior is to fill in those bad data points with nan.
+    Set the DoInterp flag (dointerp=True) to perform a linear interpolation with time. 
+    This choice may be desirable to calculate more accurate event-intergrated 
+    fluence values from data.
     Interpolation with time is not appropriate for model predictions, as
     it will inherently change the prediction or may not be desired by
-    the user for the data set. Turn off interpolation with time by
-    setting the --NoInterp flag (or nointerp=True). If the interpolation
-    is turned off, negative flux values will be set to None.
+    the user for the data set. 
     Zeroes are always treated as valid values and are not replaced.
     If there are gaps in the time steps, the code does NOT try to
     fill in the gaps. It will ONLY perform interpolation for time
@@ -523,13 +522,17 @@ def about_opsep(): #only for documentation purposes
         two_peaks = False  #Helps if two increases above threshold in one event
         umasep = False #Set to true if want UMASEP values (see explanation above)
         threshold = '' #Add a threshold to 10,10 and 100,1: '30,1' or '4.9-7.3,0.01'
-        nointerp = False #Default False; set to True to stop linear interpolatin in time
+        dointerp = False #Default False; set to True to do linear interpolatin in time
 
-        sep_year, sep_month,sep_day, jsonfname = sep.run_all(start_date, \
-            end_date, experiment, flux_type, user_name, user_file, json_type,\
-            spase_id, showplot, saveplot, detect_prev_event,  \
-            two_peaks, umasep, threshold, options, doBGSubOPSEP, bgstart_date, \
-            bgend_date,nointerp)
+        startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
+            sep.run_all(str_startdate, str_enddate,\ experiment, flux_type='',\
+            user_name='', user_file='', json_type='observations',\
+            spase_id='', showplot=False, saveplot=False, detect_prev_event=False,\
+            two_peaks=False, umasep=False, user_thresholds='', options='',\
+            doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',\
+            dointerp=False, spacecraft='', doBGSubIDSEP=False,\
+            IDSEPEnhancement=False, idsep_path='',\
+            location='earth', species='proton', associations=False)
 
     Set the desired directory locations for the data and output at the beginning
     of the program in datapath and outpath. Defaults are 'data' and 'output'.

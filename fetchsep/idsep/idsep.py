@@ -68,7 +68,7 @@ def read_in_flux_files(experiment, flux_type, user_file, exp_name, startdate,
         spacecraft=""):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
-        points with linear interpolation in time unless nointerp True.
+        points with linear interpolation if dointerp True.
         
         INPUTS:
         
