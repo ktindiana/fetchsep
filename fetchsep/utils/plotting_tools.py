@@ -574,6 +574,10 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
             item.set_fontsize(10)
 
+        if nthresh <= 2:
+            for item in ([ax[i].title, ax[i].yaxis.label] + ax[i].get_yticklabels()):
+                item.set_fontsize(14)
+
     if saveplot:
         fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
     if not showplot:
@@ -756,7 +760,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
 
     plt.xscale("log")
     plt.yscale("log")
-    ax.legend(loc='upper left')
+    ax.legend(loc='upper right')
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(14)
 
