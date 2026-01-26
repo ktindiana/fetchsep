@@ -109,25 +109,6 @@ def read_ccmc_time_series(filename):
     return dates, fluxes
 
 
-def choose_flux_units_exp(flux_type):
-    flux_units = ''
-    if flux_type == 'integral':
-        flux_units = cfg.flux_units_integral
-    if flux_type == 'differential':
-        flux_units = cfg.flux_units_differential
-        
-    return flux_units
-
-
-def choose_flux_units_bin(energy_bin):
-    if energy_bin[1] == -1:
-        flux_units = cfg.flux_units_integral
-    else:
-        flux_units = cfg.flux_units_differential
-        
-    return flux_units
-
-
 def setup_labels(experiment='', flux_type='', options='',
     bgsub=None, spacecraft=''):
     
@@ -140,7 +121,7 @@ def setup_labels(experiment='', flux_type='', options='',
 
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP)
 
-    flux_units = choose_flux_units_exp(flux_type)
+    flux_units = tools.get_flux_units(flux_type)
 
     ylabel = f"Flux [{flux_units}]"
     ylabel = plt_tools.make_math_label(ylabel)
@@ -248,7 +229,7 @@ def plot_event_definition(filename, experiment='', flux_type='', options='',
         flux_type=flux_type, options=options, bgsub=bgsub,
         spacecraft=spacecraft)
 
-    flux_units = choose_flux_units_bin(energy_bin)
+    flux_units = tools.get_flux_units_bin(energy_bin)
     flux_units = plt_tools.make_math_label(flux_units)
 
     bin_label = tools.setup_energy_bin_label(energy_bin)
@@ -299,7 +280,7 @@ def cast_time_columns(df):
 def sep_column_label(flux_type, energy_bin, threshold):
     """ Create the column names used in the SEP lists """
 
-    threshold_units = choose_flux_units_bin(energy_bin)
+    threshold_units = tools.get_flux_units_bin(energy_bin)
     energy_units = cfg.energy_units
     
     if energy_bin[1] == -1:

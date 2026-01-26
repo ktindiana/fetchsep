@@ -402,20 +402,10 @@ class Data:
                     
                 thresholds.append(float(evdef[1]))
 
-        #Get units from appropriate source
-        exp_info = expts.experiment_info(self.experiment)
-        flux_units=''
-        energy_units=''
-        if self.experiment == "user":
-            if flux_type == "integral": flux_units = cfg.flux_units_integral
-            if flux_type == "differential": flux_units = cfg.flux_units_differential
-            energy_units = cfg.energy_units
-        else:
-            flux_units = exp_info[self.flux_type]['flux_units']
-            energy_units = exp_info[self.flux_type]['energy_units']
-
+        energy_units = tools.get_energy_units()
         for index, (bin, thresh) in enumerate(zip(bins, thresholds)):
-                
+            
+            flux_units = tools.get_flux_units_bin(bin)
             energy_bin_obj = EnergyBin(bin[0],bin[1],energy_units)
             threshold_obj = Threshold(thresh, flux_units)
             
@@ -476,19 +466,14 @@ class Data:
                 :input_data: (Data Object)
         
         """
-        exp_info = expts.experiment_info(experiment)
-        flux_units=''
-        energy_units=''
+        flux_units = tools.get_flux_units(flux_type)
+        energy_units = tools.get_energy_units()
+        
         if experiment == "user":
             self.user = True
             self.label = f"{user_name} {flux_type}"
-            if flux_type == "integral": flux_units = cfg.flux_units_integral
-            if flux_type == "differential": flux_units = cfg.flux_units_differential
-            energy_units = cfg.energy_units
         else:
             self.label = f"{experiment} {flux_type}"
-            flux_units = exp_info[flux_type]['flux_units']
-            energy_units = exp_info[flux_type]['energy_units']
 
         self.experiment = experiment
         self.flux_type = flux_type
@@ -1111,18 +1096,11 @@ class Analyze:
         self.flux = fluxes
 
         #check this energy bin to determine units
-        if energy_bin[1] == -1:
-            self.flux_units = cfg.flux_units_integral
-            self.fluence_units = cfg.fluence_units_integral
-        else:
-            self.flux_units = cfg.flux_units_differential
-            self.fluence_units = cfg.fluence_units_differential
+        self.flux_units = tools.get_flux_units_bin(energy_bin)
+        self.fluence_units = tools.get_fluence_units_bin(energy_bin)
 
         #Check original input data to determine fluence spectrum units
-        if data.flux_type == "integral":
-            self.fluence_spectrum_units = cfg.fluence_units_integral
-        if data.flux_type == "differential":
-            self.fluence_spectrum_units = cfg.fluence_units_differential
+        self.fluence_spectrum_units = tools.get_fluence_units(data.flux_type)
 
         return
 

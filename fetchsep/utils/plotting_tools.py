@@ -414,14 +414,9 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
-    flux_units = ''
     exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
-        if flux_type == "integral": flux_units = cfg.flux_units_integral
-        if flux_type == "differential": flux_units = cfg.flux_units_differential
-    else:
-        flux_units = exp_info[flux_type]['flux_units']
+    energy_units = tools.get_energy_bin(experiment)
+    flux_units = tools.get_flux_units(experiment)
 
     flux_units = make_math_label(flux_units)
 
@@ -442,7 +437,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         if isinstance(means[i], list):
             mean = np.nanmean(np.array(means[i]))
             
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
         p = ax.plot_date(dates,maskfluxes, '-', label=legend_label)
         color = p[0].get_color()
         if i==0:
@@ -483,21 +478,13 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     OPSEPEnhancement=False, IDSEPEnhancement=False):
     """ Plot Weibull fit used to get onset peak """
 
-    exp_info = expts.experiment_info(experiment)
-    flux_units = ''
-    energy_units = ''
+    flux_units = tools.get_flux_units_bin(energy_bin)
+    flux_units = make_math_label(flux_units)
+    energy_units = tools.get_energy_units()
+
     exp_name = experiment
     if experiment == "user":
         exp_name = user_name
-        if flux_type == "integral": flux_units = cfg.flux_units_integral
-        if flux_type == "differential": flux_units = cfg.flux_units_differential
-        energy_units = cfg.energy_units
-    else:
-        flux_units = exp_info[flux_type]['flux_units']
-        energy_units = exp_info[flux_type]['energy_units']
-
-    flux_units = make_math_label(flux_units)
-
 
     best_a = best_pars['alpha']
     best_b = best_pars['beta']
@@ -510,8 +497,6 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
 
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-
-
 
     fig = plt.figure(figname,figsize=(9,5))
     label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
@@ -594,18 +579,13 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
     exp_info = expts.experiment_info(experiment)
     figname = f"{experiment}_Data"
 
-    flux_units = ''
-    energy_units = ''
+    flux_units = tools.get_flux_units()
+    flux_units = make_math_label(flux_units)
+    energy_units = tools.get_energy_units()
+
+    exp_name = experiment
     if experiment == "user":
         exp_name = user_name
-        if flux_type == "integral": flux_units = cfg.flux_units_integral
-        if flux_type == "differential": flux_units = cfg.flux_units_differential
-        energy_units = cfg.energy_units
-    else:
-        flux_units = exp_info[flux_type]['flux_units']
-        energy_units = exp_info[flux_type]['energy_units']
-
-    flux_units = make_math_label(flux_units)
 
     plot_title = f"{experiment} Data"
     
@@ -804,6 +784,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
  
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+
     exp_name = experiment
     if experiment == "user":
         exp_name = user_name
@@ -856,8 +837,9 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
             ax.axvline(sep_end_times[i],color=colors[i],linestyle=':')
 
     plt.title(plot_title)
-    threshold = event_definitions[0]['threshold'].threshold
-    flux_units = event_definitions[0]['threshold'].threshold_units
+    
+    #Flux in original energy bins
+    flux_units = tools.get_flux_units(flux_type)
     ylabel = f"Flux [{flux_units}]"
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
@@ -1041,8 +1023,9 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     figname = (f"{name}_FluxWithThreshold_{unique_id}")
     
     #UNITS
-    if flux_type == "integral": flux_units = cfg.flux_units_integral
-    if flux_type == "differential": flux_units = cfg.flux_units_differential
+    flux_units = tools.get_flux_units()
+    flux_units = make_math_label(flux_units)
+    energy_units = tools.get_energy_units()
 
     nbins = len(energy_bins)
     nrow = 3 #3 plots per page
@@ -1055,7 +1038,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
             
         #PLOT FLUXES
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
@@ -1114,10 +1097,11 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
 
     figname = (f"{name}_{unique_id}")
  
-    flux_units = ''
-    if flux_type == "integral": flux_units = cfg.flux_units_integral
-    if flux_type == "differential": flux_units = cfg.flux_units_differential
-
+    #UNITS
+    flux_units = tools.get_flux_units()
+    flux_units = make_math_label(flux_units)
+    energy_units = tools.get_energy_units()
+    
     nbins = len(energy_bins)
     nrow = 3 #3 plots per page
     for i in range(nbins):
@@ -1129,7 +1113,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
 
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
         if np.isnan(maskfluxes).all():
@@ -1172,9 +1156,10 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
 
     figname = (f"{name}_SEP_BG_{unique_id}")
 
-    flux_units = ''
-    if flux_type == "integral": flux_units = cfg.flux_units_integral
-    if flux_type == "differential": flux_units = cfg.flux_units_differential
+    #UNITS
+    flux_units = tools.get_flux_units()
+    flux_units = make_math_label(flux_units)
+    energy_units = tools.get_energy_units()
 
     nbins = len(energy_bins)
     nrow = 3
@@ -1187,7 +1172,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = tools.setup_energy_bin_label(energy_bins[i], energy_units)
 
         maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
         if np.isnan(maskfluxes_bg).all():

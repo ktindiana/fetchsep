@@ -970,8 +970,10 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
         
     """
     cfg.configure_for(experiment)
+    expts.set_config_energy_units(experiment)
+    expts.set_config_flux_units(experiment)
     cfg.print_configured_values()
-
+    
     datasets.check_paths(experiment)
 
 

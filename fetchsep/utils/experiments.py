@@ -2,6 +2,7 @@ import sys
 import os
 import datetime
 import math
+from . import config as cfg
 
 def valid_experiments():
     """ Return a list of experiments that can be processed by FetchSEP """
@@ -63,6 +64,35 @@ def set_flux_type(experiment):
         sys.exit(f"You must specify a flux type from options {exp_info['flux_type']}. Exiting.")
 
 
+def set_config_energy_units(experiment):
+    """ Set global energy bin units """
+
+    if experiment == "user":
+        #Do nothing, units should already be set in config
+        return
+    else:
+        exp_info = experiment_info(experiment)
+        energy_units = exp_info['energy_units']
+        cfg.set_energy_units(energy_units)
+
+
+def set_config_flux_units(experiment):
+    """ Set global flux and fluence units """
+
+    if experiment == "user":
+        #Do nothing, units should already be set in config
+        return
+    else:
+        exp_info = experiment_info(experiment)
+        flux_units_integral = exp_info['integral']['flux_units']
+        fluence_units_integral = exp_info['integral']['fluence_units']
+        flux_units_differential = exp_info['differential']['flux_units']
+        fluence_units_differential = exp_info['differential']['fluence_units']
+        cfg.set_flux_units(flux_units_integral, fluence_units_integral,
+            flux_units_differential, fluence_units_differential)
+
+    
+
 #first_date and last_date indicate data availability.
 #last_date = None indicates experiment continues to the present
 #Energy bins listed for GOES are the nominal energy bins provided by NOAA
@@ -89,8 +119,9 @@ def calculate_geometric_means(energy_bins):
     return centers
 
 ########
-#Currently, the information in this file is not referenced in fetchsep, except in
-#the kbase library.
+#Fluxes can be converted back and forth between integral and differential by fetchsep.
+#Corresponding integral and differential units are provided for all experiments
+#except neutron monitors.
 ########
 def experiment_info(experiment):
     """ Contains information about each experiment 'native' to fetchsep.
@@ -109,8 +140,12 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
+                'differential': {
+                    'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
+                    'fluence_units': 'MeV^-1*cm^-2',
+                },
                 'integral': {
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[30,-1],[60,-1]],
@@ -127,13 +162,17 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[0.175,0.315]],
                     'energy_bin_centers': calculate_geometric_means([[0.175,0.315]]),
                     'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -146,8 +185,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'year',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[10.0,10.0],[15.8,15.8],[25.1,25.1],[39.8,39.8],
@@ -156,6 +195,10 @@ def experiment_info(experiment):
                     'energy_bin_centers': [10.0, 15.8, 25.1, 39.8, 65.1, 100.0, 158.5, 251.2,
                         398.1,630.9,1000.0],
                     'url': 'Request from Shaowen Hu of the NASA Space Radiation Analysis Group'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -168,13 +211,17 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'year',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]],
                     'energy_bin_centers': calculate_geometric_means([[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]]),
                     'url': 'http://ulysses.physik.uni-kiel.de/costep/level3/l3i/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
             
@@ -186,13 +233,17 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'variable',
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]],
                     'energy_bin_centers': calculate_geometric_means([[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]]),
                     'url': 'https://hesperia.astro.noa.gr/data-retrieval-tool/' #download by hand
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -204,8 +255,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'year',
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[3.98, 4.47],[4.47, 5.01],[5.01, 5.62],[5.62, 6.31],
@@ -223,6 +274,10 @@ def experiment_info(experiment):
                         [28.18, 31.62], [31.62, 35.48], [35.48, 39.81], [39.81, 44.67],
                         [44.67, 50.12]]),
                     'url': 'https://zenodo.org/records/14191918' #download by hand
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -235,12 +290,16 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'variable',
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [], #Changes with time, see ERNEf10, ERNEf40, ERNEf50
                     'url': 'https://export.srl.utu.fi'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -256,8 +315,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'variable',
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.5,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
@@ -268,6 +327,10 @@ def experiment_info(experiment):
                     'energy_bin_centers': [1.6, 2.0, 2.4, 3.0, 3.7, 4.6, 5.8, 7.2, 9.1, 11,
                         15.4, 18.9, 23.3, 29.0, 36.4, 45.6, 54.1, 67.5, 95.0, 116],
                     'url': 'https://export.srl.utu.fi'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -285,8 +348,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'variable',
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
@@ -297,6 +360,10 @@ def experiment_info(experiment):
                     'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
                         15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108],
                     'url': 'https://export.srl.utu.fi'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -313,8 +380,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'variable',
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
@@ -325,6 +392,10 @@ def experiment_info(experiment):
                     'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
                         15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108],
                     'url': 'https://export.srl.utu.fi'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -337,13 +408,17 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,44.0],[39.0,82.0],[84.0,200.0],[110.0,500.0]],
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,44.0],[39.0,82.0],[84.0,200.0],[110.0,500.0]]),
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -355,8 +430,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,44.0],
@@ -368,7 +443,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral': {
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1], [685,-1]],
@@ -385,8 +459,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,44.0],
@@ -396,7 +470,6 @@ def experiment_info(experiment):
                     'url':'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1]],
@@ -414,8 +487,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.0],[15.0,44.0],
@@ -429,7 +502,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral': {
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins':[[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -447,8 +519,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.0],[15.0,44.0],
@@ -460,7 +532,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -477,8 +548,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.0],[15.0,44.0],
@@ -490,7 +561,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -507,8 +577,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.0],[15.0,44.0],
@@ -520,7 +590,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -537,8 +606,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.0],[15.0,44.0],
@@ -550,7 +619,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -567,8 +635,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,40.0],
@@ -580,7 +648,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -597,8 +664,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,40.0],
@@ -610,7 +677,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -627,8 +693,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'month',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,40.0],
@@ -640,7 +706,6 @@ def experiment_info(experiment):
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
@@ -657,8 +722,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
@@ -668,6 +733,10 @@ def experiment_info(experiment):
                         [3.4,6.48],[5.84,11.0],[11.64,23.27],[24.9,38.1],[40.3,73.4],[83.7,98.5],
                         [99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/sgps-l2-avg5m/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -679,8 +748,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
@@ -690,6 +759,10 @@ def experiment_info(experiment):
                         [3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],[40.7,68.2],[83.9,98.4],
                         [99.7,118.0],[123.0,148.0],[156.0,237.0],[267.0,390.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes17/l2/data/sgps-l2-avg5m/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -701,8 +774,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
@@ -712,6 +785,10 @@ def experiment_info(experiment):
                         [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],[41.0,77.0],[80.9,97.6],
                         [96.3,118.4],[114.88,138.4],[153.3,229.3],[267.0,390.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes18/l2/data/sgps-l2-avg5m/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -723,8 +800,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
@@ -734,6 +811,10 @@ def experiment_info(experiment):
                         [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],[41.0,74.0],[78.0,100.7],
                         [97.9,120.6],[114.6,142.4],[150.7,231.5],[267.0,390.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes19/l2/data/sgps-l2-avg5m/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -746,8 +827,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day',
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential':{
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[5.84,11.00],[11.64,23.27],[25.90, 38.10],[40.30,73.40],
@@ -758,7 +839,6 @@ def experiment_info(experiment):
                     'url': 'https://services.swpc.noaa.gov/json/goes/primary/differential-protons-7-day.json'
                 },
                 'integral':{
-                    'energy_units': 'MeV',
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
@@ -776,13 +856,17 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'variable',
                 'resolution': datetime.timedelta(seconds=330),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.60, 15.0], [15.0, 25.0],[25.0, 48.0], [48.0, 96.0],[96.0, 145.0], [145.0, 440.0]],
                     'energy_bin_centers': calculate_geometric_means([[4.60, 15.0], [15.0, 25.0],[25.0, 48.0], [48.0, 96.0],[96.0, 145.0], [145.0, 440.0]]),
                     'url': 'http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -794,8 +878,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'year', #after processing by FetchSEP
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[5.00,7.23],[7.23,10.46],[10.46,15.12],[15.12,21.87],
@@ -807,6 +891,10 @@ def experiment_info(experiment):
                            [66.13,95.64],[95.64,138.3],[138.3,200.0],
                            [200.0,289.2]]),
                     'url': 'http://sepem.eu/help/SEPEM_RDS_v2-00.zip'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -818,8 +906,8 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'year', #after processeing by FetchSEP
                 'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[5.00,7.23],[7.23,10.46],[10.46,15.12],[15.12,21.87],
@@ -833,6 +921,10 @@ def experiment_info(experiment):
                            [200.0,289.2],[289.2,418.3],[418.3,604.9],
                            [604.9,874.7]]),
                     'url': 'http://www.sepem.eu/help/SEPEM_RDS_v3.zip'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
  
@@ -844,8 +936,8 @@ def experiment_info(experiment):
                 'location': 'stereoa',
                 'cadence': 'multiple', #LET and HET package files differently
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.8,3.6],[4.0,6.0],[6.0,10.0],[13.6,15.1],
@@ -857,6 +949,10 @@ def experiment_info(experiment):
                         [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
                         [35.5,40.5],[40.0,60.0],[60.0,100.0]]),
                     'url': 'https://izw1.caltech.edu/STEREO/DATA/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -868,8 +964,8 @@ def experiment_info(experiment):
                 'location': 'stereob',
                 'cadence': 'multiple', #LET and HET package files differently
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'MeV',
                 'differential': {
-                    'energy_units': 'MeV',
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[1.8,3.6],[4.0,6.0],[6.0,10.0],[13.6,15.1],
@@ -881,6 +977,10 @@ def experiment_info(experiment):
                         [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
                         [35.5,40.5],[40.0,60.0],[60.0,100.0]]),
                     'url': 'https://izw1.caltech.edu/STEREO/DATA/'
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
                 }
             },
 
@@ -895,8 +995,12 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day', #after processeing by FetchSEP
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'GV',
+                'differential':{
+                    'flux_units': None,
+                    'fluence_units': None,
+                },
                 'integral': {
-                    'energy_units': 'GV',
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
                     'energy_bins': [[5.70,-1]],
@@ -915,15 +1019,18 @@ def experiment_info(experiment):
                 'location': 'earth',
                 'cadence': 'day', #after processeing by FetchSEP
                 'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'GV',
+                'differential':{
+                    'flux_units': None,
+                    'fluence_units': None,
+                },
                 'integral': {
-                    'energy_units': 'GV',
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
                     'energy_bins': [[0.81,-1]],
                     'energy_bin_centers': [0.81],
                     'url': 'https://www.nmdb.eu/nest/'
                 }
-            
             },
 
 

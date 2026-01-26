@@ -135,15 +135,49 @@ def setup_modifiers(options, spacecraft="", doBGSubOPSEP=False, doBGSubIDSEP=Fal
     return modifier, title_mod
 
 
+#####Refer to these subroutines to set units everywhere
+def get_energy_units():
+    energy_units = cfg.energy_units
+    return energy_units
+
+def get_flux_units(flux_type):
+    if flux_type == "integral": flux_units = cfg.flux_units_integral
+    if flux_type == "differential": flux_units = cfg.flux_units_differential
+    return flux_units
+
+def get_flux_units_bin(energy_bin):
+    if energy_bin[1] == -1:
+        flux_units = cfg.flux_units_integral
+    else:
+        flux_units = cfg.flux_units_differential
+        
+    return flux_units
+
+def get_fluence_units(flux_type):
+    if flux_type == "integral": fluence_units = cfg.fluence_units_integral
+    if flux_type == "differential": fluence_units = cfg.fluence_units_differential
+    return fluence_units
+    
+def get_fluence_units_bin(energy_bin):
+    if energy_bin[1] == -1:
+        fluence_units = cfg.fluence_units_integral
+    else:
+        fluence_units = cfg.fluence_units_differential
+        
+    return fluence_units
+#########################
+
+
 def setup_energy_bin_label(energy_bin):
     """ Label for a single energy bin.
     
     """
     label = ""
+    energy_units = get_energy_units()
     if energy_bin[1] != -1:
-        label = (f"{energy_bin[0]}-{energy_bin[1]} {cfg.energy_units}")
+        label = (f"{energy_bin[0]}-{energy_bin[1]} {energy_units}")
     else:
-        label = (f">{energy_bin[0]} {cfg.energy_units}")
+        label = (f">{energy_bin[0]} {energy_units}")
 
     return label
 

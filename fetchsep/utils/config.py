@@ -91,6 +91,20 @@ def set_datapath(datapath):
     pkg_globals['datapath'] = datapath
     print(f"config: Setting global datapath to {datapath}.")
 
+def set_energy_units(energy_units):
+    #allow user to set the datapath on the fly across all modules
+    pkg_globals['energy_units'] = energy_units
+    print(f"config: Setting global energy_units to {energy_units}.")
+
+def set_flux_units(flux_units_integral, fluence_units_integral,
+    flux_units_differential, fluence_units_differential):
+    #allow user to set the datapath on the fly across all modules
+    pkg_globals['flux_units_integral'] = flux_units_integral
+    pkg_globals['fluence_units_integral'] = fluence_units_integral
+    pkg_globals['flux_units_differential'] = flux_units_differential
+    pkg_globals['fluence_units_differential'] = fluence_units_differential
+    print(f"config: Setting global flux and fluence units.")
+
 
 if __name__ == '__main__':
     """If called from the command line, copy the package config file to the current
