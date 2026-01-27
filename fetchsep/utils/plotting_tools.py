@@ -17,11 +17,9 @@ from pandas.plotting import register_matplotlib_converters
 import warnings
 import os
 
-__author__ = "Phil Quinn, Kathryn Whitman"
+__author__ = "Kathryn Whitman"
 __maintainer__ = "Kathryn Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
-
-
 
 def plot_time_profile(date, values, labels, dy=None, dyl=None,
                 dyh=None, title=None, x_min=None, x_max=None,
@@ -194,7 +192,8 @@ def check_for_good_fluxes(flux):
         is_good = True
     
     return is_good
-    
+
+
 def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     fluxes, dates, energy_bins, means, sigmas, saveplot,
     spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False,
@@ -223,15 +222,21 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         Plot to screen and plot saved to file
         
     """
+    flux_units = tools.get_flux_units(flux_type)
+    flux_units = make_math_label(flux_units)
+    energy_units = tools.get_energy_units()
+    
     #All energy channels in specified date range with event start and stop
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
     suffix = f"All_Bins_{unique_id}"
-    figname, subdir = tools.opsep_naming_scheme(dates[0], suffix, experiment, flux_type, user_name, options,
-        spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+    figname, subdir = tools.opsep_naming_scheme(dates[0], suffix, experiment, flux_type,
+        user_name, options, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft,
+        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
 
     exp_name = experiment
@@ -244,10 +249,8 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         is_good = check_for_good_fluxes(fluxes[i])
         if not is_good:
             continue
-        #Don't want to plot zero values, particularly in
-        #background-subtracted plots
+        #Don't want to plot zero values, particularly in background-subtracted plots
         maskfluxes = np.ma.masked_where(fluxes[i] <= 0, fluxes[i])
-#        maskfluxes = np.ma.masked_invalid(maskfluxes)
 
         mean =  means[i]
         if isinstance(means[i], list):
@@ -265,7 +268,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     fig.suptitle((f"{unique_id}\n {exp_name} {title_mod} {flux_type}"))
     
     #Formatting of axes
-    ax.set_ylabel((f"Flux ({flux_units})"))
+    ax.set_ylabel((f"Intensity ({flux_units})"))
     ax.set_xlabel("Date")
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
     plt.xticks(rotation=45, ha="right")
@@ -341,7 +344,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
         plt.close(fig)
 
 
-####PLOT STUFF FOR find_max_curvature in tools.py
+####PLOTTING FOR find_max_curvature in tools.py
 #    if showplot or saveplot:
 #        tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time)
 #        tzulu = tzulu.replace(":","")
@@ -543,13 +546,8 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             data_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}"
 
     
-#        maskfluxes = np.ma.masked_invalid(fluxes)
-        #Don't want to plot negative values, particularly in background-subtracted plots
-#        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
         ax[i].plot(dates,maskfluxes,'.-', markersize=3, label=data_label)#,marker=".")
-#        else:
-#            ax[i].plot_date(dates,maskfluxes,'-',label=data_label)
 
         if not pd.isnull(sep_start_times[i]):
             ax[i].axvline(sep_start_times[i],color='black',linestyle=':')
@@ -570,6 +568,8 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             plt.xticks(rotation=45, ha="right")
         ax[i].set_ylabel(ylabel)
         ax[i].set_yscale("log")
+        if 'counts' in flux_units:
+            ax[i].set_yscale("linear")
         ax[i].legend(loc='upper right')
         for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
             item.set_fontsize(10)
@@ -585,10 +585,22 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
 
 
 def define_colors():
+
+#    goes_colors = { '>1 MeV proton'     : '#b3b3b3',
+#                    '>5 MeV proton'     : '#ffd480',
+#                    '>10 MeV proton'    : '#ff0000',
+#                    '>30 MeV proton'    : '#6b3d9a',
+#                    '>50 MeV proton'    : '#0000ff',
+#                    '>60 MeV proton'    : '#000000',
+#                    '>100 MeV proton'   : '#00ff00',
+#                    '>500 MeV proton'   : '#f39c12',
+#                }
+
     colors = ['black','red','blue','green','cyan','magenta','violet',\
             'orange','brown','darkred','deepskyblue','mediumseagreen',
             'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
             'navy','palevioletred','saddlebrown']
+
     return colors
 
 
@@ -631,12 +643,8 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         if not is_good:
             continue
 
-#        maskfluxes = np.ma.masked_invalid(all_fluxes[j])
-#        if doBGSubOPSEP or doBGSubIDSEP:
         maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
         ax.plot(all_dates, maskfluxes,'.-', markersize=3, label=legend_label) #, marker='.')
-#        else:
-#            ax.plot_date(all_dates,maskfluxes,'-',label=legend_label)
 
     #Plot the threshold crossing times
     for i in range(len(event_definitions)):
@@ -672,6 +680,8 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     #ax.xaxis_date()
     #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
     plt.yscale("log")
+    if 'counts' in flux_units:
+        plt.yscale("linear")
     chartBox = ax.get_position()
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
@@ -760,6 +770,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
 
     plt.xscale("log")
     plt.yscale("log")
+    if 'counts' in fluence_units:
+        plt.yscale("linear")
     ax.legend(loc='upper right')
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(14)
@@ -795,6 +807,8 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow
 
     for iax in range(nrow):
         ax[iax].set_yscale('log')
+        if 'counts' in flux_units:
+            ax[iax].set_yscale('linear')
         ax[iax].grid(axis='both')
     
     fig.autofmt_xdate(rotation=45)
@@ -895,6 +909,9 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         #Set clean y-axis ranges
         ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes)))
         ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes)))
+        if 'counts' in flux_units:
+            ymin = np.floor(np.nanmin(maskfluxes))
+            ymax = np.ceil(np.nanmax(maskfluxes))
         ax[iax].set_ylim([ymin, ymax])
 
 
@@ -954,6 +971,9 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         #Set clean y-axis ranges
         ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes)))
         ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes)))
+        if 'counts' in flux_units:
+            ymin = np.floor(np.nanmin(maskfluxes))
+            ymax = np.ceil(np.nanmax(maskfluxes))
         ax[iax].set_ylim([ymin, ymax])
         
         if saveplot and (iax ==2 or i == nbins-1):
@@ -1024,6 +1044,9 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         #Set clean y-axis ranges
         ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes_bg)))
         ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes_sep)))
+        if 'counts' in flux_units:
+            ymin = np.floor(np.nanmin(maskfluxes_bg))
+            ymax = np.ceil(np.nanmax(maskfluxes_sep))
         ax[iax].set_ylim([ymin, ymax])
 
 
@@ -1036,3 +1059,6 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         
         #increment to next axis
         iax += 1
+
+
+

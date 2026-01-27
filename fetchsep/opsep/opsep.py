@@ -853,7 +853,6 @@ def load_input_data(str_startdate, str_enddate, experiment,
     #If no event definitions loaded
     if len(flux_data.event_definitions) == 0:
             print("No event definitons were specified. If energy is other than MeV and species is not protons, user must specify energy and threshold to define an SEP event. If showplot, a plot of the data will be provided to aid in choosing an event definition.")
-            flux_data.plot_fluxes_basic()
             if showplot:
                 plt.show()
                 
