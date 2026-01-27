@@ -7,11 +7,12 @@ from . import config as cfg
 def valid_experiments():
     """ Return a list of experiments that can be processed by FetchSEP """
 
-    valid_experiments = ['GOES', 'GOES-05','GOES-06', 'GOES-07', 'GOES-08',
+    valid_experiments = ['user', 'GOES', 'GOES-05','GOES-06', 'GOES-07', 'GOES-08',
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
-        'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES_RT', 'SEPEM', 'SEPEMv3',
-        'EPHIN', 'EPHIN_REleASE','ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B',
-        'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME', 'BKSN', 'OULU', 'user']
+        'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES_RT', 'GOES_SWPC',
+        'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE','ERNE', 'CalGOES',
+        'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME',
+        'BKSN', 'OULU']
 
     return valid_experiments
 
@@ -91,7 +92,31 @@ def set_config_flux_units(experiment):
         cfg.set_flux_units(flux_units_integral, fluence_units_integral,
             flux_units_differential, fluence_units_differential)
 
-    
+
+def set_spacecraft(experiment, spacecraft):
+    """ Checks whether user-specified spacecraft is a valid for experiment.
+        If experiment doesn't have a spacecraft option, set to 
+        an empty string.
+
+    """
+ 
+    if experiment == "user":
+        #allow user to specify whatever they want for this field
+        return spacecraft
+    else:
+        exp_info = experiment_info(experiment)
+        #no spacecraft field if none needed for experiment
+        #overrides user-specified value
+        if 'spacecraft' not in exp_info:
+            return ''
+ 
+        if 'spacecraft' in exp_info:
+            sc = exp_info['spacecraft']
+            if spacecraft in sc:
+                return spacecraft
+            else:
+                sys.exit(f"{experiment} spacecraft must be selected from {sc}. Please correct and run again.")
+
 
 #first_date and last_date indicate data availability.
 #last_date = None indicates experiment continues to the present
@@ -821,6 +846,29 @@ def experiment_info(experiment):
             'GOES_RT':{
                 'first_date': datetime.datetime(2010,4,14),#2010-04-14
                 'last_date': None,
+                'flux_type': ['integral'],
+                'spacecraft': ['primary','secondary'],
+                'species': 'proton',
+                'location': 'earth',
+                'cadence': 'day',
+                'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
+                'differential':{
+                    'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
+                    'fluence_units': 'MeV^-1*cm^-2',
+                },
+                'integral':{
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
+                    'energy_bins': [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
+                    'energy_bin_centers': [1,5.0,10.0,30.0,50.0,100.0,60.0,500.0],
+                    'url': 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/'
+                }
+            },
+
+            'GOES_SWPC':{
+                'first_date': datetime.datetime.now() - datetime.timedelta(days=7),#previous 7 days
+                'last_date': None,
                 'flux_type': ['integral', 'differential'],
                 'spacecraft': ['primary','secondary'],
                 'species': 'proton',
@@ -836,14 +884,14 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[5.84,11.00],[11.64,23.27],
                         [25.90, 38.10],[40.30,73.40],
                         [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0]]),
-                    'url': 'https://services.swpc.noaa.gov/json/goes/primary/differential-protons-7-day.json'
+                    'url': 'https://services.swpc.noaa.gov/json/goes/'
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'energy_bins': [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
-                    'energy_bin_centers': [1,5.0,10.0,30.0,50.0,100.0,60.0,500.0],
-                    'url': 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/'
+                    'energy_bins': [[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
+                    'energy_bin_centers': [5.0,10.0,30.0,50.0,100.0,60.0,500.0],
+                    'url': 'https://services.swpc.noaa.gov/json/goes/'
                 }
             },
 

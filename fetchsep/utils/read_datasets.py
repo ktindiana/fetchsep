@@ -153,6 +153,11 @@ def check_paths(experiment):
         if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
             print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES_RT')
             os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+
+    elif experiment == 'GOES_SWPC':
+        if not os.path.isdir(os.path.join(cfg.datapath,'GOES_SWPC')):
+            print('check_paths: Directory containing GOES_SWPC fluxes does not exist. Creating ' + cfg.datapath + '/GOES_SWPC')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES_SWPC'));
             
     elif 'GOES' in experiment:
         if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
@@ -1309,21 +1314,23 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     return filenames1, filenames2, filenames_orien, date
 
 
-def check_goes_RT_differential_data():
+def check_goes_swpc_data(flux_type, spacecraft):
     """ Download the NOAA SWPC most recent 7-day json of differential protons. 
         User has no control of time periods. Will grab the current file at 
         the time of running.
         
     """
-    url = "https://services.swpc.noaa.gov/json/goes/primary/differential-protons-7-day.json"
-    fname1 = "differential-protons-7-day.json"
+
+    url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (spacecraft,flux_type))
+     
+    fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
     filenames1 = []
     print("Trying to download url: " + url)
     try:
         response = rerequest(url)
         if response.status_code == 200:
             data = response.text
-            fileout = open(os.path.join(cfg.datapath, 'GOES_RT', fname1),'w')
+            fileout = open(os.path.join(cfg.datapath, 'GOES_SWPC', fname1),'w')
             fileout.write(data)
             fileout.close()
     except:
@@ -2603,11 +2610,14 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             check_goesR_data(startdate,enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
         
-    if (experiment == "GOES_RT") and flux_type == "integral":
+    if (experiment == "GOES_RT"):
         filenames1, filenames2, filenames_orien, date =\
             check_goes_RTdata(startdate,enddate, experiment, flux_type, spacecraft=spacecraft)
         return filenames1, filenames2, filenames_orien
-        
+
+    if (experiment == "GOES_SWPC"):
+        filenames1 = check_goes_swpc_data(flux_type, spacecraft=spacecraft)
+        return filenames1, filenames2, filenames_orien
 
     if experiment == "EPHIN":
         filenames1 = check_ephin_data(startdate, enddate, experiment, flux_type)
@@ -3527,53 +3537,96 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
 
 
 
-def read_in_goes_RT_differential():
-    """ Read in differential-protons-7-day.json """
-    fname = os.path.join(cfg.datapath,"GOES_RT", "differential-protons-7-day.json")
-    
-    fluxes_dict = {"P1": [],
-              "P2A": [],
-              "P2B": [],
-              "P3": [],
-              "P4": [],
-              "P5": [],
-              "P6": [],
-              "P7": [],
-              "P8A": [],
-              "P8B": [],
-              "P8C": [],
-              "P9": [],
-              "P10": []
-            }
+def read_in_goes_swpc(flux_type, spacecraft):
+    """ Read in SWPC 7-day jsons for GOES protons """
+
+    fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
+    fname = os.path.join(cfg.datapath,"GOES_SWPC", fname1)
+
     all_dates = []
-    
-    with open(fname, 'r') as f:
-        # Load the JSON data from the file object
-        data = json.load(f)
-        
-        for entry in data:
-#            {
-#                "time_tag": "2025-11-04T17:40:00Z",
-#                "satellite": 18,
-#                "flux": 0.0010243832366541,
-#                "energy": "1020-1860 keV",
-#                "yaw_flip": 0,
-#                "channel": "P1"
-#            }
-    
-            date = zulu_to_time(entry["time_tag"])
-            flux = float(entry["flux"])*1000.
-            channel = entry["channel"]
+
+    if flux_type == "integral":
+        fluxes_dict = {"\u003E=1 MeV": [],
+                  "\u003E=5 MeV": [],
+                  "\u003E=10 MeV": [],
+                  "\u003E=30 MeV": [],
+                  "\u003E=50 MeV": [],
+                  "\u003E=60 MeV": [],
+                  "\u003E=100 MeV": [],
+                  "\u003E=500 MeV": []
+                }
+        with open(fname, 'r') as f:
+            # Load the JSON data from the file object
+            data = json.load(f)
             
-            if date not in all_dates:
-                all_dates.append(date)
-            fluxes_dict[channel].append(flux)
+            for entry in data:
+                #{
+                #    "time_tag": "2026-01-27T13:50:00Z",
+                #    "satellite": 18,
+                #    "flux": 0.123296454548836,
+                #    "energy": "\u003E=100 MeV"
+                #  },
+        
+                date = zulu_to_time(entry["time_tag"])
+                if date not in all_dates:
+                    all_dates.append(date)
+
+                flux = float(entry["flux"])
+                col_name = entry["energy"]
+                fluxes_dict[col_name].append(flux)
+
+        df = pd.DataFrame(fluxes_dict)
+        #Remove lower energy columns
+        cols_to_drop = ["\u003E=1 MeV"]
+        for col in cols_to_drop:
+            df = df.drop(col, axis=1)
 
 
-    df = pd.DataFrame(fluxes_dict)
-    cols_to_drop = ["P1","P2A","P2B","P3"]
-    for col in cols_to_drop:
-        df = df.drop(col, axis=1)
+    if flux_type == "differential":
+        fluxes_dict = {"P1": [],
+                  "P2A": [],
+                  "P2B": [],
+                  "P3": [],
+                  "P4": [],
+                  "P5": [],
+                  "P6": [],
+                  "P7": [],
+                  "P8A": [],
+                  "P8B": [],
+                  "P8C": [],
+                  "P9": [],
+                  "P10": []
+                }
+
+    
+        with open(fname, 'r') as f:
+            # Load the JSON data from the file object
+            data = json.load(f)
+            
+            for entry in data:
+                #{
+                #    "time_tag": "2025-11-04T17:40:00Z",
+                #    "satellite": 18,
+                #    "flux": 0.0010243832366541,
+                #    "energy": "1020-1860 keV",
+                #    "yaw_flip": 0,
+                #    "channel": "P1"
+                #}
+        
+                date = zulu_to_time(entry["time_tag"])
+                if date not in all_dates:
+                    all_dates.append(date)
+
+                flux = float(entry["flux"])*1000.
+                col_name = entry["channel"]
+                fluxes_dict[col_name].append(flux)
+
+        df = pd.DataFrame(fluxes_dict)
+
+        #Remove lower energy columns
+        cols_to_drop = ["P1","P2A","P2B","P3"]
+        for col in cols_to_drop:
+            df = df.drop(col, axis=1)
         
     all_fluxes = df.values.T
 
@@ -4811,8 +4864,8 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes, west_detector =\
             read_in_goes_RT(experiment,flux_type, filenames1, spacecraft=spacecraft)
 
-    elif (experiment == "GOES_RT") and flux_type == "differential":
-        all_dates, all_fluxes = read_in_goes_RT_differential()
+    elif (experiment == "GOES_SWPC"):
+        all_dates, all_fluxes = read_in_goes_swpc(flux_type, spacecraft)
 
     elif experiment == "EPHIN":
         all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)

@@ -973,14 +973,17 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
     
     datasets.check_paths(experiment)
 
+    #If user specifies a spacecraft but isn't relevant to experiment,
+    #overrides and sets spacecraft to ''
+    spacecraft = expts.set_spacecraft(experiment, spacecraft)
 
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter start and end dates. Exiting.')
     
-    if experiment == "GOES_RT":
-        if spacecraft != "primary" and spacecraft != "secondary":
-            sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
+#    if experiment == "GOES_RT":
+#        if spacecraft != "primary" and spacecraft != "secondary":
+#            sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
  
     if flux_type == '':
         flux_type = expts.set_flux_type(experiment)

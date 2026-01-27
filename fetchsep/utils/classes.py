@@ -737,8 +737,6 @@ class Data:
         if self.experiment == "GOES": #Extra output
             filenames1, filenames2, filenames_orien, detector = \
                 datasets.check_data(startdate, enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
-        elif self.experiment == "GOES_RT" and self.flux_type == "differential":
-            filenames1 = datasets.check_goes_RT_differential_data()
         else:
             filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
                     enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
@@ -750,10 +748,6 @@ class Data:
                 all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
                     datasets.read_in_files(self.experiment, self.flux_type,
                             filenames1, filenames2, filenames_orien, self.options,
-                            detector=detector, spacecraft=self.spacecraft)
-            elif self.experiment == "GOES_RT" and self.flux_type == "differential":
-                all_dates, all_fluxes, west_detector = datasets.read_in_files(self.experiment, self.flux_type,
-                            filenames1, [], [], self.options,
                             detector=detector, spacecraft=self.spacecraft)
             else:
                 all_dates, all_fluxes, west_detector = \
