@@ -169,8 +169,8 @@ for %%G in (06 07 08 10 11 13 15 RT) do (
       for %%T in (primary secondary) do (
 		 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
          echo "[GOES-%%G/%%T] Copy curated batch files"
-         copy .\fetchsep\reference\CLEAR\batch_event_list_GOES_RT_integral_%%T_enhance_idsep_CLEAR.txt ^
-            .\CLEAR\output\idsep\GOES_RT_integral_%%T\
+         copy .\fetchsep\reference\CLEAR\batch_event_list_GOES-RT_integral_%%T_enhance_idsep_CLEAR.txt ^
+            .\CLEAR\output\idsep\GOES-RT_integral_%%T\
 
 	     Get-Date -Format "yyyy-MM-dd HH:mm:ss"
          echo "[GOES-%%G/%%T] Batch opsep using curated CLEAR lists"

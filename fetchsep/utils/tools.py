@@ -1023,8 +1023,8 @@ def create_primary_goes_sep_list(lists, prefix='GOES'):
             print(f"create_primary_goes_list: File does not exist. Skipping. {list}")
             continue
         
-        if 'GOES_RT' in list and 'primary' not in list:
-            #Take GOES_RT from the primary spacecraft only, which will be
+        if 'GOES-RT' in list and 'primary' not in list:
+            #Take GOES-RT from the primary spacecraft only, which will be
             #indicated in the filename
             print(f"create_primary_goes_list: Real-time GOES list is for the secondary spacecraft. Skipping. {list}")
             continue
@@ -1049,15 +1049,15 @@ def create_primary_goes_sep_list(lists, prefix='GOES'):
         goes_primary_end = goes.goes_primary_lookup(date_end)
         
 
-        #GOES integral fluxes read by FetchSEP are labeled GOES_RT because
+        #GOES integral fluxes read by FetchSEP are labeled GOES-RT because
         #NOAA does not yet provide and archive of those files. So any
-        #GOES-R+ integral fluxes will come from CCMC iSWA and are labeled GOES_RT.
+        #GOES-R+ integral fluxes will come from CCMC iSWA and are labeled GOES-RT.
         
-        if sc != goes_primary and sc != "GOES_RT":
+        if sc != goes_primary and sc != "GOES-RT":
             continue
-        elif sc == "GOES_RT" and goes_primary in goes_R:
+        elif sc == "GOES-RT" and goes_primary in goes_R:
             df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)
-        elif sc == goes_primary and goes_primary == "GOES_RT":
+        elif sc == goes_primary and goes_primary == "GOES-RT":
             df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)
         elif sc == goes_primary:
             df_primary = pd.concat([df_primary, df.iloc[[index]]], ignore_index=True)

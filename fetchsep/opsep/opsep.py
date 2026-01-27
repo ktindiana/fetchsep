@@ -822,7 +822,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
             channel exceeds 0.01.  "30,1;4-7,0.01" multiple thresholds
             separated by semi-colon.
         :dointerp: (boolean) - set to true to fill in bad values via linear interpolation in time
-        :spacecraft: (string) primary or secondary is experiment is GOES_RT
+        :spacecraft: (string) primary or secondary is experiment is GOES-RT
         :IDSEPEnhancement: (bool) Set to true to use the threshold calculated
             by idsep
 
@@ -947,7 +947,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
         :dointerp: (boolean) - set to true to fill in data gaps via linear interpolation in time, otherwise fill with nan values
         :templatename: (string) optional name of user json template located in
             cfg.templatepath directory
-        :spacecraft: (string) primary or secondary is experiment is GOES_RT
+        :spacecraft: (string) primary or secondary is experiment is GOES-RT
         :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
         :associations: (bool) If True, will look for flare, CME, etc associations
             in reference/SRAG_SEP_List_R11_CLEARversion.csv
@@ -981,7 +981,7 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter start and end dates. Exiting.')
     
-#    if experiment == "GOES_RT":
+#    if experiment == "GOES-RT":
 #        if spacecraft != "primary" and spacecraft != "secondary":
 #            sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
  

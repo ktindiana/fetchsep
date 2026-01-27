@@ -84,17 +84,17 @@ def goes_primary_lookup(date):
     #Date beyond table
     if date > table_date:
         print("Do not have information about primary/secondary GOES for this date. "
-                "Returning GOES_RT, but this is only valid for integral fluxes. "
+                "Returning GOES-RT, but this is only valid for integral fluxes. "
                 "You may check "
                 "https://services.swpc.noaa.gov/json/goes/instrument-sources.json "
                 "if you are looking for current GOES data. If GOES integral fluxes are "
-                "desired, specify GOES_RT and primary satellite fluxes will be used "
+                "desired, specify GOES-RT and primary satellite fluxes will be used "
                 "by default, as CCMC downloads the SWPC 3-day jsons, which are by "
                 "definition from the primary satellite. This function will be updated "
                 "when a reliable, living archive of GOES primary/secondary satellites "
                 "becomes available.")
         
-        goes = "GOES_RT"
+        goes = "GOES-RT"
 
 
     if date <= datetime.datetime(2024,9,6):

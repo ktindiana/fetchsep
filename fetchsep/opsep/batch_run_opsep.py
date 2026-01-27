@@ -151,7 +151,7 @@ def read_sep_dates(sep_filename):
     bgstartdate = [] #row 8
     bgenddate = [] #row 9
     json_types = [] #row 10 (if user experiment)
-    spacecrafts = [] #row 11, primary or secondary for GOES_RT
+    spacecrafts = [] #row 11, primary or secondary for GOES-RT
     idsep_paths = [] #row 12, use background found by idsep for subtraction and threshold
     locations = [] #earth, mars, etc CCMC json
     particles = [] #proton, electron, etc CCMC json

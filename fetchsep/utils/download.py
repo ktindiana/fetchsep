@@ -160,7 +160,7 @@ def get_data(str_startdate, str_enddate, experiment,
         :saveplot: (bool) set True to save plots in plotpath
         :write_fluxes: (bool) Write fluxes to csv file after read in and processed 
             for bad points
-        :spacecraft: (string) primary or secondary if exp_name = GOES_RT
+        :spacecraft: (string) primary or secondary if exp_name = GOES-RT
         :path_to_data: (string) if set to a value, will be used as the location to
             store downloaded data
 

@@ -179,8 +179,8 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
           for type in primary secondary; do
              date '+%Y-%m-%d %H:%M:%S'
              echo "[GOES-${n}/${type}] Copy curated batch files"
-             cp fetchsep/reference/CLEAR/batch_event_list_GOES_RT_integral_${type}_enhance_idsep_CLEAR.txt \
-                CLEAR/output/idsep/GOES_RT_integral_${type}/
+             cp fetchsep/reference/CLEAR/batch_event_list_GOES-RT_integral_${type}_enhance_idsep_CLEAR.txt \
+                CLEAR/output/idsep/GOES-RT_integral_${type}/
 
              date '+%Y-%m-%d %H:%M:%S'
              echo "[GOES-${n}/${type}] Batch opsep using curated CLEAR lists"

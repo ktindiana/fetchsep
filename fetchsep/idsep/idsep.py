@@ -512,7 +512,7 @@ def run_all(str_startdate, str_enddate, experiment,
         
         :write_fluxes: (bool) Write fluxes to csv file after read in and processed 
             for bad points
-        :spacecraft: (string) primary or secondary if exp_name = GOES_RT
+        :spacecraft: (string) primary or secondary if exp_name = GOES-RT
 
     
     """

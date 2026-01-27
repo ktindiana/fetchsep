@@ -37,7 +37,7 @@ parser.add_argument("--FluxType", type=str, choices=['integral',
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
-        help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
+        help=("If GOES-RT is selected, choose the primary or secondary spacecraft. Default = primary."))
 
 parser.add_argument("--Associations",
         help=("Set flag to associate flare, CME, radio, etc information "

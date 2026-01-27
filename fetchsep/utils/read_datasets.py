@@ -149,15 +149,15 @@ def check_paths(experiment):
         os.mkdir(cfg.datapath)
 
     #Paths to store data for each experiment
-    if experiment == 'GOES_RT':
-        if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
-            print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES_RT')
-            os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+    if experiment == 'GOES-RT':
+        if not os.path.isdir(os.path.join(cfg.datapath,'GOES-RT')):
+            print('check_paths: Directory containing GOES-RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES-RT')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES-RT'));
 
-    elif experiment == 'GOES_SWPC':
-        if not os.path.isdir(os.path.join(cfg.datapath,'GOES_SWPC')):
-            print('check_paths: Directory containing GOES_SWPC fluxes does not exist. Creating ' + cfg.datapath + '/GOES_SWPC')
-            os.mkdir(os.path.join(cfg.datapath, 'GOES_SWPC'));
+    elif experiment == 'GOES-SWPC':
+        if not os.path.isdir(os.path.join(cfg.datapath,'GOES-SWPC')):
+            print('check_paths: Directory containing GOES-SWPC fluxes does not exist. Creating ' + cfg.datapath + '/GOES-SWPC')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES-SWPC'));
             
     elif 'GOES' in experiment:
         if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
@@ -326,7 +326,7 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
                         'resolution': datetime.timedelta(minutes=5)},
                 'GOES_R': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
-                'GOES_RT': {'cadence': 'day',
+                'GOES-RT': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
                 'EPHIN': {'cadence': 'year',
                         'resolution': datetime.timedelta(minutes=5)},
@@ -359,7 +359,7 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
     resolution = manager[key]['resolution']
 
 
-    if experiment == "GOES_RT" and spacecraft != '':
+    if experiment == "GOES-RT" and spacecraft != '':
         experiment = experiment + '_' + spacecraft
     
     complete = check_completeness(experiment, flux_type, filename, df=df)
@@ -1247,7 +1247,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     df = read_data_manager() #file completeness record
 
     #Array of filenames that contain the data requested by the User
-    filenames1 = []  #GOES_RT files
+    filenames1 = []  #GOES-RT files
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
@@ -1275,7 +1275,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
         fname1 = date_suffix + prefix + '_' + spacecraft + '.csv'
-        fullpath1 = os.path.join(cfg.datapath, 'GOES_RT', fname1)
+        fullpath1 = os.path.join(cfg.datapath, 'GOES-RT', fname1)
         exists1 = os.path.isfile(fullpath1)
         
         complete = False
@@ -1299,7 +1299,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
                 response = rerequest(url)
                 if response.status_code == 200:
                     data = response.text
-                    fileout = open(os.path.join(cfg.datapath, 'GOES_RT', fname1),'w')
+                    fileout = open(os.path.join(cfg.datapath, 'GOES-RT', fname1),'w')
                     fileout.write(data)
                     fileout.close()
             except:
@@ -1309,7 +1309,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         if fname1 == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join('GOES_RT', fname1))
+            filenames1.append(os.path.join('GOES-RT', fname1))
 
     return filenames1, filenames2, filenames_orien, date
 
@@ -1330,7 +1330,7 @@ def check_goes_swpc_data(flux_type, spacecraft):
         response = rerequest(url)
         if response.status_code == 200:
             data = response.text
-            fileout = open(os.path.join(cfg.datapath, 'GOES_SWPC', fname1),'w')
+            fileout = open(os.path.join(cfg.datapath, 'GOES-SWPC', fname1),'w')
             fileout.write(data)
             fileout.close()
     except:
@@ -1364,17 +1364,17 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     #GOES-13 for most recent data, then looks at GOES-16 and GOES-17
     #Then continues backwards in time to find a GOES that covers
     #the requested time range
-    #GOES_RT goes back to 2010 or 2011 on CCMC servers, where they
+    #GOES-RT goes back to 2010 or 2011 on CCMC servers, where they
     #archived the primary and secondary integral real time streams.
     #Best to use the NOAA archived integral fluxes for those
-    #time periods. However, for GOES-16 forward, the CCMC GOES_RT
+    #time periods. However, for GOES-16 forward, the CCMC GOES-RT
     #real time stream is the only accessible archive of GOES
     #integral fluxes (as of June 2025).
     
     goes = []
     if flux_type == "integral":
         if startdate >= datetime.datetime(year=2020,month=3,day=8):
-            goes = ["GOES_RT"]
+            goes = ["GOES-RT"]
         else:
             goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
                     "GOES-09", "GOES-08", "GOES-07", "GOES-06",
@@ -1455,7 +1455,7 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
                 filenames1, filenames2, filenames_orien, date = \
                      check_goes_data(stdate, enddt, goes[i], flux_type)
                                      
-            if goes[i]=="GOES_RT" and flux_type == "integral":
+            if goes[i]=="GOES-RT" and flux_type == "integral":
                 filenames1, filenames2, filenames_orien, date = \
                  check_goes_RTdata(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
                  
@@ -1610,10 +1610,10 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
             filenames1, filenames2, filenames_orien, date = \
              check_goesR_data(startdate, enddate, goes_i, flux_type, spacecraft=spacecraft)
 
-        if (goes_i=="GOES_RT" or goes_i in goes_R) and flux_type == "integral":
+        if (goes_i=="GOES-RT" or goes_i in goes_R) and flux_type == "integral":
             filenames1, filenames2, filenames_orien, date = check_goes_RTdata(startdate,
                 enddate, goes_i, flux_type, spacecraft=spacecraft)
-            goes_i = "GOES_RT"
+            goes_i = "GOES-RT"
 
         if len(filenames1) != 0 and filenames1 != None:
             filenames1_all.extend(filenames1)
@@ -2610,12 +2610,12 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             check_goesR_data(startdate,enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
         
-    if (experiment == "GOES_RT"):
+    if (experiment == "GOES-RT"):
         filenames1, filenames2, filenames_orien, date =\
             check_goes_RTdata(startdate,enddate, experiment, flux_type, spacecraft=spacecraft)
         return filenames1, filenames2, filenames_orien
 
-    if (experiment == "GOES_SWPC"):
+    if (experiment == "GOES-SWPC"):
         filenames1 = check_goes_swpc_data(flux_type, spacecraft=spacecraft)
         return filenames1, filenames2, filenames_orien
 
@@ -3318,7 +3318,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         user time period of interest.
         
     """
-    ndiff_chan = 13 #5
+    ndiff_chan = 10 #5
     conversion = 1000. #keV/MeV
     
     NFILES = len(filenames1)
@@ -3372,11 +3372,8 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 
                 #Extract the 13 differential channels
                 for k in range(ndiff_chan):
-                    ###TEMP###
-                    #kk = k + 8
-                    #[288 time step, 2 +/-X, 13 energy chan]
-                    
-                    flux = data.variables["AvgDiffProtonFlux"][j][idx][k]
+                    kk = k + 3 #skip first three channels
+                    flux = data.variables["AvgDiffProtonFlux"][j][idx][kk]
                     if flux < 0:
                         flux = cfg.badval
                     fluxes[k][j] = flux*conversion
@@ -3441,7 +3438,7 @@ def zulu_to_time(zt):
 
 
 def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
-    """ Read in GOES_RT real time data from your computer.
+    """ Read in GOES-RT real time data from your computer.
         Read in the NOAA SWPC real time integral flux files from
         the 1 day json files for the primary GOES spacecraft.
         These files are archived on the CCMC website.
@@ -3491,7 +3488,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
     df = read_data_manager()
     
     df_data = pd.DataFrame()
-    cols_to_drop = [7,8,9,12,13] #Not proton fluxes
+    cols_to_drop = [1,7,8,9,12,13] #>1 MeV and Not proton fluxes
     #Read in fluxes from files
     for i in range(NFILES):
         file_dates = []
@@ -3503,7 +3500,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
             df_in = pd.read_csv(fullpath, header=None)
         except:
             #Sometimes files may be empty if there is a data gap > 1 day
-            print(f"read_in_GOES_RT: Could not open {fullpath}. Skipping.")
+            print(f"read_in_GOES-RT: Could not open {fullpath}. Skipping.")
             continue
 
         df_in[0] = df_in[0].str.replace('T',' ')
@@ -3541,7 +3538,7 @@ def read_in_goes_swpc(flux_type, spacecraft):
     """ Read in SWPC 7-day jsons for GOES protons """
 
     fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
-    fname = os.path.join(cfg.datapath,"GOES_SWPC", fname1)
+    fname = os.path.join(cfg.datapath,"GOES-SWPC", fname1)
 
     all_dates = []
 
@@ -3622,15 +3619,13 @@ def read_in_goes_swpc(flux_type, spacecraft):
                 fluxes_dict[col_name].append(flux)
 
         df = pd.DataFrame(fluxes_dict)
-
         #Remove lower energy columns
-        cols_to_drop = ["P1","P2A","P2B","P3"]
+        cols_to_drop = ["P1","P2A","P2B"]
         for col in cols_to_drop:
             df = df.drop(col, axis=1)
         
     all_fluxes = df.values.T
 
-    print(f"len(dates) = {len(all_dates)}, len(fluxes) = {len(all_fluxes)}, len(fluxes[0]) = {len(all_fluxes[0])}")
     return all_dates, all_fluxes
 
 
@@ -3710,7 +3705,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
             all_dates, all_fluxes, west_detector =\
                 read_in_goesR(detector[i],flux_type, [filenames1[i]])
             
-        elif (detector[i] == "GOES_RT" or detector[i] in goes_R) and flux_type == "integral":
+        elif (detector[i] == "GOES-RT" or detector[i] in goes_R) and flux_type == "integral":
             all_dates, all_fluxes, west_detector =\
                 read_in_goes_RT(detector[i],flux_type, [filenames1[i]], spacecraft=spacecraft)
 
@@ -3763,7 +3758,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
             end = endtimes[j]
             det = goes[j]
             if det in goes_R and flux_type == "integral":
-                det = "GOES_RT"
+                det = "GOES-RT"
             if start in sc_starttimes: continue
             if det != detector[i]: continue
             sub = df_flux.loc[(df_flux['Dates'] >= start) & (df_flux['Dates'] < end)]
@@ -4860,11 +4855,11 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes, west_detector =\
             read_in_goesR(experiment,flux_type, filenames1)
         
-    elif (experiment == "GOES_RT") and flux_type == "integral":
+    elif (experiment == "GOES-RT") and flux_type == "integral":
         all_dates, all_fluxes, west_detector =\
             read_in_goes_RT(experiment,flux_type, filenames1, spacecraft=spacecraft)
 
-    elif (experiment == "GOES_SWPC"):
+    elif (experiment == "GOES-SWPC"):
         all_dates, all_fluxes = read_in_goes_swpc(flux_type, spacecraft)
 
     elif experiment == "EPHIN":
@@ -5402,7 +5397,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
             detector is facing westward for each time point
         :options: (string array) possible options to apply to data
             (GOES)
-            :spacecraft: (string) primary or secondary if experiment is GOES_RT
+            :spacecraft: (string) primary or secondary if experiment is GOES-RT
         
         OUTPUTS:
         

@@ -520,7 +520,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
                 transferred to the target_dir
             :end_date: (string) YYYY-MM-DD or "YYYY-MM-DD HH:MM:SS" in quotes, end date
                 of the observation time period
-            :experiment: (string) spacecraft, eg. GOES_RT, GOES-13, STEREO-A, etc
+            :experiment: (string) spacecraft, eg. GOES-RT, GOES-13, STEREO-A, etc
             :flux_type: (string) integral or differential
             :threshold: (string) additional thresholds to apply to fluxes, see opsep for
                 more guidance

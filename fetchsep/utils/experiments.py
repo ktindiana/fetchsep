@@ -9,7 +9,7 @@ def valid_experiments():
 
     valid_experiments = ['user', 'GOES', 'GOES-05','GOES-06', 'GOES-07', 'GOES-08',
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
-        'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES_RT', 'GOES_SWPC',
+        'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES-RT', 'GOES-SWPC',
         'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE','ERNE', 'CalGOES',
         'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME',
         'BKSN', 'OULU']
@@ -751,12 +751,12 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
-                    'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[24.9,38.1],[40.3,73.4],[83.7,98.5],
-                        [99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0],[500.0,-1]],
-                     'energy_bin_centers': calculate_geometric_means([[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[24.9,38.1],[40.3,73.4],[83.7,98.5],
-                        [99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0],[500.0,-1]]),
+                    'energy_bins': [[3.4,6.48],[5.84,11.0],[11.64,23.27],[24.9,38.1],
+                        [40.3,73.4],[83.7,98.5],[99.9,118.0],[115.0,143.0],[160.0,242.0],
+                        [276.0,404.0],[500.0,-1]],
+                     'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[24.9,38.1],
+                        [40.3,73.4],[83.7,98.5],[99.9,118.0],[115.0,143.0],[160.0,242.0],
+                        [276.0,404.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/sgps-l2-avg5m/'
                 },
                 'integral':{
@@ -777,12 +777,12 @@ def experiment_info(experiment):
                 'differential': {
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
-                    'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],[40.7,68.2],[83.9,98.4],
-                        [99.7,118.0],[123.0,148.0],[156.0,237.0],[267.0,390.0],[500.0,-1]],
-                     'energy_bin_centers': calculate_geometric_means([[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],[40.7,68.2],[83.9,98.4],
-                        [99.7,118.0],[123.0,148.0],[156.0,237.0],[267.0,390.0],[500.0,-1]]),
+                    'energy_bins': [[3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],
+                        [40.7,68.2],[83.9,98.4],[99.7,118.0],[123.0,148.0],[156.0,237.0],
+                        [267.0,390.0],[500.0,-1]],
+                     'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],
+                        [40.7,68.2],[83.9,98.4],[99.7,118.0],[123.0,148.0],[156.0,237.0],
+                        [267.0,390.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes17/l2/data/sgps-l2-avg5m/'
                 },
                 'integral':{
@@ -803,12 +803,12 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
-                    'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],[41.0,77.0],[80.9,97.6],
-                        [96.3,118.4],[114.88,138.4],[153.3,229.3],[267.0,390.0],[500.0,-1]],
-                     'energy_bin_centers': calculate_geometric_means([[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],[41.0,77.0],[80.9,97.6],
-                        [96.3,118.4],[114.88,138.4],[153.3,229.3],[267.0,390.0],[500.0,-1]]),
+                    'energy_bins': [[3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],
+                        [41.0,77.0],[80.9,97.6],[96.3,118.4],[114.88,138.4],[153.3,229.3],
+                        [267.0,390.0],[500.0,-1]],
+                     'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],
+                        [41.0,77.0],[80.9,97.6],[96.3,118.4],[114.88,138.4],[153.3,229.3],
+                        [267.0,390.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes18/l2/data/sgps-l2-avg5m/'
                 },
                 'integral':{
@@ -829,12 +829,12 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
-                    'energy_bins': [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],[41.0,74.0],[78.0,100.7],
-                        [97.9,120.6],[114.6,142.4],[150.7,231.5],[267.0,390.0],[500.0,-1]],
-                     'energy_bin_centers': calculate_geometric_means([[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                        [3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],[41.0,74.0],[78.0,100.7],
-                        [97.9,120.6],[114.6,142.4],[150.7,231.5],[267.0,390.0],[500.0,-1]]),
+                    'energy_bins': [[3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],
+                        [41.0,74.0],[78.0,100.7],[97.9,120.6],[114.6,142.4],[150.7,231.5],
+                        [267.0,390.0],[500.0,-1]],
+                     'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],
+                        [41.0,74.0],[78.0,100.7],[97.9,120.6],[114.6,142.4],[150.7,231.5],
+                        [267.0,390.0],[500.0,-1]]),
                     'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes19/l2/data/sgps-l2-avg5m/'
                 },
                 'integral':{
@@ -843,7 +843,7 @@ def experiment_info(experiment):
                 }
             },
 
-            'GOES_RT':{
+            'GOES-RT':{
                 'first_date': datetime.datetime(2010,4,14),#2010-04-14
                 'last_date': None,
                 'flux_type': ['integral'],
@@ -860,13 +860,13 @@ def experiment_info(experiment):
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'energy_bins': [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
-                    'energy_bin_centers': [1,5.0,10.0,30.0,50.0,100.0,60.0,500.0],
+                    'energy_bins': [[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
+                    'energy_bin_centers': [5.0,10.0,30.0,50.0,100.0,60.0,500.0],
                     'url': 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/'
                 }
             },
 
-            'GOES_SWPC':{
+            'GOES-SWPC':{
                 'first_date': datetime.datetime.now() - datetime.timedelta(days=7),#previous 7 days
                 'last_date': None,
                 'flux_type': ['integral', 'differential'],
@@ -879,9 +879,9 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
-                    'energy_bins': [[5.84,11.00],[11.64,23.27],[25.90, 38.10],[40.30,73.40],
+                    'energy_bins': [[3.4,6.48],[5.84,11.00],[11.64,23.27],[25.90, 38.10],[40.30,73.40],
                         [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0]],
-                     'energy_bin_centers': calculate_geometric_means([[5.84,11.00],[11.64,23.27],
+                     'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.00],[11.64,23.27],
                         [25.90, 38.10],[40.30,73.40],
                         [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0]]),
                     'url': 'https://services.swpc.noaa.gov/json/goes/'

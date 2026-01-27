@@ -106,11 +106,11 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         if startdate < exp_info['first_date']:
             sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to present. Please change your requested dates. Exiting.")
 
-    if experiment == "GOES_RT" and flux_type == "integral":
+    if experiment == "GOES-RT" and flux_type == "integral":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '
             'and archived by CCMC. Available starting 2010-04-14.')
 
-    if experiment == "GOES_RT" and flux_type == "differential":
+    if experiment == "GOES-RT" and flux_type == "differential":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 7-day jsons.')
 
     goes_R = expts.goes_R()
@@ -122,12 +122,12 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         else:
             sys.exit('The GOES-R real time integral fluxes are only available '
                     + 'starting on '+ str(goes16_integral_stdate) +
-                '. Please change your requested dates and use GOES_RT for the experiment. Exiting.')
+                '. Please change your requested dates and use GOES-RT for the experiment. Exiting.')
     elif (experiment in goes_R) and flux_type == "integral":
         #UNTIL NOAA PROVIDES A SUPPORTED INTEGRAL PRODUCT
         sys.exit('Note: The GOES-R integral fluxes are real-time fluxes archived at CCMC. '
             'When NOAA\'s official L2 integral fluxes become available, they will be included in FetchSEP. '
-            'Please specify GOES_RT for --Experiment to use GOES-R integral fluxes.')
+            'Please specify GOES-RT for --Experiment to use GOES-R integral fluxes.')
   
   
 
