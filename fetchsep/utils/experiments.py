@@ -12,7 +12,7 @@ def valid_experiments():
         'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES-RT', 'GOES-SWPC',
         'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE','ERNE', 'CalGOES',
         'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME',
-        'BKSN', 'OULU']
+        'BKSN', 'OULU', 'SOPO']
 
     return valid_experiments
 
@@ -20,7 +20,7 @@ def valid_experiments():
 def valid_neutron_monitors():
     """ Return a list of neutron monitors that can be processed by FetchSEP """
 
-    valid_nm = ['BKSN','OULU']
+    valid_nm = ['BKSN','OULU','SOPO']
 
     return valid_nm
 
@@ -1082,6 +1082,28 @@ def experiment_info(experiment):
                 }
             },
 
+            'SOPO': {
+                'info': 'South Pole (R=0.10, Alt=2820 m)',
+                'first_date': datetime.datetime(1964,3,1),#1964-04-01
+                'last_date': None,
+                'flux_type': ['integral'],
+                'species': 'neutron',
+                'location': 'earth',
+                'cadence': 'day', #after processeing by FetchSEP
+                'resolution': datetime.timedelta(minutes=1),
+                'energy_units': 'GV',
+                'differential':{
+                    'flux_units': None,
+                    'fluence_units': None,
+                },
+                'integral': {
+                    'flux_units': 'counts*s^-1',
+                    'fluence_units': 'counts',
+                    'energy_bins': [[0.1,-1]],
+                    'energy_bin_centers': [0.1],
+                    'url': 'https://www.nmdb.eu/nest/'
+                }
+            },
 
     } #end of experiments json
 

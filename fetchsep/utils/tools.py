@@ -1,5 +1,6 @@
 from . import config as cfg
 from . import goes
+from . import experiments as expts
 from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import datetime
@@ -1009,7 +1010,7 @@ def create_primary_goes_sep_list(lists, prefix='GOES'):
             outputs a file to cfg.outpath/opsep/GOES_PRIMARY.YYYY-MM-DD.YYYY-MM-DD_sep_events.csv
     
     """
-    goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
+    goes_R = expts.goes_R()
     
     df = pd.DataFrame()
 
@@ -1026,12 +1027,23 @@ def create_primary_goes_sep_list(lists, prefix='GOES'):
         if 'GOES-RT' in list and 'primary' not in list:
             #Take GOES-RT from the primary spacecraft only, which will be
             #indicated in the filename
-            print(f"create_primary_goes_list: Real-time GOES list is for the secondary spacecraft. Skipping. {list}")
+            print(f"create_primary_goes_list: Real-time GOES list is not for the primary spacecraft. Skipping. {list}")
             continue
         print(f"processing {list}")
+        fpath = os.path.dirname(list)
         df_in = pd.read_csv(list)
         df_in['Time Period Start'] = pd.to_datetime(df_in['Time Period Start'])
         df_in['Time Period End'] = pd.to_datetime(df_in['Time Period End'])
+        
+        #Add relative paths
+        path_cols = ["All Fluxes Time Series", "JSON", "Flux Time Series"]
+        cols = df_in.columns.to_list()
+        for col1 in cols:
+            for col2 in path_cols:
+                if col2 in col1:
+                    for index, row in df_in.iterrows():
+                        df_in.loc[index,col1] = os.path.join(fpath, row[col1])
+        
         df = pd.concat([df, df_in], ignore_index=True)
         
     #Sort by time
@@ -1070,7 +1082,7 @@ def create_primary_goes_sep_list(lists, prefix='GOES'):
     enddate = end_date.strftime("%Y-%m-%d")
     
     fname = f"{prefix}_PRIMARY.{stdate}.{enddate}_sep_events.csv"
-    fname = os.path.join(cfg.outpath,'opsep',fname)
+    fname = os.path.join(cfg.outpath,fname)
     df_primary.to_csv(fname, index=False)
     print(f"create_primary_goes_sep_list: Wrote file {fname}.")
     

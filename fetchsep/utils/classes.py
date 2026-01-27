@@ -2576,7 +2576,8 @@ class Output:
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
-                "All Fluxes Time Series": self.data.fluxes_filename
+                "All Fluxes Time Series": self.data.fluxes_filename,
+                "JSON": self.json_filename
                 }
         
         for analyze in self.data.results:
@@ -2616,7 +2617,8 @@ class Output:
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate,
                 "Time Period End": self.data.enddate,
-                "All Fluxes Time Series": self.data.fluxes_filename
+                "All Fluxes Time Series": self.data.fluxes_filename,
+                "JSON": self.json_filename
                 }
         
         for analyze in self.data.results:
