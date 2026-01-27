@@ -551,8 +551,8 @@ class Data:
             other than MeV and species other than protons.
             
         """
-        plt_tools.plot_fluxes_basic(self.experiment, self.flux_type, self.dates,
-                self.fluxes, self.energy_bins, self.showplot)
+        plt_tools.plot_fluxes_basic(self.experiment, self.user_name, self.flux_type,
+            self.dates, self.fluxes, self.energy_bins, self.showplot)
 
 
     def opsep_background_and_sep_separation(self, all_dates, all_fluxes):

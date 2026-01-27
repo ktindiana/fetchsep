@@ -67,7 +67,7 @@ parser.add_argument("--Location", type=str, default='earth',
             "earth, mars, psp, stereoa, stereob, dawn, juno, L1, L2, L4, L5. You may "
             "enter another location if needed. Default = earth."))
 
-parser.add_argument("--Species", type=str, default='protons',
+parser.add_argument("--Species", type=str, default='proton',
         help=("Location of time profile. CCMC json files recognize: electron, proton, "
               " helium, helium3, helium4, oxygen, iron, ion. You may "
               "enter another location if needed. Default = proton"))

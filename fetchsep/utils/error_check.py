@@ -92,19 +92,20 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
                 'trimming results to requested time frame at the end. Continuing.')
  
  
-    exp_info = expts.experiment_info(experiment)
-    if len(exp_info['flux_type']) > 1 and flux_type == "":
-        sys.exit(f"User must indicate whether input flux is {exp_info['flux_type']}. Exiting.")
+    if experiment != "user":
+        exp_info = expts.experiment_info(experiment)
+        if len(exp_info['flux_type']) > 1 and flux_type == "":
+            sys.exit(f"User must indicate whether input flux is {exp_info['flux_type']}. Exiting.")
 
-    if flux_type != "" and flux_type not in exp_info['flux_type']:
-         sys.exit(f"User must specify flux type for {experiment} from the choices: {exp_info['flux_type']}. Exiting.")
+        if flux_type != "" and flux_type not in exp_info['flux_type']:
+             sys.exit(f"User must specify flux type for {experiment} from the choices: {exp_info['flux_type']}. Exiting.")
 
-    if exp_info['last_date'] != None:
-        if startdate < exp_info['first_date'] or enddate > exp_info['last_date']:
-            sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
-    else:
-        if startdate < exp_info['first_date']:
-            sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to present. Please change your requested dates. Exiting.")
+        if exp_info['last_date'] != None:
+            if startdate < exp_info['first_date'] or enddate > exp_info['last_date']:
+                sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
+        else:
+            if startdate < exp_info['first_date']:
+                sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to present. Please change your requested dates. Exiting.")
 
     if experiment == "GOES-RT" and flux_type == "integral":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '

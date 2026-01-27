@@ -377,13 +377,15 @@ def make_math_label(label):
     return label
 
 
-def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
+def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     energy_bins, showplot, ylog=True):
     """ Plot the fluxes for visualization only.
         
         INPUT:
         
             :experiment: (str) e.g. "GOES-13" or "user" for user input
+            :user_name: (str) if user input or if specified, will be used
+                instead of experiments
             :flux_type: (str) integral or differential
             :dates: (arr) dates for the fluxes that were evaluated
                 using event definitions, called evaluated_dates in Data obj
@@ -395,8 +397,6 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
             Multi-pane plot showing event definitions
     
     """
-    figname = f"{experiment}_Data"
-
     flux_units = tools.get_flux_units(flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = tools.get_energy_units()
@@ -405,7 +405,8 @@ def plot_fluxes_basic(experiment, flux_type, dates, fluxes,
     if experiment == "user":
         exp_name = user_name
 
-    plot_title = f"{experiment} Data"
+    figname = f"{exp_name}_Data"
+    plot_title = f"{exp_name} Data"
     
     fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)

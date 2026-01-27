@@ -5416,7 +5416,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
             energy_bins = user_bins #input into subroutine
         else:
             energy_bins = cfg.user_energy_bins #global from cfg
-        energy_bin_centers = calculate_geometric_means(energy_bins)
+        energy_bin_centers = expts.calculate_geometric_means(energy_bins)
 
     else:
         exp_info = expts.experiment_info(experiment)

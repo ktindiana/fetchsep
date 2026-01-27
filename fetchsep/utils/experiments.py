@@ -56,7 +56,8 @@ def set_flux_type(experiment):
         specify the flux type.
         
     """
-    
+    if experiment == "user":
+        return ["integral", "differential"]
     exp_info = experiment_info(experiment)
     if len(exp_info['flux_type']) == 1:
         return exp_info['flux_type'][0]
