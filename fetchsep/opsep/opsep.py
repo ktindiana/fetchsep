@@ -911,7 +911,8 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
     dointerp=False, spacecraft='', doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton', associations=False):
+    location='earth', species='proton', associations=False,
+    flare_time=''):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -950,6 +951,12 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
         :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
         :associations: (bool) If True, will look for flare, CME, etc associations
             in reference/SRAG_SEP_List_R11_CLEARversion.csv
+        :flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
+            files will be searched for a flare coincident with this time.
+            The flare_time should correspond to a time equal to or 
+            between the flare start and end time. The peak time is preferable as
+            flares are selected by minimizing between this specified time 
+            and the measured flare peak.
         
         OUTPUTS:
         
@@ -1007,8 +1014,15 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
 
     #Create Output object to write out results
     output_data = cl.Output(flux_data, json_type, spase_id=spase_id)
+
+    #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
     if associations:
-        output_data.find_srag_associations() #Associated flare, CME, etc
+        output_data.find_srag_associations()
+
+    #If user specified flare time
+    if flare_time != '':
+        output_data.add_noaa_science_flare(flare_time)
+    
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()
     event_dict_pkl = output_data.create_pkl_dict()

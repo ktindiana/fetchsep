@@ -10,6 +10,7 @@ from astropy import units as u
 import os
 import sys
 import pandas as pd
+import numpy as np
 #import git #GitPython package
 #import process
 #import re
@@ -349,6 +350,69 @@ def observation_json():
     return template
 
 
+def ccmc_cme_block():
+    cme = { 'start_time': pd.NaT,
+            'liftoff_time': pd.NaT,
+            'lat': np.nan,
+            'lon': np.nan,
+            'pa': np.nan,
+            'half_width': np.nan,
+            'speed': np.nan,
+            'acceleration': np.nan,
+            'height': np.nan,
+            'time_at_height': {'time': pd.NaT, 'height': np.nan},
+            'coordinates': '',
+            'catalog': '',
+            'catalog_id': '',
+            'urls': [],
+            'derivation_technique': {'process': '','method': '', 'measurement_type': ''}
+        }
+    return cme
+
+
+def ccmc_flare_block():
+    flare = {'last_data_time': pd.NaT,
+             'start_time': pd.NaT,
+             'peak_time': pd.NaT,
+             'end_time': pd.NaT,
+             'location': '',
+             'intensity': np.nan,
+             'integrated_intensity': np.nan,
+             'noaa_region': np.nan,
+             'peak_ratio': np.nan,
+             'catalog': '',
+             'catalog_id': '',
+             'urls': []
+        }
+    return flare
+
+
+def clean_trigger_block(trigger_dict):
+    """ Delete null or empty fields from CCMC trigger block """
+    keys = trigger_dict.keys()
+
+    bad_keys = []
+    for key in keys:
+        if isinstance(trigger_dict[key], list):
+            if len(trigger_dict[key]) == 0:
+                bad_keys.append(key)
+
+        elif isinstance(trigger_dict[key], dict):
+            if not trigger_dict[key]:
+                bad_keys.append(key)
+
+        elif pd.isnull(trigger_dict[key]):
+            bad_keys.append(key)
+            
+        elif trigger_dict[key] == '':
+            bad_keys.append(key)
+
+    for key in bad_keys:
+        del(trigger_dict[key])
+
+    return trigger_dict
+
+
 def fill_cme_trigger(template, json_type, cme_dict):
     """ Provided a dictionary with the right fields of the CME trigger
         block in the CCMC format, create and/or add to trigger block.
@@ -362,7 +426,9 @@ def fill_cme_trigger(template, json_type, cme_dict):
         cme_dict['start_time'] = make_ccmc_zulu_time(cme_dict['start_time'])
     if 'liftoff_time' in cme_dict.keys():
         cme_dict['liftoff_time'] = make_ccmc_zulu_time(cme_dict['liftoff_time'])
-    
+
+    cme_dict = clean_trigger_block(cme_dict)
+
     key, type_key, win_key, exp_key = set_keys(json_type)
     
     try:
@@ -391,6 +457,8 @@ def fill_flare_trigger(template, json_type, flare_dict):
     if 'last_data_time' in flare_dict.keys():
         flare_dict['last_data_time'] = make_ccmc_zulu_time(flare_dict['last_data_time'])
 
+    #Check for null fields and delete
+    flare_dict = clean_trigger_block(flare_dict)
 
     key, type_key, win_key, exp_key = set_keys(json_type)
     

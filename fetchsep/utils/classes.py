@@ -2,6 +2,7 @@ from . import config as cfg
 from . import error_check
 from . import read_datasets as datasets
 from . import tools
+from . import date_handler as fsdate
 from . import derive_background_opsep as bgsub
 from . import plotting_tools as plt_tools
 from . import associations as assoc
@@ -188,25 +189,6 @@ class Data:
         return
 
 
-    def str_to_datetime(self, date):
-        """ Convert string date to datetime. """
-        
-        if date == '':
-            return pd.NaT
-        
-        #If user entered zulu time or similar
-        #YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS
-        if 'T' in date:
-            date = date.replace('T', ' ')
-        if 'Z' in date:
-            date = date.replace('Z','')
-        
-        if len(date) == 10: #only YYYY-MM-DD
-            date = date  + ' 00:00:00'
-        dt = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-        return dt
-
-
     def set_dates(self, startdate, enddate):
         """ Set the start and end dates.
         
@@ -220,8 +202,8 @@ class Data:
                 Set self.startdate and self.enddate as datetime
         
         """
-        self.startdate = self.str_to_datetime(startdate)
-        self.enddate = self.str_to_datetime(enddate)
+        self.startdate = fsdate.str_to_datetime(startdate)
+        self.enddate = fsdate.str_to_datetime(enddate)
         print(f"Set analysis dates {self.startdate} to {self.enddate}")
         return
 
@@ -279,8 +261,8 @@ class Data:
         
         """
         self.doBGSubOPSEP = doBGSubOPSEP
-        self.bgstartdate = self.str_to_datetime(bgstartdate)
-        self.bgenddate = self.str_to_datetime(bgenddate)
+        self.bgstartdate = fsdate.str_to_datetime(bgstartdate)
+        self.bgenddate = fsdate.str_to_datetime(bgenddate)
         self.OPSEPEnhancement = OPSEPEnhancement
         #IF choose to do background subtraction, then automatically choose
         #to calculate enhancement above background
@@ -2074,8 +2056,10 @@ class Output:
         self.json_filename = None #output path and filename
         self.issue_time = pd.NaT
         
-        #All associations from e.g. SRAG list
+        #Find associations from the SRAG list, SRAG_SEP_List_R11_CLEARversion.csv
         self.associations = {}
+        #Specify a flare association by inputting a flare time (peak time is best)
+        self.flare_time = pd.NaT
         #Lists of CME and Flare dicts in CCMC json format
         self.cmes = []
         self.flares = []
@@ -2404,6 +2388,27 @@ class Output:
                             ]
  
         return event_info_list
+
+    def add_donki_cme(self, cme_start_time):
+        """ Use CME start time to identify CME in DONKI and extract info. """
+        cme = assoc.get_cme(cme_start_time)
+        if cme:
+            ccmc_cme = assoc.srag_to_ccmc_cme(cme)
+            self.cmes.append(ccmc_cme)
+
+
+    def add_noaa_science_flare(self, flare_time):
+        flare_time = fsdate.str_to_datetime(flare_time)
+        if pd.isnull(flare_time): return
+        flare_info = assoc.select_noaa_flare_from_time(flare_time)
+        if pd.isnull(flare_info['intensity']):
+            print(f"add_noaa_science_flare: Flare not found for {flare_time}")
+            return
+        
+        ccmc_flare = assoc.noaa_to_ccmc_flare(flare_info)
+        self.flares.append(ccmc_flare)
+        
+        return
         
 
 

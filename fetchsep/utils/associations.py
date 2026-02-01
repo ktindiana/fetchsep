@@ -37,41 +37,6 @@ def clean_file(input_path, output_path):
             outfile.write(cleaned)
 
 
-def ccmc_cme_block():
-    cme = { 'start_time': pd.NaT,
-            'liftoff_time': pd.NaT,
-            'lat': np.nan,
-            'lon': np.nan,
-            'pa': np.nan,
-            'half_width': np.nan,
-            'speed': np.nan,
-            'acceleration': np.nan,
-            'height': np.nan,
-            'time_at_height': {'time': pd.NaT, 'height': np.nan},
-            'coordinates': '',
-            'catalog': '',
-            'catalog_id': '',
-            'urls': [],
-            'derivation_technique': {'process': '','method': '', 'measurement_type': ''}
-        }
-    return cme
-
-def ccmc_flare_block():
-    flare = {'last_data_time': pd.NaT,
-             'start_time': pd.NaT,
-             'peak_time': pd.NaT,
-             'end_time': pd.NaT,
-             'location': '',
-             'intensity': np.nan,
-             'integrated_intensity': np.nan,
-             'noaa_region': np.nan,
-             'peak_ratio': np.nan,
-             'catalog': '',
-             'catalog_id': '',
-             'urls': []
-        }
-    return flare
-
 def string_location(lat, lon):
     """Put lat, lon in string location format """
     
@@ -103,7 +68,8 @@ def srag_time_columns():
 
 
 def srag_float_columns():
-    columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
+    columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
+    #'CDAW CME Width' contains text
     return columns
 
 
@@ -166,7 +132,25 @@ def cast_srag_list_time_columns(df):
         
     return df
     
-    
+
+def cast_srag_list_string_columns(df):
+    columns = srag_string_columns()
+
+    for col in columns:
+        df[col] = df[col].fillna('').astype(str)
+        df[col] = df[col].astype(str)
+        
+    return df
+
+
+def cast_srag_list_float_columns(df):
+    columns = srag_float_columns()
+
+    for col in columns:
+        df[col] = df[col].astype(float)
+        
+    return df
+
 
 def empty_srag_associations_series():
     """ Create a pandas Series with appropriate null values 
@@ -219,8 +203,11 @@ def read_srag_list():
     #Combine two separate comments columns into one
     if 'Comments1' in df.columns:
         df = combine_srag_list_comments(df)
-    
-    #Cast time columns as datetime
+
+    #Cast string columns
+    df = cast_srag_list_string_columns(df)
+
+    #Cast time columns
     df = cast_srag_list_time_columns(df)
     
     return df
@@ -320,7 +307,7 @@ def srag_to_ccmc_cme(associations):
 
     #DONKI CME
     if not pd.isnull(associations['DONKI CME Speed']):
-        cme = ccmc_cme_block()
+        cme = ccmc_json.ccmc_cme_block()
 
         cme['speed'] = associations['DONKI CME Speed']
         cme['catalog'] = 'DONKI'
@@ -381,7 +368,7 @@ def srag_to_ccmc_cme(associations):
     
     #CDAW CME
     if not pd.isnull(associations['CDAW CME Speed']):
-        cme = ccmc_cme_block()
+        cme = ccmc_json.ccmc_cme_block()
 
         cme['speed'] = associations['CDAW CME Speed']
         cme['catalog'] = 'SOHO_CDAW'
@@ -463,19 +450,31 @@ def srag_to_ccmc_flare(associations):
     
     #SWPC Xray Science Data
     if not pd.isnull(associations['Flare Xray Start Time']):
-        flare = ccmc_flare_block()
+        times = []
+        flare = ccmc_json.ccmc_flare_block()
+        times.append(associations['Flare Xray Start Time'])
         flare['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Start Time'])
 
         if not pd.isnull(associations['Flare Xray Peak Time']):
+            times.append(associations['Flare Xray Peak Time'])
             flare['peak_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Peak Time'])
         else:
             del flare['peak_time']
             
         if not pd.isnull(associations['Flare Xray End Time']):
+            times.append(associations['Flare Xray End Time'])
             flare['end_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray End Time'])
         else:
             del flare['end_time']
-        
+
+        #Calculate last_data_time
+        s = pd.Series(times)
+        last_time = s.max()
+        if not pd.isnull(last_time):
+            flare['last_data_time'] = ccmc_json.make_ccmc_zulu_time(last_time)
+        else:
+            del flare['last_data_time']
+
         if not pd.isnull(associations['Event Latitude']) and not pd.isnull(associations['Event Longitude']):
             lat = associations['Event Latitude']
             lon = associations['Event Longitude']
@@ -506,7 +505,6 @@ def srag_to_ccmc_flare(associations):
             del flare['catalog_id']
 
         #Remove unused entries
-        del flare['last_data_time']
         del flare['peak_ratio']
         del flare['urls']
  
@@ -514,19 +512,31 @@ def srag_to_ccmc_flare(associations):
  
     #SWPC X-ray operational data that is now deprecated after GOES-R launched
     if not pd.isnull(associations['Flare Xray Start Time Deprecated']):
-        flare = ccmc_flare_block()
+        times = []
+        times.append(associations['Flare Xray Start Time Deprecated'])
+        flare = ccmc_json.ccmc_flare_block()
         flare['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Start Time Deprecated'])
 
         if not pd.isnull(associations['Flare Xray Peak Time Deprecated']):
+            times.append(associations['Flare Xray Peak Time Deprecated'])
             flare['peak_time'] = associations['Flare Xray Peak Time Deprecated'].to_pydatetime()
         else:
             del flare['peak_time']
             
         if not pd.isnull(associations['Flare Xray End Time Deprecated']):
+            times.append(associations['Flare Xray End Time Deprecated'])
             flare['end_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray End Time Deprecated'])
         else:
             del flare['end_time']
-        
+
+        #Calculate last_data_time
+        s = pd.Series(times)
+        last_time = s.max()
+        if not pd.isnull(last_time):
+            flare['last_data_time'] = ccmc_json.make_ccmc_zulu_time(last_time)
+        else:
+            del flare['last_data_time']
+
         if not pd.isnull(associations['Event Latitude']) and not pd.isnull(associations['Event Longitude']):
             lat = associations['Event Latitude']
             lon = associations['Event Longitude']
@@ -552,7 +562,6 @@ def srag_to_ccmc_flare(associations):
             del flare['noaa_region']
         
         #Remove unused entries
-        del flare['last_data_time']
         del flare['peak_ratio']
         del flare['catalog_id']
         del flare['urls']
@@ -639,26 +648,35 @@ def goes_xray_sat_info():
                "GOES-16":   {"url": 'goes16',
                         "avg1m": 'sci_xrsf-l2-avg1m_g16_',
                         "flsum": 'sci_xrsf-l2-flsum_g16_',
-                        "avg_version": '_v2-2-0',
-                        "flsum_version": '_v2-2-0',
+                        "avg_version": '_v2-2-1',
+                        "flsum_version": '_v2-2-1',
                         "startdate": datetime.datetime(2017,2,7),
                         "enddate": datetime.datetime(2025,4,6)},
 
                "GOES-17":   {"url": 'goes17',
                         "avg1m": 'sci_xrsf-l2-avg1m_g17_',
                         "flsum": 'sci_xrsf-l2-flsum_g17_',
-                        "avg_version": '_v2-2-0',
-                        "flsum_version": '_v2-2-0',
+                        "avg_version": '_v2-2-1',
+                        "flsum_version": '_v2-2-1',
                         "startdate": datetime.datetime(2018,6,1),
                         "enddate": datetime.datetime(2024,8,11)},
 
                "GOES-18":   {"url": 'goes18',
                         "avg1m": 'sci_xrsf-l2-avg1m_g18_',
                         "flsum": 'sci_xrsf-l2-flsum_g18_',
-                        "avg_version": '_v2-2-0',
-                        "flsum_version": '_v2-2-0',
+                        "avg_version": '_v2-2-1',
+                        "flsum_version": '_v2-2-1',
                         "startdate": datetime.datetime(2022,9,2),
-                        "enddate": datetime.datetime.now() - datetime.timedelta(hours=24)} #update when GOES-18 ends
+                        "enddate": datetime.datetime.now()},
+
+               "GOES-19":   {"url": 'goes19',
+                        "avg1m": 'sci_xrsf-l2-avg1m_g19_',
+                        "flsum": 'sci_xrsf-l2-flsum_g19_',
+                        "avg_version": '_v2-2-1',
+                        "flsum_version": '_v2-2-1',
+                        "startdate": datetime.datetime(2025,2,24),
+                        "enddate": datetime.datetime.now()} #update when GOES-18 ends
+
               }
 
     return sat_info
@@ -677,6 +695,23 @@ def goes_xray_sat_covers_date(experiment, request_date):
         return True
     else:
         return False
+
+
+def xray_satellite_for_date(date):
+    sat_info = goes_xray_sat_info()
+    keys = list(sat_info.keys())
+    
+    #Search in reverse order for satellite that observed during desired date
+    for i in range(len(keys)-1,-1,-1):
+        stdate = sat_info[keys[i]]["startdate"]
+        enddate = sat_info[keys[i]]["enddate"]
+
+        if date >= stdate and date <= enddate:
+            satellite = keys[i]
+            return satellite
+
+    #if satellite not found
+    return None
 
 
 def check_goes_xray_science_data(startdate, enddate, experiment):
@@ -837,6 +872,7 @@ def remove_swpc_calibration(flux):
 
     return flux/0.7
 
+
 def flare_class(peak_intensity):
     """ Calculate flare class from peak intensity. """
 
@@ -861,14 +897,9 @@ def flare_class(peak_intensity):
     return fl_class
 
 
-def manual_flare_calibration(df, index):
-    """ Convert deprecated flare xray columns into fluxes that align better
-        with science-quality Xray data by removing SWPC calibration factors.
-    
-    """
-
+def flare_info_dict():
     flare_info = {  'catalog_id': None, #flare_id
-                    'catalog': 'SWPC',
+                    'catalog': '',
                     'start_time': pd.NaT,
                     'peak_time': pd.NaT,
                     'end_time': pd.NaT,
@@ -876,9 +907,20 @@ def manual_flare_calibration(df, index):
                     'time_to_peak': np.nan,
                     'intensity': np.nan,
                     'class': None,
-                    'instrument': None,
+                    'instrument': '',
                     'integrated_intensity': np.nan, #start time to end time
                 }
+    return flare_info
+
+
+def manual_flare_calibration(df, index):
+    """ Convert deprecated flare xray columns into fluxes that align better
+        with science-quality Xray data by removing SWPC calibration factors.
+    
+    """
+
+    flare_info = flare_info_dict()
+    flare_info['catalog'] = 'SWPC_MANUAL'
 
     if pd.isnull(df['Flare Magnitude Deprecated'].loc[index]):
         return flare_info
@@ -928,8 +970,7 @@ def get_unique(arr_in):
     return unique
 
 
-
-def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=None):
+def extract_noaa_flare_info(experiment, request_date, flare_info={}, req_flare_id=None):
     """ Extract information for a specific flare on a specific datetime.
         Enter a date within 15 minutes of flare start or end of for any time
         between the flare start and end.
@@ -939,7 +980,7 @@ def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=Non
         INPUTS:
         
             :experiment: (string) GOES-08, etc
-            :date: (datetime) timestamp for a date related to a specific flare,
+            :request_date: (datetime) timestamp for a date related to a specific flare,
                 can be similar to flare start, peak, end. Will look compare date to
                 15 minutes from the flare start and end.
                 
@@ -953,22 +994,13 @@ def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=Non
 
     #Define flare info
     if not flare_info:
-        flare_info = {  'catalog_id': None, #flare_id
-                        'catalog': 'NOAA_NCEI',
-                        'start_time': pd.NaT,
-                        'peak_time': pd.NaT,
-                        'end_time': pd.NaT,
-                        'duration': np.nan,
-                        'time_to_peak': np.nan,
-                        'intensity': np.nan,
-                        'class': None,
-                        'instrument': experiment,
-                        'integrated_intensity': np.nan, #start time to end time
-                    }
+        flare_info = flare_info_dict()
+        flare_info['instrument'] = experiment
+        flare_info['catalog'] = 'NOAA_NCEI'
 
     if experiment in old_goes_sc:
         #NEED TO DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES UNTIL NOAA RELEASES SCIENCE DATA
-        print(f"extract_flare_info: {experiment} X-ray science data is not yet available from NOAA. Returning.")
+        print(f"extract_noaa_flare_info: {experiment} X-ray science data is not yet available from NOAA. Returning.")
         return flare_info
 
 
@@ -984,7 +1016,7 @@ def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=Non
     fullpath = os.path.join(cfg.datapath,'GOES',flsumfile)
     flsum_exists = os.path.isfile(fullpath)
     if not flsum_exists:
-        print(f"extract_flare_info: Cannot find file {fullpath}. Run check_goes_xray_science_data to download.")
+        print(f"extract_noaa_flare_info: Cannot find file {fullpath}. Run check_goes_xray_science_data to download.")
         return flare_info
 
     data = nc.Dataset(fullpath)
@@ -1005,7 +1037,7 @@ def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=Non
     select_idx = []
     
     if req_flare_id != None:
-        print(f"extract_flare_info: User provided flare ID (catalog_id) {req_flare_id}")
+        print(f"extract_noaa_flare_info: User provided flare ID (catalog_id) {req_flare_id}")
 
 
     #-->If flare_id is specified
@@ -1015,12 +1047,14 @@ def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=Non
             #Compile all information per flare by extracting according to req_flare_id
             select_idx = [i for i in range(len(data.variables["flare_id"][:])) if data.variables["flare_id"][i]==req_flare_id]
             if len(select_idx) > 0:
-                print(f"extract_flare_info: Found flare for flare ID (catalog_id) {req_flare_id}")
+                print(f"extract_noaa_flare_info: Found flare for flare ID (catalog_id) {req_flare_id}")
 
     #-->else search according to date of flare peak
     ###############################################
     else:
+        #starting point to find least time difference between request_date and flare peak
         peak_td = datetime.timedelta(hours=24)
+
         for index, flid in enumerate(flare_ids):
             #Compile all information per flare by extracting according to flare_id
             idx = [i for i in range(len(data.variables["flare_id"][:])) if data.variables["flare_id"][i]==flid]
@@ -1043,62 +1077,89 @@ def extract_flare_info(experiment, request_date, flare_info={}, req_flare_id=Non
             #-->If flare occurred in one day
             ################################
             if flst != None and flend != None:
-                if (request_date >= flst-td) and (request_date <= flend+td):
-                    ptd = abs(flpk - request_date)
-                    if ptd < peak_td:
-                        peak_td = ptd
-                        select_idx = idx
-                        print(f"extract_flare_info: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
-
-            #-->PRECEDENCE. Just in case there are two flares close together, give precedence
-            #to the one containing requested date
-            #####################################################################
+                #-->PRECEDENCE. Just in case there are two flares close together, give precedence
+                #to the one containing requested date
+                #####################################################################
                 if (request_date >= flst) and (request_date <= flend):
                     ptd = abs(flpk - request_date)
                     if ptd < peak_td:
                         peak_td = ptd
                         select_idx = idx
-                        print(f"extract_flare_info: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
+                        print(f"extract_noaa_flare_info: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
+                #slightly looser requirements in case request_date was a bit off
+                elif (request_date >= flst-td) and (request_date <= flend+td):
+                    ptd = abs(flpk - request_date)
+                    if ptd < peak_td:
+                        peak_td = ptd
+                        select_idx = idx
+                        print(f"extract_noaa_flare_info: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
 
 
-            #-->Check if the last flare in the file is the desired one and goes on to the next day
+
+            #-->For flares without end times: account for another flare starting before the first ended
+            #or the last flare in the file is the desired one and goes on to the next day
             ######################################################################################
             if flst != None and flend == None:
-                #PRECEDENCE
+                #Case of last flare in file and requested time is between the flare start and
+                #the end of the day
                 if index == len(flare_ids)-1:
-                    flend = datetime.datetime(year,month,day,23,59,59)
-                    if (request_date >= flst-td) and (request_date <= flend+td):
+                    dayend = datetime.datetime(year,month,day,23,59,59)
+                    if (request_date >= flst-td) and (request_date <= dayend):
                         select_idx = idx
-                        print(f"extract_flare_info: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
+                        print(f"extract_noaa_flare_info: Found {experiment} flare {flst} to {dayend} for requested date {request_date}")
                         break
+                #If the flare is not the last flare and there is a peak time
                 elif flpk != None:
                     #look for the requested time within flare start and peak
-                    if (request_date >= flst-td) and (request_date <= flpk+td):
-                        ptd = abs(flpk - request_date)
-                        if ptd < peak_td:
-                            peak_td = ptd
-                            select_idx = idx
-                            print(f"extract_flare_info: Found {experiment} flare {flst} to {flpk+td} for requested date {request_date}")
-                    #PRECEDENCE
                     if (request_date >= flst) and (request_date <= flpk+td):
                         ptd = abs(flpk - request_date)
                         if ptd < peak_td:
                             peak_td = ptd
                             select_idx = idx
-                            print(f"extract_flare_info: Found {experiment} flare {flst} to {flpk+td} for requested date {request_date}")
-                
-                
+                            print(f"extract_noaa_flare_info: Found {experiment} flare {flst} to {flpk+td} for requested date {request_date}")
+                    #Slightly looser timing requirements in case the request date was a bit off
+                    elif (request_date >= flst-td) and (request_date <= flpk+td):
+                        ptd = abs(flpk - request_date)
+                        if ptd < peak_td:
+                            peak_td = ptd
+                            select_idx = idx
+                            print(f"extract_noaa_flare_info: Found {experiment} flare {flst} to {flpk+td} for requested date {request_date}")
+
+
+
+            #-->Check if the first flare in the file is the desired one and starts on the previous day
+            ######################################################################################
+            if flst == None and flend != None:
+                if index == 0:
+                    #If requested date is between the start of the day and the flare end
+                    dayst = datetime.datetime(year,month,day,0,0,0)
+                    if (request_date >= dayst) and (request_date <= flend):
+                        select_idx = idx
+                        print(f"extract_noaa_flare_info: Found {experiment} flare {dayst} to {flend} for requested date {request_date}")
+                        break
+                    #Slightly looser timing requirements in case the request date was a bit off
+                    elif flpk != None:
+                        if (request_date >= dayst) and (request_date <= flend+td):
+                            ptd = abs(flpk - request_date)
+                            if ptd < peak_td:
+                                peak_td = ptd
+                                select_idx = idx
+                                print(f"extract_noaa_flare_info: Found {experiment} flare {dayst} to {flend+td} for requested date {request_date}")
+ 
+ 
 
     #If no flare found
     if len(select_idx) == 0:
-        print(f"extract_flare_info: {experiment} flare not found for requested date {request_date}. Returning.")
+        print(f"extract_noaaflare_info: {experiment} flare not found for requested date {request_date}. Returning.")
         return flare_info
 
     #flare_id, status, xrsb_flux, flare_class, time, integrated_flux, flare_class
     for ix in select_idx:
+        if pd.isnull(flare_info['catalog_id']):
+            flare_info['catalog_id'] = int(data.variables["flare_id"][ix])
+
         if data.variables["status"][ix] == "EVENT_START":
             flare_info['start_time'] = flare_dates[ix]
-            flare_info['catalog_id'] = int(data.variables["flare_id"][ix])
             
         if data.variables["status"][ix] == "EVENT_PEAK" or data.variables["status"][ix] == "EVENT_PEAK_SATURATED":
             flare_info['peak_time'] = flare_dates[ix]
@@ -1144,12 +1205,13 @@ def update_srag_list_flares(df):
     xray_sat = ['GOES-08', 'GOES-09', 'GOES-10', 'GOES-12', 'GOES-15', 'GOES-14', 'GOES-16', 'GOES-18', 'GOES-11', 'GOES-17']
 
     #Add a column for Flare ID at end of flare info
-    idx = df.columns.get_loc('Flare Xray Time To Peak')
-    df.insert(loc=idx + 1, column='Flare Catalog ID', value=[None]*len(df['Flare Xray Time To Peak']))
+    if 'Flare Catalog ID' not in df.columns:
+        idx = df.columns.get_loc('Flare Xray Time To Peak')
+        df.insert(loc=idx + 1, column='Flare Catalog ID', value=[None]*len(df['Flare Xray Time To Peak']))
 
 
     for index, row in df.iterrows():
-        
+
         #Check if a flare was provided in the SRAG list
         if pd.isnull(row['Flare Magnitude Deprecated']):
             continue
@@ -1169,7 +1231,7 @@ def update_srag_list_flares(df):
         #########################
         if experiment in old_goes_sc:
             #NEED TO DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES UNTIL NOAA RELEASES SCIENCE DATA
-            print(f"extract_flare_info: {experiment} X-ray science data is not yet available from NOAA. Manually removing SWPC calibration factor per NOAA guidance.")
+            print(f"update_srag_list_flares: {experiment} X-ray science data is not yet available from NOAA. Manually removing SWPC calibration factor per NOAA guidance.")
             flare_info = manual_flare_calibration(df, index)
             
         #Ian's List
@@ -1190,7 +1252,7 @@ def update_srag_list_flares(df):
                     continue
                 
                 check_goes_xray_science_data(stdate, enddate, experiment)
-                flare_info = extract_flare_info(experiment, request_date)
+                flare_info = extract_noaa_flare_info(experiment, request_date)
                 if not pd.isnull(flare_info['catalog_id']):
                     #The time provided in the IGR list aren't always accurate enough to find the correct
                     #flare. Us the deprecated peak value provided to compare with the identified flare.
@@ -1210,7 +1272,7 @@ def update_srag_list_flares(df):
             #-->If didn't find a measurement in the science data, then apply calibration manually
             if not flare_info and request_date < goes_r_primary_date:
                 #DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
-                print(f"extract_flare_info: Manually removing SWPC calibration factor from value provided in Ian Richardson's list.")
+                print(f"update_srag_list_flares: Manually removing SWPC calibration factor from value provided in Ian Richardson's list.")
                 flare_info = manual_flare_calibration(df, index)
 
         #Steve's List
@@ -1225,7 +1287,7 @@ def update_srag_list_flares(df):
             
             #-->Find flare in experiment specified in Steve's list
             check_goes_xray_science_data(stdate, enddate, experiment)
-            flare_info = extract_flare_info(experiment, request_date)
+            flare_info = extract_noaa_flare_info(experiment, request_date)
             
             #-->If that particular satellite didn't have the needed data, search for flare
             if not goes_xray_sat_covers_date(experiment, request_date) or pd.isnull(flare_info['catalog_id']):
@@ -1234,21 +1296,21 @@ def update_srag_list_flares(df):
                         continue
                     
                     check_goes_xray_science_data(stdate, enddate, experiment)
-                    flare_info = extract_flare_info(experiment, request_date)
+                    flare_info = extract_noaa_flare_info(experiment, request_date)
                     if not pd.isnull(flare_info['catalog_id']):
                         break
 
             #-->If didn't find a measurement in the science data, then apply calibration manually
             if pd.isnull(flare_info['catalog_id']) and request_date < goes_r_primary_date:
                 #DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
-                print(f"extract_flare_info: Manually removing SWPC calibration factor from value provided in Steve Johnson's SRAG list.")
+                print(f"update_srag_list_flares: Manually removing SWPC calibration factor from value provided in Steve Johnson's SRAG list.")
                 flare_info = manual_flare_calibration(df, index)
 
         #If none of the above and no experiment
         #######################################
         elif pd.isnull(experiment) and request_date < goes_r_primary_date:
             #Manually DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
-            print(f"extract_flare_info: No experiment specified and date prior to {goes_r_primary_date}. Manually removing SWPC calibration factor per NOAA guidance.")
+            print(f"update_srag_list_flares: No experiment specified and date prior to {goes_r_primary_date}. Manually removing SWPC calibration factor per NOAA guidance.")
             flare_info = manual_flare_calibration(df, index)
 
 
@@ -1260,9 +1322,8 @@ def update_srag_list_flares(df):
         #If found the flare in the flare summary files, but it spans files on two days
         if not pd.isnull(flare_info['catalog_id']):
             if not pd.isnull(flare_info['start_time']) and pd.isnull(flare_info['end_time']):
-                print(flare_info)
                 #Look for the flare end in the file for the next day
-                flare_info = extract_flare_info(flare_info['instrument'], request_date+datetime.timedelta(hours=24), flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+                flare_info = extract_noaa_flare_info(flare_info['instrument'], request_date+datetime.timedelta(hours=24), flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
 
         #If experiment covered date range, but didn't have requested flare info
         if pd.isnull(flare_info['intensity']): continue
@@ -1286,6 +1347,84 @@ def update_srag_list_flares(df):
             df.loc[index,'GOES Xray Satellite'] = None
         
     return df
+
+
+def select_noaa_flare_from_time(request_time):
+    """ Pull flare data from NOAA using the peak time to specify
+        the flare. The peak is the most robust time to use, but
+        can input any time between the start and end time of
+        a flare.
+        
+    """
+    flare_info = {}
+    
+    experiment = xray_satellite_for_date(request_time)
+    if experiment == None:
+        print(f"select_noaa_flare_from_time: Could not find a satellite that covers your requested date.")
+        return flare_info
+
+    #Download flsum files from NOAA
+    search_start = request_time-datetime.timedelta(hours=24)
+    search_end = request_time+datetime.timedelta(hours=24)
+    check_goes_xray_science_data(search_start, search_end, experiment)
+    #Extract flare info for specified flare time
+    flare_info = extract_noaa_flare_info(experiment, request_time)
+
+    #If found the flare in the flare summary files, but it spans files on two days
+    if not pd.isnull(flare_info['catalog_id']):
+        if not pd.isnull(flare_info['start_time']) and pd.isnull(flare_info['end_time']):
+            print(flare_info)
+            #Look for the flare end in the file for the next day
+            flare_info = extract_noaa_flare_info(flare_info['instrument'], request_time+datetime.timedelta(hours=24), flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+
+        if pd.isnull(flare_info['start_time']) and not pd.isnull(flare_info['end_time']):
+            print(flare_info)
+            #Look for the flare end in the file for the next day
+            flare_info = extract_noaa_flare_info(flare_info['instrument'], request_time-datetime.timedelta(hours=24), flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+
+    return flare_info
+
+
+
+def noaa_to_ccmc_flare(flare_info):
+    """ Convert the flare_info dictionary into the CCMC trigger format """
+#        flare_info = {  'catalog_id': None, #flare_id
+#                        'catalog': 'NOAA_NCEI',
+#                        'start_time': pd.NaT,
+#                        'peak_time': pd.NaT,
+#                        'end_time': pd.NaT,
+#                        'duration': np.nan,
+#                        'time_to_peak': np.nan,
+#                        'intensity': np.nan,
+#                        'class': None,
+#                        'instrument': experiment,
+#                        'integrated_intensity': np.nan, #start time to end time
+#                    }
+
+
+    ccmc_flare = ccmc_json.ccmc_flare_block()
+    
+    times = [flare_info['start_time'], flare_info['peak_time'], flare_info['end_time']]
+    #Calculate last_data_time
+    s = pd.Series(times)
+    last_time = s.max()
+    if not pd.isnull(last_time):
+        ccmc_flare['last_data_time'] = ccmc_json.make_ccmc_zulu_time(last_time)
+    else:
+        del ccmc_flare['last_data_time']
+
+    ccmc_flare['start_time'] = ccmc_json.make_ccmc_zulu_time(flare_info['start_time'])
+    ccmc_flare['peak_time'] = ccmc_json.make_ccmc_zulu_time(flare_info['peak_time'])
+    ccmc_flare['end_time'] = ccmc_json.make_ccmc_zulu_time(flare_info['end_time'])
+    ccmc_flare['intensity'] = flare_info['intensity']
+    ccmc_flare['integrated_intensity'] = flare_info['integrated_intensity']
+    ccmc_flare['catalog'] = flare_info['catalog']
+    ccmc_flare['catalog_id'] = flare_info['catalog_id']
+
+    ccmc_flare = ccmc_json.clean_trigger_block(ccmc_flare)
+    print(ccmc_flare)
+    return ccmc_flare
+
 
 
 ##########################################################
@@ -1505,12 +1644,15 @@ def get_cme(starttime):
 def update_srag_list_donki_cme(df):
     """ Add DONKI CME information to SRAG SEP list """
     
-    #Add a column for DONKI CME Feature
-    idx = df.columns.get_loc('DONKI CME Time at 21.5')
-    df.insert(loc=idx + 1, column='DONKI CME Feature', value=[None]*len(df['DONKI CME Time at 21.5']))
-    #Add a column for DONKI CME Measurement Technique
-    idx = df.columns.get_loc('DONKI CME Feature')
-    df.insert(loc=idx + 1, column='DONKI CME Measurement Technique', value=[None]*len(df['DONKI CME Feature']))
+    if 'DONKI CME Feature' not in df.columns:
+        #Add a column for DONKI CME Feature
+        idx = df.columns.get_loc('DONKI CME Time at 21.5')
+        df.insert(loc=idx + 1, column='DONKI CME Feature', value=[None]*len(df['DONKI CME Time at 21.5']))
+
+    if 'DONKI CME Measurement Technique' not in df.columns:
+        #Add a column for DONKI CME Measurement Technique
+        idx = df.columns.get_loc('DONKI CME Feature')
+        df.insert(loc=idx + 1, column='DONKI CME Measurement Technique', value=[None]*len(df['DONKI CME Feature']))
 
     for index, row in df.iterrows():
         starttime = row['CDAW CME First Look Time']
@@ -1557,5 +1699,5 @@ def update_srag_list_associations():
     df = update_srag_list_donki_cme(df)
 
     outfname = os.path.join('fetchsep','reference','SRAG_SEP_List_R11_CLEARversion_UPDATED.csv')
-    df.to_csv(outfname)
+    df.to_csv(outfname, index=False)
     print(f"Wrote updated SEP list to {outfname}")

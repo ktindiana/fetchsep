@@ -1,4 +1,5 @@
 import datetime
+import pandas as pd
 
 """ Various subroutines to convert strings to dates
     and dates to different formats.
@@ -9,14 +10,29 @@ def str_to_datetime(date):
         
         INPUTS:
         
-        :date: (string) - date as "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+        :date: (string) - date as "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS" or YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS
         
         OUTPUTS:
         
         :dt: (datetime) - datetime conversion of date
     """
+        
+    if date == '':
+        return pd.NaT
+    
+    #If user entered zulu time or similar
+    #YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS
+    if 'T' in date:
+        date = date.replace('T', ' ')
+    if 'Z' in date:
+        date = date.replace('Z','')
+    
     if len(date) == 10: #only YYYY-MM-DD
         date = date  + ' 00:00:00'
+        
+    if len(date) == 16: #only YYYY-MM-DD HH:MM
+        date = date  + ':00'
+        
     dt = datetime.datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
     return dt
 
