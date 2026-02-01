@@ -1,11 +1,11 @@
 from ..utils import config as cfg
+from ..utils import date_handler as dh
 from . import keys
 import json
 import calendar
 import datetime
 from datetime import timedelta
 import copy
-import zulu
 from astropy import units as u
 import os
 import sys
@@ -173,71 +173,6 @@ def about_ccmc_json_handler():
              
         
     """
-
-def make_ccmc_zulu_time(dt):
-    """ Make a datetime string in the format YYYY-MM-DDTHH:MM:SSZ
-        
-        INPUTS:
-        
-        :dt: (datetime)
-        
-        OUTPUTS:
-        
-        :zuludate: (string) in the format YYYY-MM-DDTHH:MM:SSZ
-    
-    """
-    if dt == '':
-        return ''
-    if dt == None:
-        return None
-    if dt is pd.NaT:
-        return pd.NaT
-    if dt == 0:
-        return 0
-
-    if isinstance(dt,str):
-        if ("T" in dt) and ("Z" in dt):
-            return dt
-
-    zdt = zulu.create(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    stzdt = str(zdt)
-    stzdt = stzdt.split('+00:00')
-    zuludate = stzdt[0] + "Z"
-    return zuludate
- 
- 
-def zulu_to_time(zt):
-    """ Convert Zulu time to datetime
-    
-        INPUTS:
-        
-        :zt: (string) - date in the format "YYYY-MM-DDTHH:MM:SSZ"
-        
-        OUTPUTS:
-        
-        :dt: (datetime)
-        
-    """
-    #Time e.g. 2014-01-08T05:05:00Z or 2012-07-12T22:25Z
-    if zt == '':
-        return ''
-    if zt == None:
-        return None
-    if zt is pd.NaT:
-        return pd.NaT
-    if zt == 0:
-        return 0
-  
-    strzt = zt.split('T')
-    strzt[1] = strzt[1].strip('Z')
-    n = strzt[1].split(':')
-    stdt = strzt[0] + ' ' + strzt[1]
-
-    if len(n) == 2:
-        dt = datetime.datetime.strptime(stdt, '%Y-%m-%d %H:%M')
-    if len(n) == 3:
-        dt = datetime.datetime.strptime(stdt, '%Y-%m-%d %H:%M:%S')
-    return dt
 
 
 def find_energy_bin(lowedge, energy_bins):
@@ -423,9 +358,9 @@ def fill_cme_trigger(template, json_type, cme_dict):
         return template
 
     if 'start_time' in cme_dict.keys():
-        cme_dict['start_time'] = make_ccmc_zulu_time(cme_dict['start_time'])
+        cme_dict['start_time'] = dh.time_to_zulu(cme_dict['start_time'])
     if 'liftoff_time' in cme_dict.keys():
-        cme_dict['liftoff_time'] = make_ccmc_zulu_time(cme_dict['liftoff_time'])
+        cme_dict['liftoff_time'] = dh.time_to_zulu(cme_dict['liftoff_time'])
 
     cme_dict = clean_trigger_block(cme_dict)
 
@@ -449,13 +384,13 @@ def fill_flare_trigger(template, json_type, flare_dict):
         return template
         
     if 'start_time' in flare_dict.keys():
-        flare_dict['start_time'] = make_ccmc_zulu_time(flare_dict['start_time'])
+        flare_dict['start_time'] = dh.time_to_zulu(flare_dict['start_time'])
     if 'peak_time' in flare_dict.keys():
-        flare_dict['peak_time'] = make_ccmc_zulu_time(flare_dict['peak_time'])
+        flare_dict['peak_time'] = dh.time_to_zulu(flare_dict['peak_time'])
     if 'end_time' in flare_dict.keys():
-        flare_dict['end_time'] = make_ccmc_zulu_time(flare_dict['end_time'])
+        flare_dict['end_time'] = dh.time_to_zulu(flare_dict['end_time'])
     if 'last_data_time' in flare_dict.keys():
-        flare_dict['last_data_time'] = make_ccmc_zulu_time(flare_dict['last_data_time'])
+        flare_dict['last_data_time'] = dh.time_to_zulu(flare_dict['last_data_time'])
 
     #Check for null fields and delete
     flare_dict = clean_trigger_block(flare_dict)
@@ -476,7 +411,7 @@ def fill_json_header(json_type, issue_time, experiment,
     spacecraft=None):
     """ Fill in top level header information in json """
     
-    zissue = make_ccmc_zulu_time(issue_time)
+    zissue = dh.time_to_zulu(issue_time)
     
     short_name = experiment
     if user_name:
@@ -570,17 +505,17 @@ def fill_json_block(template, json_type, energy_channel, threshold_dict, startda
     key, type_key, win_key, exp_key = set_keys(json_type)
 
     #Process times into the correct format
-    zst = make_ccmc_zulu_time(startdate)
+    zst = dh.time_to_zulu(startdate)
     if pd.isnull(zst): zst = ""
-    zend = make_ccmc_zulu_time(enddate)
+    zend = dh.time_to_zulu(enddate)
     if pd.isnull(zend): zend = ""
-    zodate = make_ccmc_zulu_time(onset_peak_time)
+    zodate = dh.time_to_zulu(onset_peak_time)
     if pd.isnull(zodate): zodate = ""
-    zpdate = make_ccmc_zulu_time(max_flux_time)
+    zpdate = dh.time_to_zulu(max_flux_time)
     if pd.isnull(zpdate): zpdate = ""
-    zct = make_ccmc_zulu_time(sep_start_time)
+    zct = dh.time_to_zulu(sep_start_time)
     if pd.isnull(zct): zct = ""
-    zeet = make_ccmc_zulu_time(sep_end_time)
+    zeet = dh.time_to_zulu(sep_end_time)
     if pd.isnull(zeet): zeet = ""
 
     ######## Evaluate All Clear ##########
@@ -1088,7 +1023,7 @@ def return_json_value_by_energy(injson, value, energy_channel={}, index=0):
             for key in key_chain:
                 if isinstance(key,int): continue
                 if 'time' in key:
-                    sub = zulu_to_time(sub)
+                    sub = dh.zulu_to_time(sub)
         
         return sub #extracted down to a final value
     
@@ -1146,7 +1081,7 @@ def return_json_value_by_energy(injson, value, energy_channel={}, index=0):
         for key in key_chain:
             if isinstance(key,int): continue
             if 'time' in key:
-                sub = zulu_to_time(sub)
+                sub = dh.zulu_to_time(sub)
     
     return sub #extracted down to a final value
                     
@@ -1266,7 +1201,7 @@ def return_json_value_by_index(injson, value, channel_index=0, index=0):
             for key in key_chain:
                 if isinstance(key,int): continue
                 if 'time' in key:
-                    sub = zulu_to_time(sub)
+                    sub = dh.zulu_to_time(sub)
         
         return sub #extracted down to a final value
     
@@ -1314,7 +1249,7 @@ def return_json_value_by_index(injson, value, channel_index=0, index=0):
         for key in key_chain:
             if isinstance(key,int): continue
             if 'time' in key:
-                sub = zulu_to_time(sub)
+                sub = dh.zulu_to_time(sub)
     
     return sub #extracted down to a final value
 
@@ -1449,7 +1384,7 @@ def return_json_value_by_threshold(injson, value, energy_channel={}, threshold=0
             for key in key_chain:
                 if isinstance(key,int): continue
                 if 'time' in key:
-                    sub = zulu_to_time(sub)
+                    sub = dh.zulu_to_time(sub)
         
         return sub #extracted down to a final value
     
@@ -1546,7 +1481,7 @@ def return_json_value_by_threshold(injson, value, energy_channel={}, threshold=0
         for key in key_chain:
             if isinstance(key,int): continue
             if 'time' in key:
-                sub = zulu_to_time(sub)
+                sub = dh.zulu_to_time(sub)
     
     return sub #extracted down to a final value
 

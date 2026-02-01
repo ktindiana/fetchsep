@@ -1,6 +1,6 @@
 from ..utils import config as cfg
 from ..utils import read_datasets as datasets
-from ..utils import date_handler as dateh
+from ..utils import date_handler as dh
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
 from ..utils import tools
@@ -183,8 +183,8 @@ def get_data(str_startdate, str_enddate, experiment,
             print("Making directory:", path)
             os.mkdir(path)
 
-    startdate = dateh.str_to_datetime(str_startdate)
-    enddate = dateh.str_to_datetime(str_enddate)
+    startdate = dh.str_to_datetime(str_startdate)
+    enddate = dh.str_to_datetime(str_enddate)
     
     options = options.split(";")
 

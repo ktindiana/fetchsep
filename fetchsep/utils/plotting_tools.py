@@ -1,5 +1,6 @@
 from . import config as cfg
 from . import tools
+from . import date_handler as dh
 from ..json import ccmc_json_handler as ccmc_json
 import numpy as np
 import pandas as pd
@@ -346,7 +347,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
 
 ####PLOTTING FOR find_max_curvature in tools.py
 #    if showplot or saveplot:
-#        tzulu = ccmc_json.make_ccmc_zulu_time(crossing_time)
+#        tzulu = dh.time_to_zulu(crossing_time)
 #        tzulu = tzulu.replace(":","")
 #        figname = tzulu + "_" + "SecondDerivative_" + experiment + "_"\
 #                + str(energy_threshold) + "MeV"

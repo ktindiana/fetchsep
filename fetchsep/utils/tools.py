@@ -1,6 +1,7 @@
 from . import config as cfg
 from . import goes
 from . import experiments as expts
+from . import date_handler as dh
 from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import datetime
@@ -229,7 +230,7 @@ def opsep_naming_scheme(date, suffix, experiment, flux_type, exp_name, options,
     IDSEPEnhancement=False):
     """ Create naming scheme for subfolders in output/idsep """
 
-    tzulu = ccmc_json.make_ccmc_zulu_time(date)
+    tzulu = dh.time_to_zulu(date)
     tzulu = tzulu.replace(":","")
 
     modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
@@ -284,7 +285,7 @@ def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, f
             options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
             doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
             IDSEPEnhancement=IDSEPEnhancement)
-        tzulu = ccmc_json.make_ccmc_zulu_time(dates[0])
+        tzulu = dh.time_to_zulu(dates[0])
         tzulu = tzulu.replace(":","")
         fname = f"{dir}.{tzulu}.csv"
         if suffix != '':

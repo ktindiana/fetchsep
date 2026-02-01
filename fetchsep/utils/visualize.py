@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from . import config as cfg
 from . import tools
 from . import plotting_tools as plt_tools
+from . import date_handler as dh
 from ..json import ccmc_json_handler as ccmc_json
 import pandas as pd
 import numpy as np
@@ -101,7 +102,7 @@ def read_ccmc_time_series(filename):
         for line in file:
             line = line.strip().split()
             if line == '': continue
-            date = ccmc_json.zulu_to_time(line[0])
+            date = dh.zulu_to_time(line[0])
             flux = float(line[1])
             dates.append(date)
             fluxes.append(flux)

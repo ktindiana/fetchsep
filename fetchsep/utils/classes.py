@@ -2,7 +2,7 @@ from . import config as cfg
 from . import error_check
 from . import read_datasets as datasets
 from . import tools
-from . import date_handler as fsdate
+from . import date_handler as dh
 from . import derive_background_opsep as bgsub
 from . import plotting_tools as plt_tools
 from . import associations as assoc
@@ -202,8 +202,8 @@ class Data:
                 Set self.startdate and self.enddate as datetime
         
         """
-        self.startdate = fsdate.str_to_datetime(startdate)
-        self.enddate = fsdate.str_to_datetime(enddate)
+        self.startdate = dh.str_to_datetime(startdate)
+        self.enddate = dh.str_to_datetime(enddate)
         print(f"Set analysis dates {self.startdate} to {self.enddate}")
         return
 
@@ -261,8 +261,8 @@ class Data:
         
         """
         self.doBGSubOPSEP = doBGSubOPSEP
-        self.bgstartdate = fsdate.str_to_datetime(bgstartdate)
-        self.bgenddate = fsdate.str_to_datetime(bgenddate)
+        self.bgstartdate = dh.str_to_datetime(bgstartdate)
+        self.bgenddate = dh.str_to_datetime(bgenddate)
         self.OPSEPEnhancement = OPSEPEnhancement
         #IF choose to do background subtraction, then automatically choose
         #to calculate enhancement above background
@@ -2101,9 +2101,9 @@ class Output:
         now = datetime.datetime.now()
         self.issue_time = now
         
-        issue_time = ccmc_json.make_ccmc_zulu_time(now)
+        issue_time = dh.time_to_zulu(now)
         issue_time = issue_time.replace(":","")
-        zstdate = ccmc_json.make_ccmc_zulu_time(self.data.startdate)
+        zstdate = dh.time_to_zulu(self.data.startdate)
         zstdate = zstdate.replace(":","")
 
         #Filenames for observations don't include issue time
@@ -2163,7 +2163,7 @@ class Output:
         fname = os.path.join(cfg.outpath,'opsep', self.subdir, analyze.sep_profile)
         outfile = open(fname, "w")
         for i in range(len(analyze.dates)):
-            zdate = ccmc_json.make_ccmc_zulu_time(analyze.dates[i])
+            zdate = dh.time_to_zulu(analyze.dates[i])
             outfile.write(zdate + "    " + str(analyze.flux[i]) + "\n")
             
         outfile.close()
@@ -2398,7 +2398,7 @@ class Output:
 
 
     def add_noaa_science_flare(self, flare_time):
-        flare_time = fsdate.str_to_datetime(flare_time)
+        flare_time = dh.str_to_datetime(flare_time)
         if pd.isnull(flare_time): return
         flare_info = assoc.select_noaa_flare_from_time(flare_time)
         if pd.isnull(flare_info['intensity']):

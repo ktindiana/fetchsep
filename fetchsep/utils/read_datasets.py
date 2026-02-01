@@ -1,6 +1,7 @@
 from . import config as cfg
 from . import tools
 from . import experiments as expts
+from . import date_handler as dh
 import pandas as pd
 import re
 import calendar
@@ -4982,6 +4983,8 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     nhead = nhead + 1
                 elif line[0] == "#" or line[0] == '\"':
                     nhead = nhead + 1
+                elif 'dates' in line: #output from idsep and opsep
+                    nhead = nhead + 1
                 else:
                     break
             #number of lines containing data
@@ -5016,27 +5019,20 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     #A delimeter other than whitespace
                     if cfg.user_delim != " " and cfg.user_delim != "":
                         row = line.split(cfg.user_delim)
-                        str_date = row[0][0:19]
-                        #Allow possibility that date is in zulu or similar time
-                        if 'T' in str_date:
-                            str_date = str_date.replace('T', ' ')
+                        str_date = row[0]
  
                     #White space as a delimeter
                     if cfg.user_delim == " " or cfg.user_delim == "":
                         row = line.split()
                         if 'T' in row[0]:
-                            str_date = row[0].replace('T', ' ')
-                            if 'Z' in str_date:
-                                str_date = str_date.replace('Z','')
- 
+                            str_date = row[0]
                         else:
                             str_date = row[0][0:10] + ' ' + row[1][0:8]
                             #Shift flux columns in user file by 1 b/c date in first two cols
                             #and user was told to consider the date as a single column
                             user_col_mod = [ix+1 for ix in cfg.user_col]
 
-
-                    date = datetime.datetime.strptime(str_date, "%Y-%m-%d %H:%M:%S")
+                    date = dh.str_to_datetime(str_date)
                 
                     
                 #apply a time shift to user data with the variable
@@ -5055,8 +5051,10 @@ def read_in_user_files(filenames1, is_unixtime=False):
                             "columns). Did you set the correct information in config.py, "
                             "including the delimeter?")
                     row[user_col_mod[j]] = row[user_col_mod[j]].rstrip()
-                    if row[user_col_mod[j]] == 'n/a': #REleASE
-                        flux = None
+                    if row[user_col_mod[j]] in cfg.all_badval: #commonly assigned bad data values
+                        flux = cfg.badval
+                    elif row[user_col_mod[j]] == '':
+                        flux = cfg.badval
                     else:
                         flux = float(row[user_col_mod[j]])
                         if flux < 0:

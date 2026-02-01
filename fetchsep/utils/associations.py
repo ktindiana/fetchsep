@@ -1,6 +1,7 @@
 from . import config as cfg
 from ..json import ccmc_json_handler as ccmc_json
 from . import experiments as expts
+from . import date_handler as dh
 import pandas as pd
 import os
 import sys
@@ -319,7 +320,7 @@ def srag_to_ccmc_cme(associations):
             del cme['derivation_technique']['method']
 
         if not pd.isnull(associations['DONKI CME Start Time']):
-            cme['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['DONKI CME Start Time'])
+            cme['start_time'] = dh.time_to_zulu(associations['DONKI CME Start Time'])
         else:
             del cme['start_time']
 
@@ -347,7 +348,7 @@ def srag_to_ccmc_cme(associations):
             del cme['half_width']
 
         if not pd.isnull(associations['DONKI CME Time at 21.5']):
-            cme['time_at_height']['time'] = ccmc_json.make_ccmc_zulu_time(associations['DONKI CME Time at 21.5'])
+            cme['time_at_height']['time'] = dh.time_to_zulu(associations['DONKI CME Time at 21.5'])
             cme['time_at_height']['height'] = 21.5
         else:
             del cme['time_at_height']
@@ -453,17 +454,17 @@ def srag_to_ccmc_flare(associations):
         times = []
         flare = ccmc_json.ccmc_flare_block()
         times.append(associations['Flare Xray Start Time'])
-        flare['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Start Time'])
+        flare['start_time'] = dh.time_to_zulu(associations['Flare Xray Start Time'])
 
         if not pd.isnull(associations['Flare Xray Peak Time']):
             times.append(associations['Flare Xray Peak Time'])
-            flare['peak_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Peak Time'])
+            flare['peak_time'] = dh.time_to_zulu(associations['Flare Xray Peak Time'])
         else:
             del flare['peak_time']
             
         if not pd.isnull(associations['Flare Xray End Time']):
             times.append(associations['Flare Xray End Time'])
-            flare['end_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray End Time'])
+            flare['end_time'] = dh.time_to_zulu(associations['Flare Xray End Time'])
         else:
             del flare['end_time']
 
@@ -471,7 +472,7 @@ def srag_to_ccmc_flare(associations):
         s = pd.Series(times)
         last_time = s.max()
         if not pd.isnull(last_time):
-            flare['last_data_time'] = ccmc_json.make_ccmc_zulu_time(last_time)
+            flare['last_data_time'] = dh.time_to_zulu(last_time)
         else:
             del flare['last_data_time']
 
@@ -515,7 +516,7 @@ def srag_to_ccmc_flare(associations):
         times = []
         times.append(associations['Flare Xray Start Time Deprecated'])
         flare = ccmc_json.ccmc_flare_block()
-        flare['start_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray Start Time Deprecated'])
+        flare['start_time'] = dh.time_to_zulu(associations['Flare Xray Start Time Deprecated'])
 
         if not pd.isnull(associations['Flare Xray Peak Time Deprecated']):
             times.append(associations['Flare Xray Peak Time Deprecated'])
@@ -525,7 +526,7 @@ def srag_to_ccmc_flare(associations):
             
         if not pd.isnull(associations['Flare Xray End Time Deprecated']):
             times.append(associations['Flare Xray End Time Deprecated'])
-            flare['end_time'] = ccmc_json.make_ccmc_zulu_time(associations['Flare Xray End Time Deprecated'])
+            flare['end_time'] = dh.time_to_zulu(associations['Flare Xray End Time Deprecated'])
         else:
             del flare['end_time']
 
@@ -533,7 +534,7 @@ def srag_to_ccmc_flare(associations):
         s = pd.Series(times)
         last_time = s.max()
         if not pd.isnull(last_time):
-            flare['last_data_time'] = ccmc_json.make_ccmc_zulu_time(last_time)
+            flare['last_data_time'] = dh.time_to_zulu(last_time)
         else:
             del flare['last_data_time']
 
@@ -1409,13 +1410,13 @@ def noaa_to_ccmc_flare(flare_info):
     s = pd.Series(times)
     last_time = s.max()
     if not pd.isnull(last_time):
-        ccmc_flare['last_data_time'] = ccmc_json.make_ccmc_zulu_time(last_time)
+        ccmc_flare['last_data_time'] = dh.time_to_zulu(last_time)
     else:
         del ccmc_flare['last_data_time']
 
-    ccmc_flare['start_time'] = ccmc_json.make_ccmc_zulu_time(flare_info['start_time'])
-    ccmc_flare['peak_time'] = ccmc_json.make_ccmc_zulu_time(flare_info['peak_time'])
-    ccmc_flare['end_time'] = ccmc_json.make_ccmc_zulu_time(flare_info['end_time'])
+    ccmc_flare['start_time'] = dh.time_to_zulu(flare_info['start_time'])
+    ccmc_flare['peak_time'] = dh.time_to_zulu(flare_info['peak_time'])
+    ccmc_flare['end_time'] = dh.time_to_zulu(flare_info['end_time'])
     ccmc_flare['intensity'] = flare_info['intensity']
     ccmc_flare['integrated_intensity'] = flare_info['integrated_intensity']
     ccmc_flare['catalog'] = flare_info['catalog']

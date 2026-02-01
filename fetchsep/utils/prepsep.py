@@ -1,5 +1,6 @@
 from ..opsep import opsep
 from . import config as cfg
+from . import date_handler as dh
 from ..json import keys
 from ..json import ccmc_json_handler as ccmc_json
 from . import tools
@@ -100,10 +101,10 @@ def make_observation_window_list(path):
             #Observation Window
             obs_win = ccmc_json.return_json_value_by_index(data,id_pred_win,0)
             str_obs_win_st = obs_win["start_time"]
-            obs_st = ccmc_json.zulu_to_time(str_obs_win_st)
+            obs_st = dh.zulu_to_time(str_obs_win_st)
             
             str_obs_win_end = obs_win["end_time"]
-            obs_end = ccmc_json.zulu_to_time(str_obs_win_end)
+            obs_end = dh.zulu_to_time(str_obs_win_end)
 
             win_st.append(obs_st)
             win_end.append(obs_end)
@@ -234,10 +235,10 @@ def check_for_sep(path):
             #Observation Window
             obs_win = ccmc_json.return_json_value_by_index(data,id_pred_win,i)
             str_obs_win_st = obs_win["start_time"]
-            obs_st = ccmc_json.zulu_to_time(str_obs_win_st)
+            obs_st = dh.zulu_to_time(str_obs_win_st)
             
             str_obs_win_end = obs_win["end_time"]
-            obs_end = ccmc_json.zulu_to_time(str_obs_win_end)
+            obs_end = dh.zulu_to_time(str_obs_win_end)
 
             #Threshold Crossings
             thresh_crossings = ccmc_json.return_json_value_by_index(data,thresh_id,i)
@@ -256,7 +257,7 @@ def check_for_sep(path):
                     thresh_key = ccmc_json.threshold_to_key(threshold)
                     
                     str_cross_time = tc["crossing_time"]
-                    cross_time = ccmc_json.zulu_to_time(str_cross_time)
+                    cross_time = dh.zulu_to_time(str_cross_time)
                     if pd.isnull(cross_time) or cross_time == 0\
                         or cross_time == '':
                         continue
@@ -370,7 +371,7 @@ def move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep, obs_st,
     
     """
     #Move the quiet and approved observations
-    zulu_st = ccmc_json.make_ccmc_zulu_time(obs_st)
+    zulu_st = dh.time_to_zulu(obs_st)
     zulu_st = zulu_st.replace(':','')
     
     selectfiles = [f for f in allfiles if zulu_st in f]
@@ -382,7 +383,7 @@ def move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep, obs_st,
         print(df)
         for sep in df["Threshold Crossing Time"]:
             if not pd.isnull(sep):
-                zulu_sep = ccmc_json.make_ccmc_zulu_time(sep)
+                zulu_sep = dh.time_to_zulu(sep)
                 zulu_sep = zulu_sep.replace(':','')
                 selectplots2 = [f for f in allplots if zulu_sep in f]
                 if selectplots2:
