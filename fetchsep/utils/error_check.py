@@ -57,7 +57,7 @@ def error_check_options(experiment, flux_type, options, subroutine=None,
 
 
 def error_check_inputs(startdate, enddate, experiment, flux_type,
-    json_type=None, is_diff_thresh=[], subroutine=None):
+    json_type=None, json_mode='', is_diff_thresh=[], subroutine=None):
     """ Check that all of the user inputs make sense and fall within bounds.
         
         INPUTS:
@@ -67,6 +67,8 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         :experiment: (string) - name of experiment specifed by user
         :flux_type: (string) - integral or differential
         :json_type: (string) - model or observations, only needed if "user" experiment
+        :json_mode: (string) - measurement (for observations), or values like forecast,
+            historical, simulated_realtime_forecast for model
         :is_diff_thresh: (bool 1xn array) - where n indicates the number of
             thresholds input by the user, e.g. "30,1;50,1" n=2
             Indicates if the user-input thresholds apply to integral or

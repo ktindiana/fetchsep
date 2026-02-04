@@ -477,7 +477,7 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins, add_path=''):
 
 
 
-def make_dirs(add_path=''):
+def make_idsep_dirs(add_path=''):
     """ Make subdirectories for files written out by idsep."""
 
     #Output directory
@@ -502,7 +502,7 @@ def make_dirs(add_path=''):
 
 
 
-def run_all(str_startdate, str_enddate, experiment,
+def idsep(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
         write_fluxes=True, spacecraft=""):
@@ -519,14 +519,14 @@ def run_all(str_startdate, str_enddate, experiment,
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
 
     cfg.configure_for(experiment)
-    expts.set_config_energy_units(experiment)
-    expts.set_config_flux_units(experiment)
+    expts.get_config_energy_units(experiment)
+    expts.get_config_flux_units(experiment)
     cfg.print_configured_values()
 
     datasets.check_paths(experiment)
 
     if flux_type == '':
-        flux_type = expts.set_flux_type(experiment)
+        flux_type = expts.get_flux_type(experiment)
 
     startdate = dh.str_to_datetime(str_startdate)
     enddate = dh.str_to_datetime(str_enddate)
@@ -556,7 +556,7 @@ def run_all(str_startdate, str_enddate, experiment,
 
     idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
-    make_dirs(add_path=idsep_name)
+    make_idsep_dirs(add_path=idsep_name)
 
     #READ IN FLUXES
     print("TIMESTAMP: Reading in flux files at time " + str(datetime.datetime.now()))

@@ -82,7 +82,7 @@ saveplot = args.saveplot
 path_to_data = args.datapath
 
 if flux_type == '':
-    flux_type = expts.set_flux_type(experiment)
+    flux_type = expts.get_flux_type(experiment)
 
 fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
     flux_type, options, dointerp, showplot, saveplot, spacecraft=spacecraft,

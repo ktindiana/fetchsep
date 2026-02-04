@@ -1101,12 +1101,8 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         day = date.day
         date_suffix = 'd%i%02i%02i' % (year,month,day)
  
-        if experiment == "GOES-16":
-            if date > g16_last_date:
-                print(f"check_goesR_data: Requested {date}. "
-                    f"Last available date for GOES-16 is {g16_last_date}. Continuing.")
  
-        #GOES-R differential data has three possible version numbers
+        #GOES-R differential data has possible version numbers
         file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc', '_v3-0-3.nc']
         
         foundfile = None
@@ -4983,7 +4979,7 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     nhead = nhead + 1
                 elif line[0] == "#" or line[0] == '\"':
                     nhead = nhead + 1
-                elif 'dates' in line: #output from idsep and opsep
+                elif 'date' in line or 'Date' in line or 'time' in line or 'Time' in line:
                     nhead = nhead + 1
                 else:
                     break

@@ -26,6 +26,14 @@ __email__ = "kathryn.whitman@nasa.gov"
 """
 
 
+# Prepare directories
+cfg.prepare_dirs()
+for subdir in [cfg.outpath, cfg.plotpath]:
+    path = os.path.join(subdir, 'download')
+    if not os.path.isdir(path):
+        print("Making directory:", path)
+        os.mkdir(path)
+
 
 def read_in_flux_files(experiment, flux_type, startdate,
         enddate, options, dointerp, write_fluxes=False,
@@ -92,8 +100,6 @@ def read_in_flux_files(experiment, flux_type, startdate,
     
     #Define energy bins
     #ERNE energy bins depend on the time period of the experiment.
-    #For idsep, it is acceptable to include fluxes across slightly
-    #different energy channels for the purposes of SEP identification.
     if experiment == "ERNE":
         version = datasets.which_erne(startdate, enddate)
         energy_bins, energy_bin_centers = datasets.define_energy_bins(version, flux_type,
@@ -129,13 +135,14 @@ def read_in_flux_files(experiment, flux_type, startdate,
 
     if write_fluxes:
         dir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-        path = os.path.join(cfg.outpath, 'idsep', dir)
+
+        path = os.path.join(cfg.outpath, 'download', dir)
         if not os.path.isdir(path):
             print("Making directory:", path)
             os.mkdir(path)
             
         tools.write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
-            "idsep", spacecraft=spacecraft)
+            "download", spacecraft=spacecraft)
 
     return dates, fluxes, energy_bins
 
@@ -170,18 +177,8 @@ def get_data(str_startdate, str_enddate, experiment,
 
     if path_to_data != '':
         cfg.set_datapath(path_to_data)
-#        global datapath
-#        datapath = path_to_data
-#        print(f"get_data: Setting datapath to {datapath}")
 
     cfg.print_configured_values()
-
-    # Prepare directories
-    cfg.prepare_dirs()
-    for path in (cfg.outpath, cfg.plotpath):
-        if not os.path.isdir(path):
-            print("Making directory:", path)
-            os.mkdir(path)
 
     startdate = dh.str_to_datetime(str_startdate)
     enddate = dh.str_to_datetime(str_enddate)
@@ -190,20 +187,26 @@ def get_data(str_startdate, str_enddate, experiment,
 
     error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type)
-    datasets.check_paths()
+    datasets.check_paths(experiment)
 
 
     #READ IN FLUXES
-    dates, fluxes, energy_bins = read_in_flux_files(experiment,
-        flux_type, startdate, enddate, options, dointerp,
-        write_fluxes=write_fluxes, spacecraft=spacecraft)
+    dates, fluxes, energy_bins = read_in_flux_files(experiment, flux_type,
+        startdate, enddate, options, dointerp, write_fluxes=write_fluxes, spacecraft=spacecraft)
             
             
     if showplot or saveplot:
+        exp_name='' #only for user-provided files, not relevant to download.py
+        dir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+        path = os.path.join(cfg.plotpath, 'download', dir)
+        if not os.path.isdir(path):
+            print("Making directory:", path)
+            os.mkdir(path)
+
         unique_id = "FluxTimeSeries"
-        exp_name = ''
         plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, False, showplot, saveplot, spacecraft=spacecraft)
+        options, dates, fluxes, energy_bins, False, showplot, saveplot, spacecraft=spacecraft,
+        subdir="download")
         if showplot:
             plt.show()
     

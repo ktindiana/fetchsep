@@ -573,7 +573,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Fal
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_all(start_date,
+            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.opsep(start_date,
                 end_date, experiment, flux_type, user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,

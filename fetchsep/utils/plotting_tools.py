@@ -931,7 +931,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
 
 def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
-        spacecraft="", close_plot=False):
+        spacecraft="", close_plot=False, subdir="idsep"):
 
     #Additions to titles and filenames according to user-selected options
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
@@ -979,7 +979,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         ax[iax].set_ylim([ymin, ymax])
         
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(cfg.plotpath,subdir, name, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:

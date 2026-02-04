@@ -270,7 +270,7 @@ def forecast_json():
        "source_info": {"native_flux_type": ""},
        "options": "",
        "issue_time": "",
-       "mode": "historical",
+       "mode": "real-time",
        "forecasts": []
         }}
     print("ccmc_json_handler: forecast_json: Initilizing forecast json.")
@@ -407,7 +407,7 @@ def fill_flare_trigger(template, json_type, flare_dict):
 
 
 def fill_json_header(json_type, issue_time, experiment,
-    flux_type, options, spase_id, user_name=None, mode=None,
+    flux_type, options, spase_id, user_name=None, json_mode='',
     spacecraft=None):
     """ Fill in top level header information in json """
     
@@ -418,11 +418,11 @@ def fill_json_header(json_type, issue_time, experiment,
         short_name = user_name
     
     #If mode not specified, guess
-    if not mode or mode == '':
+    if not json_mode or json_mode == '':
         if json_type == "observations":
-            mode = 'measurement'
+            json_mode = 'measurement'
         else:
-            mode = 'historical'
+            json_mode = 'forecast'
 
     template = {}
     if json_type == "observations":
@@ -438,7 +438,7 @@ def fill_json_header(json_type, issue_time, experiment,
     template[key]['source_info']['native_flux_type'] = flux_type
     if spase_id and spase_id != "":
         template[key][exp_key]['spase_id'] = spase_id
-    template[key]['mode'] = mode
+    template[key]['mode'] = json_mode
 
     template[key]['options'] = options
     template[key]['issue_time'] = zissue

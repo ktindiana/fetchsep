@@ -93,7 +93,7 @@ two_peaks = args.TwoPeaks
 subdir = ''
 
 if flux_type == '':
-    flux_type = expts.set_flux_type(experiment)
+    flux_type = expts.get_flux_type(experiment)
 
 if print_info:
     prepsep.print_target_info(target_dir)

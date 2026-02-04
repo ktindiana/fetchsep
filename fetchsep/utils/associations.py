@@ -748,6 +748,11 @@ def check_goes_xray_science_data(startdate, enddate, experiment):
         print(f"check_goes_xray_science_data: {experiment} X-ray science data is not yet available from NOAA. Returning.")
         return avgfiles, flsumfiles
 
+    #Create path for GOES X-ray data if doesn't exist
+    goesX_dir = 'GOES_Xray'
+    if not os.path.isdir(os.path.join(cfg.datapath,goesX_dir)):
+        os.mkdirs(os.path.join(cfg.datapath,goesX_dir))
+
         
     #GOES XRS science data is stored in daily data files
     td = enddate - startdate
@@ -785,15 +790,15 @@ def check_goes_xray_science_data(startdate, enddate, experiment):
         flsumfile = f"{sat_info[experiment]['flsum']}{date_suffix}{sat_info[experiment]['flsum_version']}.nc"
 
         #Check if files already on your computer
-        fullpath = os.path.join(cfg.datapath,'GOES',avgfile)
+        fullpath = os.path.join(cfg.datapath,goesX_dir,avgfile)
         avg_exists = os.path.isfile(fullpath)
         if avg_exists:
-            avgfiles.append(os.path.join('GOES',avgfile))
+            avgfiles.append(os.path.join(goesX_dir,avgfile))
         
-        fullpath = os.path.join(cfg.datapath,'GOES',flsumfile)
+        fullpath = os.path.join(cfg.datapath,goesX_dir,flsumfile)
         flsum_exists = os.path.isfile(fullpath)
         if flsum_exists:
-            flsumfiles.append(os.path.join('GOES',flsumfile))
+            flsumfiles.append(os.path.join(goesX_dir,flsumfile))
 
         #If already have both files
         if avg_exists and flsum_exists:
@@ -823,9 +828,9 @@ def check_goes_xray_science_data(startdate, enddate, experiment):
                 except:
                     raise
 
-                wget.download(avgurl, os.path.join(cfg.datapath,'GOES',avgfile))
+                wget.download(avgurl, os.path.join(cfg.datapath,goesX_dir,avgfile))
                 print(f"\ncheck_goes_science_xray_data: Downloaded {avgurl}")
-                avgfiles.append(os.path.join('GOES',avgfile))
+                avgfiles.append(os.path.join(goesX_dir,avgfile))
             except urllib.request.HTTPError:
                 print("Cannot access GOES file at " + avgurl + ". Skipping.")
 
@@ -838,9 +843,9 @@ def check_goes_xray_science_data(startdate, enddate, experiment):
                 except:
                     raise
 
-                wget.download(flsumurl, os.path.join(cfg.datapath,'GOES',flsumfile))
+                wget.download(flsumurl, os.path.join(cfg.datapath,goesX_dir,flsumfile))
                 print(f"\ncheck_goes_science_xray_data: Downloaded {flsumurl}")
-                flsumfiles.append(os.path.join('GOES',flsumfile))
+                flsumfiles.append(os.path.join(goesX_dir,flsumfile))
             except urllib.request.HTTPError:
                 print("Cannot access GOES file at " + flsumurl + ". Skipping.")
 
@@ -974,7 +979,7 @@ def get_unique(arr_in):
 def extract_noaa_flare_info(experiment, request_date, flare_info={}, req_flare_id=None):
     """ Extract information for a specific flare on a specific datetime.
         Enter a date within 15 minutes of flare start or end of for any time
-        between the flare start and end.
+        between the flare start and end. The flare peak time is the best reference.
         
         request_date is taken to be the flare peak time as it is the least subjective.
         

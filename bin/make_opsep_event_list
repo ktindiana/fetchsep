@@ -50,7 +50,7 @@ options = args.options
 outfile = args.OutFile
 
 if flux_type == '':
-    flux_type = expts.set_flux_type(experiment)
+    flux_type = expts.get_flux_type(experiment)
 
 event_list.make_event_list(septimes_file,detector_list,experiment,
         flux_type,options,outfile)

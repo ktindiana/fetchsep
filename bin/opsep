@@ -58,10 +58,16 @@ parser.add_argument("--UserFile", type=str, default='', help=("If "
         "the fluxes. Specify energy bins and delimeter in code at top."))
 
 parser.add_argument("--JSONType", type=str, choices=['model',
-        'observations'], default='observations',
+        'observations'], default='',
         help=("For user-input files, specify whether they are observations "
         "or model predictions to generate a JSON file in the correct format. "
-        "Choices are \"model\" or \"observations\" Default is observations."))
+        "Choices are \"model\" or \"observations\"."))
+
+parser.add_argument("--JSONMode", type=str, choices=['measurement', 'forecast',
+        'historical', 'nowcast', 'simulated_realtime_forecast', 'simulated_realtime_nowcast', 'other'], default='',
+        help=("For user-input files, specify the mode. Observations would use "
+            "\"measurement\". Models will default to \"forecast\". "
+            "Choose from the other options as appropriate for your input. "))
 
 parser.add_argument("--spase_id", type=str, default='', help=("If your "
         "model or data source has an associated Spase ID, specify here. "
@@ -192,6 +198,7 @@ flare_time = args.FlareTime
 user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
+json_mode = args.JSONMode
 spase_id = args.spase_id
 location = args.Location
 species = args.Species
@@ -212,12 +219,13 @@ options = args.options
 dointerp = args.DoInterp
 
 
-date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(
+date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.opsep(
     str_startdate, str_enddate, experiment,
     flux_type=flux_type,
     user_name=user_name,
     user_file=user_file,
     json_type=json_type,
+    json_mode=json_mode,
     spase_id=spase_id,
     showplot=showplot,
     saveplot=saveplot,

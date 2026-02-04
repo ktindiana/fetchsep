@@ -1,306 +1,28 @@
-from ..utils import classes as cl
 from ..utils import read_datasets as datasets
 from ..utils import config as cfg
 from ..utils import experiments as expts
+from ..utils import error_check
+from ..utils import tools
+from ..utils import date_handler as dh
+from ..utils import derive_background_opsep as bgsub
+from ..utils import plotting_tools as plt_tools
+from ..utils import associations as assoc
+from ..json import ccmc_json_handler as ccmc_json
 import matplotlib.pyplot as plt
 import sys
 import os
 import pandas as pd
+import numpy as np
 import array
+from lmfit import minimize, Parameters
+import datetime
+import math
+import pickle
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-################ CHANGE LOG ####################
-#CHANGES in 0.4: allows users to specify user model or experiment name for
-#output files
-#CHANGES in 0.4: user passes filename through an argument if selects "user" for
-#experiment rather than setting filename at the top of the code
-#Changes in 0.5: Added ability to download and plot SOHO/ERNE data for the
-#>10 MeV threshold calculations. -- INCOMPLETE
-#Changes in 0.5: Indicate peak flux selection on plots.
-#Changes in 0.6: SEP event considered to start only after 3 consecutive points.
-#   Start time set to the first of the three points.
-#Changes in 0.6: Added the --TwoPeaks flag to allow users to indicate that
-#   the event has an initial threshold crossing for just a few points,
-#   drops below threshold, then continues the increase to the main part of
-#   the event. This is phenomenalogical addition after finding a few events
-#   with this problem.
-#Changes in 0.7: The main function now returns flags to indicate various
-#   things that may help a user identify if an event has been poorly timed.
-#   These return flags are generated with the idea that this could would
-#   be run in batch mode for multiple events without looking at the output.
-#   The flags would help a user decide after the fact if event timing should be
-#   checked more closely. The flags include:
-#       - Event starts at first time point on start date (i.e. previous
-#           event already ongoing)
-#       - Event is less than 12 hours long (i.e. start time might indicate an
-#           initial rise above threshold, but miss main event. TwoPeaks flag
-#           was created to handle events like this.)
-#       - >100 MeV, 1 pfu threshold start is more than 12 hours after >10 MeV,
-#           10 pfu threshold start (e.g. there might be multiple events in a
-#           row and the first event is only >10 MeV and second events has >100)
-#       - Event ends on very last time point indicating that it ended with the
-#           time range rather than dropping below the threshold
-#   A flag was added with the "UMASEP" option. When this flag is selected, the
-#   code finds all information for four energy channels and thresholds used by
-#   UMASEP: >10 MeV, 10 pfu; >100 MeV, 1 pfu; >30 MeV, 1 pfu; >50 MeV, 1 pfu
-#   The proton flux in each of these channels is reported for specific times
-#   after threshold crossing (Ts) and added to the sep_values_ output file for
-#   times Ts + 3, 4, 5, 6, and 7 hours
-#   Returns start date of SEP event found so that know the names of the output
-#   files produced by this code.
-#   Added a saveplot option to automatically write plots to file with a
-#   unique filename.
-#Changes in 0.7: Adding SEP event onset peak, i.e. the peak associated with the
-#   initial acceleration at the sun. Versions 0.6 and previous find the absolute
-#   peak in the entire time period between onset and end. For lower energy
-#   channels, that peak often corresponds to the ESP portion of the event.
-#   Now including a calculation of onset peak.
-#Changes in 1.0: Adding support for SOHO/COSTEP/EPHIN differential proton
-#   flux data. The 4 energy channels span from 4.3 - 53 MeV.
-#   The user must input a threshold in differential flux to calculate all
-#   SEP quantities. The operational thresholds cannot be applied.
-#   Add ability for user to specify a differential flux threshold to define SEP
-#   event.
-#Changes in 1.1: Added ability for users to input multiple thresholds. If
-#   user uses differential fluxes, then may request a combination of thresholds
-#   based off of differential flux bins and estimated integral fluxes.
-#Changes in 1.2: Adding options to:
-#       Choose corrected or uncorrected GOES fluxes.
-#       Choose to apply Bruno (2017) or Sandberg et al. (2014) effective
-#       energies to GOES uncorrected data.
-#2020-11-13, Changes in 2.0: Complete restructuring of code. A library directory has
-#   been created and some of the subroutines originally in
-#   operational_sep_quantities is now in read_datasets.py. Global variables,
-#   such as directory names and the information users must input to run their
-#   data sets, is not in config_opsep.py.
-#   A code has been written to perform a background subtraction of the SEP
-#   flux using a time period specified by the user - presumably spanning a day
-#   or more prior to the SEP event. The separation of SEP flux and background,
-#   followed by a background subtraction of the SEP flux is in
-#   derive_background.py.
-#2020-11-24, Changes in 2.1: Added ability to write out json file in CCMC SEP Scoreboard
-#   format. More information about those files can be found at
-#   https://ccmc.gsfc.nasa.gov/challenges/sep.php#format
-#   If a threshold isn't crossed, the code now calculates the maximum flux
-#   during the full time period (start date to end date) and the time and saves
-#   it in the onset peak and onset date. This info won't be reported in the
-#   csv files, but will be reported in the json.
-#2021-01-06, Changes in 2.2: DHConsultancy (Daniel Heynderickx) sent out a beta
-#   version of the SEPEM RSDv3 data sets. Added here as a native data set.
-#2021-01-12, Changes in 2.3: Added functionality to read in REleASE data.
-#2021-01-19, Changes in 2.4: If time resolution of data set is >15 minutes,
-#   relax three point requirement to exceed or fall below a threshold.
-#   For finding onset time, restricted onset to fall between event start and
-#   start + 18 hours or start and end time, which ever is shorter.
-# 2021-01-25, Changes in 2.4.1: Changed the logic when converting differential
-#   flux to integral flux (from_differential_to_integral_flux). Previously,
-#   if one bin (bin[i]) had non-zero flux and the next bin (bin[i+1]) had zero
-#   flux, the bin[1+1] was set to a value of 1e-15 and then an integral was
-#   calculate from bin[i] to 1e-15 to get the flux contribution. This gave
-#   strange results. Now, if bin[i] or bin[i+1] has a flux of zero or None, no
-#   flux is added to the integral flux.
-#2021-02-25, Changes in 2.5: Changing the all_integral_fluences array to
-#   all_threshold_fluences. In previous versions, all_integral_fluences
-#   contained fluences for integral energy channels only, i.e. >10, >100 MeV.
-#   If a user input a differential channel thresold, e.g. for an energy bin
-#   of 5 - 7 MeV, then this all_integral_fluxes would hold a NaN value for
-#   the fluence corresponding to the threshold array element in
-#   all_integral_fluences.
-#   Instead, we will now have all_threshold_fluences. The fluence will
-#   will correspond to the fluence in each energy channel, whether it
-#   is integral or differential. If the user specifies a differential energy
-#   channel (e.g. 5 - 7 MeV) with a threshold, then the corresponding element in
-#   all_threshold_fluences will have the fluence in the 5 - 7 MeV bin.
-#2021-02-28, Changes in 2.5.1: Adjusting the onset peak estimation to fix bugs.
-#   Reorganized some of the error checking into subroutines to clean up run_all.
-#2021-03-02, Changes in 2.5.2: Added resorting of bins if they are in "reverse"
-#   order. For example, SEPMOD produces flux files for energies in order
-#   of 1000, 750, 500, ... MeV bins. This doesn't matter for integral fluxes,
-#   but from_differential_to_integral flux expects differential bins
-#   in increasing energy order. Added sort_bin_order to ensure that
-#   energy bins are always in increasing order of effective energies.
-#!***!2021-03-03, Changes in 2.5.3: Changed threshold crossing logic.
-#   Previously,required flux to exceed threshold (>) for 3 consecutive points
-#   to get event start. Changed to flux >= threshold for 3 consecutive points.
-#2021-05-17, changes in 2.5.4: Nothing has changed in the
-#   operational_sep_quantities.py code, but the ccmc_json_handler.py
-#   code was modified to v0.4 and changed the format of the outpuer
-#   json file a little bit. I want to mark this change within this code
-#   as well and explicitly state the date when it happened.
-#2021-05-27, changes in 2.5.5: Added the NoInterp flag to allow users
-#   to specify that negative flux or None values should be set to None.
-#   If NoInterp is not set, the default behavior is to fill in bad data
-#   points using linear interpolation in time. This may not be desired
-#   for model output as it inherently changes the model predictions.
-#   Zeroes are always treated as valid values and are not replaced.
-#   If there are gaps in the time steps, the code does NOT try to
-#   fill in the gaps. It will only perform interpolation for time
-#   steps present in the input data set.
-#   Additionally, changed the way in which the time resolution was
-#   calculated in calculate_fluence. Previously, the time resolution
-#   was determined by the time difference between the first and
-#   second time points. Now the difference in time is calculated for
-#   every consecutive set of time points and the most common value
-#   for the difference is used as the time resolution. This is done
-#   in case there are time gaps in the data set.
-#2021-05-28, changes in 2.6: Discovered an unintended bug in the
-#   calculate_onset_peak code. I had intended to normalize the
-#   deriv variable by the changing flux value to minimize
-#   the derivative for jumps and dips when the flux is already
-#   elevated. Instead, I had simply normalized by the very first
-#   flux value in the array.
-#   deriv = smooth_flux[i][j] - smooth_flux[i][j-nwin]
-#   Previously: run_deriv[i].append(deriv/smooth_flux[i][0])
-#   Changed to: run_deriv[i].append(deriv/smooth_flux[i][j-nwin])
-#   Now using two versions of the derivative to get the onset peak.
-#   One is the derivative divided by smooth_flux[i][j-nwin], which
-#   really highlights the intial rise. The second is deriv divided
-#   by a constant normalization factor (the first non-zero flux in
-#   the array). This is used to escape local minima.
-#   I intended to always use deriv/smooth_flux[i][j-nwin], but
-#   I made a typo in v0.8 that ended up dividing by a constant
-#   factor. I feel that combining the two concepts works best.
-#!!!!2021-07-19, changes in 3.0: Went up to the next integer version!!!
-#   number because this version has reconciled all differences
-#   with the CCMC SEP Scoreboard JSON format. i.e. this version
-#   produces JSON files and supporting output files in exactly
-#   the format required by the SEP Scoreboard. The format
-#   is specified at https://ccmc.gsfc.nasa.gov/challenges/sep.php.
-#       - JSON in CCMC format
-#       - cleaning up code and writing a lot more small subroutines.
-#       - changed calculate_fluence to multiply by 4pi to remove
-#            units of sr^-1
-#       - added global units variables at top of code
-#       - added ability for user to set units for a user-read file
-#           in config_opsep.py
-#       - when threshold is not crossed, maximum flux in time period
-#           is saved in peak_flux rather than onset_peak, as before
-#   2021-08-06: Changing onset peak flux definition to be more
-#   independent of applied threshold. For events with maxmimum flux
-#   values less than 500/energy_channel, search for the onset peak
-#   starting 12 hours before the flux threshold is crossed.
-#   Onset peak will still only be derived if thresholds
-#   are crossed.
-#2021-08-30, changes in 3.1: if the user tries to apply a threshold
-#   to an energy channel that isn't in the data, give an error
-#   and exit. Added ability for
-#   check_bin_exists to check if integral bins within energy_bins.
-#   In extract_integral_fluxes, change code to save flux as -999
-#   rather than 0 if a >10 or >100 MeV energy channel doesn't
-#   exist in the data set. Previously stored integral fluxes
-#   as zero values if couldn't find the energy bin, but this is
-#   no good since 0 is a valid model prediction and a valid
-#   flux value in some data sets.
-#2021-9-16, changes in 3.2: add feature to specify which type of json
-#   file to write if the user inputs their own experiment. JSONType flag
-#   added to the inputs.
-#   Fixed bug in extract_integral_fluxes that only happened when an
-#   input data set did not have the >10 MeV channel.
-#2021-09-25, changes in 3.3: When convert GOES corrected differential
-#   flux to integral flux, perform a background subtraction on the HEPAD
-#   channels, since those are not treated with the Zwickl correction.
-#   Currently using very rough background estimates:
-#   330 - 420 MeV: 0.001804912
-#   420 - 510 MeV: 0.001014797
-#   510 - 700 MeV: 0.000431988
-#   >700 MeV:      0.00013735
-#2021-11-16, changes in 3.4: Added support in read_datasets and
-#   operational_sep_quantities to read in GOES-R differential flux
-#   data (5 min averaged). Integral fluxes are not readily available
-#   from the NOAA website.
-#2022-02-11, change in 3.5: Added support for real time GOES-R
-#   integral fluxes served by CCMC. These are the daily integral
-#   fluxes provided by NOAA SWPC and archived at CCMC. They are not
-#   the official science-grade integral product, which is not
-#   yet available. If the user specifies GOES-16 or GOES-17,
-#   the integral fluxes will come from the primary instrument.
-#   It's not possible to select between the spacecraft with
-#   this particular product.
-#2022-03-22, 2022-05-24 changes in 3.6: Added more colors and markers
-#   in the plots in run_all. (in May 2022) Commented the ad hoc background
-#   subtraction added in v3.3 in "from_differential_to_integral" that I had
-#   applied to GOES corrected differential HEPAD channels.
-#2022-06-16, changes in 3.7: Fixed how the peak fluxes are calculated if
-#   no threshold is crossed. Removed the subroutine to swap peak fluxes
-#   around and made sure they were calculated correctly in the subroutines
-#   where they are first calculated.
-#   Added caveat for code not to calculate onset peak if duration of
-#   data is less than required to get a derivative value.
-#   Added capability to read in Shaowen Hu's recalibrated GOES
-#   data set called SRAG1.2.
-#2022-08-04, changes in 3.8: Explicity added variables,
-#   doBGSub, user_name, showplot, saveplot, in call to
-#   append_differential_threshold subroutine. Worked on my mac
-#   without them but caused crashes on other Windows machines.
-#   Added check for determine_time_resolution() to exit gracefully
-#   if passed a date array of only 1 data point.
-#   library/read_datasets.py extract_date_range() was updated to
-#   ensure that starting point was after the specified start time.
-#2022-08-22, changes in 3.9: fixed a small bug in 3.8 (two colons).
-#   Modified run_all so that plots would always be generated, even
-#   if thresholds were not crossed.
-#2022-09-08, changes in v3.10: Changed so that OpSEP will always produce
-#   plots at the end, even if no thresholds were crossed.
-#   Added a new subroutine/algorithm to estimate the location of the
-#   onset peak: calculate_onset_peak_from_fit(). The previous algorithm,
-#   calculate_onset_peak() is still in the code, however the default
-#   choice is the new one that fits a Weibull to the first hours of an
-#   SEP event and uses the second derivative of the Weibull to find
-#   the location of the onset peak.
-#2022-09-19, changes in v3.11: GOES-16 real time integral fluxes are
-#   only available starting on 2020-03-08. Added check to ensure that
-#   user won't pull archived real time fluxes from earlier spacecraft,
-#   which are also stored at CCMC in the same location with the same
-#   filenames. ONE EXCEPTION: The HEPAD files for GOES-14 and GOES-15
-#   are missing a column for the month of 2019-09, so specify GOES-16
-#   to pull the real time GOES fluxes from the CCMC archive instead.
-#2022-11-14, still v3.11: Updated all_program_info() to reflect new All Clear
-#   logic that was coded into library/ccmc_json_handler.py > fill_json().
-#   This fixes a previous bug that incorrectly resulted in 
-#   all_clear_boolean = False if only a single point was above 
-#   threshold (for 5 min cadence GOES data, 3 consecutive points above
-#   threshold are required to define an SEP event).
-#2022-12-06, changes in v3.12: Fixed some error checking in calculate_fluence
-#   and from_differential_to_integral flux to account for the
-#   possibility of NaN values in the flux arrays when interpolation
-#   is not used. These changes were needed when testing out the
-#   additional of STEREO-A and -B data as native data sets in
-#   read_datasets.py v1.3. Added STEREO-A and -B to list of allowed instruments.
-#2023-03-03, changes in v3.2: Restructuring to be part of fetchsep package.
-#   Combing with SEPAutoID (now idsep), which identifies multiple SEP events in
-#   long time series, in same package. Merging overlapping code and supporting
-#   files.
-#   Changed filename from operational_sep_quantities.py to opsep.py.
-#2023-04-10, changes in v3.3: Changed the logic to end an event. Previously
-#   used 3 points below cfg.endfac*threshold (typically endfac was set at 0.85).
-#   Now the code will apply a dwell time of 3 hours to find when the flux
-#   has dropped below threshold for longer than the dwell time, then choose the
-#   end time as the first below below threshold. endfac should be set to 1.0 in
-#   config.py to ensure the end of the event applies the same threshold as the
-#   start of the event.
-#2023-09-30, changes in v3.4: Changed filenames of plots to contain zulu
-#   time for starting window or threshold crossing time so that they
-#   are unique.
-#2024-02-09, changes in v3.5: Changed onset peak fitting algorithm. Added
-#   logic that identifies large and small events and handles them a little
-#   differently as far as the time range for applying the fit. For lower
-#   intensity events, added logic that attempts to identify when the first
-#   increase above background occurred (defined as a set flux threshold,
-#   currently will only be useful for integral fluxes) and extends the fit
-#   time range closer to that initial increase to capture more of the onset.
-#2024-03-11, changes in v3.6: If onset peak time is calculated to be after the
-#   maximum flux time, then choose to set the onset peak to the same point
-#   as the max flux.
-#2024-04-24, changes in v3.7: The json templates and ccmc_json_handler
-#   were changed to reflect CCMC's schema.
-#   "model":{"flux_type":} --> "source_info":{"native_flux_type":}
-#   "event_lengths": [{"threshold":}] --> "event_lengths": [{"threshold_start":}]
-########################################################################
-
-# Prepare directories
 cfg.prepare_dirs()
 for path in (cfg.outpath, cfg.plotpath):
     path = os.path.join(path, 'opsep')
@@ -309,486 +31,2765 @@ for path in (cfg.outpath, cfg.plotpath):
         os.mkdir(path)
 
 
-def about_opsep(): #only for documentation purposes
-    """ Program description for opsep.py v3.2.
-    
-    Formatting for Sphinx web-based documentation, which can be viewed
-    within the docs/index.html directory or online at:
-    https://ktindiana.github.io/operational-sep/index.html
-    
-    This program will calculate various useful pieces of operational
-    information about SEP events from GOES-08, -09, -10, -11, -12, -13, -14, -15
-    data, GOES-R (-16, -17, real time integral), SOHO/EPHIN Level 3, SOHO/EPHIN
-    real time data from the REleASE website, and the SEPEM (RSDv2 and RSDv3)
-    dataset.
 
-    SEP event values are always calculated for threshold definitions:
+#########################################################
+################# Classes for OpSEP #####################
+#########################################################
+class EnergyBin:
+    def __init__(self, min, max, units, bin_center=np.nan):
+        """ Energy Bin 
         
-        * >10 MeV exceeds 10 pfu
-        * >100 MeV exceed 1 pfu
-
-    The user may add multiple additional thresholds through the command line.
-    This program will check if data is already present in a 'data' directory. If
-    not, GOES or EPHIN data will be automatically downloaded from the web. SEPEM
-    (RSDv2 and RSDv3) data must be downloaded by the user and unzipped inside
-    the 'data' directory. Because the SEPEM data set is so large (every 5
-    minutes from 1974 to 2015 for RSDv2 and to 2017 for RSDv3), the program will
-    break up the data into yearly files for faster reading.
-    
-    --DoInterp: Data sets are checked for bad data points (negative or None value
-    fluxes) and the default behavior is to fill in those bad data points with nan.
-    Set the DoInterp flag (dointerp=True) to perform a linear interpolation with time. 
-    This choice may be desirable to calculate more accurate event-intergrated 
-    fluence values from data.
-    Interpolation with time is not appropriate for model predictions, as
-    it will inherently change the prediction or may not be desired by
-    the user for the data set. 
-    Zeroes are always treated as valid values and are not replaced.
-    If there are gaps in the time steps, the code does NOT try to
-    fill in the gaps. It will ONLY perform interpolation for time
-    steps present in the input data set. i.e. gaps in time are not
-    interpolated, only time steps with negative or None flux values.
-
-    The values calculated here are important for space radiation operations:
-       
-       * Onset time, i.e. time to cross thresholds
-       * Onset peak intensity
-       * Onset peak time
-       * Maximum intensity
-       * Time of maximum intensity
-       * Rise time (onset to peak)
-       * End time, i.e. fall below 0.85*threshold for 3 points (15 mins for GOES)
-       * Duration
-       * Event-integrated fluences
-       * Proton fluxes at various times after threshold crossing (UMASEP option)
-
-    UNITS: User may choose differential proton fluxes (e.g. [MeV s sr cm^2]^-1)
-    or integral fluxes (e.g. [s sr cm^2]^-1 or pfu). Default units are:
-    MeV, cm, s, sr
-    Units are specified in config/config_opsep.py.
-    The program has no internal checks or requirements on units - EXCEPT FOR
-    THE THRESHOLD DEFINITIONS OF >10, 10 and >100, 1.
-    If you convert those thresholds in the main program to your units,
-    you should be able to generate consistent results.
-    Currently there are no features to change units automatically. SEE MORE
-    about units in the USER INPUT DATA section below.
-
-    OPTIONS: User may specify various options, that currently only apply to
-    GOES data:
+            INPUT:
+            
+                :min: (float) low edge of energy bin
+                :max: (float) high edge of energy bin
+                    set to -1 for integral channel
+                    
+            OUTPUT:
+            
+                EnergyBins object
         
-        * Choose corrected or uncorrected GOES fluxes.
-        * Choose to apply Bruno (2017) or Sandberg et al. (2014) effective
-          energies to GOES uncorrected data.
+        """
     
-    .. code-block::
-    
-        --options uncorrected
-        --options uncorrected,S14,Bruno2017 (recommend using background subtraction)
-
-    BACKGROUND SUBTRACTION: Users may choose to perform a background
-    subtraction by specifying:
-    
-    .. code-block::
-    
-        --SubtractBG --BGStartDate YYYY-MM-DD --BGEndDate YYYY-MM-DD
-    
-    The user should look at the data and select an appropriate time frame
-    prior to the event when the background is calm and well-defined. If
-    performing background subtraction, the mean background will be subtracted
-    from the fluxes in the SEP time frame (StartDate to EndDate). Plots
-    showing the mean background level, the background flux only, and the
-    background-subtracted SEP fluxes will be created by derive_background to
-    verify the quality of the background estimation and subtraction.
-
-    If a previous event is ongoing and the specified time period starts with a
-    threshold already crossed, you may try to set the --DetectPreviousEvent
-    flag. If the flux drops below threshold before the next event starts, the
-    program will identify the second event. This will only work if the
-    threshold is already crossed for the very first time in your specified
-    time period, and if the flux drops below threshold before the next event
-    starts.
-
-    If the event has an initial increase above threshold for a few points, falls
-    below threshold, then continues to increase above threshold again, you
-    may try to use the --TwoPeak feature to capture the full duration of the
-    event. The initial increase above threshold must be less than a day. An
-    example of this scenario can be seen in >100 MeV for 2011-08-04.
-
-    A flag was added with the "UMASEP" option. When this flag is used
-    (--UMASEP), the code finds all information for four energy channels and
-    thresholds used by UMASEP: >10 MeV, 10 pfu; >100 MeV, 1 pfu; >30 MeV, 1 pfu;
-    >50 MeV, 1 pfu. The proton flux in each of these channels is reported for
-    multiple times after threshold crossing (Ts). The applied time delays are
-    as follows:
+        self.min = float(min)
+        self.max = float(max)
+        self.units = units
+        self.bin_center = bin_center
+        if pd.isnull(self.bin_center):
+            if self.max != -1 and (not pd.isnull(self.min) and
+                not pd.isnull(self.max)):
+                self.bin_center = math.sqrt(min*max) #geometric mean
+            
+        self.energy_channel = {'min': float(min), 'max': float(max), 'units': units}
         
-        * >10 MeV - Ts + 3, 4, 5, 6, 7 hours
-        * >30 MeV - Ts + 3, 4, 5, 6, 7 hours
-        * >50 MeV - Ts + 3, 4, 5, 6, 7 hours
-        * >100 MeV - Ts + 3, 4, 5, 6, 7 hours
-    
-    --spase_id: If you know the appropriate spase_id for the your model or
-    experiment, you may specify it here to be filled in to the json file
-    for CCMC's SEP Scoreboard.
-    
-    Note about EVENT END TIME: Currently, the code calculates the end of the
-    event as the first time that the flux drops below threshold*endfac for
-    three consecutive points. The endfac variable is specified in
-    config/config_opsep.py.
-    Mimicking a SRAG code, endfac is set to 0.85 (85% of threshold). This
-    may be changed in the future to update this to more NOAA SWPC-like logic
-    to define the end of an SEP event.
-    
-    Note about ONSET PEAK: The algorithm to estimate the location of the
-    onset peak was changed in v3.10. The previous algorithm is still in
-    the code, but the new one is implemented in the overall workflow.
-    The new algorithm, called calculate_onset_peak_from_fit(), was implemented
-    in an attempt to make the identification of the onset peak more robust.
-    Following the approach of Kahler and Ling (2017), a modified Weibull is
-    fit to the time profile between the time points 6 hours prior to a threshold
-    crossing out to 24 hours after the threshold crossing. The second derivative
-    is taken of the fitted Weibull to find the estimated onset location. The
-    final reported value is the measured maximum flux within 1 hour of the
-    estimated onset peak time derived from the Weibull fit.
-    
+        return
 
-    ALL CLEAR        
-    library/ccmc_json_handler.py > fill_json() contains logic to determine the 
-    All Clear status (all_clear_boolean) for each energy block. For 
-    >10 MeV and >100 MeV, only specific thresholds are allowed to determine 
-    the All Clear status: >10 MeV, 10 pfu and >100 MeV, 1 pfu.
 
-    For all other energy channels, the All Clear status will be filled by the first
-    threshold encountered by the code. e.g. if the user runs the code for 
-    >30 MeV, 1 pfu and >30 MeV, 5 pfu (--Threshold "30,1;30,5"), the all_clear_boolean
-    will reflect the >30 MeV, 1 pfu status. If the user flips the call when running OpSEP 
-    (e.g. --Threshold "30,5;30,1"), then all_clear_boolean will reflect >30 MeV, 5 pfu.
-
-    
-    RUN CODE FROM COMMAND LINE (put on one line), e.g.:
-    
-    .. code-block::
-    
-        python3 operational_sep_quantities.py --StartDate 2012-05-17
-        --EndDate 2012-05-19 --Experiment GOES-13
-        --FluxType integral --showplot --saveplot
+class Threshold:
+    def __init__(self, threshold, units):
+        """ Float flux threshold value and units. """
         
-    .. code-block::
-    
-        python3 operational_sep_quantities.py --StartDate "2012-05-17 01:00:00"
-        --EndDate "2012-05-19 12:00:00" --Experiment GOES-13
-        --FluxType integral --showplot --saveplot
-
-
-    RUN CODE FROM COMMAND FOR USER DATA SET (put on one line), e.g.:
-    
-    .. code-block::
-    
-        python3 operational_sep_quantities.py --StartDate 2012-05-17
-        --EndDate '2012-05-19 12:00:00' --Experiment user --ModelName MyModel
-        --UserFile MyFluxes.txt --FluxType integral --showplot
-
-    RUN CODE FROM COMMAND LINE AND PERFORM BACKGROUND SUBTRACTION AND APPLY
-    Sandberg et al. (2014) and Bruno (2017) effective energies to the GOES bins.
-    (note: cannot bg-subtract GOES integral fluxes), e.g.:
-    
-    .. code-block::
+        self.threshold = float(threshold)
+        self.threshold_units = units
+        self.threshold_dict = {'threshold':float(threshold), 'threshold_units': units}
         
-        python3 operational_sep_quantities.py --StartDate 2012-05-17
-        --EndDate '2012-05-19 12:00:00' --Experiment GOES-13
-        --FluxType differential  --showplot --options uncorrected,S14,Bruno2017
-        --SubtractBG --BGStartDate 2012-05-10 --BGEndDate --2012-05-17
+        return
 
-    RUN CODE IMPORTED INTO ANOTHER PYTHON PROGRAM, e.g.:
-    
-    .. code-block::
-    
-        import operational_sep_quantities as sep
-        start_date = '2012-05-17'
-        end_date = '2012-05-19 12:00:00'
-        experiment = 'GOES-13'
-        flux_type = 'integral'
-        spase_id = ''
-        user_name = '' #if experiment is user, set user_name to describe data set
-        user_file = '' #if experiment is user, specify filename containing fluxes
-        json_type = '' #if experiment is user, specify which type of json file
-                       # should be created
-        showplot = True  #Turn to False if don't want to see plots
-        saveplot = False #turn to true if you want to save plots to file
-        options = '' #various options: S14, Bruno2017, uncorrected
-        doBGSubOPSEP = False #Set true if want to perform background subtraction
-        bgstart_date = "2012-05-10" #Dates used to estimate mean background if
-        bgend_date = "2012-05-17"   #doBGSubOPSEP is set to True
-        detect_prev_event = True  #Helps if previous event causes high intensities
-        two_peaks = False  #Helps if two increases above threshold in one event
-        umasep = False #Set to true if want UMASEP values (see explanation above)
-        threshold = '' #Add a threshold to 10,10 and 100,1: '30,1' or '4.9-7.3,0.01'
-        dointerp = False #Default False; set to True to do linear interpolatin in time
 
-        startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
-            sep.run_all(str_startdate, str_enddate,\ experiment, flux_type='',\
-            user_name='', user_file='', json_type='observations',\
-            spase_id='', showplot=False, saveplot=False, detect_prev_event=False,\
-            two_peaks=False, umasep=False, user_thresholds='', options='',\
-            doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',\
-            dointerp=False, spacecraft='', doBGSubIDSEP=False,\
-            IDSEPEnhancement=False, idsep_path='',\
-            location='earth', species='proton', associations=False)
 
-    Set the desired directory locations for the data and output at the beginning
-    of the program in datapath and outpath. Defaults are 'data' and 'output'.
-
-    In order to calculate the fluence, the program determines time_resolution
-    (seconds) by finding the difference between every consecutive set of
-    time points in the data set. The most common difference is identified as
-    the time resolution. This method should find an accurate time resolution
-    even if there are gaps in the time steps.
-    If the time steps in the data set are truly irregular, the user will
-    have to manually set the time resolution inside the subroutine
-    calculate_fluence.
-
-    OUTPUT: This program outputs 3 to 4 files, 1 per defined threshold plus
-    a summary file containing all of the values calculated for each threshold.
-    A file named as e.g. fluence_GOES-13_differential_gt10_2012_3_7.csv contains
-    the event-integrated fluence for each energy channel using the specified
-    threshold (gt10) to determine start and stop times.
-    A file named as e.g. sep_values_GOES-13_differential_2012_3_7.csv contains
-    start time, peak flux, etc, for each of the defined thresholds.
-
-    The program writes to file the >10 MeV and >100 MeV time series for the
-    date range input by the user. If the original data were integral fluxes,
-    then the output files simply contain the >10 and >100 MeV time series from
-    the input files. If the original data were differential fluxes, then the
-    estimated >10 and >100 MeV fluxes are output as time series.
-    
-    The program also writes any time profile to file if a threshold was applied
-    to it. Each energy channel is written to an independent file, named according
-    to CCMC's SEP Scoreboard naming conventions. These accompany a json file
-    that contains all quantities calculated for the SEP event. There is also a csv
-    file that contains most of the same values recorded in the json file.
-    
-    Example output for values derived from SEPMOD forecasts for the 2021-05-29
-    SEP event with additional threshold >10, 0.001 pfu, >100, 0.0001 pfu,
-    >30 MeV, 1 pfu, >50 MeV, 1 pfu, and >60 MeV, 0.079 pfu. Some of the files
-    below are only created if a threshold was crossed. A default run would produce
-    only 10 and 100 MeV files, sep_values_*.csv and json file:
-    
-    * fluence_SEPMOD_RT_60min_integral_gt10_2021_5_29.csv
-    * fluence_SEPMOD_RT_60min_integral_gt10.0_2021_5_29.csv
-    * fluence_SEPMOD_RT_60min_integral_gt30.0_2021_5_29.csv
-    * fluence_SEPMOD_RT_60min_integral_gt50.0_2021_5_29.csv
-    * fluence_SEPMOD_RT_60min_integral_gt60.0_2021_5_29.csv
-    * fluence_SEPMOD_RT_60min_integral_gt100.0_2021_5_29.csv
-    * integral_fluxes_SEPMOD_RT_60min_integral_2021_5_29.csv
-    * sep_values_SEPMOD_RT_60min_integral_2021_5_29.csv
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.10.0MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.10MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.30.0MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.50.0MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.60.0MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.100.0MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.100MeV.txt
-    * SEPMOD_RT_60min_integral.2021-05-29T000000Z.2021-08-06T172140Z.json
-    
-    The json and txt files listed above would be the ones that would be appropriate
-    to read into the CCMC SEP Scoreboard or to pass to the SEP validation code
-    being developed in conjunction with the SEP Scoreboard. The csv files are legacy
-    files, but may also be easier for some users to read.
-    
-    PLOTS: Prior to v3.10, plots were only generated if a threshold was crossed.
-    If only a subset of the specified thresholds were crossed, then only the cases
-    where a threshold was crossed would show up in the plots and the others would
-    be blank spaces.
-    Starting in v3.10, plots of the flux time series are ALWAYS created,
-    regardless of whether any thresholds are crossed.
-    
-
-    USER INPUT DATA SETS: Users may input their own data set. For example, if an
-    SEP modeler would like to feed their own intensity time series into this
-    code and calculate all values in exactly the same way they were calculated
-    for data, it is possible to do that. Default flux units are
-    1/[MeV cm^2 s sr] or 1/[cm^2 s sr] and energy channels in MeV for the default
-    thresholds to be correct. You can specify your units in the
-    config/config_opsep.py file.
-    
-    You can use any units, as long as you are consistent with energy units in
-    energy channel/bin definition and in fluxes. If using units other than
-    MeV and cm^2 or species other than protons, the operational energy 
-    channels and thresholds will not be applied as event definitions. 
-    
-    NOTE: The first column in your flux file is assumed to be time in format
-    YYYY-MM-DD HH:MM:SS. IMPORTANT FORMATTING!!
-    NOTE: The flux file may contain header lines that start with a hash #,
-    including blank lines.
-    NOTE: Any bad or missing fluxes must be indicated by a negative value.
-    NOTE: Put your flux file into the "datapath" directory. Filenames will be
-    relative to this path.
-    NOTE: Please use only differential or integral channels. Please do not mix
-    them. You may have one integral channel in the last bin, as this is the way
-    HEPAD works and the code has been written to include that HEPAD >700 MeV
-    bin along with lower differential channels.
-    NOTE: You must specify whether your input file represents model output or
-    observations so that the correct type of JSON file may be written. Use the
-    JSONType flag or json_type variable and specify "model" or "observations"
-    to indicate which is the correct format. The default is set to "model"
-    when run from main.
-
-    USER VARIABLES: The user must modify the following variables in
-    fetchsep.cfg:
-    
-        :user_col: identify columns in your file containing fluxes to analyze;
-                even if your delimeter is white space, consider the date-time
-                column as one single column. SET IN config/config_opsep.py.
-        :user_delim: delimeter between columns, e.g. " " or ","   Use " " for
-                any amount of whitespace. SET IN config/config_opsep.py.
-        :user_energy_bins: define your energy bins at the top of the code in the
-                variable user_energy_bins. Follow the format in the subroutine
-                define_energy_bins. SET IN config/config_opsep.py.
-        :user_fname: specify the name of the file containing the fluxes
-                through an argument in the command line. --UserFile  The
-                user_fname variable will be updated with that filename. ARGUMENT
-        :time_resolution: the program determines time_resolution
-                (seconds) by finding the difference between every consecutive
-                set of time points in the data set. The most common difference
-                is identified as the time resolution. This method should find
-                an accurate time resolution even if there are gaps in the
-                time steps.. AUTOMATICALLY DETERMINED.
+################################################################
+############## Data Class: Flux Data for OpSEP #################
+################################################################
+class Data:
+    def __init__(self):
+        """Read in input data. Contains:
+            - all fluxes read into OpSEP
+            - all SEP event definitions
+            - any estimated integral fluxes (if differential input)
+            - all fluxes in the energy bins relevant for the event 
+                definitions, i.e. evaluated fluxes
+           
+           INPUT:
                 
-    Running the code for a user-input file may look like the example below.
-    Note that the --UserFile location is with respect to the "data" directory
-    inside the operational-sep directory:
-    
-    .. code-block::
-    
-        python3 operational_sep_quantities.py --StartDate 2021-05-29 --EndDate 2021-06-05 --Experiment user --UserFile SEPMOD/Scoreboard/SEPMOD.20210529_000000.20210529_165133.20210529_133005_geo_integral_tseries_timestamped_60min.txt --ModelName SEPMOD_RT_60min --JSONType model --showplot --Threshold "10,0.001;100,0.0001;30,1;50,1;60,0.079" --spase_id "spase://CCMC/SimulationModel/SEPMOD" --FluxType integral
-    
-    VALUES SPECIFIED IN fetchsep.cfg:
-    
-        :datapath: directory containing data, 'data'
-        :outpath: directory for program output, 'output'
-        :plotpath: directory for saving plots, 'plots'
-        :listpath: directory for lists (for run_multi_sep.py)
-        :badval: will set any bad data points to this value
-        :endfac: multiplicative factor to define threshold for
-                end of event; threshold*endfac (default 0.85)
-        :nsigma: number of sigma to define SEP versus background
-                flux in background subtraction routine
-        :version: if you are running a model or data set, allows you
-                to enter a version number
-        :user_col: array defining flux columns (0 is always datetime)
-        :user_delim: delimeter used to separate the columns in the time
-                profile file that you will read in
-        :user_energy_bins: energy bins associated with the columns
-                specified in user_col
-        :energy_units: e.g. "MeV'
-        :flux_units_integral: e.g. "pfu"
-        :fluence_units_integral: e.g. "cm^-2"
-        :flux_units_differential: e.g. "MeV^-1*cm^-2*s^-1*sr^-1" (CCMC format)
-        :fluence_units_differential: e.g. "MeV^-1*cm^-2" (CCMC format)
+                :experiment: (str) name of spacecraft or "user"
+                :flux_type: (str) integral or differential
+                
+            OUTPUT:
+            
+                a Data object
         
-        (setting the units here will make correct units on plots and in json
-        file, but doesn't change operational threshold values; must be done
-        accordingly by hand)
+        """
+
+        self.label = None
+        self.experiment = None
+        self.flux_type = None
+        self.spacecraft = '' #GOES only; primary or secondary
+        self.startdate = pd.NaT
+        self.enddate = pd.NaT
+        self.min_energy = np.nan #If set, only use bins above this value
+        self.max_energy = np.nan #If set, only use bins below this value
+
+        self.location = None #earth, mars, etc
+        self.species = None #protons, electrons
+
+        #Paths for data source, plots and output files
+        self.datapath = cfg.datapath
+        self.outpath = cfg.outpath
+        self.plotpath = cfg.plotpath
         
-    """
-    print("The docstring in about_opsep describes the full code in detail, but is currently outdated.")
+        #Variables for user-input files
+        self.user_delim = cfg.user_delim #delimeter between columns
+        self.user_col = cfg.user_col #columns in input data file containing fluxes
+        #self.err_col = cfg.err_col #columns containing error bars
+        self.user_energy_bins = cfg.user_energy_bins #energy bins for each column
+
+        #User-input data file
+        self.user = False #user file?
+        self.user_name = None
+        self.user_filename = None #If user-input file
+        
+        #Original fluxes before any background subtraction or interpolation
+        #Bad values are set to None
+        self.original_dates = []
+        self.original_fluxes = []
+        
+        #Do background subtraction on the fluxes?
+        #With OPSEP
+        self.doBGSubOPSEP = False #True to do background-subtraction
+        self.bgstartdate = pd.NaT #defaults to idsep output if not set
+        self.bgenddate = pd.NaT #defaults to idsep output if not set
+        #With IDSEP
+        self.doBGSubIDSEP = False
+        self.idsep_path = ''
+        
+        #BACKGROUND
+        self.nsigma = cfg.opsep_nsigma #N * sigma to use in background subtraction
+        self.bgmeans = [] #Mean fluxes for each energy channel
+        self.bgsigmas = [] #Sigmas for each energy channel
+        self.bgdates = []
+        self.bgfluxes = []
+
+        #ENHANCEMENT ABOVE BACKGROUND
+        self.OPSEPenhancement = False
+        self.IDSEPenhancement = False #Get threshold from idsep output files
+        #Use threshold to set background to zero and leave only enhancement
+
+        #Fill bad fluxes with nan values (default)
+        self.do_interpolation = False
+        
+        #Two peaks may extend an event if it crosses threshold,
+        #temporarily drops below, then increases above threshold again
+        self.two_peaks = False
+        
+        #Plotting settings
+        self.showplot = False
+        self.saveplot = False
+        
+        #GOES-specific options
+        self.options = []
+        self.goes_datatype = None #corrected or uncorrected
+        self.goes_S14 = None #True to apply Sandberg et al. 2014 effective energies
+        self.goes_Bruno2017 = None #True to apply Bruno et al. 2017 effective energies
+        
+        #Energy channels and thresholds used for SEP event definitions
+        #Dictionaries with energy channel and associated threshold
+        #{'energy_channel': energy_bin_obj, 'threshold': threshold_obj}
+        self.event_definitions = []
+
+        #Filenames of background fluxes and thresholds from IDSEP
+        self.idsep_background = None
+        self.idsep_threshold = None
+
+        #The flux timeseries after interpolation and any background subtraction
+        self.energy_bin_objects = [] #include bin centers
+        self.energy_bins = []
+        self.energy_bin_centers = []
+        self.dates = []
+        self.fluxes = []
+        self.fluxes_filename = ''
+        self.time_resolution = np.nan #seconds
+        
+        #Flux timeseries to be evaluated from event definitions
+        self.evaluated_energy_bins = []
+        self.evaluated_dates = []
+        self.evaluated_fluxes = []
+
+        #Collect the results as individual Analyze objects for
+        #each event definition
+        self.results = []
+        #If a SEP event happens in any channel, day is stored here to return
+        self.sep_date = pd.NaT
+
+        return
 
 
-def make_dirs():
-    """ Make subdirectories for files written out by idsep."""
+    def set_dates(self, startdate, enddate):
+        """ Set the start and end dates.
+        
+            INPUT:
+            
+                :startdate: (str) YYYY-MM-DD or YYYY-MM-DD HH:MM:SS
+                :enddate: (str) YYYY-MM-DD or YYYY-MM-DD HH:MM:SS
+                
+            OUTPUT:
+            
+                Set self.startdate and self.enddate as datetime
+        
+        """
+        self.startdate = dh.str_to_datetime(startdate)
+        self.enddate = dh.str_to_datetime(enddate)
+        print(f"Set analysis dates {self.startdate} to {self.enddate}")
+        return
 
-    paths = ['csv','pkl','json']
+
+    def set_options(self, options):
+        """ Set options (arr) if any specified """
+
+        #First, reset
+        self.options = []
+        self.goes_datatype = None
+        self.goes_S14 = None
+        self.goes_Bruno2017 = None
     
-    for path in paths:
-        check_path = os.path.join(cfg.outpath,'opsep',path)
-        if not os.path.isdir(check_path):
-            print('Making directory: ', check_path)
-            os.makedirs(check_path)
+        options = options.split(";")
+        if options[0] != "": self.options = options
+        
+        if 'GOES' in self.experiment:
+            if 'uncorrected' in options:
+                self.goes_datatype = 'uncorrected'
+            else:
+                self.goes_datatype = 'corrected'
+                
+            if 'S14' in options:
+                self.goes_S14 = True
+            else:
+                self.goes_S14 = False
+                
+            if 'Bruno2017' in options:
+                self.goes_Bruno2017 = True
+            else:
+                self.goes_Bruno2017 = False
 
-#### TO BE INCORPORATED INTO ANALYZE CLASS IF DEEMED NECESSARY ####
-#def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
-#                integral_fluxes, crossing_time):
-#    """ Uses the integral fluxes (either input or estimated from differential
-#        channels) and all the energy and flux thresholds set in the main program
-#        to calculate SEP event quantities specific to the UMASEP model.
-#            Flux at threshold crossing time + 3, 4, 5, 6, 7 hours
-#            
-#        INPUTS:
-#        
-#        :energy_thresholds: (float 1xn array) - energy channels for which thresholds
-#            are applied
-#        :flux_thresholds: (float 1xn array) - flux thresholds that are applied
-#        :dates: (datetime 1xm array) - dates associated with flux time profile
-#        :integral_fluxes: (float nxm array) - fluxes for each energy channel for
-#            which a threshold is applied; each is the same length as dates
-#        :crossing_time: (datetime 1xn array) - threshold crossing times for each energy
-#            channel for which a threshold is applied
-#            
-#        OUTPUTS:
-#        
-#        :proton_delay_times: (datetime nx5 array) - times 3, 4, 5, 6, 7 hours
-#            after crossing time for n thresholds
-#        :proton_flux: (float nx5 array) - value of flux at each delay time and for
-#            each threshold
-#        
-#    """
-#    nthresh = len(flux_thresholds)
-#    proton_flux = []
-#    delays = [datetime.timedelta(hours=3), datetime.timedelta(hours=4),
-#                    datetime.timedelta(hours=5), datetime.timedelta(hours=6),
-#                    datetime.timedelta(hours=7)]
-#    ndelay = len(delays)
-#    delay_times = []
-#    proton_delay_times = []  #actual time point corresponding to flux
-#
-#    #Match the correct time delay with the correct threshold
-#    for i in range(nthresh):
-#        if crossing_time[i] == 0:
-#            delay_times.append(0)
-#            continue
-#        all_delays = []
-#        for delay in delays:
-#            all_delays.append(crossing_time[i] + delay)
-#            #Make sure that delayed time doesn't exceed input time range
-#            if crossing_time[i] + delay > dates[len(dates)-1]:
-#                sys.exit("An UMASEP delayed time (Ts+3, 4, 5, 6, 7 hrs) "
-#                        "exceeded the user's input time range. Please rerun "
-#                        "and extend end time.")
-#
-#        delay_times.append(all_delays) #all delays for a given threshold
-#
-#    for i in range(nthresh):
-#        save_flux = [0]*ndelay
-#        save_dates = [0]*ndelay
-#        if delay_times[i] == 0:
-#            proton_delay_times.append(0)
-#            proton_flux.append(0)
-#            continue
-#        for k in range(ndelay):
-#            save_index = -1
-#            for j in range(len(dates)):
-#                if dates[j] <= delay_times[i][k]:
-#                    save_index = j
-#
-#            #GET FLUX AT DELAYED TIME WITH 10 MINUTE AVERAGE
-#            #May choose to modify if input data set has something other than
-#            #5 minute time cadence.
-#            if save_index == -1: #should not happen, unless dates has no length
-#                sys.exit("Did not find an appropriate UMASEP flux point. "
-#                        "Exiting.")
-#            if save_index == 0: #also should be no way for this to happen
-#                save_flux[k] = (integral_fluxes[i][save_index] + \
-#                            integral_fluxes[i][save_index +1])/2.
-#            else:
-#                save_flux[k] = (integral_fluxes[i][save_index] + \
-#                            integral_fluxes[i][save_index - 1])/2.
-#            save_dates[k] = dates[save_index]
-#
-#        proton_flux.append(save_flux)
-#        proton_delay_times.append(save_dates)
-#
-#    return proton_delay_times, proton_flux
+        return
 
 
+    def set_opsep_background_info(self, doBGSubOPSEP, OPSEPEnhancement,
+        bgstartdate, bgenddate):
+        """ Indicate whether to perform background-subtraction.
+            If start and end dates aren't set, then code
+            will look for idsep output to use for mean background.
+        
+            INPUT:
+            
+                :doBGSubOPSEP: (bool) bg subtraction if True
+                :OPSEPEnhancement: (bool) will use background mean + n*sigma
+                    to separate background and SEP, with or without background subtraction
+                :bg_startdate: (str) start of time period to use for 
+                    background calculation
+                :bg_enddate: (str) end of time period to use for
+                    background calculation
+                    
+            OUTPUT:
+            
+                Set background attributes in Data object
+        
+        """
+        self.doBGSubOPSEP = doBGSubOPSEP
+        self.bgstartdate = dh.str_to_datetime(bgstartdate)
+        self.bgenddate = dh.str_to_datetime(bgenddate)
+        self.OPSEPEnhancement = OPSEPEnhancement
+        #IF choose to do background subtraction, then automatically choose
+        #to calculate enhancement above background
+        if self.doBGSubOPSEP: self.OPSEPEnhancement = True
+        
+        if doBGSubOPSEP or OPSEPEnhancement:
+            if pd.isnull(self.bgstartdate) or pd.isnull(self.bgenddate):
+                sys.exit("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Please provide dates of a quiet background period to use this feature.")
+        
+        return
+
+
+    def set_idsep_background_info(self, doBGSubIDSEP, idsep_path, IDSEPEnhancement):
+        """ Specify whether to use background calculated by idsep """
+
+        #If want to use IDSEP files, but no path specified, try the default
+        if (IDSEPEnhancement or doBGSubIDSEP) and self.idsep_path == '':
+            name = tools.idsep_naming_scheme(self.experiment, self.flux_type, self.user_name,
+                    self.options, spacecraft=self.spacecraft)
+            idsep_path = os.path.join(cfg.outpath, 'idsep', name, 'csv')
+
+        self.doBGSubIDSEP = doBGSubIDSEP
+        self.idsep_path = idsep_path
+        self.IDSEPEnhancement = IDSEPEnhancement
+        #IF choose to do background subtraction, then automatically choose
+        #to calculate enhancement above background
+        if self.doBGSubIDSEP: self.IDSEPEnhancement = True
+
+        return
+    
+
+    def create_event_definition(self, emin, emax, eunits, thresh, thresh_units):
+        """ Easily create a single event definition for flexible
+            use of methods from the command line. This subroutine
+            is not used in opsep. It is meant to be a helper when 
+            interfacing with the object manually.
+            
+            For units, refers to units specified in fetchsep.cfg and
+            experiments.py.
+           
+            INPUT:
+            
+                :energy_bin: (arr) [Emin, Emax]
+                :threshold: (float) flux threshold
+            
+        """
+
+        energy_bin_obj = EnergyBin(emin,emax,eunits)
+        threshold_obj = Threshold(thresh, thresh_units)
+        
+        event_definition = {'energy_channel': energy_bin_obj, 'threshold': threshold_obj}
+
+        return event_definition
+
+
+    def set_event_definitions(self, definitions, append=False, default=True):
+        """ Set the energy channel and applied threshold
+            for each event definition requested by the user.
+            FORMAT: "30,1;50,1;4.5-9.2,0.1"
+            
+            user-input thresholds in the format "30,1" for >30 MeV exceeds 1 pfu, 
+            "4-7,0.01" for 4-7 MeV differential channel exceeds 0.01.  
+            "30,1;4-7,0.01" multiple thresholds separated by semi-colon.
+            
+            Apply default operational definitions if default set to True:
+                >10 MeV exceeds 10 pfu
+                >100 MeV exceed 1 pfu 
+            
+            Units will be pulled from the config file for the
+            appropriate flux type.
+            
+            A threshold set to -1 in the event definition indicates to use
+            the mean and sigma calculated by idsep as a threshold. The 
+            threshold can vary with time as a value is calculated for each
+            timestep. Therefore a constant value cannot be applied.
+            
+            INPUT:
+            
+                :definitions: (str) user-input definitions in opsep
+                    format e.g. "10,1;4.5-9.2,0.1"
+                    Definitions separated by semi-colons and
+                    energy channel and threshold separated by
+                    commas
+                :append: (bool) False means all existing event definitions
+                    will be reset and filled in again. True means 
+                    provided event definitions will be appended to
+                    existing.
+                :default: (bool) True to apply the operational thresholds 
+                    >10 MeV, 10 pfu and >100 MeV, 1 pfu
+                
+            Output:
+            
+                Fill self.event_definitions Data attribute
+                
+        """
+
+        if append:
+            bins = []
+            thresholds = []
+        else:
+            self.event_definitions = []
+            bins = []
+            thresholds = []
+            #Default operational thresholds
+            if default:
+                bins = [[10.0,-1], [100.0,-1]]
+                thresholds = [10.0, 1.0]
+
+        
+        definitions = definitions.strip().split(";")
+        if definitions[0] != "":
+            for evdef in definitions:
+                evdef = evdef.strip().split(",")
+                if "-" in evdef[0]:
+                    bin_edge = evdef[0].strip().split("-")
+                    bins.append([float(bin_edge[0]), float(bin_edge[1])])
+                else:
+                    bins.append([float(evdef[0]), -1])
+                    
+                thresholds.append(float(evdef[1]))
+
+        energy_units = tools.get_energy_units()
+        for index, (bin, thresh) in enumerate(zip(bins, thresholds)):
+            
+            flux_units = tools.get_flux_units_bin(bin)
+            energy_bin_obj = EnergyBin(bin[0],bin[1],energy_units)
+            threshold_obj = Threshold(thresh, flux_units)
+            
+            self.event_definitions.append({'energy_channel': energy_bin_obj, 'threshold': threshold_obj})
+
+            #If use IDSEP thresholds, append event definitions to all
+            #previously selected energy channels and use -1 as threshold
+            if self.IDSEPEnhancement or self.OPSEPEnhancement:
+                idsep_threshold_obj = Threshold(-1, flux_units)
+                self.event_definitions.append({'energy_channel': energy_bin_obj, 'threshold': idsep_threshold_obj})
+
+        return
+
+        
+    def error_check(self):
+        """ Error check the inputs and options. """
+            
+        error_check.error_check_options(self.experiment, self.flux_type, self.options, spacecraft=self.spacecraft)
+        error_check.error_check_inputs(self.startdate, self.enddate, self.experiment, self.flux_type)
+        error_check.error_check_background(self.experiment, self.flux_type, self.doBGSubOPSEP,
+            self.doBGSubIDSEP, self.OPSEPEnhancement, self.IDSEPEnhancement)
+
+        return
+
+
+    def load_info(self, startdate, enddate, experiment, flux_type,
+        user_name='', user_file='', spase_id='', showplot=False, saveplot=False,
+        two_peaks=False, definitions='', options='',
+        doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
+        doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='output/idsep/csv/',
+        dointerp=False, spacecraft='', location='earth', species='proton'):
+        """ Create new Data object and load with all values.
+        
+            INPUT:
+                :startdate: (string) - user input start date 
+                    "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+                :enddate: (string) - user input end date "YYYY-MM-DD" or "YYYY-MM-DD HH:MM:SS"
+                :experiment: (string) - "GOES-05" up to "GOES-19", "SEPEM", "SEPEMv3","EPHIN", "EPHIN_REleASE", or "user"
+                :flux_type: (string) - "integral" or "differential" 
+                    indicates the type of flux to read in
+                :user_name: (string) - If model is "user", set 
+                    user_name to describe your model or data set (e.g. 
+                    MyModel), otherwise set to ''.
+                :user_file: (string) - Default is ''. If "user" is 
+                    selected for experiment, specify name of flux file.
+                :showplot: (bool) - True to show plots
+                :saveplot: (bool) - True to save plots 
+                :two_peaks: (bool) - option for extending event length
+                :definitions: (string) - user-input thresholds in the 
+                    format "30,1;4-7,0.01" multiple thresholds
+                    separated by semi-colon. Same as user_thresholds in opsep
+                :dointerp: (boolean) - True to fill in bad fluxes 
+                    via linear interpolation in time
+                :spacecraft: (string) primary or secondary 
+                
+            OUTPUT:
+            
+                :input_data: (Data Object)
+        
+        """
+        flux_units = tools.get_flux_units(flux_type)
+        energy_units = tools.get_energy_units()
+        
+        if experiment == "user":
+            self.user = True
+            self.label = f"{user_name} {flux_type}"
+        else:
+            self.label = f"{experiment} {flux_type}"
+
+        self.experiment = experiment
+        self.flux_type = flux_type
+        self.user_name = user_name #user input experiment (model or obs name)
+        self.user_filename = user_file
+        self.set_dates(startdate, enddate)
+        self.user_filename = user_file #default tmp.txt
+        self.spacecraft = spacecraft
+        self.location = location
+        self.species = species
+        self.set_options(options)
+        self.set_opsep_background_info(doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate)
+        self.set_idsep_background_info(doBGSubIDSEP, idsep_path, IDSEPEnhancement)
+
+        default=True
+        if (energy_units != 'MeV') or (species != 'proton') or ('counts' in flux_type):
+            default=False
+        self.set_event_definitions(definitions,default=default)
+        
+        self.two_peaks = two_peaks
+        self.showplot = showplot
+        self.saveplot = saveplot
+        self.do_interpolation = dointerp
+        self.error_check()
+ 
+        #Create subdirectory to hold values
+        subdir = tools.opsep_subdir(self.experiment, self.flux_type,
+            self.user_name, self.options, spacecraft=self.spacecraft,
+            doBGSubOPSEP=self.doBGSubOPSEP, doBGSubIDSEP=self.doBGSubIDSEP,
+            OPSEPEnhancement=self.OPSEPEnhancement,
+            IDSEPEnhancement=self.IDSEPEnhancement)
+        if not os.path.exists(os.path.join(cfg.outpath,'opsep', subdir)):
+            os.mkdir(os.path.join(cfg.outpath,'opsep', subdir))
+        if not os.path.exists(os.path.join(cfg.plotpath,'opsep', subdir)):
+            os.mkdir(os.path.join(cfg.plotpath,'opsep', subdir))
+
+        
+ 
+        return
+
+
+    def plot_background_subtraction(self, showplot=False):
+        """ Make plots of background-subtracted fluxes """
+
+        plt_tools.opsep_plot_bgfluxes("Total_Fluxes",self.experiment, self.flux_type, self.options,
+                self.user_name, self.original_fluxes, self.original_dates,
+                self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
+                spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
+                doBGSubIDSEP=self.doBGSubIDSEP,
+                OPSEPEnhancement=self.OPSEPEnhancement,
+                IDSEPEnhancement=self.IDSEPEnhancement)
+        plt_tools.opsep_plot_bgfluxes("Background_Fluxes", self.experiment, self.flux_type,
+                self.options, self.user_name, self.bgfluxes, self.bgdates,
+                self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
+                spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
+                doBGSubIDSEP=self.doBGSubIDSEP,
+                OPSEPEnhancement=self.OPSEPEnhancement,
+                IDSEPEnhancement=self.IDSEPEnhancement)
+        plt_tools.opsep_plot_bgfluxes("SEP_Fluxes", self.experiment,
+                self.flux_type, self.options, self.user_name, self.fluxes, self.dates,
+                self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
+                spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
+                doBGSubIDSEP=self.doBGSubIDSEP,
+                OPSEPEnhancement=self.OPSEPEnhancement,
+                IDSEPEnhancement=self.IDSEPEnhancement)
+        
+        if showplot:
+            plt.show()
+        
+        return
+
+    def plot_fluxes_basic(self):
+        """ Simple plot of fluxes to allow user to see values prior to 
+            any analysis. Used to choose event definition if in units
+            other than MeV and species other than protons.
+            
+        """
+        plt_tools.plot_fluxes_basic(self.experiment, self.user_name, self.flux_type,
+            self.dates, self.fluxes, self.energy_bins, self.showplot)
+
+
+    def opsep_background_and_sep_separation(self, all_dates, all_fluxes):
+        """ Perform background separation using OpSEP for a
+            small time period specified by the user. 
+            If OpSEPdoBGSub == True, then background will be subtracted
+            from SEP fluxes and background values will be set to zero.
+            Otherwise, background values will be set to zero and SEP 
+            fluxes will remain the same.
+            
+        """
+        #sepfluxes are background subtracted fluxes
+        #Previous version of subroutine had read in the data
+        #again and did not apply linear interpolation on bad points
+        nointerp_fluxes = datasets.check_for_bad_data(all_dates,all_fluxes,
+            self.energy_bins, dointerp=False)
+        bgfluxes, sepfluxes, means, sigmas = bgsub.derive_background(self.experiment,
+            self.flux_type, self.options, self.bgstartdate, self.bgenddate,
+            all_dates, nointerp_fluxes, self.energy_bins, self.showplot,
+            self.saveplot, nsigma=self.nsigma, doBGSub=self.doBGSubOPSEP)
+        self.bgmeans = means
+        self.bgsigmas = sigmas
+        #Extract the date range specified by the user for the
+        #background and background-removed SEP fluxes
+        bgdates, bgfluxes = datasets.extract_date_range(self.bgstartdate, self.enddate,
+                            all_dates, bgfluxes)
+        self.bgfluxes = bgfluxes
+        self.bgdates = bgdates
+
+        dates, fluxes = datasets.extract_date_range(self.startdate, self.enddate,
+                            all_dates, sepfluxes)
+
+        return dates, fluxes
+
+
+    def read_idsep_files(self):
+        """ Read in the idsep files needed for background subtraction and
+            for applying the thresholds calculated by idsep as an event
+            definition.
+            
+        """
+        bgfilename = os.path.join(self.idsep_path,'background_mean_fluxes_optimized_FINAL.csv')
+        sigmafilename = os.path.join(self.idsep_path, 'background_sigma_optimized_FINAL.csv')
+        threshfilename = os.path.join(self.idsep_path, 'background_threshold_optimized_FINAL.csv')
+
+        df_mean = pd.read_csv(bgfilename)
+        df_mean['dates'] =pd.to_datetime(df_mean['dates'])
+        df_sigma = pd.read_csv(sigmafilename)
+        df_sigma['dates'] =  pd.to_datetime(df_sigma['dates'])
+        df_thresh = pd.read_csv(threshfilename)
+        df_thresh['dates'] = pd.to_datetime(df_thresh['dates'])
+
+        df_mean = df_mean.replace(1e6,np.nan)
+        df_thresh = df_thresh.replace(1e6,np.nan)
+        
+        #Trim to date range
+        df_mean = df_mean.loc[(df_mean['dates'] >= self.startdate) & (df_mean['dates'] < self.enddate)]
+        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.startdate) & (df_sigma['dates'] < self.enddate)]
+        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.startdate) & (df_thresh['dates'] < self.enddate)]
+        if df_mean.empty:
+            sys.exit("read_idsep_files: The idsep file containing the mean background "
+                    f"does not cover the dates required. {bgfilename}")
+                    
+        mean_dates = df_mean['dates'].to_list()
+ #       print(f"Found background for {mean_dates[0]} to {mean_dates[-1]} for extracted flux dates {self.original_dates[0]} to {self.original_dates[-1]} with requested dates {self.startdate} to {self.enddate}")
+        if mean_dates != self.original_dates:
+#            print(f"len(mean_dates) {len(mean_dates)} len(original_dates) {len(self.original_dates)}")
+            sys.exit("read_idsep_files: The idsep file containing the mean background "
+                    f"doesn't have the same dates length for {self.original_dates[0]}. {bgfilename}")
+ 
+        df_mean = df_mean.drop('dates',axis=1) #only flux columns
+        
+        #Check that the energy bins for the columns match the energy bins
+        #of the current data
+        #Bruno2017 energy bins depend on which detector is the west detector
+        #and which spacecraft is used. IDSEP will use the energy bins
+        #for the data at the start of the dataset, so need to relax
+        alt_energy_bins = []
+        if 'Bruno2017' in self.options:
+            alt_energy_bins_A, centers_A = datasets.define_energy_bins(self.experiment,
+                self.flux_type, ["A"], self.options)
+            alt_energy_bins_B, centers_B = datasets.define_energy_bins(self.experiment,
+                self.flux_type, ["B"], self.options)
+            alt_energy_bins = alt_energy_bins_A + alt_energy_bins_B
+
+        all_bins = self.energy_bins + alt_energy_bins
+        bin_keys = [tools.energy_bin_key(bin) for bin in all_bins]
+        columns = df_mean.columns
+        columns = [col for col in columns if col != 'dates']
+        
+        for col in columns:
+            if col not in bin_keys:
+                sys.exit("read_idsep_files: IDSEP files don't contain energy bins that "
+                    f"match the data. IDSEP columns: {columns}, Data energy bins: {self.energy_bins}")
+        
+        means = []
+        sigmas = []
+        thresholds = []
+        for i, col in enumerate(columns):
+            bg_flux = df_mean[col].to_list()
+            bg_sigma = df_sigma[col].to_list()
+            bg_thresh = df_thresh[col].to_list()
+            if i==0:
+                means = [bg_flux]
+                sigmas = [bg_sigma]
+                thresholds = [bg_thresh]
+            else:
+                means.append(bg_flux)
+                sigmas.append(bg_sigma)
+                thresholds.append(bg_thresh)
+
+        return means, sigmas, thresholds
+
+
+
+    def idsep_background_and_sep_separation(self):
+        """ Read in idsep files containing mean background with time,
+            e.g. output/idsep/
+            
+            You must have run idsep for exactly the same experiment and 
+            flux_type for date ranges that contain your period of interest.
+            In this way, the energy bins and data cadence will match.
+            
+            If IDSEP background subtraction is selected, will 
+            return background-subtracted fluxes with background
+            set to zero.
+            
+            If background subtraction not selected, will return
+            original fluxes, but with background set to zero.
+            
+        """
+
+        means, sigmas, thresholds = self.read_idsep_files()
+        
+        bgfluxes, sepfluxes = bgsub.separate_sep_and_background_idsep(self.original_fluxes,
+                            means, sigmas, nsigma=self.nsigma,
+                            doBGSub=self.doBGSubIDSEP)
+        
+        bgfluxes = np.array(bgfluxes)
+        sepfluxes = np.array(sepfluxes)
+ 
+        self.bgmeans = means
+        self.bgsigmas = sigmas
+        self.bgfluxes = bgfluxes
+        self.bgdates = self.original_dates
+ 
+        return self.original_dates, sepfluxes
+        
+ 
+
+    def read_in_flux(self):
+        """ Read in the appropriate data or user files. Performs
+            background subtraction or background and SEP separation, 
+            if requested. Trims to dates between start time and end time. 
+            Interpolates bad points with linear interpolation in time.
+            
+            Loads into self.fluxes
+            
+            OUTPUTS:
+            
+            :dates: (datetime 1xm array) - times in flux time profile trimmed
+                between startdate and enddate
+            :fluxes: (numpy float nxm array) - fluxes for n energy channels and m
+                time steps; these are background subtracted fluxes if background
+                subtraction was selected.
+            :energy_bins: (array nx2 for n thresholds)
+            
+        """
+
+        detector= []
+        west_detector = []
+        startdate = self.startdate
+        enddate = self.enddate
+        #If want to do background subtraction with a specified date range,
+        #make sure to read in data for the full date range required
+        if self.doBGSubOPSEP:
+            if not pd.isnull(self.bgstartdate) and not pd.isnull(self.bgenddate):
+                startdate = min(self.startdate,self.bgstartdate)
+                enddate = max(self.enddate, self.bgenddate)
+        
+        
+        if self.experiment == "GOES": #Extra output
+            filenames1, filenames2, filenames_orien, detector = \
+                datasets.check_data(startdate, enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
+        else:
+            filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
+                    enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
+
+                                        
+        #read in flux files
+        if not self.user:
+            if self.experiment == "GOES":
+                all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
+                    datasets.read_in_files(self.experiment, self.flux_type,
+                            filenames1, filenames2, filenames_orien, self.options,
+                            detector=detector, spacecraft=self.spacecraft)
+            else:
+                all_dates, all_fluxes, west_detector = \
+                    datasets.read_in_files(self.experiment, self.flux_type,
+                        filenames1, filenames2, filenames_orien, self.options,
+                        detector=detector, spacecraft=self.spacecraft)
+ 
+        else:
+            all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
+
+
+        #Define energy bins
+        if self.experiment == "ERNE":
+            version = datasets.which_erne(startdate, enddate)
+            energy_bins, energy_bin_centers = datasets.define_energy_bins(version,
+                self.flux_type, west_detector, self.options)
+        elif self.experiment != "GOES":
+            energy_bins, energy_bin_centers = datasets.define_energy_bins(self.experiment, self.flux_type,
+                        west_detector, self.options, spacecraft=self.spacecraft,
+                        user_bins=self.user_energy_bins)
+
+
+        if len(all_dates) <= 1:
+            sys.exit(f"read_in_flux: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
+
+        #Full flux and date range for specified input files, not yet trimmed in date
+        all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins, energy_bin_centers)
+        
+        self.energy_bins = energy_bins
+        self.energy_bin_centers = energy_bin_centers
+        
+        ####Save original fluxes with bad points set to None
+        #Extract date range that covers any background-subtraction periods
+        print(f"Reading in original fluxes including any background subtraction periods with no interpolation for {all_dates[0]} to {all_dates[-1]}.")
+        orig_dates, orig_fluxes = datasets.extract_date_range(startdate, enddate,
+                                        all_dates, all_fluxes)
+
+        orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,dointerp=False)
+        self.original_dates = orig_dates
+        self.original_fluxes = orig_fluxes
+
+
+        #IF BACKGROUND SUBTRACTION
+        if self.doBGSubOPSEP or self.OPSEPEnhancement:
+            #Background-subtracted fluxes with date range specified by the user
+            dates, fluxes = self.opsep_background_and_sep_separation(all_dates, all_fluxes)
+        elif self.doBGSubIDSEP or self.IDSEPEnhancement:
+             dates,fluxes = self.idsep_background_and_sep_separation()
+        #NO BACKGROUND SUBTRACTION OR USE OF IDSEP BACKGROUND IDENTIFICATION
+        else:
+            #Extract the date range specified by the user
+            dates, fluxes = datasets.extract_date_range(self.startdate,
+                    self.enddate, all_dates, all_fluxes)
+        
+        #Handle bad data points
+        print("Removing bad points from final fluxes after any background "
+              "subtraction and trimming. "
+              f"Performing interpolation? {self.do_interpolation}")
+        fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins, dointerp=self.do_interpolation)
+         
+        if len(dates) <= 1:
+            print("read_in_flux: The specified start and end dates were not "
+                f"present in the specified input file. Exiting. {startdate} to {enddate}")
+            sys.exit()
+        
+        self.fluxes = fluxes
+        self.dates = dates
+
+        #Write the resulting fluxes that will be analyzed to file
+        fluxes_filename = tools.write_fluxes(self.experiment, self.flux_type, self.user_name, self.options, self.energy_bins, dates, fluxes, 'opsep', spacecraft=self.spacecraft,
+            doBGSubOPSEP=self.doBGSubOPSEP, doBGSubIDSEP=self.doBGSubIDSEP,
+            OPSEPEnhancement=self.OPSEPEnhancement, IDSEPEnhancement=self.IDSEPEnhancement,
+            suffix='fluxes_all_bins')
+        self.fluxes_filename = os.path.basename(fluxes_filename)
+
+        time_res = tools.determine_time_resolution(dates)
+        self.time_resolution = time_res.total_seconds()
+
+        #A plain plot of the data that is visualized for the user
+        #and could be manually saved, but is not written out as a default.
+        if self.showplot:
+            self.plot_fluxes_basic()
+
+        #Plot background and SEP separation, may or may not include background
+        #subtraction
+        if self.doBGSubOPSEP or self.doBGSubIDSEP or self.OPSEPEnhancement\
+        or self.IDSEPEnhancement:
+            if self.showplot or self.saveplot:
+                self.plot_background_subtraction()
+
+        return
+
+
+    def estimate_integral_fluxes(self):
+        """ If input data is differential, then estimate 
+            integral fluxes by doing a linear interpolation
+            in log space from energy bin center to bin center.
+            Append these estimated fluxes to self.fluxes.
+            
+        """
+
+        if self.flux_type == "integral":
+            return
+            
+        for evdef in self.event_definitions:
+            #If integral channel, estimate integral fluxes
+            if evdef['energy_channel'].max == -1:
+                energy_threshold = evdef['energy_channel'].min
+                integral_flux = tools.from_differential_to_integral_flux(self.experiment,
+                            energy_threshold, self.energy_bins, self.fluxes,
+                            bruno2017=self.goes_Bruno2017,
+                            energy_bin_centers=self.energy_bin_centers)
+                
+                #Add estimated integral fluxes and associated energy bin to self
+                self.evaluated_fluxes.append(integral_flux)
+                bin = [evdef['energy_channel'].min, evdef['energy_channel'].max]
+                self.evaluated_energy_bins.append(bin)
+            
+        return
+
+
+
+    def extract_fluxes_to_evaluate(self):
+        """ Pull out the flux timeseries for the requested event definitions. 
+            
+            If the input flux is differential, then estimate integral fluxes
+            for integral channels specified in event definitions by calling
+            estimate_integral_fluxes().
+            
+            Store the fluxes to be analyzed in:
+            self.evaluated_energy_bins
+            self.evaluated_fluxes
+            self.evaluated_dates
+        
+        """
+        
+        #First, reset
+        self.evaluated_energy_bins = []
+        self.evaluated_dates = self.dates
+        self.evaluated_fluxes = []
+        to_remove = [] #event definitions with energy bins not in the data
+        
+        if self.flux_type == 'differential':
+            self.estimate_integral_fluxes()
+ 
+        for evdef in self.event_definitions:
+            bin = [evdef['energy_channel'].min, evdef['energy_channel'].max]
+
+            #Users may apply multiple thresholds to the same energy channel.
+            #Only need to extract one copy of the flux and energy bins in
+            #that channel, so skip if already included.
+            if bin in self.evaluated_energy_bins:
+                continue
+            
+            try:
+                idx = self.energy_bins.index(bin)
+            except:
+                print("extract_fluxes_to_evaluate: Energy bin for requested event "
+                    f"definition is not present in the data, {bin}. Skipping.")
+                #Remove from event definitions
+                to_remove.append(evdef)
+                continue
+            
+            self.evaluated_energy_bins.append(bin)
+            self.evaluated_fluxes.append(self.fluxes[idx])
+ 
+        #Clean up by removing any event definitions that weren't in the data
+        if len(to_remove) > 0:
+            for evdef in to_remove:
+                if evdef in self.event_definitions:
+                    self.event_definitions.remove(evdef)
+ 
+ 
+        return
+
+
+    def add_results(self, analyze):
+        """ Append Analyze object to Data object """
+        self.results.append(analyze)
+        return
+
+
+    def get_sep_date(self):
+        """ Get the year, month, day of SEP event if one is
+            recorded for any of the event definitions.
+            
+        """
+        sep_date = pd.NaT
+        for analyze in self.results:
+            if not pd.isnull(analyze.sep_start_time):
+                self.sep_date = analyze.sep_start_time
+                return
+                
+        return
+        
+
+
+
+################################################################
+##### Analyze Class: Analysis of Flux Data for OpSEP ###########
+################################################################
+class Analyze:
+    def __init__(self, data, event_definition):
+        """ The Analyze class contains the functions that work on the
+            fluxes in the Data class. These functions calculate the 
+            SEP event characteristics produced by OpSEP.
+            
+            There is one Analyze class object per event definition.
+            
+            The values calculated in multiple Analyze objects (i.e. event
+            definitions) can be combined with the source Data object
+            to fill an Observation or Forecast object, which can be used
+            directly by SPHINX, and produce a JSON file in the 
+            CCMC SEP Scoreboard format.
+            
+            INPUT:
+
+                :data: (object) a filled Data object
+                :event_definition: (dict) dict of EnergyBin and Threshold objects
+                    {'energy_channel': EnergyBin, 'threshold': Threshold}
+            
+        """
+        self.event_definition = event_definition
+        
+        
+        #Specific dates and fluxes for this event definition
+        #Flux in a single energy channel
+        self.dates = []
+        self.flux = []
+        self.bgmean = np.nan
+        self.bgsigma = np.nan
+        
+        #Derived values
+        self.sep_start_time = pd.NaT
+        self.sep_end_time = pd.NaT
+        self.onset_peak = np.nan
+        self.onset_peak_time = pd.NaT
+        self.onset_rise_time = np.nan
+        self.max_flux = np.nan
+        self.max_flux_time = pd.NaT
+        self.max_flux_rise_time = np.nan
+        self.duration = np.nan
+        self.fluence = np.nan
+        self.fluence_spectrum = []
+
+        self.energy_units = event_definition['energy_channel'].units
+        self.flux_units = None
+        self.rise_time_units = 'minutes'
+        self.duration_units = 'hours'
+        self.fluence_units = None
+        self.fluence_spectrum_units = None
+
+        self.sep_profile = None #name of output file continaining
+            #datetime column and flux column for this event definition
+
+        self.isgood = self.check_event_definition(data)
+        self.quality_flags = ''
+
+ 
+    def check_event_definition(self, data):
+        """ Check if the energy channels in the data correspond to  
+            the requested event definition. Exit if not.
+            
+        """
+        energy_bin = self.make_energy_bin()
+        try:
+            data.evaluated_energy_bins.index(energy_bin)
+        except:
+            print(f"Analyze init: Requested energy bin in the event definition {energy_bin} "
+                f"is not present in the data: {data.evaluated_energy_bins}. Exiting.")
+            return False
+        
+        print(f"Analyze init: Applying event definition: "
+            f"[{self.event_definition['energy_channel'].min}, "
+            f"{self.event_definition['energy_channel'].max}] exceeds "
+            f"{self.event_definition['threshold'].threshold} {self.event_definition['threshold'].threshold_units}")
+
+
+        if self.event_definition['threshold'].threshold == -1:
+            if not data.OPSEPEnhancement and not data.IDSEPEnhancement \
+            and not data.doBGSubOPSEP and not data.doBGSubIDSEP:
+                sys.exit("You are requesting to identify enhancement "
+                    "above background, but background and SEP separation "
+                    "has not been performed. Choose to do background subtraction "
+                    "--OPSEPSubtractBG, variable: doBGSubOPSEP or --IDSEPSubtractBG, "
+                    "variable: doBGSubIDSEP) "
+                    "or set flags to identify enhancements above background "
+                    "(--OPSEPEnhancement, variable: OPSEPEnhancement or "
+                    "--IDSEPEnhancement, variable: IDSEPEnhancement)")
+                    
+            print("-1 threshold indicates you have selected to identify "
+                "enhancement above background. Setting threshold to "
+                f"opsep_min_threshold in fetchsep.cfg: {cfg.opsep_min_threshold}.")
+            self.event_definition['threshold'].threshold = cfg.opsep_min_threshold
+            
+        return True
+
+ 
+ 
+    def make_energy_channel_dict(self):
+        """ {'min': 10, 'max': -1, 'units': 'MeV'} from event_definition 
+            
+            This form of the energy channel is used in SPHINX and the 
+            Observation and Forecast objects.
+        
+        """
+        energy_channel = {'min':self.event_definition['energy_channel'].min,
+                        'max':self.event_definition['energy_channel'].max,
+                        'units': self.event_definition['energy_channel'].units}
+        return energy_channel
+
+
+
+    def make_threshold_dict(self):
+        """ {'threshold': 10, 'threshold_units': 'pfu'} from event_definition """
+        threshold = {'threshold': self.event_definition['threshold'].threshold,
+                    'threshold_units': self.event_definition['threshold'].threshold_units}
+        return threshold
+
+
+
+    def make_energy_bin(self):
+        """ [Emin, Emax] from event_definition  """
+        energy_bin = [self.event_definition['energy_channel'].min,
+                    self.event_definition['energy_channel'].max]
+        return energy_bin
+
+
+    def select_fluxes(self, data, event_definition):
+        """ Pull out the specific fluxes in the energy 
+            channel being analyzed. 
+        
+        """
+        energy_bin = [event_definition['energy_channel'].min,
+                        event_definition['energy_channel'].max]
+        idx = data.evaluated_energy_bins.index(energy_bin)
+        fluxes = data.evaluated_fluxes[idx]
+        dates = data.evaluated_dates
+        try:
+            bgmean = data.bgmeans[idx]
+            bgsigma = data.bgsigmas[idx]
+            self.bgmean = sum(bgmean)/len(bgmean)
+            self.bgsigma = sum(bgsigma)/len(bgsigma)
+        except:
+            pass
+
+        self.dates = dates
+        self.flux = fluxes
+
+        #check this energy bin to determine units
+        self.flux_units = tools.get_flux_units_bin(energy_bin)
+        self.fluence_units = tools.get_fluence_units_bin(energy_bin)
+
+        #Check original input data to determine fluence spectrum units
+        self.fluence_spectrum_units = tools.get_fluence_units(data.flux_type)
+
+        return
+
+
+#FOR TESTING
+#    def plot_sep_separation(self, data, dates, original_fluxes, sepfluxes,
+#        bgfluxes, energy_bins, means, sigmas, showplot=False):
+#        """ Make plots of background-subtracted fluxes """
+#
+#        plt_tools.opsep_plot_bgfluxes(f"Total_{data.experiment}", data.flux_type,
+#                data.options, data.user_name, original_fluxes, dates, energy_bins,
+#                means, sigmas, data.saveplot, spacecraft = data.spacecraft)
+#        plt_tools.opsep_plot_bgfluxes(f"BackgroundFluxIDSEP_{data.experiment}",
+#                data.flux_type, data.options, data.user_name, bgfluxes, dates,
+#                energy_bins, means, sigmas, data.saveplot, spacecraft = data.spacecraft)
+#        plt_tools.opsep_plot_bgfluxes(f"BGSubSEPFluxIDSEP_{data.experiment}",
+#                data.flux_type, data.options, data.user_name, sepfluxes, dates,
+#                energy_bins, means, sigmas, data.saveplot,
+#                spacecraft = data.spacecraft)
+#
+#        if showplot:
+#            plt.show()
+#
+#        return
+#
+#
+#    def get_flux_above_idsep_threshold(self, data):
+#        """ If threshold == -1, this indicates to apply
+#            the IDSEP mean + nsigma. n is defined here and
+#            optimized to identify SEP onsets above background.
+#            The nsigma used here may not be the same that is
+#            used for background and SEP separation in IDSEP or
+#            background subtraction step in OpSEP.
+#
+#        """
+#        thresh_nsigma = cfg.opsep_nsigma #allow for flexibility
+#
+#        fluxes = self.flux
+#        dates = self.dates
+#        energy_bin = self.make_energy_bin()
+#        idx = data.energy_bins.index(energy_bin) #Mean and sigma index
+#
+#        means, sigmas, thresholds = data.read_idsep_files()
+#        means = means[idx]
+#        sigmas = sigmas[idx]
+#        zeroes = [0]*len(means)
+#
+#        #If IDSEP mean background and sigma have already been
+#        #applied to separate fluxes from background, then
+#        #self.flux is already background subtracted.
+#        #Want to do a background, SEP separation by applying
+#        #thresh_nsigma * sigmas
+#        if data.doBGSubIDSEP:
+#            bgfluxes, sepfluxes = bgsub.separate_sep_and_background_idsep([fluxes],
+#                            [zeroes], [sigmas], nsigma=thresh_nsigma,
+#                            doBGSub=False)
+#            if data.showplot or data.saveplot:
+#                self.plot_sep_separation(data, dates, [fluxes], sepfluxes,
+#                    bgfluxes, [energy_bin], [zeroes], [sigmas])
+#
+#        else:
+#            bgfluxes, sepfluxes = bgsub.separate_sep_and_background_idsep([fluxes],
+#                            [means], [sigmas], nsigma=thresh_nsigma,
+#                            doBGSub=False)
+#            if data.showplot or data.saveplot:
+#                self.plot_sep_separation(data, dates, [fluxes], sepfluxes,
+#                    bgfluxes, [energy_bin], [means], [sigmas])
+#
+#        #all background fluxes have been set to zero and non-zero fluxes
+#        #remain only over the idsep threshold values with time
+#        self.flux = sepfluxes[0]
+#
+#        return
+
+
+    def extend_two_peaks(self, first_start_time, first_end_time, threshold):
+        """ If user indicates that the same event has an initial threshold
+            crossing, then temporarily drops below threshold, then continues
+            again, try to extend the first threshold crossing to include
+            the complete event. 
+            
+            If data.two_peaks is True, search for extended event.
+            
+            INPUTS:
+            
+                :first_start_time: (datetime) start of first threshold crossing
+                :first_end_time: (datetime) end of first threshold crossing
+                :threshold: (float) threshold used in event definitions
+            
+            OUTPUTS:
+            
+                :start_time: (datetime) start of first threshold crossing
+                :end_time: (datetime) modified end of second threshold crossing
+
+            
+        """
+        dates = self.dates
+        flux = self.flux
+        
+        lastdate = dates[-1]
+        
+        trim_flux = self.trim_to_date_range(first_end_time, lastdate, dates, flux)
+        trim_dates = self.trim_to_date_range(first_end_time, lastdate, dates, dates)
+        
+        if len(trim_flux) == 0:
+            return first_start_time, first_end_time
+        
+        sep_start_time, sep_end_time = tools.identify_sep_noaa(trim_dates, trim_flux, threshold)
+        if pd.isnull(sep_start_time) or pd.isnull(sep_end_time):
+            return first_start_time, first_end_time
+        else:
+            print("User specified that event has two peaks. Extending "
+                  "event to second decrease below threshold.")
+            return first_start_time, sep_end_time
+
+
+
+    def calculate_threshold_crossing(self, data, event_definition, check_quality=False):
+        """ Calculate the threshold crossing times for a given energy bin
+            and flux threshold. 
+
+            An SEP event is considered to start if 3 consecutive points (depending on 
+            dataset time resolution) are above threshold. The start time is set to the 
+            first point that crossed threshold.
+            
+            If IDSEPEnhancement, OPSEPEnhancement or doBGSubIDSEP, doBGSubOPSEP are 
+            selected, then require 5 consecutive points to attempt to avoid false 
+            identifications of background time periods.
+            
+            Start time will be calculated with respect to the threshold. The end
+            time can be calculated for a different threshold by applying a factor
+            specified in the fetchsep.cfg file called endfac. The end threshold 
+            will be set to cfg.endfac*threshold. 
+            
+            The flexibility of adding a factor for end time was inspired by 
+            a SRAG alarm code that uses 0.85*threshold as the ending condition
+            to avoid fluxes bouncing above and below the operational threshold.
+            
+            The end time is specified as the last point above threshold, even if
+            there have been some drops below threshold. This is done by applying
+            a dwell time, also specified in fetchsep.cfg. The dwell time is set 
+            to best match NOAA SWPC's published end times.
+        
+            INPUT:
+            
+                :data: (Data object) contains flux information
+                :event_definition: (dict) dict of EnergyBin and Threshold objects
+                :check_quality: (bool) set to True to determine if time period ends
+                    before event crosses below threshold or returns to background
+                
+            OUTPUT:
+            
+                :tc_start_time: (datetime) threshold crossing start time
+        
+        """
+        energy_bin = [event_definition['energy_channel'].min,
+                        event_definition['energy_channel'].max]
+        threshold = event_definition['threshold'].threshold
+            
+        if energy_bin not in data.evaluated_energy_bins:
+            print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
+                "specified in event definitions or not present in data. Skipping.")
+            return
+
+        fluxes = self.flux
+        dates = self.dates
+        ndates = len(dates)
+        
+        sep_start_time = pd.NaT
+        sep_end_time = pd.NaT
+        
+        #When applying a threshold, use NOAA SWPC logic
+        if threshold != cfg.opsep_min_threshold:
+            sep_start_time, sep_end_time = tools.identify_sep_noaa(dates, fluxes, threshold)
+            if data.two_peaks:
+                sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
+
+        #When identifying an event above background, use the same logic as IDSEP
+        if threshold == cfg.opsep_min_threshold:
+            sep_start_time, sep_end_time, SPEfluxes = tools.identify_sep_above_background_one(dates, fluxes)
+
+        #In case that date range ended before fell before threshold,
+        #use the last time in the file
+        if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+            sep_end_time = dates[ndates-1]
+            print(f"WARNING !!!!File ended before SEP event ended for [{energy_bin[0]},{energy_bin[1]}], "
+                 f"{threshold} {event_definition['threshold'].threshold_units}! "
+                "Using the last time in the date range as the event end time. "
+                "Extend your date range to get an improved estimate of the event "
+                "end time and duration.")
+            if check_quality and 'I' not in self.quality_flags:
+                self.quality_flags += 'I'
+
+        print(f"For {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
+
+        return sep_start_time, sep_end_time
+
+
+    def trim_to_date_range(self, startdate, enddate, dates, array):
+        """ Trim array to between startdate and enddate.
+            dates corresponds to the time steps in array.
+            
+        """
+        
+        indices = [i for i in range(len(dates)) if (dates[i] >= startdate and dates[i] <= enddate)]
+        
+        if len(indices) == 0:
+            return []
+        
+        nst = indices[0]
+        nend = indices[-1] + 1
+        
+        return array[nst:nend]
+
+
+
+    def calculate_max_flux(self, data):
+        """ Identify maximum flux value and time during SEP event. """
+ 
+        max_flux = np.nan
+        max_flux_time = pd.NaT
+        
+        energy_bin = self.make_energy_bin()
+ 
+        if energy_bin not in data.evaluated_energy_bins:
+            print(f"calculated_threshold_crossing: Requested energy bin {energy_bin} not "
+                "specified in event definitions or not present in data. Skipping.")
+            return
+
+        fluxes = self.flux
+        dates = self.dates
+        
+        #If there is a SEP EVENT, extract between start and end times.
+        #If NO EVENT, don't trim and take the maximum of the full timeseries
+        if not pd.isnull(self.sep_start_time) and not pd.isnull(self.sep_end_time):
+            fluxes = self.trim_to_date_range(self.sep_start_time, self.sep_end_time,
+                                    dates, fluxes)
+            dates = self.trim_to_date_range(self.sep_start_time, self.sep_end_time,
+                                    dates, dates)
+
+        max_flux = np.nanmax(fluxes)
+        if not pd.isnull(max_flux):
+            ix = np.nanargmax(fluxes) #First instance, if multiple
+            try:
+                max_flux_time = dates[ix]
+            except:
+                pass
+        
+        self.max_flux = max_flux
+        self.max_flux_time = max_flux_time
+        
+        return max_flux, max_flux_time
+
+
+
+    def check_onset_peak_fit_quality(self, default_pars, best_pars):
+        """ Onset peak fit quality control 
+            Compare default parameters with best-fit parameters.
+            Apply cuts on best-fit parameters when in a range that
+            indicates the fit is likely bad.
+            
+            INPUTS:
+            
+                :params_fit: (Parameters) parameters set with default 
+                    values and min/max ranges
+                :best_pars: (Parameters) parameters from best Weibull fit
+                
+            OUTPUT:
+            
+                (bool) True if good fit, False if bad fit
+        
+        """
+
+        params = ['alpha', 'beta', 'peak_intensity']
+
+        #### Indicators of a bad fit ####
+        for par in params:
+            if pd.isnull(best_pars[par]):
+                print("check_onset_peak_fit_quality: Fit failed. Rejecting.")
+                return False
+
+            if best_pars[par] == default_pars[par].min or best_pars[par] == default_pars[par].max:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using maximized or minimized {par} value. Rejecting.")
+                return False
+
+            #Best-fit parameters too close to the end of the range
+            rel_diff_min = abs(best_pars[par] - default_pars[par].min)/abs(default_pars[par].min)
+            rel_diff_max = abs(best_pars[par] - default_pars[par].max)/abs(default_pars[par].max)
+            
+            if rel_diff_min < 1e-4 or rel_diff_max < 1e-4:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using parameters too close to max or min for {par}. Rejecting.")
+                return False
+
+        is_good = False
+        for par in params:
+            if best_pars[par] != default_pars[par].value:
+                is_good = True
+            else:
+                print(f"check_onset_peak_fit_quality: Poor fit with "
+                    f"result using default parameters for {par}.")
+        if not is_good:
+            print(f"check_onset_peak_fit_quality: All parameters using default values. Rejecting.")
+
+        return is_good
+
+ 
+    def check_onset_peak_id_quality(self, max_curve_idx, yderiv, yderiv2, npoints,
+        weibull_max, data_max):
+        """ After identify the location of the onset peak,
+            check is the results are meaningful.
+            
+            INPUTS:
+            
+                :max_curve_idx: (int) index location of the minimum value of the
+                    second derivative, indicating the location of rollover of
+                    the Weibull fit
+                :yderiv: (float) maximum value of the first derivative of
+                    the Weibull fit
+                :yderiv2: (float) minimum value of the second derivative of
+                    the Weibull fit
+                :npoint: (int) number of data points that were used for the
+                    Weibull fit
+                :weibull_max: (float) value of the Weibull at max_curve_idx
+                :data_max: (float) value of the identified onset peak in the data
+                
+            OUTPUTS:
+            
+                bool True/False indicating if fit is good
+            
+        """
+        #Minimum of second derivative is positive
+        if yderiv2 >= 0:
+            print("check_onset_peak_id_quality: Minimum second derivative of Weibull "
+                  "fit is zero or positive. Bad fit. Rejecting.")
+            return False
+
+        #Max of the derivative is too small (little curvature)
+        if yderiv <= 1e-3:
+            print("check_onset_peak_id_quality: Maximum first derivative of Weibull "
+                  "fit is too small. Bad fit. Rejecting.")
+            return False
+
+        if max_curve_idx == 2 or max_curve_idx == npoints:
+            print("check_onset_peak_id_quality: Found onset peak at end of fitted period. Rejecting.")
+            return False
+
+        if weibull_max/data_max >= 10. or weibull_max/data_max <= 0.1:
+            print(f"check_onset_peak_id_quality: Weibull fit peak is more than an order of magnitude difference from the identified peak. ratio = {weibull_max/data_max}. Rejecting.")
+            return False
+
+        return True
+
+
+    def check_onset_peak_metrics_quality(self, norm_yderiv, norm_yderiv2, n2):
+        """ Reject onset peak fit based off of various metrics. 
+            n2 is the percent of points within a factor of 2.
+        
+        """
+        
+        is_good = True
+        if norm_yderiv < 0.01: is_good = False
+        if norm_yderiv2 >  -0.00013: is_good = False
+        if n2 < 65: is_good = False
+        return is_good
+
+
+    def calculate_onset_peak_from_fit(self, data):
+        """Calculate the peak associated with the initial SEP onset. This subroutine
+            searches for the rollover that typically occurs after the SEP onset.
+            The peak value will be specified as the flux value at the rollover
+            location.
+            
+            The onset peak may provide a more physically appropriate comparison
+            with models.
+            
+            If code cannot identify onset peak, it will return values:
+                onset_peak = np.nan
+                onset_peak_time = pd.NaT
+            
+            The onset peak is found by fitting a Weibull function to the SEP
+            time profile. The fit is performed using fluxes up to 6 hours prior to
+            the threshold crossing up to 24 hours after the threshold crossing.
+            
+            A peak time is estimated using the second derivative
+            of the fitted Weibull. The maximum measured flux value within 1 hour
+            of the estimated onset peak location is taken to be the measured
+            onset peak.
+            
+            A least 6 hours of flux measurements are required to fit the Weibull.
+            If the duration of the time profile is shorter, then the onset peak
+            will not be calcualated.
+            
+            INPUT:
+            
+                :event_definition: (dict) dict of EnergyBin and Threshold objects
+                :sep_start_time: (datetime) SEP event start time
+                :sep_end_time: (datetime) SEP event end time
+                :max_flux: (float) maximum flux during SEP event, used to 
+                    check for magnetitude of event to guide fitting
+            
+            OUTPUT:
+            
+                :onset_peak: (float) value of the onset peak
+                :onset_peak_time: (datetime) time of onset peak
+            
+        """
+        energy_bin = self.make_energy_bin()
+        energy_units = self.event_definition['energy_channel'].units
+        threshold = self.event_definition['threshold'].threshold
+        threshold_units = self.event_definition['threshold'].threshold_units
+
+        onset_peak = np.nan
+        onset_peak_time = pd.NaT
+
+        if energy_bin not in data.evaluated_energy_bins:
+            print(f"calculated_onset_peak_from_fit: Requested energy bin {energy_bin} not "
+                "specified in event definitions or not present in data. Skipping.")
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        #NO SEP EVENT
+        if pd.isnull(self.sep_start_time) or pd.isnull(self.sep_end_time):
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        fluxes = self.flux
+        dates = self.dates
+
+        #Do a fit of the Weibull function for each time profile
+        default_pars = Parameters()
+        default_pars.add('alpha', value = -3, min = -20, max = -0.1)
+        default_pars.add('beta', value = 10, min = 1, max =500) #10, 1, 100
+        default_pars.add('peak_intensity', value = 100, min = 1e-3, max =1e6) #100, 1e-3, 1e6
+        
+        #For mid to strong SEP events, time according to prompt onset and the
+        #possibility of a CME arriving around 24 hours later (set timing
+        #to approximately exclude CME arrival)
+        start_fit_time = max(dates[0], self.sep_start_time - datetime.timedelta(hours=3))
+        end_fit_time = min(self.sep_end_time, self.sep_start_time + datetime.timedelta(hours=18))
+
+        #If start time indicates start above background, don't need to extend fit period
+        #back in time
+        if (data.doBGSubIDSEP or data.doBGSubOPSEP or data.IDSEPEnhancement \
+            or data.OPSEPEnhancement) and threshold == cfg.opsep_min_threshold:
+            start_fit_time = self.sep_start_time
+
+        
+        #For lower intensity events, extend back to initial elevation to
+        #capture more of the event and also capture more time
+        #after threshold crossing as likely a slower CME or CME that
+        #will not arrive at Earth (for very gradual rises)
+        flxratio = self.max_flux/threshold
+        if flxratio < 10:
+            #Try to find the background level and evaluate the event
+            #from the time it first deviates from background
+            ratio = [0.1, 0.2, 0.3, 0.4, 0.5]
+            for rat in ratio:
+                low_thresh = rat*threshold
+                low_evdef = data.create_event_definition(energy_bin[0],energy_bin[1],
+                    energy_units, low_thresh, threshold_units)
+                low_start_time, low_end_time = self.calculate_threshold_crossing(data, low_evdef)
+                if low_start_time > dates[0] and low_start_time < start_fit_time:
+                    start_fit_time = low_start_time
+                    break
+
+        print(f"calculate_onset_peak_from_fit: FITTING BETWEEN {start_fit_time} to {end_fit_time}")
+        
+        trim_fluxes = self.trim_to_date_range(start_fit_time, end_fit_time,
+                                    dates, fluxes)
+        trim_dates = self.trim_to_date_range(start_fit_time, end_fit_time,
+                                    dates, dates)
+ 
+        #Convert dates into a series of times in hours for fitting
+        trim_times = [((t - dates[0]).total_seconds() + 60)/(60*60) for t in trim_dates]
+ 
+        minimize_func = minimize(tools.func_residual, default_pars,
+                    args = [trim_times, trim_fluxes],
+                    nan_policy= 'propagate', max_nfev=np.inf)
+
+        #Get Weibull fit parameters
+        best_pars = minimize_func.params.valuesdict()
+        best_a = best_pars['alpha']
+        best_b = best_pars['beta']
+        best_Ip = best_pars['peak_intensity']
+        best_fit = tools.modified_weibull(trim_times, best_Ip, best_a, best_b)
+        
+        #Calculate chisq
+        err = tools.normchisq(best_fit, trim_fluxes, sigma=self.bgsigma)
+
+        print(f"calculate_onset_peak_from_fit ==== {energy_bin} MeV =====")
+        print(f"Best fit Weibull for onset peak Ip: {best_Ip}, a: {best_a}, b: {best_b}")
+        print(f"Normalized chisq in fit: {err}")
+
+        #Check fit quality
+        is_good = self.check_onset_peak_fit_quality(default_pars, best_pars)
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+
+        #IF WEIBULL FIT SUCCESSFUL
+        #Find maximum curvature in the fit using the second derivative
+        max_curve_idx, yderiv, yderiv2, norm_yderiv, norm_yderiv2 = tools.find_max_curvature(best_fit)
+
+        max_curve_model_time = trim_times[max_curve_idx]
+        max_curve_model_date = trim_dates[max_curve_idx]
+        max_curve_model_peak = best_fit[max_curve_idx] #fit value
+        
+        #Get the maximum measured value near the location of the fit peak
+        #Pull out max measured value around the maximum of curvature
+        #Search +- 1 hour from the fit max time
+        max_curve_meas_peak = 0
+        max_curve_meas_time = pd.NaT
+        max_curve_meas_date = pd.NaT
+        dt = datetime.timedelta(hours=1)
+        for k in range(len(trim_dates)):
+            if trim_dates[k] >= max_curve_model_date - dt \
+                and trim_dates[k] <= max_curve_model_date + dt:
+                if trim_fluxes[k] > max_curve_meas_peak:
+                    max_curve_meas_peak = trim_fluxes[k]
+                    max_curve_meas_time = trim_times[k]
+                    max_curve_meas_date = trim_dates[k]
+
+
+        #Check the derivative values and location of onset peak
+        weibull_max = best_fit[max_curve_idx]
+        data_max = max_curve_meas_peak
+        npoints = len(trim_times)
+        is_good = self.check_onset_peak_id_quality(max_curve_idx, yderiv, yderiv2, npoints, weibull_max, data_max)
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        #Weibull fit metrics
+        print(f"WEIBULL DERIVATIVE: max yderiv: {yderiv}, norm max yderiv: {norm_yderiv}, min yderiv2: {yderiv2}, norm min yderiv2: {norm_yderiv2}")
+
+        MLE = tools.mean_log_error(best_fit, trim_fluxes)
+        print(f"MEAN LOG ERROR OF WEIBULL FIT: {MLE}")
+        n2, n10 = tools.within_factor(best_fit, trim_fluxes)
+        print(f"WEIBULL FIT percent within factor of 2: {n2}%, within a factor of 10: {n10}%")
+
+
+        #Check quality of fit with respect to various metrics
+        is_good = self.check_onset_peak_metrics_quality(norm_yderiv, norm_yderiv2, n2)
+
+        ###TESTING, write out onset peak fit parameters and metrics, appending
+#        fitfname = os.path.join(cfg.outpath,f"Weibull_fit_params_{data.experiment}_{data.flux_type}.csv")
+#        with open(fitfname, "a") as file:
+#            line = f"{energy_bin[0]},{threshold},{start_fit_time},{end_fit_time},{best_Ip},{best_a},{best_b},{err},{yderiv},{norm_yderiv},{yderiv2},{norm_yderiv2},{MLE},{n10},{n2},{is_good}\n"
+#            file.write(line)
+#        file.close()
+
+        if not is_good:
+            self.onset_peak = onset_peak
+            self.onset_peak_time = onset_peak_time
+            return onset_peak, onset_peak_time
+
+        #FIT IS GOOD
+        onset_peak = max_curve_meas_peak
+        onset_peak_time = max_curve_meas_date
+
+        self.onset_peak = onset_peak
+        self.onset_peak_time = onset_peak_time
+
+        ####PLOT GOOD ONSET PEAK FIT
+        ####VALUES ONLY USED IN PLOTS
+        max_val = np.max(best_fit)
+        max_idx = np.where(best_fit == max_val)
+        max_time = trim_times[max_idx[0][0]]
+        
+        #Pull out max measured value around this identified maximum in the fit
+        model_max_date = datetime.timedelta(seconds=(max_time*60*60 - 60)) + dates[0]
+        max_meas = 0
+        max_meas_time = 0
+        max_date = 0
+        dt = datetime.timedelta(hours=1)
+        for k in range(len(trim_dates)):
+            if trim_dates[k] >= model_max_date - dt and trim_dates[k] <= model_max_date + dt:
+                if trim_fluxes[k] > max_meas:
+                    max_meas = trim_fluxes[k]
+                    max_meas_time = trim_times[k]
+                    max_date = trim_dates[k]
+
+        
+        #PLOT
+        if data.saveplot or data.showplot:
+            plt_tools.plot_weibull_fit(energy_bin, threshold, data.experiment,
+                data.flux_type, data.user_name, data.options,
+                self.sep_start_time, trim_times, trim_fluxes, best_pars, best_fit, max_time,
+                max_val, max_meas_time, max_meas, max_curve_model_time, max_curve_model_peak,
+                max_curve_meas_time, max_curve_meas_peak,
+                data.saveplot, data.showplot, spacecraft=data.spacecraft,
+                doBGSubOPSEP=data.doBGSubOPSEP, doBGSubIDSEP=data.doBGSubIDSEP,
+                OPSEPEnhancement=data.OPSEPEnhancement,
+                IDSEPEnhancement=data.IDSEPEnhancement)
+
+        
+        return onset_peak, onset_peak_time
+
+
+    def derived_timing_values(self):
+        """ Calculate duration and rise time in minutes. """
+        
+        onset_rise_time = pd.NaT
+        max_rise_time = pd.NaT
+        duration = pd.NaT
+                
+        if not pd.isnull(self.sep_start_time):
+            if not pd.isnull(self.onset_peak_time):
+                onset_rise_time = (self.onset_peak_time - self.sep_start_time).total_seconds()/60.
+            if not pd.isnull(self.max_flux_time):
+                max_rise_time = (self.max_flux_time - self.sep_start_time).total_seconds()/60.
+            if not pd.isnull(self.sep_end_time):
+                duration = (self.sep_end_time - self.sep_start_time).total_seconds()/(60.*60.)
+
+        self.onset_rise_time = onset_rise_time #minutes
+        self.max_rise_time = max_rise_time #minutes
+        self.duration = duration #hours
+        
+        return onset_rise_time, max_rise_time, duration
+
+
+    def calculate_fluence(self, fluxes, time_resolution):
+        """ Calculate fluence for one energy bin of fluxes already trimmed
+            to the time period of interest. Sum all the fluxes in the 
+            array in time and return a single fluence value.
+            
+        """
+        clean_flux = [fx for fx in fluxes if not pd.isnull(fx) and fx >=0]
+        
+        if len(clean_flux) == 0:
+            return np.nan
+        
+        fluence = sum(clean_flux)*time_resolution*4.0*math.pi #multiply 4pi steradians
+    
+        return fluence
+ 
+ 
+    def calculate_channel_fluence(self, data):
+        """  Calculate the fluence for the specified event definition
+        """
+ 
+        flux = self.flux
+        dates = self.dates
+
+        if pd.isnull(self.sep_start_time) or pd.isnull(self.sep_end_time):
+            print("calculated_channel_fluence: The SEP start or end time is null. No event. Returning NaN for fluence.")
+            return np.nan
+
+        trim_flux = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, dates, flux)
+        fluence = self.calculate_fluence(trim_flux, data.time_resolution)
+        self.fluence = fluence
+        
+        return fluence
+
+
+
+    def calculate_fluence_spectrum(self, data):
+        """ Calculate the spectrum between the start and end times 
+            for a specific event definition.
+            
+            The spectrum is calculated by summing the flux in all
+            of the ORIGINAL energy bins between the start and end
+            times. If the input flux was in differential energy
+            channels, then the spectrum will be in differential 
+            channels, even if the, e.g., >10 meV, 10 pfu event
+            definition is used. If the input fluxes were integral,
+            then the energy spectrum will be in integral flux bins.
+            
+        """
+        
+        fluxes = data.fluxes #all fluxes for all energy bins in input data
+        dates = data.dates
+        
+        #Trim to the SEP start and end times
+        sep_dates, sep_fluxes = datasets.extract_date_range(self.sep_start_time,
+                                self.sep_end_time, dates, fluxes)
+
+        fluence_spectrum = []
+        for flux in sep_fluxes:
+            fluence = self.calculate_fluence(flux, data.time_resolution)
+            fluence_spectrum.append(fluence)
+            
+        self.fluence_spectrum = fluence_spectrum
+        
+        return fluence_spectrum
+
+
+    def check_for_data_gaps(self, time_resolution):
+        """ Check if an extended data gap occurs during SEP event.
+            Set quality flag with G if significant gap occurs.
+            
+            Gap indicated if no data for 30 minutes or 4% of event 
+            duration, whichever is more.
+            
+            :timer_resolution: (float) time resolution in seconds
+            
+        """
+        if pd.isnull(self.sep_start_time): return
+        time_resolution = datetime.timedelta(seconds=time_resolution)
+        
+        #Gap duration exceeds 30 minutes, 1 hour, or 4% of SEP event duration
+        ref_duration = max(0.5, 0.04*self.duration) #30 mins for shorter events
+        ref_duration = min(1, ref_duration) #1 hr for longer events
+        
+        gap_start = pd.NaT
+        gap_end = pd.NaT
+        ref_flx = self.flux[0]
+        if pd.isnull(self.flux[0]): gap_start = self.dates[0]
+        
+        for i, flx in enumerate(self.flux):
+            #Encounter the start of a gap
+            if not pd.isnull(ref_flx) and pd.isnull(flx):
+                gap_start = self.dates[i]
+                ref_flx = flx
+                #If SEP event end time is the same as gap start time, then
+                #gap likely ended the event early
+                if gap_start == self.sep_end_time:
+                    if 'T' not in self.quality_flags:
+                        self.quality_flags += 'T'
+                        
+            #Encounter end of gap and check if long enough
+            elif not pd.isnull(flx) and pd.isnull(ref_flx):
+                gap_end = self.dates[i]
+                #If SEP event start time is right after gap end time, then
+                #gap likely obscured the start of the event
+                if abs(self.sep_start_time - gap_end) <= 3*time_resolution:
+                    if 'T' not in self.quality_flags:
+                        self.quality_flags += 'T'
+                
+                #If the gap is long, it may affect the quality of the event characteristics
+                #if the gap occurs within the sep start and end time
+                if gap_start > self.sep_start_time and gap_start < self.sep_end_time:
+                    check_duration = (gap_end - gap_start).total_seconds()/(60.*60.) #hours
+                    if check_duration >= ref_duration:
+                        if 'G' not in self.quality_flags:
+                            self.quality_flags += 'G'
+
+                #Reset and look for next gap
+                gap_start = pd.NaT
+                gap_end = pd.NaT
+                ref_flx = flx
+
+        return
+
+
+    def check_already_enhanced(self):
+        """ Check if the particles are already enhanced at the start of the
+            SEP event. If the SEP event starts on the very first date, 
+            then the fluxes were already enhanced at the start of the 
+            analyzed period.
+    
+            This could mean that there was a previous SEP event at the time
+            of the start of this one. Or it could mean that the user chose 
+            a time period within an ongoing SEP event. 
+        
+        """
+        if pd.isnull(self.sep_start_time): return
+        
+        if self.sep_start_time == self.dates[0]:
+            self.quality_flags += 'E'
+            
+        return
+
+
+    def check_spike(self):
+        """ Check if max value is the result of a data spike. 
+            Reported for both SEP events and non-event periods.
+        
+        """
+
+        spike = 10 #over factor of 10 compared to neighboring points
+
+        if not pd.isnull(self.sep_start_time):
+            flux = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, self.dates, self.flux)
+            dates = self.trim_to_date_range(self.sep_start_time, self.sep_end_time, self.dates, self.dates)
+        else:
+            flux = self.flux
+            dates = self.dates
+
+        ratio = []
+        index = []
+        for i in range(1,len(flux)-1):
+            if pd.isnull(flux[i]) or pd.isnull(flux[i-1]) or pd.isnull(flux[i+1]):
+                continue
+            if flux[i] == 0: continue
+            
+            prev_flx = flux[i-1]
+            if prev_flx == 0:
+                if pd.isnull(self.bgmean): continue
+                prev_flx = self.bgmean
+ 
+            post_flx = flux[i+1]
+            if post_flx == 0:
+                if pd.isnull(self.bgmean): continue
+                post_flx = self.bgmean
+ 
+            rat = (flux[i]/prev_flx + flux[i]/post_flx)/2
+            ratio.append(rat)
+            index.append(i)
+
+        mean_ratio = np.mean(ratio)
+        sigma = np.std(ratio)
+
+        for i, rat in enumerate(ratio):
+            if rat > mean_ratio + 5.*sigma:
+                if flux[index[i]] == self.max_flux:
+                    print(f"Spike {dates[index[i]]} {flux[index[i]]} {self.flux_units} ")
+                    if 'S' not in self.quality_flags:
+                        self.quality_flags += 'S'
+
+        return
+
+
+#    def check_cyclic_data(self, data):
+#        """ Sometimes GOES data has very strange cyclic behavior. Try to
+#            identify when this is happening and flag the data for potentially
+#            poor quality.
+#
+#        """
+#        for i in range(len(data.original_fluxes)):
+#            signal = data.original_fluxes[i]
+#            yf = np.fft.rfft(signal)
+#            print(f"FFT: {yf[0]}, {yf[-1]} {np.max(yf)}")
+#            T= 300 #seconds
+#            N = len(signal)
+#            xf = np.fft.rfftfreq(N, d=T)
+#            plt.figure(figsize=(8, 6))
+#            plt.plot(xf, 2.0/N * np.abs(yf))
+#
+#            plt.xlabel('Frequency (Hz)')
+#            plt.ylabel('Amplitude')
+#            plt.title('Frequency Spectrum (rfft)')
+#            plt.grid()
+#            plt.show()
+#
+#        return
+    
+
+    def calculate_event_info(self, data):
+        """ Calculate SEP event characteristics for a single event
+            definition. Calculate from the fluxes and energy bins 
+            that have been extracted for evaluation for the specified
+            event definitions.
+            
+            INPUT:
+            
+                :event_definition: (dict) dict of EnergyBin and Threshold objects
+                
+            OUTPUT:
+            
+                :event_info: (dict) SEP event values
+                
+        """
+        #calculate event values and fill in a dictionary that will
+        #save info needed for Observation or Forecast objects
+        self.select_fluxes(data, self.event_definition) #Load fluxes to obj
+        sep_start_time, sep_end_time = self.calculate_threshold_crossing(data, self.event_definition, check_quality=True)
+        self.sep_start_time = sep_start_time
+        self.sep_end_time = sep_end_time
+        self.calculate_max_flux(data)
+        self.calculate_onset_peak_from_fit(data)
+
+        #If the onset peak time is AFTER the max flux time, set the onset peak
+        #to the max flux value and time.
+        if self.onset_peak_time > self.max_flux_time:
+            self.onset_peak = self.max_flux
+            self.onset_peak_time = self.max_flux_time
+
+        #If fit didn't find a good onset peak time, set onset peak
+        #to max flux if max flux within 18 hours of start time,
+        #i.e. before CME could arrive and cause ESP
+#        if pd.isnull(self.onset_peak_time):
+#            if not pd.isnull(self.max_flux_time) and not pd.isnull(self.sep_start_time):
+#                if (self.max_flux_time - self.sep_start_time) < datetime.timedelta(hours=18):
+#                    self.onset_peak = self.max_flux
+#                    self.onset_peak_time = self.max_flux_time
+
+        self.derived_timing_values()
+
+        #Check for data gaps
+        self.check_for_data_gaps(data.time_resolution)
+        
+        #Check if fluxes already enhanced at time of SEP start
+        self.check_already_enhanced()
+        
+        #Check if max value due to a spike
+        self.check_spike()
+        
+        #Check for cyclic behavior that could indicate bad data
+        #self.check_cyclic_data(data)
+        
+        #Fluence
+        self.calculate_channel_fluence(data)
+        self.calculate_fluence_spectrum(data)
+
+        energy_bin = self.make_energy_bin()
+        energy_units = self.event_definition['energy_channel'].units
+        threshold = self.event_definition['threshold'].threshold
+        threshold_units = self.event_definition['threshold'].threshold_units
+
+        energy_label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
+        if energy_bin[1] == -1:
+            energy_label = f">{energy_bin[0]} {energy_units}"
+        threshold_label = f"{threshold} {threshold_units}"
+        print()
+        print(f"====SEP Event Characteristics for {energy_label}, {threshold_label}====")
+        print(f"SEP Start Time: {self.sep_start_time}")
+        print(f"SEP End Time: {self.sep_end_time}")
+        print(f"Onset Peak: {self.onset_peak} {self.flux_units} at {self.onset_peak_time}")
+        print(f"Max Flux: {self.max_flux} {self.flux_units} at {self.max_flux_time}")
+        print(f"Rise time to Onset: {self.onset_rise_time} {self.rise_time_units}")
+        print(f"Rise time to Max: {self.max_rise_time} {self.rise_time_units}")
+        print(f"Duration: {self.duration} {self.duration_units}")
+        print(f"Channel Fluence: {self.fluence} {self.fluence_units}")
+        print(f"Fluence Spectrum: {self.fluence_spectrum} {self.fluence_spectrum_units}")
+        print(f"Fluence Energy Bins: {data.energy_bins}")
+        print(f"Fluence Energy Bin Centers: {data.energy_bin_centers}")
+        print(f"Data Quality Flags: {self.quality_flags}")
+        print()
+        
+        return
+        
+
+
+
+
+
+
+class Output:
+    def __init__(self, data, json_type, spase_id=None, json_mode=''):
+        """Output the data generated by OpSEP and write out the data
+            files. Multiple Analyze objects with individual event 
+            definitions are combined to create summary text files,
+            plots, CCMC SEP Scoreboard and SPHINX jsons, and SPHINX
+            Observation or Forecast objects.
+           
+           INPUT:
+                
+                :data: (Data object) Data object loaded up with 
+                    Analyze objects
+                
+            OUTPUT:
+            
+                various output files including CCMC JSONs and 
+                Forecast or Observation objects used by SPHINX.
+        
+        """
+
+        self.data = data
+        
+        #Check if any Analysis objects were created
+        if len(data.results) == 0:
+            sys.exit("Output init: No event definitions were applied to the data. "
+                "There are no results to report. Available energy bins are "
+                f"{self.data.energy_bins} Exiting.")
+    
+        self.spase_id = spase_id
+        self.json_type = json_type #observation or forecast
+        self.json_mode = json_mode #modes for CCMC json when forecasts: allowed values:
+            #forecast, historical, nowcast,simulated_realtime_forecast, simulated_realtime_nowcast
+        self.check_json_info()
+
+        self.json_dict = {} #json dictionary from template
+        self.json_filename = None #output path and filename
+        self.issue_time = pd.NaT
+        
+        #Find associations from the SRAG list, SRAG_SEP_List_R11_CLEARversion.csv
+        self.associations = {}
+        #Specify a flare association by inputting a flare time (peak time is best)
+        self.flare_time = pd.NaT
+        #Lists of CME and Flare dicts in CCMC json format
+        self.cmes = []
+        self.flares = []
+        
+        # Subdirectory with unique string to hold data
+        self.subdir = tools.opsep_subdir(self.data.experiment, self.data.flux_type,
+            self.data.user_name, self.data.options, spacecraft=self.data.spacecraft,
+            doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
+            OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
+
+        if not os.path.exists(os.path.join(cfg.outpath,'opsep', self.subdir)):
+            os.mkdir(os.path.join(cfg.outpath,'opsep', self.subdir))
+        if not os.path.exists(os.path.join(cfg.plotpath,'opsep', self.subdir)):
+            os.mkdir(os.path.join(cfg.plotpath,'opsep', subdir))
+
+
+    def check_json_info(self):
+        json_type = expts.get_json_type(self.data.experiment)
+        if self.json_type == '' and json_type =='':
+            sys.exit(f"check_json_info: You must specify a json type for {experiment} experiment. Choose from observations or model. Exiting.")
+        elif self.json_type == '':
+            self.json_type = json_type
+        elif json_type != self.json_type:
+            print(f"check_json_info: You specified a json type of {json_type}, however the "
+                "correct json_type is {json_type}. Replacing.")
+            self.json_type = json_type
+ 
+        json_mode = expts.get_json_mode(self.data.experiment)
+        if self.json_mode == '' and json_mode =='':
+            sys.exit(f"check_json_info: You must specify a json mode for {experiment} experiment. Choose from measurements for observations or forecast, historical, nowcast, etc for model. Recommend to follow the options for the CCMC SEP Scoreboard JSON schema. Exiting.")
+        elif self.json_mode == '':
+            self.json_mode = json_mode
+        elif json_mode != self.json_mode:
+            print(f"check_json_info: You specified a json mode of {self.json_mode}, however the "
+                "correct json_mode is {json_mode}. Replacing.")
+            self.json_mode = json_mode
+ 
+        return
+ 
+
+    def set_json_filename(self):
+        """ Filename in CCMC SEP Scoreboard format. 
+            Set filenames and set issue time.
+            
+        """
+
+        modifier, title_mod = tools.setup_modifiers(self.data.options, spacecraft=self.data.spacecraft, doBGSubOPSEP=self.data.doBGSubOPSEP,
+            doBGSubIDSEP=self.data.doBGSubIDSEP, OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
+
+        #Get issue time of forecast (now)
+        now = datetime.datetime.now()
+        self.issue_time = now
+        
+        issue_time = dh.time_to_zulu(now)
+        issue_time = issue_time.replace(":","")
+        zstdate = dh.time_to_zulu(self.data.startdate)
+        zstdate = zstdate.replace(":","")
+
+        #Filenames for observations don't include issue time
+        fnameprefix = ""
+        if self.json_type == "observations":
+            fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}"
+            if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+                fnameprefix = f"{self.data.user_name}_{self.data.flux_type}{modifier}.{zstdate}"
+
+        #Filenames for model output do include issue time
+        if self.json_type == "model":
+            fnameprefix = f"{self.data.experiment}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
+            if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+                fnameprefix = f"{self.data.user_name}_{self.data.flux_type}{modifier}.{zstdate}.{issue_time}"
+
+        ####JSON FILE
+        self.json_filename = fnameprefix + ".json"
+    
+        return
+
+    
+    def set_sep_profile_filename(self, analyze):
+
+        fnameprefix = self.json_filename.strip().split(".json")
+        fnameprefix = fnameprefix[0]
+        
+        ####TIME PROFILE
+        energy_bin = analyze.make_energy_bin()
+        if energy_bin[1] == -1: #integral
+           profname = f"{fnameprefix}.{energy_bin[0]}.{analyze.energy_units}.txt"
+        else:
+           profname = f"{fnameprefix}.{energy_bin[0]}-{energy_bin[1]}.{analyze.energy_units}.txt"
+        analyze.sep_profile = profname
+        
+        return analyze
+
+
+    def write_zulu_time_profile(self, analyze):
+        """ Write out the time profile with the date in the
+            first column as the ISO standard and flux in the
+            second column as:
+            
+            YYYY-MM-DDTHH:MM:SSZ    Float
+            
+            INPUTS:
+            
+            :Filename: (string) - name of file to write
+            :date: (datetime 1xn array) - list of dates
+            :fluxes: (float 1xn array) - corresponding fluxes
+            
+            OUTPUTS:
+            
+            None but writes output file with filename
+            
+        """
+
+        fname = os.path.join(cfg.outpath,'opsep', self.subdir, analyze.sep_profile)
+        outfile = open(fname, "w")
+        for i in range(len(analyze.dates)):
+            zdate = dh.time_to_zulu(analyze.dates[i])
+            outfile.write(zdate + "    " + str(analyze.flux[i]) + "\n")
+            
+        outfile.close()
+
+        print("write_zulu_time_profile: Wrote file --> " + fname)
+
+        return
+
+
+    def fill_event_info_dict(self, analyze):
+        """ Initialize dictionary that contains SEP event info
+            saved in a single Analyze object combined with Data. 
+            
+            This dictionary contains the derived values and 
+            supporting contextual information for a single
+            event definition.
+            
+        """
+        
+        dict = {'experiment': self.data.experiment, #Experiment or model name; GOES-13
+                'flux_type': self.data.flux_type, #ORIGINAL input data - integral or differential
+                'startdate': self.data.startdate, #Start of analyzed time period
+                'enddate': self.data.enddate, #End of analyzed time period
+                'background_subtraction': self.data.doBGSubOPSEP, #bool doBGSubOPSEP
+                'options': self.data.options, #options applied to data
+                'original_energy_bins': self.data.energy_bins, #All original energy bins for input data
+               # 'event_definition': None, #Dictionary of Energy Channel and Threshold obj
+                'energy_channel': analyze.make_energy_channel_dict(), #{'min': 10, 'max': -1, 'units': 'MeV'}
+                'energy_bin': analyze.make_energy_bin(), #[Emin, Emax]
+                'threshold_dict': analyze.make_threshold_dict(), #{'threshold': 10, 'threshold_units': 'pfu'}
+                'threshold': analyze.event_definition['threshold'].threshold, #float
+                'sep_start_time': analyze.sep_start_time, #SEP start time
+                'sep_end_time': analyze.sep_end_time, #SEP end time
+                'onset_peak': analyze.onset_peak, #Onset peak
+                'onset_peak_time': analyze.onset_peak_time, #Time of onset peak
+                'onset_rise_time': analyze.onset_rise_time, #Time from sep_start_time to sep_onset_peak_time
+                'max_flux': analyze.max_flux, #Maximum flux during SEP event
+                'max_flux_time': analyze.max_flux_time, #Time of maximum flux
+                'max_rise_time': analyze.max_rise_time, #Time from sep_start_time to sep_max_flux_time
+                'duration': analyze.duration, #sep_end_time - sep_start_time
+                'fluence': analyze.fluence, #fluence in single energy channel summed between sep_start_time and sep_end_time
+                'fluence_spectrum': analyze.fluence_spectrum, #fluence in all_energy_bins summed between sep_start_time and sep_end_time
+                'flux_units': analyze.flux_units, #str
+                'fluence_units': analyze.fluence_units, #str
+                'fluence_spectrum_units': analyze.fluence_spectrum_units, #str
+                'rise_time_units': analyze.rise_time_units, #str
+                'duration_units': analyze.duration_units, #str
+                'sep_profile': analyze.sep_profile, #str
+                'quality_flags': analyze.quality_flags #str
+            
+        }
+
+        return dict
+
+
+    def event_info_dict_for_csv(self, analyze):
+        """ Create a flat dictionary with all event info with the
+            dictionary keys labeled according to energy channel
+            and threshold information.
+            
+            Useful to ultimately export to csv.
+            
+        """
+        energy_bin = analyze.make_energy_bin()
+        energy_units = analyze.event_definition['energy_channel'].units
+        threshold = analyze.event_definition['threshold'].threshold
+        threshold_units = analyze.event_definition['threshold'].threshold_units
+
+        if energy_bin[1] == -1:
+            channel_label = f">{energy_bin[0]} {energy_units}"
+        else:
+            channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+    
+        threshold_label = f"{threshold} {threshold_units}"
+
+        if len(analyze.fluence_spectrum) == 0:
+            fluence_spectrum_str = None
+        else:
+            fluence_spectrum_str = str(analyze.fluence_spectrum)
+            fluence_spectrum_str = fluence_spectrum_str.replace(",", ";")
+
+        fluence_spectrum_energy_bins = str(self.data.energy_bins)
+        fluence_spectrum_energy_bins = fluence_spectrum_energy_bins.replace(",", ";")
+        fluence_spectrum_energy_bin_centers = str(self.data.energy_bin_centers)
+        fluence_spectrum_energy_bin_centers = fluence_spectrum_energy_bin_centers.replace(",", ";")
+
+        if not pd.isnull(analyze.sep_start_time):
+            sttime = analyze.sep_start_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            sttime = None
+
+        if not pd.isnull(analyze.sep_end_time):
+            endtime = analyze.sep_end_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            endtime = None
+
+        if not pd.isnull(analyze.onset_peak_time):
+            optime = analyze.onset_peak_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            optime = None
+
+        if not pd.isnull(analyze.max_flux_time):
+            mftime = analyze.max_flux_time.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            mftime = None
+
+        dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,
+                f"{channel_label} {threshold_label} SEP Start Time": sttime,
+                f"{channel_label} {threshold_label} SEP End Time": endtime,
+                f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
+                f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
+                f"{channel_label} {threshold_label} Onset Peak Time": optime,
+                f"{channel_label} {threshold_label} Rise Time to Onset ({analyze.rise_time_units})": analyze.onset_rise_time,
+                f"{channel_label} {threshold_label} Max Flux ({analyze.flux_units})": analyze.max_flux,
+                f"{channel_label} {threshold_label} Max Flux Time": mftime,
+                f"{channel_label} {threshold_label} Rise Time to Max ({analyze.rise_time_units})": analyze.max_rise_time,
+                f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
+                f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": fluence_spectrum_str,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": fluence_spectrum_energy_bins,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": fluence_spectrum_energy_bin_centers,
+                f"{channel_label} {threshold_label} Quality Flags": analyze.quality_flags
+            }
+
+        return dict
+
+
+    def set_all_null_to_none(self, dict):
+        """ Set every null value to a None value. Better for outputting
+            to csv where a user or other kind of program may read the file.
+        
+        """
+        for key in dict.keys():
+            if pd.isnull(dict[key]):
+                dict[key] = None
+
+        return dict
+
+
+    def event_info_dict_for_pkl(self, analyze):
+        """ Create a flat dictionary with all event info with the
+            dictionary keys labeled according to energy channel
+            and threshold information.
+            
+            Useful to ultimately export to pkl.
+            
+        """
+        energy_bin = analyze.make_energy_bin()
+        energy_units = analyze.event_definition['energy_channel'].units
+        threshold = analyze.event_definition['threshold'].threshold
+        threshold_units = analyze.event_definition['threshold'].threshold_units
+
+        if energy_bin[1] == -1:
+            channel_label = f">{energy_bin[0]} {energy_units}"
+        else:
+            channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+    
+        threshold_label = f"{threshold} {threshold_units}"
+
+
+        dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,
+                f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time,
+                f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time,
+                f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
+                f"{channel_label} {threshold_label} Onset Peak ({analyze.flux_units})": analyze.onset_peak,
+                f"{channel_label} {threshold_label} Onset Peak Time": analyze.onset_peak_time,
+                f"{channel_label} {threshold_label} Rise Time to Onset ({analyze.rise_time_units})": analyze.onset_rise_time,
+                f"{channel_label} {threshold_label} Max Flux ({analyze.flux_units})": analyze.max_flux,
+                f"{channel_label} {threshold_label} Max Flux Time": analyze.max_flux_time,
+                f"{channel_label} {threshold_label} Rise Time to Max ({analyze.rise_time_units})": analyze.max_rise_time,
+                f"{channel_label} {threshold_label} Fluence ({analyze.fluence_units})": analyze.fluence,
+                f"{channel_label} {threshold_label} Fluence Spectrum ({analyze.fluence_spectrum_units})": analyze.fluence_spectrum,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bins ({energy_units})": self.data.energy_bins,
+                f"{channel_label} {threshold_label} Fluence Spectrum Energy Bin Centers ({energy_units})": self.data.energy_bin_centers,
+                f"{channel_label} {threshold_label} Quality Flags": analyze.quality_flags
+            }
+
+        return dict
+
+
+
+    def fill_event_info_list(self, analyze):
+        """ Return a list that contains SEP event info
+            saved in a single Analyze object combined with Data. 
+            
+            This list contains the derived values and 
+            supporting contextual information for a single
+            event definition.
+            
+            The list is in the same order as the event info dict.
+            
+        """
+        event_info_list = [self.data.experiment,
+                            self.data.flux_type,
+                            self.data.startdate,
+                            self.data.enddate,
+                            self.data.doBGSubOPSEP,
+                            self.data.options,
+                            self.data.energy_bins,
+                            self.data.energy_bin_centers,
+                            analyze.make_energy_channel_dict(),
+                            analyze.make_energy_bin(),
+                            analyze.make_threshold_dict(),
+                            analyze.event_definition['threshold'].threshold,
+                            analyze.sep_start_time,
+                            analyze.sep_end_time,
+                            analyze.onset_peak,
+                            analyze.onset_peak_time,
+                            analyze.onset_rise_time,
+                            analyze.max_flux,
+                            analyze.max_flux_time,
+                            analyze.max_rise_time,
+                            analyze.duration,
+                            analyze.fluence,
+                            analyze.fluence_spectrum,
+                            analyze.flux_units,
+                            analyze.fluence_units,
+                            analyze.fluence_spectrum_units,
+                            analyze.rise_time_units,
+                            analyze.duration_units,
+                            analyze.sep_profile,
+                            analyze.quality_flags
+                            ]
+ 
+        return event_info_list
+
+    def add_donki_cme(self, cme_start_time):
+        """ Use CME start time to identify CME in DONKI and extract info. """
+        cme = assoc.get_cme(cme_start_time)
+        if cme:
+            ccmc_cme = assoc.srag_to_ccmc_cme(cme)
+            self.cmes.append(ccmc_cme)
+
+
+    def add_noaa_science_flare(self, flare_time):
+        flare_time = dh.str_to_datetime(flare_time)
+        if pd.isnull(flare_time): return
+        flare_info = assoc.select_noaa_flare_from_time(flare_time)
+        if pd.isnull(flare_info['intensity']):
+            print(f"add_noaa_science_flare: Flare not found for {flare_time}")
+            return
+        
+        ccmc_flare = assoc.noaa_to_ccmc_flare(flare_info)
+        self.flares.append(ccmc_flare)
+        
+        return
+        
+
+
+    def find_srag_associations(self):
+        """ Identify flare, CME, radio, etc data from Steve Johnson's 
+            SRAG SEP list for an SEP event.
+            
+        """
+        startdate = pd.NaT
+        #Cycle through all Analyze objects for the various event definitions
+        ref_energy = 10.0 #to compare with SRAG list, use energy bin around 10 MeV
+        energy_diff = -1
+        best_threshold = -1
+        best_ix = -1
+        for i, analyze in enumerate(self.data.results):
+            if pd.isnull(analyze.sep_start_time):
+                continue
+            diff = abs(analyze.event_definition['energy_channel'].min - ref_energy)
+            threshold = analyze.event_definition['threshold'].threshold
+            if energy_diff == -1:
+                energy_diff = diff
+                best_threshold = threshold
+                best_ix = i
+            elif diff < energy_diff:
+                energy_diff = diff
+                best_threshold = threshold
+                best_ix = i
+            elif diff == energy_diff and threshold < best_threshold:
+                #Use timing from lowest threshold applied to get as close
+                #to capturing the start of the full event as possible
+                energy_diff = diff
+                best_threshold = threshold
+                best_ix = i
+ 
+        #Get the event start time from the best event_definition
+        #Returns dictionary; all values will be null if no start time match
+        startdate = self.data.results[best_ix].sep_start_time
+        print(f"Selected startdate {startdate} to search for associations.")
+        associations, proton_info = assoc.identify_associations_in_srag_list(startdate)
+
+        self.associations = associations
+
+        cme = assoc.srag_to_ccmc_cme(associations) #list of CCMC CME trigger blocks
+        self.cmes = self.cmes + cme
+        flare = assoc.srag_to_ccmc_flare(associations) #list of CCMC flare trigger blocks
+        self.flares = self.flares + flare
+
+        return
+
+
+    def fill_json_header(self):
+        """ Fill the json dictionary with the extracted SEP values. """
+        self.json_dict = ccmc_json.fill_json_header(self.json_type,
+            self.issue_time, self.data.experiment, self.data.flux_type,
+            self.data.options, self.spase_id,
+            user_name=self.data.user_name, json_mode = self.json_mode,
+            spacecraft=self.data.spacecraft)
+
+        return
+
+
+    def fill_trigger_blocks(self):
+        """ If CME or flare information available, add trigger blocks
+            to json.
+            
+        """
+        if len(self.cmes) > 0:
+            for cme in self.cmes:
+                self.json_dict = ccmc_json.fill_cme_trigger(self.json_dict, self.json_type,
+                        cme)
+        if len(self.flares) > 0:
+            for flare in self.flares:
+                self.json_dict = ccmc_json.fill_flare_trigger(self.json_dict, self.json_type,
+                        flare)
+        return
+
+
+
+    def fill_json_block(self, analyze):
+        """ Store SEP event values into the json block associated with
+            the event definition in the Analyze object.
+            
+        """
+
+        energy_channel_dict = analyze.make_energy_channel_dict()
+        threshold_dict = analyze.make_threshold_dict()
+
+        self.json_dict = ccmc_json.fill_json_block(self.json_dict,
+                                    self.json_type,
+                                    energy_channel_dict,
+                                    threshold_dict,
+                                    self.data.startdate,
+                                    self.data.enddate,
+                                    analyze.sep_start_time,
+                                    analyze.sep_end_time,
+                                    analyze.onset_peak,
+                                    analyze.onset_peak_time,
+                                    analyze.max_flux,
+                                    analyze.max_flux_time,
+                                    analyze.flux_units,
+                                    analyze.fluence,
+                                    analyze.fluence_units,
+                                    analyze.fluence_spectrum,
+                                    analyze.fluence_spectrum_units,
+                                    self.data.energy_bins,
+                                    analyze.sep_profile,
+                                    self.data.location,
+                                    self.data.species)
+        
+        return
+
+
+    def clean_json(self):
+        """ Remove empty fields or fields with bad values """
+        
+        self.json_dict = ccmc_json.clean_json(self.json_dict, self.data.experiment,
+                self.json_type)
+        return
+
+
+    def write_json(self):
+        filename = os.path.join(cfg.outpath, 'opsep', self.subdir, self.json_filename)
+        is_good = ccmc_json.write_json(self.json_dict, filename)
+        return filename
+
+
+    def write_ccmc_json(self):
+        """ Write all event definitions out to CCMC json file 
+            https://ccmc.gsfc.nasa.gov/publicData/sepsb/files/sepscoreboard_visual_schema.pdf
+        
+        """
+        self.set_json_filename()
+        self.fill_json_header()
+        self.fill_trigger_blocks()
+        
+        #Cycle through all Analyze objects for the various event definitions
+        for i, analyze in enumerate(self.data.results):
+            #Set SEP profile filename
+            analyze = self.set_sep_profile_filename(analyze)
+            #Write out SEP profile in CCMC format and save to Analyze obj
+            self.write_zulu_time_profile(analyze)
+            self.fill_json_block(analyze)
+            self.data.results[i] = analyze
+        
+        self.clean_json()
+        filename = self.write_json()
+
+        return filename
+
+
+    def create_csv_dict(self):
+        """ A flat dictionary of values for all event definitions. """
+
+        exp_name = self.data.experiment
+        if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+            exp_name = self.data.user_name
+
+        bgsub = 'None'
+        if self.data.doBGSubOPSEP: bgsub = 'OPSEP'
+        if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
+
+        opts = ''
+        for k,opt in enumerate(self.data.options):
+            if k < len(self.data.options)-1:
+                opts += opt + ';'
+            else:
+                opts += opt
+        dict = {"Experiment": exp_name,
+                "Flux Type": self.data.flux_type,
+                "Options": opts,
+                "Background Subtraction": bgsub,
+                "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
+                "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
+                "All Fluxes Time Series": self.data.fluxes_filename,
+                "JSON": self.json_filename
+                }
+        
+        for analyze in self.data.results:
+            analyze_dict = self.event_info_dict_for_csv(analyze)
+            dict.update(analyze_dict)
+
+        #Add flare, cme, radio, etc, associations
+        if self.associations:
+            dict.update(self.associations)
+        
+        dict = self.set_all_null_to_none(dict)
+        df = pd.DataFrame([dict])
+        
+        filename = self.json_filename
+        filename = filename.replace(".json",".csv")
+        filename = os.path.join(cfg.outpath,"opsep",self.subdir, filename)
+        df.to_csv(filename, index=None)
+        print(f"create_csv_dict: Wrote {filename}")
+
+        return dict
+
+
+    def create_pkl_dict(self):
+        """ A flat dictionary of values for all event definitions. """
+
+        exp_name = self.data.experiment
+        if not pd.isnull(self.data.user_name) and self.data.user_name != "":
+            exp_name = self.data.user_name
+
+        bgsub = 'None'
+        if self.data.doBGSubOPSEP: bgsub = 'OPSEP'
+        if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
+
+        dict = {"Experiment": exp_name,
+                "Flux Type": self.data.flux_type,
+                "Options": self.data.options,
+                "Background Subtraction": bgsub,
+                "Time Period Start": self.data.startdate,
+                "Time Period End": self.data.enddate,
+                "All Fluxes Time Series": self.data.fluxes_filename,
+                "JSON": self.json_filename
+                }
+        
+        for analyze in self.data.results:
+            analyze_dict = self.event_info_dict_for_pkl(analyze)
+            dict.update(analyze_dict)
+
+        #Add flare, cme, radio, etc, associations
+        if self.associations:
+            dict.update(self.associations)
+
+        header = ''
+        row = ''
+        for key in dict.keys():
+            header += key + ","
+            row += str(dict[key]) + ","
+        
+        header = header[:-1] + "\n"
+        row = row[:-1] + "\n"
+        
+        filename = self.json_filename
+        filename = filename.replace(".json",".pkl")
+        filename = os.path.join(cfg.outpath,"opsep",self.subdir, filename)
+        with open(filename, 'wb') as file:
+            pickle.dump(dict, file)
+            print(f"create_pkl_dict: Wrote {filename}")
+        
+        return dict
+
+
+    def extract_analyze_lists(self):
+        """ Pull out the SEP start and end times, onset peaks,
+            max fluxes, fluences, and fluence spectra for plotting.
+        
+        """
+        event_definitions = []
+        fluxes = []
+        sep_start_times = []
+        sep_end_times = []
+        onset_peaks = []
+        onset_peak_times = []
+        max_fluxes = []
+        max_flux_times = []
+        fluences = []
+        fluence_spectra = []
+        fluence_spectra_units = []
+
+        for analyze in self.data.results:
+            event_definitions.append(analyze.event_definition)
+            fluxes.append(analyze.flux)
+            sep_start_times.append(analyze.sep_start_time)
+            sep_end_times.append(analyze.sep_end_time)
+            onset_peaks.append(analyze.onset_peak)
+            onset_peak_times.append(analyze.onset_peak_time)
+            max_fluxes.append(analyze.max_flux)
+            max_flux_times.append(analyze.max_flux_time)
+            fluences.append(analyze.fluence)
+            fluence_spectra.append(analyze.fluence_spectrum)
+            fluence_spectra_units.append(analyze.fluence_spectrum_units)
+
+        return event_definitions, fluxes, sep_start_times, sep_end_times, onset_peaks,\
+            onset_peak_times, max_fluxes, max_flux_times, fluences, fluence_spectra,\
+            fluence_spectra_units
+
+
+
+    def plot_event_definitions(self):
+        """ Plot the fluxes used for event definitions with threshold,
+            start and end times, onset peak and max flux.
+        
+        """
+        #Collect calculated values from Analyze objects
+        event_definitions, analyzed_fluxes, sep_start_times, sep_end_times,\
+        onset_peaks, onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
+        
+        plt_tools.opsep_plot_event_definitions(self.data.experiment,
+            self.data.flux_type, self.data.user_name, self.data.options,
+            self.data.evaluated_dates, analyzed_fluxes,
+            self.data.evaluated_energy_bins, event_definitions,
+            sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
+            max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
+            spacecraft=self.data.spacecraft, doBGSubOPSEP=self.data.doBGSubOPSEP,
+            doBGSubIDSEP=self.data.doBGSubIDSEP, OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
+
+
+    def plot_all_fluxes(self):
+        """ Plot threshold crossings on top of all fluxes """
+ 
+        #Collect calculated values from Analyze objects
+        event_definitions, analyzed_fluxes, sep_start_times, sep_end_times,\
+        onset_peaks, onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
+
+        plt_tools.opsep_plot_all_bins(self.data.experiment, self.data.flux_type,
+            self.data.user_name, self.data.options,
+            self.data.dates, self.data.fluxes, self.data.energy_bins,
+            self.data.event_definitions, sep_start_times, sep_end_times,
+            self.data.showplot, self.data.saveplot, spacecraft=self.data.spacecraft,
+            doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
+            OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
+
+
+    def plot_fluence_spectra(self):
+        """ Plots the fluence spectra from all event definitions """
+
+        #Collect calculated values from Analyze objects
+        event_definitions, analyzed_fluxes, sep_start_times, sep_end_times,\
+        onset_peaks, onset_peak_times, max_fluxes, max_flux_times, fluences,\
+        fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
+        
+        #Check that at least one SEP crossed threshold, otherwise
+        #don't need to generate fluence plot.
+        plot_fluence = False
+        for time in sep_start_times:
+            if not pd.isnull(time):
+                plot_fluence = True
+
+        if not plot_fluence: return
+
+        plt_tools.opsep_plot_fluence_spectrum(self.data.experiment, self.data.flux_type,
+            self.data.user_name, self.data.options,
+            self.data.event_definitions, self.data.evaluated_dates,
+            self.data.energy_bin_centers,
+            fluence_spectra, fluence_spectra_units, self.data.showplot,
+            self.data.saveplot, spacecraft=self.data.spacecraft,
+            doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
+            OPSEPEnhancement=self.data.OPSEPEnhancement,
+            IDSEPEnhancement=self.data.IDSEPEnhancement)
+        
+
+
+
+##### OPSEP MAIN FUNCTIONS ####
 
 def load_input_data(str_startdate, str_enddate, experiment,
     flux_type, user_name, user_file, showplot, saveplot, two_peaks,
@@ -832,7 +2833,7 @@ def load_input_data(str_startdate, str_enddate, experiment,
            
     """
 
-    flux_data = cl.Data()
+    flux_data = Data()
     
     #Load all info, including specifying desired SEP event definitions (user_thresholds)
     flux_data.load_info(str_startdate, str_enddate, experiment, flux_type,
@@ -888,7 +2889,7 @@ def calculate_event_info(flux_data):
     """
 
     for evdef in flux_data.event_definitions:
-        analyze = cl.Analyze(flux_data, evdef)
+        analyze = Analyze(flux_data, evdef)
         if not analyze.isgood: continue
 
         #Calculate all SEP characteristics
@@ -904,8 +2905,8 @@ def calculate_event_info(flux_data):
 
 
 ######## MAIN PROGRAM #########
-def run_all(str_startdate, str_enddate, experiment, flux_type='',
-    user_name='', user_file='', json_type='observations',
+def opsep(str_startdate, str_enddate, experiment, flux_type='',
+    user_name='', user_file='', json_type='', json_mode='',
     spase_id='', showplot=False, saveplot=False, detect_prev_event=False,
     two_peaks=False, umasep=False, user_thresholds='', options='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
@@ -973,26 +2974,22 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
         
     """
     cfg.configure_for(experiment)
-    expts.set_config_energy_units(experiment)
-    expts.set_config_flux_units(experiment)
+    expts.get_config_energy_units(experiment)
+    expts.get_config_flux_units(experiment)
     cfg.print_configured_values()
     
     datasets.check_paths(experiment)
 
     #If user specifies a spacecraft but isn't relevant to experiment,
     #overrides and sets spacecraft to ''
-    spacecraft = expts.set_spacecraft(experiment, spacecraft)
+    spacecraft = expts.get_spacecraft(experiment, spacecraft)
 
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter start and end dates. Exiting.')
-    
-#    if experiment == "GOES-RT":
-#        if spacecraft != "primary" and spacecraft != "secondary":
-#            sys.exit(f"Spacecraft must be primary or secondary. You entered {spacecraft}. Please correct and run again.")
  
     if flux_type == '':
-        flux_type = expts.set_flux_type(experiment)
+        flux_type = expts.get_flux_type(experiment)
 
     if experiment != 'user':
         exp_info = expts.experiment_info(experiment)
@@ -1013,7 +3010,13 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
     flux_data = calculate_event_info(flux_data)
 
     #Create Output object to write out results
-    output_data = cl.Output(flux_data, json_type, spase_id=spase_id)
+    if json_type == '':
+        json_type = expts.get_json_type(experiment)
+
+    if json_mode == '':
+        json_mode = expts.get_json_mode(experiment)
+
+    output_data = Output(flux_data, json_type, spase_id=spase_id, json_mode=json_mode)
 
     #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
     if associations:
@@ -1041,6 +3044,9 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
 
 
 
+
+
+############ OLD UMASEP-RELATED CODE ##################
     ####NOT YET REPRODUCED IN CLASS
     #Calculate times used in UMASEP
 #    umasep_times =[]
@@ -1048,3 +3054,87 @@ def run_all(str_startdate, str_enddate, experiment, flux_type='',
 #    if umasep:
 #        umasep_times, umasep_fluxes = calculate_umasep_info(energy_thresholds,
 #                        flux_thresholds, dates, integral_fluxes, crossing_time)
+
+#### TO BE INCORPORATED INTO ANALYZE CLASS IF DEEMED NECESSARY ####
+#def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
+#                integral_fluxes, crossing_time):
+#    """ Uses the integral fluxes (either input or estimated from differential
+#        channels) and all the energy and flux thresholds set in the main program
+#        to calculate SEP event quantities specific to the UMASEP model.
+#            Flux at threshold crossing time + 3, 4, 5, 6, 7 hours
+#
+#        INPUTS:
+#
+#        :energy_thresholds: (float 1xn array) - energy channels for which thresholds
+#            are applied
+#        :flux_thresholds: (float 1xn array) - flux thresholds that are applied
+#        :dates: (datetime 1xm array) - dates associated with flux time profile
+#        :integral_fluxes: (float nxm array) - fluxes for each energy channel for
+#            which a threshold is applied; each is the same length as dates
+#        :crossing_time: (datetime 1xn array) - threshold crossing times for each energy
+#            channel for which a threshold is applied
+#
+#        OUTPUTS:
+#
+#        :proton_delay_times: (datetime nx5 array) - times 3, 4, 5, 6, 7 hours
+#            after crossing time for n thresholds
+#        :proton_flux: (float nx5 array) - value of flux at each delay time and for
+#            each threshold
+#
+#    """
+#    nthresh = len(flux_thresholds)
+#    proton_flux = []
+#    delays = [datetime.timedelta(hours=3), datetime.timedelta(hours=4),
+#                    datetime.timedelta(hours=5), datetime.timedelta(hours=6),
+#                    datetime.timedelta(hours=7)]
+#    ndelay = len(delays)
+#    delay_times = []
+#    proton_delay_times = []  #actual time point corresponding to flux
+#
+#    #Match the correct time delay with the correct threshold
+#    for i in range(nthresh):
+#        if crossing_time[i] == 0:
+#            delay_times.append(0)
+#            continue
+#        all_delays = []
+#        for delay in delays:
+#            all_delays.append(crossing_time[i] + delay)
+#            #Make sure that delayed time doesn't exceed input time range
+#            if crossing_time[i] + delay > dates[len(dates)-1]:
+#                sys.exit("An UMASEP delayed time (Ts+3, 4, 5, 6, 7 hrs) "
+#                        "exceeded the user's input time range. Please rerun "
+#                        "and extend end time.")
+#
+#        delay_times.append(all_delays) #all delays for a given threshold
+#
+#    for i in range(nthresh):
+#        save_flux = [0]*ndelay
+#        save_dates = [0]*ndelay
+#        if delay_times[i] == 0:
+#            proton_delay_times.append(0)
+#            proton_flux.append(0)
+#            continue
+#        for k in range(ndelay):
+#            save_index = -1
+#            for j in range(len(dates)):
+#                if dates[j] <= delay_times[i][k]:
+#                    save_index = j
+#
+#            #GET FLUX AT DELAYED TIME WITH 10 MINUTE AVERAGE
+#            #May choose to modify if input data set has something other than
+#            #5 minute time cadence.
+#            if save_index == -1: #should not happen, unless dates has no length
+#                sys.exit("Did not find an appropriate UMASEP flux point. "
+#                        "Exiting.")
+#            if save_index == 0: #also should be no way for this to happen
+#                save_flux[k] = (integral_fluxes[i][save_index] + \
+#                            integral_fluxes[i][save_index +1])/2.
+#            else:
+#                save_flux[k] = (integral_fluxes[i][save_index] + \
+#                            integral_fluxes[i][save_index - 1])/2.
+#            save_dates[k] = dates[save_index]
+#
+#        proton_flux.append(save_flux)
+#        proton_delay_times.append(save_dates)
+#
+#    return proton_delay_times, proton_flux
