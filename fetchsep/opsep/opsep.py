@@ -1918,30 +1918,6 @@ class Analyze:
 
         return
 
-
-#    def check_cyclic_data(self, data):
-#        """ Sometimes GOES data has very strange cyclic behavior. Try to
-#            identify when this is happening and flag the data for potentially
-#            poor quality.
-#
-#        """
-#        for i in range(len(data.original_fluxes)):
-#            signal = data.original_fluxes[i]
-#            yf = np.fft.rfft(signal)
-#            print(f"FFT: {yf[0]}, {yf[-1]} {np.max(yf)}")
-#            T= 300 #seconds
-#            N = len(signal)
-#            xf = np.fft.rfftfreq(N, d=T)
-#            plt.figure(figsize=(8, 6))
-#            plt.plot(xf, 2.0/N * np.abs(yf))
-#
-#            plt.xlabel('Frequency (Hz)')
-#            plt.ylabel('Amplitude')
-#            plt.title('Frequency Spectrum (rfft)')
-#            plt.grid()
-#            plt.show()
-#
-#        return
     
 
     def calculate_event_info(self, data):
@@ -2269,6 +2245,11 @@ class Output:
     
         threshold_label = f"{threshold} {threshold_units}"
 
+        #If identification of events above background,
+        #rename arbitrary low threshold to "above background"
+        if threshold == cfg.opsep_min_threshold:
+            threshold_label = "above background"
+
         if len(analyze.fluence_spectrum) == 0:
             fluence_spectrum_str = None
         else:
@@ -2351,6 +2332,11 @@ class Output:
             channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
     
         threshold_label = f"{threshold} {threshold_units}"
+    
+        #If identification of events above background,
+        #rename arbitrary low threshold to "> background"
+        if threshold == cfg.opsep_min_threshold:
+            threshold_label = "above background"
 
 
         dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,

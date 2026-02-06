@@ -103,7 +103,9 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
              sys.exit(f"User must specify flux type for {experiment} from the choices: {exp_info['flux_type']}. Exiting.")
 
         if exp_info['last_date'] != None:
-            if startdate < exp_info['first_date'] or enddate > exp_info['last_date']:
+            date = exp_info['last_date']+datetime.timedelta(hours=24)
+            exclusive_end_date = datetime.datetime(date.year, date.month, date.day)
+            if startdate < exp_info['first_date'] or enddate > exclusive_end_date:
                 sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
         else:
             if startdate < exp_info['first_date']:

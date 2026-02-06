@@ -528,7 +528,10 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
                     event_definitions[i]['energy_channel'].max]
         threshold = event_definitions[i]['threshold'].threshold
         flux_units = event_definitions[i]['threshold'].threshold_units
-                    
+
+        threshold_label = f"{threshold} {flux_units}"
+        threshold_label = make_math_label(threshold_label)
+
         #Event definitions and fluxes are in the same order
         dates = evaluated_dates #for ease
         fluxes = np.array(evaluated_fluxes[i])
@@ -551,11 +554,19 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
         ax[i].plot(dates,maskfluxes,'.-', markersize=3, label=data_label)#,marker=".")
 
+        start_end_label = "Start, End"
+        if threshold != cfg.opsep_min_threshold:
+            ax[i].axhline(threshold,color='red',linestyle=':', label=threshold_label)
+        else:
+            start_end_label = "Start, End above background"
+
         if not pd.isnull(sep_start_times[i]):
             ax[i].axvline(sep_start_times[i],color='black',linestyle=':')
             ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
-                        label="Start, End")
-        ax[i].axhline(threshold,color='red',linestyle=':', label="Threshold")
+                        label=start_end_label)
+
+
+
         if not pd.isnull(onset_peaks[i]) and not pd.isnull(onset_peak_times[i]):
             ax[i].plot_date(onset_peak_times[i],onset_peaks[i],'o',color="black",
                     label="Onset Peak")
@@ -658,6 +669,9 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         threshold_label = f"{threshold} {flux_units}"
         threshold_label = make_math_label(threshold_label)
 
+        if threshold == cfg.opsep_min_threshold:
+            threshold_label = "above background"
+
         if energy_bin[1] == -1:
             line_label = f">{energy_bin[0]} {energy_units}, {threshold_label}"
         else:
@@ -679,8 +693,6 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
     plt.xticks(rotation=45, ha="right")
 
-    #ax.xaxis_date()
-    #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
     plt.yscale("log")
     if 'counts' in flux_units:
         plt.yscale("linear")
@@ -752,6 +764,9 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
         flspec_units = fluence_spectra_units[i]
         threshold_label = f"{event_definitions[i]['threshold'].threshold} {event_definitions[i]['threshold'].threshold_units}"
         threshold_label = make_math_label(threshold_label)
+
+        if event_definitions[i]['threshold'].threshold == cfg.opsep_min_threshold:
+            threshold_label = "above background"
 
         #Create labels
         if energy_bin[1] == -1:

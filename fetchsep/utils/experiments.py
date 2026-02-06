@@ -553,7 +553,7 @@ def experiment_info(experiment):
 
             'GOES-08':{
                 'first_date': datetime.datetime(1995,1,1),#1995-01-01
-                'last_date': datetime.datetime(2003,5,31), #2003-05-31
+                'last_date': datetime.datetime(2003,6,30), #2003-05-31
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -803,7 +803,7 @@ def experiment_info(experiment):
             },
 
             'GOES-16':{
-                'first_date': datetime.datetime(2020,12,1),#2020-12-01
+                'first_date': datetime.datetime(2020,11,1),#2020-12-01
                 'last_date': datetime.datetime(2025,4,6), #2025-04-06, there is a file on the 7th, but has a problem
                 'flux_type': ['differential'],
                 'json_type': 'observations',
