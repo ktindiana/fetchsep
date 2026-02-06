@@ -699,7 +699,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     chartBox = ax.get_position()
     ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
                      chartBox.height])
-    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), fontsize=12)
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), fontsize=10)
     for item in ([ax.title, ax.yaxis.label] + ax.get_yticklabels()):
         item.set_fontsize(14)
     for item in ([ax.xaxis.label] + ax.get_xticklabels()):

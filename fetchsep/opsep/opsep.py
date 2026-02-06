@@ -1292,7 +1292,10 @@ class Analyze:
             if check_quality and 'I' not in self.quality_flags:
                 self.quality_flags += 'I'
 
-        print(f"For {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
+        if threshold == cfg.opsep_min_threshold:
+            print(f"For {energy_bin} above background found SEP: {sep_start_time} to {sep_end_time}")
+        else:
+            print(f"For {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
 
         return sep_start_time, sep_end_time
 
@@ -1986,6 +1989,8 @@ class Analyze:
         if energy_bin[1] == -1:
             energy_label = f">{energy_bin[0]} {energy_units}"
         threshold_label = f"{threshold} {threshold_units}"
+        if threshold == cfg.opsep_min_threshold:
+            threshold_label = "above background"
         print()
         print(f"====SEP Event Characteristics for {energy_label}, {threshold_label}====")
         print(f"SEP Start Time: {self.sep_start_time}")
