@@ -6,7 +6,7 @@ from ..utils import tools
 from ..utils import date_handler as dh
 from ..utils import derive_background_opsep as bgsub
 from ..utils import plotting_tools as plt_tools
-from ..utils import associations as assoc
+from ..associations import list as assoc
 from ..json import ccmc_json_handler as ccmc_json
 import matplotlib.pyplot as plt
 import sys
@@ -2468,7 +2468,7 @@ class Output:
         #Returns dictionary; all values will be null if no start time match
         startdate = self.data.results[best_ix].sep_start_time
         print(f"Selected startdate {startdate} to search for associations.")
-        associations, proton_info = assoc.identify_associations_in_srag_list(startdate)
+        associations, proton_info = assoc.identify_associations_in_list(startdate)
 
         self.associations = associations
 
