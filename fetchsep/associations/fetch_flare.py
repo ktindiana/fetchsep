@@ -158,6 +158,9 @@ def goes_xray_satellite_covers_date(experiment, request_date):
     """ Check if the spacecraft provided data during the requested date. """
     sat_info = goes_xray_satellite_info()
 
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
     if experiment not in sat_info.keys():
         print(f"NOAA X-ray science data not available for {experiment}.")
         return False
@@ -169,9 +172,12 @@ def goes_xray_satellite_covers_date(experiment, request_date):
         return False
 
 
-def find_goes_xray_satellite_for_date(date):
+def find_goes_xray_satellite_for_date(request_date):
     """ Find a GOES X-ray satellite with data for the requested date. """
-    
+
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
     sat_info = goes_xray_satellite_info()
     keys = list(sat_info.keys())
     
@@ -180,7 +186,7 @@ def find_goes_xray_satellite_for_date(date):
         stdate = sat_info[keys[i]]["startdate"]
         enddate = sat_info[keys[i]]["enddate"]
 
-        if date >= stdate and date <= enddate:
+        if request_date >= stdate and request_date <= enddate:
             satellite = keys[i]
             return satellite
 
@@ -188,11 +194,14 @@ def find_goes_xray_satellite_for_date(date):
     return None
 
 
-def find_all_goes_xray_satellites_for_date(date):
+def find_all_goes_xray_satellites_for_date(request_date):
     """  Return a list of all GOES X-ray satellites that were active 
         at the requested time.
         
     """
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
     sat_info = goes_xray_satellite_info()
     keys = list(sat_info.keys())
     
@@ -202,7 +211,7 @@ def find_all_goes_xray_satellites_for_date(date):
         stdate = sat_info[keys[i]]["startdate"]
         enddate = sat_info[keys[i]]["enddate"]
 
-        if date >= stdate and date <= enddate:
+        if request_date >= stdate and request_date <= enddate:
             satellites.append(keys[i])
 
     return satellites
@@ -223,8 +232,8 @@ def download_goes_xray_science_data(startdate, enddate, experiment):
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
+        :startdate: (datetime, string) start of time period specified by user
+        :enddate: (datetime, string) end of time period entered by user
         :experiment: (string) name of GOES satellite
         
         OUTPUTS:
@@ -234,9 +243,20 @@ def download_goes_xray_science_data(startdate, enddate, experiment):
             (monthly files)
         
     """
+
+    if isinstance(startdate, str):
+        startdate=dh.str_to_datetime(startdate)
+
+    if isinstance(enddate, str):
+        enddate=dh.str_to_datetime(enddate)
+
     avgfiles = [] #X-ray time series
     flsumfiles = [] #flare summary with magnitude, start, peak, end, etc
     success = False #flsum files were effectively downloaded?
+
+    if experiment == None:
+        print("download_goes_xray_science_data: No experiment was specified.")
+        return avgfiles, flsumfiles, success
 
     if experiment in old_goes_sc:
         print(f"download_goes_xray_science_data: {experiment} X-ray science data is not yet available from NOAA. Returning.")
@@ -295,6 +315,7 @@ def download_goes_xray_science_data(startdate, enddate, experiment):
 
         #If already have both files
         if avg_exists and flsum_exists:
+            success=True
             continue
         
 
@@ -662,13 +683,16 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
         
         INPUTS:
         
-            :request_time: (datetime) best if flare peak
+            :request_time: (datetime, string) best if flare peak
             :experiment: (string) GOES-18, GOES-08, etc
             :format: (string) "dict" for flare_info format used by the lists (default); 
                 "json" to return CCMC SEP Scoreboard trigger block
         
     """
     flare_info = {}
+
+    if isinstance(request_time, str):
+        request_time=dh.str_to_datetime(request_time)
 
     #identify all GOES X-ray satellites that cover time
     experiments = find_all_goes_xray_satellites_for_date(request_time)
@@ -679,7 +703,7 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
     #try to find a satellite
     elif experiment == None:
         if len(experiments) == 0:
-            print(f"get_noaa_flare: Could not find a satellite that covers your requested date.")
+            print(f"get_noaa_flare: No GOES-08 to present satellites are available that cover your requested date.")
             return flare_info
 
     #Download flsum files from NOAA
@@ -689,11 +713,16 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
     _xray, _flsum, success = download_goes_xray_science_data(search_start, search_end, experiment)
     if not success:
         for exper in experiments:
-            _xray, _flsum, success = download_goes_xray_science_data(search_start, search_end, experiment)
+            _xray, _flsum, success = download_goes_xray_science_data(search_start, search_end, exper)
             if success:
                 print(f"get_noaa_flare: NOAA files were not available for requested {experiment} at {request_time}. Using data from {exper} instead.")
                 experiment = exper
-                
+                break
+
+    if experiment == None:
+        print(f"get_noaa_flare: Could not find a satellite that covers your requested date.")
+        return flare_info
+
     #Extract flare info for specified flare time
     flare_info = extract_flare_from_noaa_flsum(experiment, request_time)
 
@@ -732,7 +761,7 @@ def get_lmsal_flares(start_date, end_date):
 
     url = 'https://www.lmsal.com/hek/her?cosec=2&cmd=search&type=column&event_type=fl&event_starttime=' + start_date + '&event_endtime=' + end_date + '&event_coordsys=helioprojective&x1=-1200&x2=1200&y1=-1200&y2=1200'
     try:
-        response = requests.get(url, timeout=3)
+        response = requests.get(url, timeout=10)
         selected = response.json()
         print(selected)
     except:

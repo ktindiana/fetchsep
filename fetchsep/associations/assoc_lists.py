@@ -1,5 +1,5 @@
-from . import flare
-from . import cme
+from . import fetch_flare
+from . import fetch_cme
 from ..utils import config as cfg
 from ..json import ccmc_json_handler as ccmc_json
 from ..utils import date_handler as dh
@@ -73,7 +73,7 @@ def manual_flare_calibration(df, index):
     
     """
 
-    flare_info = flare.flare_info_dict()
+    flare_info = fetch_flare.flare_info_dict()
     flare_info['catalog'] = 'SWPC_MANUAL'
 
     if pd.isnull(df['Flare Magnitude Deprecated'].loc[index]):
@@ -94,12 +94,12 @@ def manual_flare_calibration(df, index):
     flare_info['time_to_peak'] = df['Flare Xray Time To Peak Deprecated'].loc[index]
     
     fluence = df['Flare Integrated Flux Deprecated'].loc[index]
-    fluence = flare.remove_swpc_calibration(fluence)
+    fluence = fetch_flare.remove_swpc_calibration(fluence)
     flare_info['integrated_intensity'] = fluence
     
     peak_intensity = df['Flare Magnitude Deprecated'].loc[index]
-    peak_intensity = flare.remove_swpc_calibration(peak_intensity)
-    fl_class = flare.flare_class(peak_intensity)
+    peak_intensity = fetch_flare.remove_swpc_calibration(peak_intensity)
+    fl_class = fetch_flare.flare_class(peak_intensity)
     flare_info['intensity'] = peak_intensity
     flare_info['class'] = fl_class
 
@@ -208,11 +208,11 @@ def update_all_flares(df):
             #the desired date
             flare_info = {}
             for experiment in xray_sat:
-                if not flare.goes_xray_satellite_covers_date(experiment, request_date):
+                if not fetch_flare.goes_xray_satellite_covers_date(experiment, request_date):
                     continue
                 
-                flare.download_goes_xray_science_data(stdate, enddate, experiment)
-                flare_info = flare.get_noaa_flare(request_date, experiment=experiment)
+                fetch_flare.download_goes_xray_science_data(stdate, enddate, experiment)
+                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment)
                 if not pd.isnull(flare_info['catalog_id']):
                     #The times provided in the IGR list aren't always accurate enough to find the correct
                     #flare. Use the deprecated peak value provided to compare with the identified flare.
@@ -260,18 +260,18 @@ def update_all_flares(df):
             enddate = request_date + datetime.timedelta(hours=48)
             
             #-->Find flare in experiment specified in Steve's list
-            flare.download_goes_xray_science_data(stdate, enddate, experiment)
-            flare_info = flare.get_noaa_flare(request_date, experiment=experiment)
+            fetch_flare.download_goes_xray_science_data(stdate, enddate, experiment)
+            flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment)
             
             #-->If that particular satellite didn't have the needed data, search for flare
-            if not flare.goes_xray_satellite_covers_date(experiment, request_date) or pd.isnull(flare_info['catalog_id']):
+            if not fetch_flare.goes_xray_satellite_covers_date(experiment, request_date) or pd.isnull(flare_info['catalog_id']):
                 print(f"update_all_flares: Could not find flare {request_date} for {experiment}. Searching other GOES.")
                 for exper in xray_sat:
-                    if not flare.goes_xray_satellite_covers_date(exper, request_date):
+                    if not fetch_flare.goes_xray_satellite_covers_date(exper, request_date):
                         continue
                     
-                    flare.download_goes_xray_science_data(stdate, enddate, experiment)
-                    flare_info = flare.get_noaa_flare(request_date, experiment=exper)
+                    fetch_flare.download_goes_xray_science_data(stdate, enddate, experiment)
+                    flare_info = fetch_flare.get_noaa_flare(request_date, experiment=exper)
                     if not pd.isnull(flare_info['catalog_id']):
                         print(f"update_all_flares: Found flare {request_date} requested for {exper}.")
                         break
@@ -353,7 +353,7 @@ def update_all_donki_cmes(df, minimum_speed=450, minimum_halfAngle=15,
         if pd.isnull(starttime):
             continue
         
-        cme_info = cme.get_donki_cme(starttime, minimum_speed=minimum_speed,
+        cme_info = fetch_cme.get_donki_cme(starttime, minimum_speed=minimum_speed,
             minimum_halfAngle=minimum_halfAngle, feature=feature, format='dict')
         
         if not cme_info:
@@ -416,6 +416,11 @@ def is_str_column(col):
         return False
 
 
+def empty_protons_series():
+    dict= {"P10_FluxStart": pd.NaT, "P10_StartDT": pd.NaT}
+    return dict
+
+
 def empty_associations_series():
     """ Create a pandas Series with appropriate null values 
         for the associations that will be output by FetchSEP, 
@@ -424,7 +429,7 @@ def empty_associations_series():
     """
     
     dict = {}
-    for col in list_output_columns():
+    for col in list_output_columns:
         val = None
         if is_int_column(col):
             val = np.nan
@@ -500,14 +505,14 @@ def identify_associations_in_list(startdate, list_name='srag'):
                         event_index = ix[0]
                         check_min_diff = min_diff
 
-    null_assoc = assoc_list.empty_associations_series()
-    null_protons = assoc_list.empty_protons_series()
+    null_assoc = empty_associations_series()
+    null_protons = empty_protons_series()
     if event_index == -1:
         print("identify_associations_in_list: No match was found in {assoc_list.id} for {startdate}.")
         #Return series with columns with appropriate null values
         return null_assoc, null_protons
     else:
-        output_col = list_output_columns()
+        output_col = list_output_columns
         associations = df[output_col].iloc[event_index]
         proton_info = df[columns].iloc[event_index]
         print("identify_associations_in_list: Found association information for input date of "
@@ -538,13 +543,13 @@ def list_to_ccmc_cme(associations):
     all_cmes = []
 
     #DONKI CME
-    donki_cme = cme.donki_cme_to_ccmc_json(associations)
+    donki_cme = fetch_cme.donki_cme_to_ccmc_json(associations)
     if donki_cme:
         all_cmes.append(donki_cme)
 
     
     #CDAW CME
-    cdaw_cme = cme.cdaw_cme_to_ccmc_json(associations)
+    cdaw_cme = fetch_cme.cdaw_cme_to_ccmc_json(associations)
     if cdaw_cme:
         all_cmes.append(cdaw_cme)
 
@@ -776,11 +781,6 @@ class SRAGList:
             df[col] = df[col].astype(float)
             
         return df
-
-
-    def empty_protons_series(self):
-        dict= {"P10_FluxStart": pd.NaT, "P10_StartDT": pd.NaT}
-        return dict
         
 
     def combine_comments(self, df):

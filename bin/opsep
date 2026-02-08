@@ -49,6 +49,11 @@ parser.add_argument("--FlareTime", type=str, default='',
             "Time should be equal to or between the flare start and end time, "
             "with the peak as the preferable time."))
 
+parser.add_argument("--CMETime", type=str, default='',
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a CME in DONKI. Use the CME start time, which is "
+            "generally the LASCO C2 first look time."))
+
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
@@ -195,6 +200,7 @@ flux_type = args.FluxType
 spacecraft = args.Spacecraft
 associations = args.Associations
 flare_time = args.FlareTime
+cme_time = args.CMETime
 user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
@@ -246,6 +252,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.opsep
     location=location,
     species=species,
     associations=associations,
-    flare_time=flare_time)
+    flare_time=flare_time,
+    cme_time=cme_time)
 
 if showplot: plt.show()

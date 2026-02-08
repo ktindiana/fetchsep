@@ -65,7 +65,7 @@ def get_donki_cmes(start_date, end_date, minimum_speed=None, minimum_halfAngle=N
     #Start/End date in YYYY-MM-DD format
     url = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/CME?startDate=' + start_date + '&endDate=' + end_date
     try:
-        response = requests.get(url, timeout=3)
+        response = requests.get(url, timeout=15)
         cmes_ = response.json()
     except:
         print(f"get_donki_cmes: could not make connection for {url}")
@@ -247,7 +247,7 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
         
         INPUTS:
         
-            :starttime: (datetime) timestamp close to the start time of the CME, 
+            :starttime: (datetime, string) timestamp close to the start time of the CME, 
                 typically defined as the first time at which the CME appears on the
                 coronagraph. For SOHO, will be the LASCO C2 timestamp.
             :format: (string) "dict" returns dictionary with column labels for the
@@ -260,11 +260,15 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
             :cme: (dict) CME info save in a dictionary
     
     """
+    
+    if isinstance(starttime, str):
+        starttime=dh.str_to_datetime(starttime)
+    
     startdate = starttime - datetime.timedelta(hours=6)
     enddate = starttime + datetime.timedelta(hours=6)
     
-    start_date = startdate.strftime('%Y-%m-%d')
-    end_date = enddate.strftime('%Y-%m-%d')
+    start_date = startdate.strftime('%Y-%m-%dT%H:%M:%SZ')
+    end_date = enddate.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     cmes = get_donki_cmes(start_date, end_date, minimum_speed=minimum_speed, minimum_halfAngle=minimum_halfAngle)
 
@@ -341,10 +345,10 @@ def get_donki_cme_list(start_date, end_date, minimum_speed=None, minimum_halfAng
     
     """
     if isinstance(start_date,datetime.date):
-        start_date = start_date.strftime('%Y-%m-%d')
+        start_date = start_date.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     if isinstance(end_date, datetime.date):
-        end_date = end_date.strftime('%Y-%m-%d')
+        end_date = end_date.strftime('%Y-%m-%dT%H:%M:%SZ')
     
     cmes = get_donki_cmes(start_date, end_date, minimum_speed=minimum_speed, minimum_halfAngle=minimum_halfAngle)
 

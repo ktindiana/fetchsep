@@ -6,7 +6,9 @@ from ..utils import tools
 from ..utils import date_handler as dh
 from ..utils import derive_background_opsep as bgsub
 from ..utils import plotting_tools as plt_tools
-from ..associations import list as assoc
+from ..associations import assoc_lists
+from ..associations import fetch_flare
+from ..associations import fetch_cme
 from ..json import ccmc_json_handler as ccmc_json
 import matplotlib.pyplot as plt
 import sys
@@ -2412,22 +2414,23 @@ class Output:
 
     def add_donki_cme(self, cme_start_time):
         """ Use CME start time to identify CME in DONKI and extract info. """
-        cme = assoc.get_cme(cme_start_time)
-        if cme:
-            ccmc_cme = assoc.srag_to_ccmc_cme(cme)
-            self.cmes.append(ccmc_cme)
+        cme = fetch_cme.get_donki_cme(cme_start_time, format='json')
+        if not cme:
+            print(f"add_donki_cme: CME not found for {cme_start_time}")
+            return
+        else:
+            self.cmes.append(cme)
 
 
     def add_noaa_science_flare(self, flare_time):
         flare_time = dh.str_to_datetime(flare_time)
         if pd.isnull(flare_time): return
-        flare_info = assoc.select_noaa_flare_from_time(flare_time)
-        if pd.isnull(flare_info['intensity']):
+        flare_info = fetch_flare.get_noaa_flare(flare_time, format='json')
+        if not flare_info:
             print(f"add_noaa_science_flare: Flare not found for {flare_time}")
             return
-        
-        ccmc_flare = assoc.noaa_to_ccmc_flare(flare_info)
-        self.flares.append(ccmc_flare)
+        else:
+            self.flares.append(flare_info)
         
         return
         
@@ -2468,13 +2471,13 @@ class Output:
         #Returns dictionary; all values will be null if no start time match
         startdate = self.data.results[best_ix].sep_start_time
         print(f"Selected startdate {startdate} to search for associations.")
-        associations, proton_info = assoc.identify_associations_in_list(startdate)
+        associations, proton_info = assoc_lists.identify_associations_in_list(startdate, list_name='srag')
 
         self.associations = associations
 
-        cme = assoc.srag_to_ccmc_cme(associations) #list of CCMC CME trigger blocks
+        cme = assoc_lists.list_to_ccmc_cme(associations) #list of CCMC CME trigger blocks
         self.cmes = self.cmes + cme
-        flare = assoc.srag_to_ccmc_flare(associations) #list of CCMC flare trigger blocks
+        flare = assoc_lists.list_to_ccmc_flare(associations) #list of CCMC flare trigger blocks
         self.flares = self.flares + flare
 
         return
@@ -2904,7 +2907,7 @@ def opsep(str_startdate, str_enddate, experiment, flux_type='',
     dointerp=False, spacecraft='', doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
     location='earth', species='proton', associations=False,
-    flare_time=''):
+    flare_time='', cme_time=''):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3016,7 +3019,11 @@ def opsep(str_startdate, str_enddate, experiment, flux_type='',
     #If user specified flare time
     if flare_time != '':
         output_data.add_noaa_science_flare(flare_time)
-    
+
+    #If user specified CME time
+    if cme_time != '':
+        output_data.add_donki_cme(cme_time)
+
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()
     event_dict_pkl = output_data.create_pkl_dict()
