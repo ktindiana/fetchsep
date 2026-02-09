@@ -217,7 +217,152 @@ def find_all_goes_xray_satellites_for_date(request_date):
     return satellites
 
 
-def download_goes_xray_science_data(startdate, enddate, experiment):
+
+
+def download_goes_xray_science_data(request_date, experiment):
+    """ Check that GOES X-ray data is on your computer or download it from the NOAA
+        website. Return the filenames associated with the correct GOES data.
+        Reprocessed science X-ray data is available in daily files. 
+        
+        The following files are downloaded here:
+            - avg1m: 1-minute averages of XRS irradiances
+            - flsum: flare summary, flare detection flags such as start and peak
+        
+        The X-ray time profile can be plotted, analyzed from avg1m.
+        The flare start, peak, end times and values and integrated flux are
+        save in the flsum files.
+        
+        INPUTS:
+        
+        :request_date: (datetime, string) desired day specified by the user
+        :experiment: (string) name of GOES satellite
+        
+        OUTPUTS:
+        
+        :avg_filename: (string) name of the file containing the GOES XRS data 
+        :flsum_filename: (string) name of the file containing the flare summary data
+        :success: (bool) True file downloaded and/or successfully on computer
+        
+    """
+    print(f"download_goes_xray_science_data: Checking for {experiment} data on {request_date}.")
+
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
+    avg_filename = None #X-ray time series
+    flsum_filename = None #flare summary with magnitude, start, peak, end, etc
+    success = False #flsum files were effectively downloaded?
+
+    if experiment == None:
+        print("download_goes_xray_science_data: No experiment was specified.")
+        return avgfile, flsumfile, success
+
+    if experiment in old_goes_sc:
+        print(f"download_goes_xray_science_data: {experiment} X-ray science data is not yet available from NOAA. Returning.")
+        return avgfile, flsumfile, success
+
+    #Create path for GOES X-ray data if doesn't exist
+    if not os.path.isdir(os.path.join(cfg.datapath,goesX_dir)):
+        os.mkdirs(os.path.join(cfg.datapath,goesX_dir))
+
+    sat_info = goes_xray_satellite_info()
+
+    #GOES-08 to -15 files like:
+    #https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/xrs/goes08/xrsf-l2-avg1m_science/1995/01/
+    #https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/xrs/goes09/xrsf-l2-flsum_science/1996/04/
+
+    #GOES-R like
+    #https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/xrsf-l2-avg1m_science/2017/02/
+    #https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/xrsf-l2-flsum_science/2017/02/
+
+
+    year = request_date.year
+    month = request_date.month
+    day = request_date.day
+    date_suffix = 'd%i%02i%02i' % (year,month,day)
+
+    if request_date < sat_info[experiment]['startdate'] or request_date > sat_info[experiment]['enddate']:
+        print(f"{experiment} X-ray science data is not available for {date}. Skipping.")
+        return avg_filename, flsum_filename, success
+
+    #Check if file is present or needs to be downloaded.
+    #Filenames like:
+    #sci_xrsf-l2-avg1m_g08_d19950103_v1-0-0.nc
+    #sci_xrsf-l2-flsum_g08_d19950103_v2-1-1.nc
+    avgfile = f"{sat_info[experiment]['avg1m']}{date_suffix}{sat_info[experiment]['avg_version']}.nc"
+    flsumfile = f"{sat_info[experiment]['flsum']}{date_suffix}{sat_info[experiment]['flsum_version']}.nc"
+
+    #Check if files already on your computer
+    avgfullpath = os.path.join(cfg.datapath,goesX_dir,avgfile)
+    avg_exists = os.path.isfile(avgfullpath)
+    if avg_exists:
+        avg_filename = avgfile
+    
+    flsumfullpath = os.path.join(cfg.datapath,goesX_dir,flsumfile)
+    flsum_exists = os.path.isfile(flsumfullpath)
+    if flsum_exists:
+        flsum_filename = flsumfile
+
+    #If already have both files
+    if avg_exists and flsum_exists:
+        success = True
+        return avg_filename, flsum_filename, success
+    
+
+    #If need to download
+    ###### GOES-08 to GOES-15 #####
+    if experiment in goes_sc:
+        avgurl = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/xrs/%s/xrsf-l2-avg1m_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,avgfile)
+         
+        flsumurl = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/xrs/%s/xrsf-l2-flsum_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,flsumfile)
+
+
+    ###### GOES-R ################
+    if experiment in goes_R:
+        avgurl = ('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/xrsf-l2-avg1m_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,avgfile)
+         
+        flsumurl = ('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/xrsf-l2-flsum_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,flsumfile)
+
+
+    #Download
+    if not avg_exists:
+        try:
+            urllib.request.urlopen(avgurl)
+
+            wget.download(avgurl, avgfullpath)
+            print(f"\ndownload_goes_xray_science_data: Downloaded {avgurl}")
+            avg_filename = avgfile
+        except urllib.request.HTTPError as e:
+            print(f"Cannot access file at {avgurl} because {e}. Please check that selected spacecraft covers date range.")
+        except socket.timeout as e:
+            print(f"Cannot access file at {avgurl} because {e}.")
+        except Exception as e:
+            print(f"Cannot access file at {avgurl} because {e}.")
+
+
+
+    if not flsum_exists:
+        try:
+            urllib.request.urlopen(flsumurl)
+
+            wget.download(flsumurl, flsumfullpath)
+            print(f"\ndownload_goes_xray_science_data: Downloaded {flsumurl}")
+            flsum_filename = flsumfile
+            success = True
+        except urllib.request.HTTPError as e:
+            print(f"Cannot access file at {flsumurl} because {e}. Please check that selected spacecraft covers date range.")
+        except socket.timeout as e:
+            print(f"Cannot access file at {flsumurl} because {e}.")
+        except Exception as e:
+            print(f"Cannot access file at {flsumurl} because {e}.")
+
+
+    return avg_filename, flsum_filename, success
+
+
+
+
+def download_goes_xray_science_data_range(startdate, enddate, experiment):
     """ Check that GOES X-ray data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         Reprocessed science X-ray data is available in daily files. 
@@ -262,14 +407,10 @@ def download_goes_xray_science_data(startdate, enddate, experiment):
         print(f"download_goes_xray_science_data: {experiment} X-ray science data is not yet available from NOAA. Returning.")
         return avgfiles, flsumfiles, success
 
-    #Create path for GOES X-ray data if doesn't exist
-    if not os.path.isdir(os.path.join(cfg.datapath,goesX_dir)):
-        os.mkdirs(os.path.join(cfg.datapath,goesX_dir))
-
         
     #GOES XRS science data is stored in daily data files
     td = enddate - startdate
-    NFILES = td.days #number of data files to download
+    NFILES = td.days + 1 #number of data files to download
     if td.seconds > 0: NFILES = NFILES + 1
 
     sat_info = goes_xray_satellite_info()
@@ -282,88 +423,23 @@ def download_goes_xray_science_data(startdate, enddate, experiment):
     #https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/xrsf-l2-avg1m_science/2017/02/
     #https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/xrsf-l2-flsum_science/2017/02/
 
-
     #for every day that data is required, check if file is present or
     #needs to be downloaded.
     for i in range(NFILES):
         date = startdate + datetime.timedelta(days=i)
-        year = date.year
-        month = date.month
-        day = date.day
-        date_suffix = 'd%i%02i%02i' % (year,month,day)
 
         if date < sat_info[experiment]['startdate'] or date > sat_info[experiment]['enddate']:
             print(f"{experiment} X-ray science data is not available for {date}. Skipping.")
             continue
 
-        #Filenames like:
-        #sci_xrsf-l2-avg1m_g08_d19950103_v1-0-0.nc
-        #sci_xrsf-l2-flsum_g08_d19950103_v1-0-0.nc
-        avgfile = f"{sat_info[experiment]['avg1m']}{date_suffix}{sat_info[experiment]['avg_version']}.nc"
-        flsumfile = f"{sat_info[experiment]['flsum']}{date_suffix}{sat_info[experiment]['flsum_version']}.nc"
+        avg_filename, flsum_filename, file_success = download_goes_xray_science_data(date, experiment)
 
-        #Check if files already on your computer
-        fullpath = os.path.join(cfg.datapath,goesX_dir,avgfile)
-        avg_exists = os.path.isfile(fullpath)
-        if avg_exists:
-            avgfiles.append(os.path.join(goesX_dir,avgfile))
-        
-        fullpath = os.path.join(cfg.datapath,goesX_dir,flsumfile)
-        flsum_exists = os.path.isfile(fullpath)
-        if flsum_exists:
-            flsumfiles.append(os.path.join(goesX_dir,flsumfile))
-
-        #If already have both files
-        if avg_exists and flsum_exists:
-            success=True
-            continue
-        
-
-        #If need to download
-        ###### GOES-08 to GOES-15 #####
-        if experiment in goes_sc:
-            avgurl = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/xrs/%s/xrsf-l2-avg1m_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,avgfile)
-             
-            flsumurl = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/science/xrs/%s/xrsf-l2-flsum_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,flsumfile)
- 
-
-        ###### GOES-R ################
-        if experiment in goes_R:
-            avgurl = ('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/xrsf-l2-avg1m_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,avgfile)
-             
-            flsumurl = ('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/xrsf-l2-flsum_science/%i/%02i/%s') % (sat_info[experiment]["url"],year,month,flsumfile)
-
-
-        #Download
-        if not avg_exists:
-            try:
-                try:
-                    urllib.request.urlopen(avgurl)
-                except:
-                    raise
-
-                wget.download(avgurl, os.path.join(cfg.datapath,goesX_dir,avgfile))
-                print(f"\ndownload_goes_xray_science_data: Downloaded {avgurl}")
-                avgfiles.append(os.path.join(goesX_dir,avgfile))
-            except urllib.request.HTTPError:
-                print("Cannot access GOES file at " + avgurl + ". Skipping.")
-
-
-
-        if not flsum_exists:
-            try:
-                try:
-                    urllib.request.urlopen(flsumurl)
-                except:
-                    raise
-
-                wget.download(flsumurl, os.path.join(cfg.datapath,goesX_dir,flsumfile))
-                print(f"\ndownload_goes_xray_science_data: Downloaded {flsumurl}")
-                flsumfiles.append(os.path.join(goesX_dir,flsumfile))
-                success = True
-            except urllib.request.HTTPError:
-                print("Cannot access GOES file at " + flsumurl + ". Skipping.")
-
+        if file_success:
+            avgfiles.append(os.path.join(goesX_dir,avg_filename))
+            flsumfiles.append(os.path.join(goesX_dir,flsum_filename))
+    
+    if len(flsumfiles) == NFILES:
+        success = True
 
     return avgfiles, flsumfiles, success
 
@@ -482,8 +558,10 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
     fullpath = os.path.join(cfg.datapath,goesX_dir,flsumfile)
     flsum_exists = os.path.isfile(fullpath)
     if not flsum_exists:
-        print(f"extract_flare_from_noaa_flsum: Cannot find file {fullpath}. Run download_goes_xray_science_data to download.")
-        return flare_info
+        _avgfname, _flsumfname, file_success = download_goes_xray_science_data(request_date, experiment)
+        if not file_success:
+            print(f"extract_flare_from_noaa_flsum: Cannot find file {fullpath} and could not download.")
+            return flare_info
 
     data = nc.Dataset(fullpath)
 
@@ -710,10 +788,10 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
     search_start = request_time-datetime.timedelta(hours=24)
     search_end = request_time+datetime.timedelta(hours=24)
     
-    _xray, _flsum, success = download_goes_xray_science_data(search_start, search_end, experiment)
+    _xray, _flsum, success = download_goes_xray_science_data_range(search_start, search_end, experiment)
     if not success:
         for exper in experiments:
-            _xray, _flsum, success = download_goes_xray_science_data(search_start, search_end, exper)
+            _xray, _flsum, success = download_goes_xray_science_data_range(search_start, search_end, exper)
             if success:
                 print(f"get_noaa_flare: NOAA files were not available for requested {experiment} at {request_time}. Using data from {exper} instead.")
                 experiment = exper
