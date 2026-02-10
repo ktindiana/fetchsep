@@ -60,8 +60,7 @@ def time_to_zulu(dt): #make_ccmc_zulu_time(dt):
         return 0
 
     if isinstance(dt,str):
-        if ("T" in dt) and ("Z" in dt):
-            return dt
+        dt = str_to_datetime(dt)
 
     zdt = zulu.create(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
     stzdt = str(zdt)

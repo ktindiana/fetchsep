@@ -472,3 +472,59 @@ def cdaw_cme_to_ccmc_json(list_cme):
             pass
 
     return cme
+
+
+##########################################################
+################## MANUAL CME INPUT ######################
+##########################################################
+def manual_cme_trigger(cme_start_time = pd.NaT,
+    cme_liftoff_time=pd.NaT,
+    cme_half_width_deg=np.nan,
+    cme_speed_kms=np.nan,
+    cme_acceleration_kms2=np.nan,
+    cme_height_rs=np.nan,
+    cme_time_at_height_time=pd.NaT,
+    cme_time_at_height_height=np.nan,
+    cme_lat=np.nan,
+    cme_lon=np.nan,
+    cme_pa=np.nan,
+    cme_coordinates="",
+    cme_catalog="",
+    cme_catalog_id="",
+    cme_urls=[],
+    cme_derivation_process="",
+    cme_derivation_method="",
+    cme_measurement_type=""):
+    """ Create a CME trigger block for the CCMC SEP Scoreboard json schema
+        using manual inputs.
+        
+    """
+
+    cme = {
+        "start_time": dh.time_to_zulu(cme_start_time),
+        "liftoff_time": dh.time_to_zulu(cme_liftoff_time),
+        "lat": cme_lat,
+        "lon": cme_lon,
+        "pa": cme_pa,
+        "half_width": cme_half_width_deg,
+        "speed": cme_speed_kms,
+        "acceleration": cme_acceleration_kms2,
+        "height": cme_height_rs,
+        "time_at_height": {
+            "time": dh.time_to_zulu(cme_time_at_height_time),
+            "height": cme_time_at_height_height
+        },
+        "coordinates": cme_coordinates,
+        "catalog": cme_catalog,
+        "catalog_id": cme_catalog_id,
+        "urls": cme_urls,
+        "derivation_technique": {
+            "process": cme_derivation_process,
+            "method": cme_derivation_method,
+            "measurement_type": cme_measurement_type
+        }
+    }
+    
+    cme = ccmc_json.clean_trigger_block(cme)
+
+    return cme

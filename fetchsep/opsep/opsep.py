@@ -2078,23 +2078,45 @@ class Output:
 
     def check_json_info(self):
         json_type = expts.get_json_type(self.data.experiment)
-        if self.json_type == '' and json_type =='':
-            sys.exit(f"check_json_info: You must specify a json type for {experiment} experiment. Choose from observations or model. Exiting.")
-        elif self.json_type == '':
+        
+        #If json type isn't specified for the experiment in experiments.py
+        if json_type == '':
+            if self.json_type != '':
+                pass
+            else:
+                sys.exit(f"check_json_info: You must specify a json type for {self.data.experiment} experiment. Choose from observations or model. Exiting.")
+        
+        #User specified wrong json type; override
+        elif json_type != '' and self.json_type != '':
+            if json_type != self.json_type:
+                print(f"check_json_info: You specified a json type of {json_type}, however the "
+                    f"correct json_type is {json_type}. Replacing.")
+                self.json_type = json_type
+        
+        #User didn't specify json type and want to get it from experiments.py
+        elif json_type != '' and self.json_type == '':
+            print(f"check_json_info: Automatically setting json type {json_type}.")
             self.json_type = json_type
-        elif json_type != self.json_type:
-            print(f"check_json_info: You specified a json type of {json_type}, however the "
-                "correct json_type is {json_type}. Replacing.")
-            self.json_type = json_type
+
  
         json_mode = expts.get_json_mode(self.data.experiment)
-        if self.json_mode == '' and json_mode =='':
-            sys.exit(f"check_json_info: You must specify a json mode for {experiment} experiment. Choose from measurements for observations or forecast, historical, nowcast, etc for model. Recommend to follow the options for the CCMC SEP Scoreboard JSON schema. Exiting.")
-        elif self.json_mode == '':
-            self.json_mode = json_mode
-        elif json_mode != self.json_mode:
-            print(f"check_json_info: You specified a json mode of {self.json_mode}, however the "
-                "correct json_mode is {json_mode}. Replacing.")
+        #If json mode isn't specified for the experiment in experiments.py
+        if json_mode == '':
+            if self.json_mode != '':
+                pass
+            else:
+                sys.exit(f"check_json_info: You must specify a json mode for {self.data.experiment} experiment. Choose from measurements for observations or forecast, historical, nowcast, etc for model. Recommend to follow the options for the CCMC SEP Scoreboard JSON schema. Exiting.")
+
+        #User specified wrong json mode; override
+        elif self.json_mode != '' and json_mode != '':
+            if json_mode != self.json_mode:
+                print(f"check_json_info: You specified a json mode of {self.json_mode}, however the "
+                    f"correct json_mode is {json_mode}. Replacing.")
+                self.json_mode = json_mode
+
+        #User didn't specify json mode and want to get it from experiments.py
+        elif json_mode != '' and self.json_mode == '':
+            print(f"check_json_info: Automatically setting json mode {json_mode}.")
             self.json_mode = json_mode
  
         return
@@ -2422,6 +2444,36 @@ class Output:
             self.cmes.append(cme)
 
 
+    def add_manual_cme(self, cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
+        cme_half_width_deg=np.nan, cme_speed_kms=np.nan,
+        cme_acceleration_kms2=np.nan, cme_lat=np.nan, cme_lon=np.nan,
+        cme_height_rs=np.nan,
+        cme_time_at_height_time=pd.NaT, cme_time_at_height_height=np.nan,
+        cme_coordinates="", cme_catalog="",
+        cme_catalog_id="", cme_urls=[],
+        cme_derivation_process="", cme_derivation_method="",
+        cme_measurement_type=""):
+        """ Create CME trigger block from manually entered values """
+        
+        cme = fetch_cme.manual_cme_trigger(cme_start_time=cme_start_time,
+                cme_liftoff_time=cme_liftoff_time,
+                cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
+                cme_acceleration_kms2=cme_acceleration_kms2,
+                cme_lat=cme_lat, cme_lon=cme_lon,
+                cme_height_rs=cme_height_rs,
+                cme_time_at_height_time=cme_time_at_height_time,
+                cme_time_at_height_height=cme_time_at_height_height,
+                cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
+                cme_catalog_id=cme_catalog_id, cme_urls=cme_urls,
+                cme_derivation_process=cme_derivation_process,
+                cme_derivation_method=cme_derivation_method,
+                cme_measurement_type=cme_measurement_type)
+
+        if cme:
+            self.cmes.append(cme)
+        
+        return
+
     def add_noaa_science_flare(self, flare_time):
         flare_time = dh.str_to_datetime(flare_time)
         if pd.isnull(flare_time): return
@@ -2481,6 +2533,63 @@ class Output:
         self.flares = self.flares + flare
 
         return
+
+
+    def add_associations(self,
+        srag_associations=False, auto_flare_time='', auto_cme_time='',
+        cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
+        cme_half_width_deg=np.nan, cme_speed_kms=np.nan,
+        cme_acceleration_kms2=np.nan, cme_lat=np.nan, cme_lon=np.nan,
+        cme_height_rs=np.nan,
+        cme_time_at_height_time=pd.NaT, cme_time_at_height_height=np.nan,
+        cme_coordinates="", cme_catalog="",
+        cme_catalog_id="", cme_urls=[],
+        cme_derivation_process="", cme_derivation_method="",
+        cme_measurement_type=""):
+        """ Add associated flare, cme, and other related information.
+
+            INPUTS:
+            
+            :srag_associations: (bool) If True, will look for flare, CME, etc associations
+                in reference/SRAG_SEP_List_R11_CLEARversion.csv
+            :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
+                files will be searched for a flare coincident with this time.
+                The flare_time should correspond to a time equal to or 
+                between the flare start and end time. The peak time is preferable as
+                flares are selected by minimizing between this specified time 
+                and the measured flare peak.
+            :auto_cme_time: (string) find CME in DONKI catalog with preferred selections    
+            
+        """
+
+        #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
+        if srag_associations:
+            self.find_srag_associations()
+
+        #If user specified flare time
+        if auto_flare_time != '':
+            self.add_noaa_science_flare(auto_flare_time)
+
+        #If user specified CME time
+        if auto_cme_time != '':
+            self.add_donki_cme(auto_cme_time)
+
+        #Manually add CME trigger block if user entered values
+        self.add_manual_cme(cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
+        cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
+        cme_acceleration_kms2=cme_acceleration_kms2,
+        cme_lat=cme_lat, cme_lon=cme_lon,
+        cme_height_rs=cme_height_rs,
+        cme_time_at_height_time=cme_time_at_height_time,
+        cme_time_at_height_height=cme_time_at_height_height,
+        cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
+        cme_catalog_id=cme_catalog_id, cme_urls=cme_urls,
+        cme_derivation_process=cme_derivation_process,
+        cme_derivation_method=cme_derivation_method,
+        cme_measurement_type=cme_measurement_type)
+        
+        return
+
 
 
     def fill_json_header(self):
@@ -2601,7 +2710,7 @@ class Output:
             else:
                 opts += opt
         dict = {"Experiment": exp_name,
-                "Flux Type": self.data.flux_type,
+                "Input Flux Type": self.data.flux_type,
                 "Options": opts,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
@@ -2642,7 +2751,7 @@ class Output:
         if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
 
         dict = {"Experiment": exp_name,
-                "Flux Type": self.data.flux_type,
+                "Input Flux Type": self.data.flux_type,
                 "Options": self.data.options,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate,
@@ -2898,16 +3007,38 @@ def calculate_event_info(flux_data):
 
 
 
+
+
 ######## MAIN PROGRAM #########
-def opsep(str_startdate, str_enddate, experiment, flux_type='',
-    user_name='', user_file='', json_type='', json_mode='',
-    spase_id='', showplot=False, saveplot=False, detect_prev_event=False,
-    two_peaks=False, umasep=False, user_thresholds='', options='',
+def opsep(str_startdate, str_enddate, experiment,
+    flux_type='',
+    user_name='', user_file='',
+    json_type='', json_mode='', spase_id='',
+    dointerp=False, spacecraft='',
+    showplot=False, saveplot=False,
+    detect_prev_event=False, two_peaks=False, umasep=False,
+    user_thresholds='', options='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-    dointerp=False, spacecraft='', doBGSubIDSEP=False,
-    IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton', associations=False,
-    flare_time='', cme_time=''):
+    doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
+    location='earth', species='proton',
+    srag_associations=False,
+    auto_flare_time='', auto_cme_time='',
+    cme_start_time=pd.NaT,
+    cme_liftoff_time=pd.NaT,
+    cme_half_width_deg=np.nan,
+    cme_speed_kms=np.nan,
+    cme_acceleration_kms2=np.nan,
+    cme_lat=np.nan, cme_lon=np.nan,
+    cme_height_rs=np.nan,
+    cme_time_at_height_time=pd.NaT,
+    cme_time_at_height_height=np.nan,
+    cme_coordinates="",
+    cme_catalog="",
+    cme_catalog_id="",
+    cme_urls=[],
+    cme_derivation_process="",
+    cme_derivation_method="",
+    cme_measurement_type=""):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -2944,14 +3075,33 @@ def opsep(str_startdate, str_enddate, experiment, flux_type='',
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES-RT
         :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
-        :associations: (bool) If True, will look for flare, CME, etc associations
+        :srag_associations: (bool) If True, will look for flare, CME, etc associations
             in reference/SRAG_SEP_List_R11_CLEARversion.csv
-        :flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
+        :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
             files will be searched for a flare coincident with this time.
             The flare_time should correspond to a time equal to or 
             between the flare start and end time. The peak time is preferable as
             flares are selected by minimizing between this specified time 
             and the measured flare peak.
+        :auto_cme_time: (string) find CME in DONKI catalog with preferred selections
+        
+        CME parameters that can be input manually:
+        
+        cme_start_time=pd.NaT,
+        cme_liftoff_time=pd.NaT,
+        cme_half_width_deg=np.nan,
+        cme_speed_kms=np.nan,
+        cme_acceleration_kms2=np.nan,
+        cme_height_rs=np.nan,
+        cme_time_at_height_time=pd.NaT,
+        cme_time_at_height_height=np.nan,
+        cme_coordinates="",
+        cme_catalog="",
+        cme_catalog_id="",
+        cme_urls=[],
+        cme_derivation_process="",
+        cme_derivation_method="",
+        cme_measurement_type=""
         
         OUTPUTS:
         
@@ -3012,17 +3162,20 @@ def opsep(str_startdate, str_enddate, experiment, flux_type='',
 
     output_data = Output(flux_data, json_type, spase_id=spase_id, json_mode=json_mode)
 
-    #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
-    if associations:
-        output_data.find_srag_associations()
-
-    #If user specified flare time
-    if flare_time != '':
-        output_data.add_noaa_science_flare(flare_time)
-
-    #If user specified CME time
-    if cme_time != '':
-        output_data.add_donki_cme(cme_time)
+    output_data.add_associations(srag_associations=srag_associations,
+        auto_flare_time=auto_flare_time, auto_cme_time=auto_cme_time,
+        cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
+        cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
+        cme_acceleration_kms2=cme_acceleration_kms2,
+        cme_lat=cme_lat, cme_lon=cme_lon,
+        cme_height_rs=cme_height_rs,
+        cme_time_at_height_time=cme_time_at_height_time,
+        cme_time_at_height_height=cme_time_at_height_height,
+        cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
+        cme_catalog_id=cme_catalog_id, cme_urls=cme_urls,
+        cme_derivation_process=cme_derivation_process,
+        cme_derivation_method=cme_derivation_method,
+        cme_measurement_type=cme_measurement_type)
 
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()

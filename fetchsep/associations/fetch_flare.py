@@ -592,6 +592,9 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
             select_idx = [i for i in range(len(data.variables["flare_id"][:])) if data.variables["flare_id"][i]==req_flare_id]
             if len(select_idx) > 0:
                 print(f"extract_flare_from_noaa_flsum: Found flare for flare ID (catalog_id) {req_flare_id}")
+        else:
+            print(f"extract_flare_from_noaa_flsum: flare ID (catalog_id) not found in flare file for {req_flare_id}")
+            return flare_info
 
     #-->else search according to date of flare peak
     ###############################################
@@ -694,7 +697,7 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
 
     #If no flare found
     if len(select_idx) == 0:
-        print(f"extract_noaa_flare_info: {experiment} flare not found for requested date {request_date}. Returning.")
+        print(f"extract_flare_from_noaa_flsum: {experiment} flare information (start, peak, or end) not found for requested date {request_date}.")
         return flare_info
 
     #flare_id, status, xrsb_flux, flare_class, time, integrated_flux, flare_class
@@ -759,6 +762,10 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
         can input any time between the start and end time of
         a flare.
         
+        Generally:
+        The requested time must be between the flare start and end or
+        within 15 minutes of the flare start or 15 minutes of flare end.
+        
         INPUTS:
         
             :request_time: (datetime, string) best if flare peak
@@ -784,9 +791,9 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
             print(f"get_noaa_flare: No GOES-08 to present satellites are available that cover your requested date.")
             return flare_info
 
-    #Download flsum files from NOAA
-    search_start = request_time-datetime.timedelta(hours=24)
-    search_end = request_time+datetime.timedelta(hours=24)
+    #Download flsum files from NOAA in wide enough date range to capture full flare
+    search_start = request_time-datetime.timedelta(hours=12)
+    search_end = request_time+datetime.timedelta(hours=12)
     
     _xray, _flsum, success = download_goes_xray_science_data_range(search_start, search_end, experiment)
     if not success:
@@ -801,20 +808,23 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
         print(f"get_noaa_flare: Could not find a satellite that covers your requested date.")
         return flare_info
 
-    #Extract flare info for specified flare time
+    #Extract flare info for specified flare time from one day
     flare_info = extract_flare_from_noaa_flsum(experiment, request_time)
 
-    #If found the flare in the flare summary files, but it spans files on two days
+    #If found the flare in the flare summary files, but it might span files on two days
     if not pd.isnull(flare_info['catalog_id']):
         if not pd.isnull(flare_info['start_time']) and pd.isnull(flare_info['end_time']):
-
+            next_day = request_time+datetime.timedelta(hours=24)
+            print("get_noaa_flare: No flare end time. Checking for additional flare information for the next day {next_day}. "
+                "Note that flares may not have end times if another flare began before the flare ended.")
             #Look for the flare end in the file for the next day
-            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], request_time+datetime.timedelta(hours=24), flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], next_day, flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
 
         if pd.isnull(flare_info['start_time']) and not pd.isnull(flare_info['end_time']):
-
+            previous_day = request_time-datetime.timedelta(hours=24)
+            print("get_noaa_flare: No flare start time. Checking for additional flare information for the previous day {previous_day}.")
             #Look for the flare start in the file for the previous day
-            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], request_time-datetime.timedelta(hours=24), flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], previous_day, flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
 
 
     if format == 'json':

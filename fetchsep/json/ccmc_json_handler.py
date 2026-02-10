@@ -335,6 +335,23 @@ def clean_trigger_block(trigger_dict):
         elif isinstance(trigger_dict[key], dict):
             if not trigger_dict[key]:
                 bad_keys.append(key)
+            #Check if values in the dictionary are null
+            else:
+                check_dict = trigger_dict[key]
+                keys2 = check_dict.keys()
+                bad_keys2 = []
+                for k2 in keys2:
+                    if pd.isnull(check_dict[k2]):
+                        bad_keys2.append(k2)
+                    elif check_dict[k2] == '':
+                        bad_keys2.append(k2)
+                #Delete null fields and update main trigger block
+                for bk in bad_keys2:
+                    del check_dict[bk]
+                if not check_dict:
+                    bad_keys.append(key)
+                else:
+                    trigger_dict[key].update(check_dict)
 
         elif pd.isnull(trigger_dict[key]):
             bad_keys.append(key)

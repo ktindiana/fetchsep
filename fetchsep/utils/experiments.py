@@ -57,6 +57,7 @@ def get_flux_type(experiment):
         
     """
     exp_info = experiment_info(experiment)
+
     if len(exp_info['flux_type']) == 1:
         return exp_info['flux_type'][0]
         
@@ -164,8 +165,6 @@ def experiment_info(experiment):
         Returns a dictionary with parameters for requested experiment.
     
     """
-    if experiment == "user":
-        return {}
 
     experiments = {
             'user':{
