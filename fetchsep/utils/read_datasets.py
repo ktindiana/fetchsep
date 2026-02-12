@@ -1525,7 +1525,7 @@ def identify_which_goes_spacecraft(startdate, enddate, spacecraft="primary"):
     #Check that primary or secondary are specified between the dates requested
     if enddate <= firstdate or startdate >= lastdate:
         print(f"identify_which_goes_spacecraft: Primary and secondary GOES dates are available between: {firstdate} and {lastdate}. Please revise your date request: {stardate} to {enddate}. Returning empty arrays.")
-        return [], []
+        return [], [], []
     
     #Extract the entries between the dates of interest
     df_goes = df_goes.loc[(df_goes['Start Date'] < enddate) & (df_goes['End Date'] >= startdate)]

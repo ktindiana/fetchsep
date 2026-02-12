@@ -2710,7 +2710,7 @@ class Output:
             else:
                 opts += opt
         dict = {"Experiment": exp_name,
-                "Input Flux Type": self.data.flux_type,
+                "Native Flux Type": self.data.flux_type,
                 "Options": opts,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
@@ -2751,7 +2751,7 @@ class Output:
         if self.data.doBGSubIDSEP: bgsub = 'IDSEP'
 
         dict = {"Experiment": exp_name,
-                "Input Flux Type": self.data.flux_type,
+                "Native Flux Type": self.data.flux_type,
                 "Options": self.data.options,
                 "Background Subtraction": bgsub,
                 "Time Period Start": self.data.startdate,

@@ -73,29 +73,41 @@ def manual_flare_calibration(df, index):
     
     """
 
-    flare_info = fetch_flare.flare_info_dict()
+    flare_info = fetch_flare.flare_info_dict() #null
     flare_info['catalog'] = 'SWPC_MANUAL'
 
     if pd.isnull(df['Flare Magnitude Deprecated'].loc[index]):
         return flare_info
 
-    goes = df['GOES Xray Satellite'].loc[index]
-    if not pd.isnull(goes):
-        goes = int(goes)
-        experiment = f"GOES-{goes:02d}"
-    else:
-        experiment = None
+    if 'GOES Xray Satellite' in df.columns:
+        goes = df['GOES Xray Satellite'].loc[index]
+        if not pd.isnull(goes):
+            goes = int(goes)
+            experiment = f"GOES-{goes:02d}"
+        else:
+            experiment = None
 
-    flare_info['instrument'] = experiment
-    flare_info['start_time'] = df['Flare Xray Start Time Deprecated'].loc[index]
-    flare_info['peak_time'] = df['Flare Xray Peak Time Deprecated'].loc[index]
-    flare_info['end_time'] = df['Flare Xray End Time Deprecated'].loc[index]
-    flare_info['duration'] = df['Flare Duration Deprecated'].loc[index]
-    flare_info['time_to_peak'] = df['Flare Xray Time To Peak Deprecated'].loc[index]
+        flare_info['instrument'] = experiment
     
-    fluence = df['Flare Integrated Flux Deprecated'].loc[index]
-    fluence = fetch_flare.remove_swpc_calibration(fluence)
-    flare_info['integrated_intensity'] = fluence
+    if 'Flare Xray Start Time Deprecated' in df.columns:
+        flare_info['start_time'] = df['Flare Xray Start Time Deprecated'].loc[index]
+
+    if 'Flare Xray Peak Time Deprecated' in df.columns:
+        flare_info['peak_time'] = df['Flare Xray Peak Time Deprecated'].loc[index]
+
+    if 'Flare Xray End Time Deprecated' in df.columns:
+        flare_info['end_time'] = df['Flare Xray End Time Deprecated'].loc[index]
+
+    if 'Flare Duration Deprecated' in df.columns:
+        flare_info['duration'] = df['Flare Duration Deprecated'].loc[index]
+
+    if 'Flare Xray Time To Peak Deprecated' in df.columns:
+        flare_info['time_to_peak'] = df['Flare Xray Time To Peak Deprecated'].loc[index]
+    
+    if 'Flare Integrated Flux Deprecated' in df.columns:
+        fluence = df['Flare Integrated Flux Deprecated'].loc[index]
+        fluence = fetch_flare.remove_swpc_calibration(fluence)
+        flare_info['integrated_intensity'] = fluence
     
     peak_intensity = df['Flare Magnitude Deprecated'].loc[index]
     peak_intensity = fetch_flare.remove_swpc_calibration(peak_intensity)
@@ -121,7 +133,7 @@ def add_flare_columns(df):
 
 
 
-def update_all_flares(df):
+def update_all_flares(df, add_ref_col=None):
     """ If SEP event list contains the original X-ray fluxes made available
         by SWPC in their various products and archived data, add new science-quality
         flare information in additional columns. If flare not found in NOAA archive,
@@ -150,7 +162,8 @@ def update_all_flares(df):
         INPUTS:
         
             :df: (pandas dataframe) SEP associations list
-            :list_name: (string) srag, user
+            :add_ref_col: (string) column name to use as reference time for 
+                identifying flares
             
         OUTPUTS:
         
@@ -161,32 +174,40 @@ def update_all_flares(df):
     xray_sat = ['GOES-16', 'GOES-18', 'GOES-17', 'GOES-19', 'GOES-08', 'GOES-09',
                 'GOES-10', 'GOES-12', 'GOES-15', 'GOES-14', 'GOES-11']
 
-    req_cols = ['Flare Xray Start Time Deprecated', 'Flare Magnitude Deprecated']
+    req_cols = ['Flare Magnitude Deprecated']
+    if add_ref_col != None: req_cols.append(add_ref_col)
     for col in req_cols:
         if col not in df.columns:
             print(f"update_all_flares: {col} column must exist and be populated. Returning.")
             return df
 
-    #Look for times in these columns to identify a flare
+    #Look for times in these columns to identify a flare listed in order of preference
     ref_time_columns = ['Flare Xray Peak Time Deprecated', 'Flare Xray Start Time Deprecated']
+    if add_ref_col != None and add_ref_col not in ref_time_columns:
+        ref_time_columns = [add_ref_col] + ref_time_columns
+        
+    #Check if the possible reference time columns are present in the list
+    for i in range(len(ref_time_columns)-1,-1,-1):
+        col = ref_time_columns[i]
+        if col not in df.columns:
+            ref_time_columns.pop(i)
+            
 
     #If columns for the flare science data aren't present, add them
     df = add_flare_columns(df)
-
     for index, row in df.iterrows():
-
-        #Check if a flare was provided in the SRAG list
+        #Check if a flare was provided in the list
         if pd.isnull(row['Flare Magnitude Deprecated']):
             continue
 
         flare_info = {}
 
-        goes = df['GOES Xray Satellite'].loc[index]
-        if not pd.isnull(goes):
-            goes = int(goes)
-            experiment = f"GOES-{goes:02d}"
-        else:
-            experiment = None
+        experiment = None
+        if 'GOES Xray Satellite' in df.columns:
+            goes = df['GOES Xray Satellite'].loc[index]
+            if not pd.isnull(goes):
+                goes = int(goes)
+                experiment = f"GOES-{goes:02d}"
 
         goes_r_primary_date = datetime.datetime(2017,2,7) #GOES-R+ primary XRS from this date forward
 
@@ -201,33 +222,23 @@ def update_all_flares(df):
                 continue
                 
             print(f"Flare without GOES satellite specified {request_date}")
-            stdate = request_date - datetime.timedelta(hours=24)
-            enddate = request_date + datetime.timedelta(hours=48)
-
-            #-->Don't know which satellite was used, so check until find one covered
-            #the desired date
-            flare_info = {}
-            for experiment in xray_sat:
-                if not fetch_flare.goes_xray_satellite_covers_date(experiment, request_date):
-                    continue
-                
-                fetch_flare.download_goes_xray_science_data(stdate, enddate, experiment)
-                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment)
-                if not pd.isnull(flare_info['catalog_id']):
-                    #The times provided in the IGR list aren't always accurate enough to find the correct
-                    #flare. Use the deprecated peak value provided to compare with the identified flare.
-                    if not pd.isnull(flare_info['intensity']):
-                        dep_peak = row['Flare Magnitude Deprecated']
-                        sci_peak = flare_info['intensity']
-                        ratio = (dep_peak/0.7)/sci_peak
-                        #Check if found flare has value within +-10% of expected value after
-                        #removing SWPC correction factor
-                        if (ratio >= 0.9) and (ratio <= 1.1):
-                            break
-                        else:
-                            flare_info = {}
-                else:
-                    flare_info = {} #so will manually apply calibration
+            #-->Don't know which satellite was used, will default to primary satellite
+            flare_info = fetch_flare.get_noaa_flare(request_date)
+            if not pd.isnull(flare_info['catalog_id']):
+                #The times provided in the IGR list aren't always accurate enough to find the correct
+                #flare. Use the deprecated peak value provided to compare with the identified flare.
+                if not pd.isnull(flare_info['intensity']):
+                    dep_peak = row['Flare Magnitude Deprecated']
+                    sci_peak = flare_info['intensity']
+                    ratio = (dep_peak/0.7)/sci_peak
+                    #Check if found flare has value within +-10% of expected value after
+                    #removing SWPC correction factor
+                    if (ratio >= 0.85) and (ratio <= 1.15):
+                        pass
+                    else:
+                        flare_info = {}
+            else:
+                flare_info = {} #so will manually apply calibration
 
             #-->If didn't find a measurement in the science data, then apply calibration manually
             #After goes_r_primary_date, SWPC provided GOES-R X-ray fluxes
@@ -255,27 +266,8 @@ def update_all_flares(df):
                 continue
 
             print(f"update_all_flares: Flare {request_date} requested for {experiment}.")
- 
-            stdate = request_date - datetime.timedelta(hours=24)
-            enddate = request_date + datetime.timedelta(hours=48)
-            
-            #-->Find flare in experiment specified in Steve's list
-            fetch_flare.download_goes_xray_science_data(stdate, enddate, experiment)
             flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment)
             
-            #-->If that particular satellite didn't have the needed data, search for flare
-            if not fetch_flare.goes_xray_satellite_covers_date(experiment, request_date) or pd.isnull(flare_info['catalog_id']):
-                print(f"update_all_flares: Could not find flare {request_date} for {experiment}. Searching other GOES.")
-                for exper in xray_sat:
-                    if not fetch_flare.goes_xray_satellite_covers_date(exper, request_date):
-                        continue
-                    
-                    fetch_flare.download_goes_xray_science_data(stdate, enddate, experiment)
-                    flare_info = fetch_flare.get_noaa_flare(request_date, experiment=exper)
-                    if not pd.isnull(flare_info['catalog_id']):
-                        print(f"update_all_flares: Found flare {request_date} requested for {exper}.")
-                        break
-
             #-->If didn't find a measurement in the science data, then apply calibration manually
             if pd.isnull(flare_info['catalog_id']) and request_date < goes_r_primary_date:
                 #DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
@@ -376,16 +368,16 @@ def update_all_donki_cmes(df, minimum_speed=450, minimum_halfAngle=15,
 
 
 #Columns output in final SEP list, e.g. for the CLEAR SEP Benchmark Dataset
-list_output_columns = ['Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location Source', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Event Location Source 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'ESP CDAW CME First Look Time', 'ESP CDAW CME LASCO Speed', 'ACE CME Passage Time', 'ACE Bz', 'Sudden Impulse Time', 'Sudden Impulse Amplitude', 'GLE Event Number', 'PRF', 'Comments']
+list_output_columns = ['Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Source Location From Center', 'Source Latitude', 'Source Longitude', 'Source Location Source', 'Source Location from Center 2', 'Source Latitude 2', 'Source Longitude 2', 'Source Location Source 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'ESP CDAW CME First Look Time', 'ESP CDAW CME LASCO Speed', 'ACE CME Passage Time', 'ACE Bz', 'Sudden Impulse Time', 'Sudden Impulse Amplitude', 'GLE Event Number', 'PRF', 'Comments']
 
 list_time_columns = ['Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
 
-list_float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
+list_float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Source Location From Center', 'Source Latitude', 'Source Longitude', 'Source Location from Center 2', 'Source Latitude 2', 'Source Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
     #'CDAW CME Width' contains text
 
 list_int_columns = ['Flare Catalog ID', 'Cycle', 'Active Region', 'GOES Xray Satellite']
 
-list_string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Location Source', 'Event Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+list_string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Source Location Source', 'Source Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
 
 
 def is_time_column(col):
@@ -601,9 +593,9 @@ def list_to_ccmc_flare(associations):
         else:
             del flare['last_data_time']
 
-        if not pd.isnull(associations['Event Latitude']) and not pd.isnull(associations['Event Longitude']):
-            lat = associations['Event Latitude']
-            lon = associations['Event Longitude']
+        if not pd.isnull(associations['Source Latitude']) and not pd.isnull(associations['Source Longitude']):
+            lat = associations['Source Latitude']
+            lon = associations['Source Longitude']
             flare['location'] = string_location(lat,lon)
         else:
             del flare['location']
@@ -663,9 +655,9 @@ def list_to_ccmc_flare(associations):
         else:
             del flare['last_data_time']
 
-        if not pd.isnull(associations['Event Latitude']) and not pd.isnull(associations['Event Longitude']):
-            lat = associations['Event Latitude']
-            lon = associations['Event Longitude']
+        if not pd.isnull(associations['Source Latitude']) and not pd.isnull(associations['Source Longitude']):
+            lat = associations['Source Latitude']
+            lon = associations['Source Longitude']
             flare['location'] = string_location(lat,lon)
         else:
             del flare['location']
@@ -720,16 +712,16 @@ class SRAGList:
             
         """
         self.id = "SRAG SEP List"
-        self.reference_columns = ["SEP Reference Time"]
+        self.reference_columns = ['SEP Reference Time', 'P10_FluxStart', 'P100_FluxStart', 'P50_FluxStart', 'P10_EndDT', 'P50_EndDT', 'P100_EndDT']
 
         self.time_columns = ['InitiationDT', 'SEP Reference Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'P10_FluxStart', 'P10_StartDT', 'P10_OnsetMax_DT', 'P10_PeakDT', 'P10_EndDT', 'P50_FluxStart', 'P50_StartDT', 'P50_OnsetPeakDT', 'P50_PeakDT', 'P50_EndDT', 'P100_FluxStart', 'P100_StartDT', 'Onset_P100_PkDT', 'Event_P100_PkDT', 'P100_EndDT','ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
 
-        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Event Location From Center', 'Event Latitude', 'Event Longitude', 'Event Location from Center 2', 'Event Latitude 2', 'Event Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
+        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Source Location From Center', 'Source Latitude', 'Source Longitude', 'Source Location from Center 2', 'Source Latitude 2', 'Source Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
             #'CDAW CME Width' contains text
 
         self.int_columns = ['Flare Catalog ID', 'Cycle', 'Active Region', 'GOES Xray Satellite', 'GOES Protons Satellite']
 
-        self.string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Location Source', 'Event Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+        self.string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Source Location Source', 'Source Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
 
         return
 
@@ -853,3 +845,240 @@ class SRAGList:
         print(f"update_flares_and_cmes: Wrote updated SEP list to {outfname}")
 
 
+###########################################################################
+####################### IAN RICHARDSON'S SEP LIST #########################
+###########################################################################
+class IGRList():
+    def __init__(self):
+        """ A list of flare and CME associations for SEP events not in Steve's list.
+            This list is a subset of one compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). Ian's timing column is a mix of flare
+            times and proton enhancement times.
+            
+        """
+        self.id = "IGR List"
+        self.reference_columns = ["SEP Reference Time"]
+
+        self.time_columns = ['SEP Reference Time', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time']
+
+        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Source Latitude', 'Source Longitude', 'CDAW CME Speed']
+
+
+        self.int_columns = ['Flare Catalog ID', 'GOES Xray Satellite']
+
+        self.string_columns =  ['Flare Class', 'Source Location Source', 'Comments']
+
+        return
+
+
+    def is_time_column(self,col):
+        if col in self.time_columns:
+            return True
+        else:
+            return False
+
+
+    def is_float_column(self,col):
+        if col in self.float_columns:
+            return True
+        else:
+            return False
+
+
+    def is_int_column(self,col):
+        if col in self.int_columns:
+            return True
+        else:
+            return False
+
+
+    def is_str_column(self,col):
+        if col in self.string_columns:
+            return True
+        else:
+            return False
+        
+
+    def cast_time_columns(self,df):
+        for col in self.time_columns:
+            df[col] = pd.to_datetime(df[col])
+            
+        return df
+        
+
+    def cast_string_columns(self,df):
+        for col in self.string_columns:
+            df[col] = df[col].fillna('').astype(str)
+            df[col] = df[col].astype(str)
+            
+        return df
+
+
+    def cast_float_columns(self,df):
+        for col in self.float_columns:
+            df[col] = df[col].astype(float)
+            
+        return df
+
+
+    def read_list(self):
+        """ Read in the SRAG list provided by Steve Johnson (SRAG) 
+            converted from excel into text format and cleaned.
+            
+        """
+        igr_list = 'fetchsep/reference/IGR_list.csv'
+        df = pd.read_csv(igr_list)
+        
+        #Cast string columns
+        df = self.cast_string_columns(df)
+
+        #Cast time columns
+        df = self.cast_time_columns(df)
+        
+        return df
+
+
+    def update_flares(self):
+        """ Update IGR SEP event list with flare X-ray science data. 
+        
+            INPUTS:
+                
+                None
+                
+            OUTPUTS:
+            
+                :df: (pandas DataFrame) updated dataframe of IGR list
+                Write out IGR list file to fetchsep/references/
+        
+        """
+        df = self.read_list()
+
+        df = update_all_flares(df, add_ref_col='SEP Reference Time')
+
+        outfname = os.path.join('fetchsep','reference','IGR_list_UPDATED.csv')
+        df.to_csv(outfname, index=False)
+        print(f"update_flares: Wrote updated SEP list to {outfname}")
+
+
+
+###########################################################################
+################### USER-MAINTAINED ASSOCIATION LIST ######################
+###########################################################################
+
+class UserList:
+    def __init__(self, type="minimal"):
+        """ A list of SEP events with their flare, CME, and other associations.
+            The user maintains this list, which can be used in place of, 
+            or in addition to, the SRAG list.
+            
+            This list may have all the columns up to the ones listed in 
+            list_output_columns. The column names must be exactly the same.
+            
+            The initial list may be created with a minimal set of columns
+            for only flare and CME information, or all columns.
+            
+            INPUTS:
+            
+                :type: (string) minimal for only flare and CME columns,
+                    all for all possible association columns
+            
+        """
+        self.id = "User List"
+        self.reference_columns = ["SEP Start Time", "SEP End Time"]
+
+        self.time_columns = ['InitiationDT', 'SEP Reference Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'P10_FluxStart', 'P10_StartDT', 'P10_OnsetMax_DT', 'P10_PeakDT', 'P10_EndDT', 'P50_FluxStart', 'P50_StartDT', 'P50_OnsetPeakDT', 'P50_PeakDT', 'P50_EndDT', 'P100_FluxStart', 'P100_StartDT', 'Onset_P100_PkDT', 'Event_P100_PkDT', 'P100_EndDT','ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
+
+        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Source Location From Center', 'Source Latitude', 'Source Longitude', 'Source Location from Center 2', 'Source Latitude 2', 'Source Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
+            #'CDAW CME Width' contains text
+
+        self.int_columns = ['Flare Catalog ID', 'Cycle', 'Active Region', 'GOES Xray Satellite', 'GOES Protons Satellite']
+
+        self.string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Source Location Source', 'Source Location Source 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+
+        return
+
+    def is_time_column(self,col):
+        if col in self.time_columns:
+            return True
+        else:
+            return False
+
+
+    def is_float_column(self,col):
+        if col in self.float_columns:
+            return True
+        else:
+            return False
+
+
+    def is_int_column(self,col):
+        if col in self.int_columns:
+            return True
+        else:
+            return False
+
+
+    def is_str_column(self,col):
+        if col in self.string_columns:
+            return True
+        else:
+            return False
+        
+
+    def cast_time_columns(self,df):
+        for col in self.time_columns:
+            df[col] = pd.to_datetime(df[col])
+            
+        return df
+        
+
+    def cast_string_columns(self,df):
+        for col in self.string_columns:
+            df[col] = df[col].fillna('').astype(str)
+            df[col] = df[col].astype(str)
+            
+        return df
+
+
+    def cast_float_columns(self,df):
+        for col in self.float_columns:
+            df[col] = df[col].astype(float)
+            
+        return df
+
+
+    def create_list(type):
+        """ Create the user list if it doesn't already exist.
+        
+        """
+        filename = 'user_associations_list.csv'
+        fullpath = os.path.join('fetchsep','reference',filename)
+        
+        columns = ['Location', 'First SEP Start Time', 'Last SEP End Time']
+        
+        if type == "minimal":
+            add_columns = ['Flare Xray Start Time', 'Flare Xray Peak Time',
+                'Flare Xray End Time', 'Flare Class', 'Flare Magnitude',
+                'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak',
+                'Flare Catalog ID', 'GOES Xray Satellite', 'Active Region', 'Source Latitude',
+                'Source Longitude','CDAW CME First Look Time', 'CDAW CME Speed',
+                'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time',
+                'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon',
+                'DONKI CME Time at 21.5', 'DONKI CME Catalog ID',
+                'DONKI CME Measurement Technique', 'Comments']
+            columns = columns + add_columns
+
+        elif type == "all":
+            columns = columns + list_output_columns
+
+        if os.path.exists(fullpath):
+            df = pd.read_csv(fullpath)
+            
+            #If converting from minimal to all, add columns
+            for col in columns:
+                if col not in df.columns:
+                    df.insert(column=col, value=[None]*len(df))
+
+        else:
+            #Create empty dataframe with specified columns
+            df = pd.DataFrame(columns=columns)

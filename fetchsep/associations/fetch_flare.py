@@ -154,6 +154,62 @@ def goes_xray_satellite_info():
     return sat_info
 
 
+def identify_which_goes_xray_spacecraft(request_date, spacecraft="primary"):
+    """ For the provided start and end dates, return a list of GOES spacecraft
+        which were the primary or secondary and the associated dates.
+        This subroutine uses the file:
+        fetchsep/reference/GOES_Primary_Secondary_Status.csv provided by 
+        NOAA SWPC (Kim Moreland) for GOES-06 (1986) to September 6, 2024. 
+        
+        INPUTS:
+        
+            :startdate: (datetime) first date of date range
+            :enddate: (datetime last date of date range
+            :spacecraft: (string) primary or secondary
+            
+        OUTPUTS:
+        
+            :starttimes: (list of datetimes) arr of start times
+            :endtimes: (list of datetimes) arr of end times
+            :goes: (list of strings) associated primary or secondary GOES for those
+                date ranges [GOES-11, GOES-13, etc]
+        
+    """
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
+
+    df_goes = pd.read_csv('fetchsep/reference/GOES_Primary_Secondary_Status.csv',parse_dates=['Start Date', 'End Date'])
+    df_goes = df_goes.loc[df_goes['Instrument']=='X-rays']
+    
+    if spacecraft == 'primary':
+        df_goes = df_goes.loc[df_goes['Status']=='Primary']
+    elif spacecraft == 'secondary':
+        df_goes = df_goes.loc[df_goes['Status']=='Secondary']
+    else:
+        sys.exit('identify_which_goes_spacecraft: spacecraft must be primary or secondary. You entered ' + spacecraft)
+        
+    firstdate = min(df_goes['Start Date'])
+    lastdate = max(df_goes['End Date'])
+    
+    #Check that primary or secondary are specified between the dates requested
+    if request_date <= firstdate or request_date >= lastdate:
+        print(f"identify_which_goes_spacecraft: Primary and secondary GOES dates are available between: {firstdate} and {lastdate}. Please revise your date request: {request_date}.")
+        return None
+    
+    #Extract the entry for the dates of interest
+    df_goes = df_goes.loc[(df_goes['Start Date'] <= request_date) & (df_goes['End Date'] > request_date)]
+
+
+    print(f"{spacecraft} spacecraft for {request_date}")
+    print(df_goes)
+
+    goes = df_goes['Satellite'].iloc[0]
+
+    return goes
+
+
+
 def goes_xray_satellite_covers_date(experiment, request_date):
     """ Check if the spacecraft provided data during the requested date. """
     sat_info = goes_xray_satellite_info()
@@ -490,7 +546,7 @@ def flare_class(peak_intensity):
             number = peak_intensity/intensities[cl]['min']
             number = str(number)
             fl_class = f"{cl}{number[0:3]}"
-            
+ 
     return fl_class
 
 
@@ -577,6 +633,7 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
 
     #Get unique flare_ids
     flare_ids = get_unique(data.variables["flare_id"][:])
+    print(f"All flare IDs for {request_date.year}-{request_date.month}-{request_date.day}: {flare_ids}")
     td = datetime.timedelta(minutes=15) #request_date within 15 minutes of flare
     select_idx = []
     
@@ -774,12 +831,17 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
                 "json" to return CCMC SEP Scoreboard trigger block
         
     """
-    flare_info = {}
+    flare_info = flare_info_dict()
 
     if isinstance(request_time, str):
         request_time=dh.str_to_datetime(request_time)
-
-    #identify all GOES X-ray satellites that cover time
+    
+    #If no experiment specified, default to primary GOES if available
+    if experiment == None:
+        experiment = identify_which_goes_xray_spacecraft(request_time, spacecraft="primary")
+    
+    #identify all GOES X-ray satellites that cover time in case flare
+    #not found in requested experiment
     experiments = find_all_goes_xray_satellites_for_date(request_time)
 
     if experiment in old_goes_sc:
