@@ -103,6 +103,31 @@ def zulu_to_time(zt):
     return dt
 
 
+def fractional_year_to_datetime(fractional_year):
+    """ Convert fractional year to datetime """
+    # Extract the integer part as the year
+    year = int(fractional_year)
+    # Extract the fractional part
+    remainder = fractional_year - year
+
+    # Define the start of the year
+    base_date = datetime.datetime(year, 1, 1)
+
+    # Calculate the end of the year to determine total days
+    # (base_date.replace(year=year + 1) creates the next year's Jan 1st)
+    next_year_date = base_date.replace(year=year + 1)
+    total_year_seconds = (next_year_date - base_date).total_seconds()
+
+    # Calculate the number of seconds corresponding to the fractional part
+    fractional_seconds = total_year_seconds * remainder
+
+    # Add the calculated time delta to the base date
+    result_date = base_date + datetime.timedelta(seconds=fractional_seconds)
+
+    return result_date
+    
+
+
 def get_next_month(date):
     """ Get the date one month from the input date.
         The day will remain the same, but the month and

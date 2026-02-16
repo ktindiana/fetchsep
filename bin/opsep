@@ -163,9 +163,9 @@ parser.add_argument("--TwoPeaks",
                 action="store_true")
 
 ########## FLARE, CME ASSOCIATIONS #############
-parser.add_argument("--SRAGAssociations",
+parser.add_argument("--Associations",
         help=("Set flag to associate flare, CME, radio, etc information "
-            "derived from the SRAG historical event list. "), action="store_true")
+            "derived from the SRAG, IGR< and user historical event lists. "), action="store_true")
 
 parser.add_argument("--AutoFlareTime", type=str, default='',
         help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
@@ -228,7 +228,35 @@ parser.add_argument("--CME-measurement-type", default="",
                         "Edge), RHB (Right Hand Boundary), LHB (Left Hand Boundary), BW "
                         "(Black White Boundary), COR (Prominence Core), DIS (Disconnection "
                         "Front), SH (Shock Front)"))
-                        
+
+parser.add_argument("--FLARE-last-data-time", default=pd.NaT,
+                    help="Time of last data used")
+parser.add_argument("--FLARE-start-time", default=pd.NaT,
+                    help="Flare start time")
+parser.add_argument("--FLARE-peak-time", default=pd.NaT,
+                    help="Flare peak time")
+parser.add_argument("--FLARE-end-time", default=pd.NaT,
+                    help="Flare end time")
+
+# Physical properties
+parser.add_argument("--FLARE-location", default=None,
+                    help="Stonyhurst location (e.g., N15W33)")
+parser.add_argument("--FLARE-intensity", type=float, default=np.nan,
+                    help="Peak X-ray intensity (W/m^2)")
+parser.add_argument("--FLARE-integrated-intensity", type=float, default=np.nan,
+                    help="Time-integrated X-ray flux")
+parser.add_argument("--FLARE-noaa-region", type=int, default=np.nan,
+                    help="NOAA active region number")
+parser.add_argument("--FLARE-peak-ratio", type=float, default=np.nan,
+                    help="Ratio of peak flux to background")
+
+# Metadata
+parser.add_argument("--FLARE-catalog", default=None,
+                    help="Catalog name (e.g., DONKI, SWPC)")
+parser.add_argument("--FLARE-catalog-id", default=None,
+                    help="Catalog identifier")
+parser.add_argument("--FLARE-urls", nargs="*", default='',
+                    help="Manual input of comma-separated URLS associated with flare")
                         
 #parser.add_argument("--UMASEP",
 #        help=("Flag to calculate flux values and thresholds specific to "
@@ -278,7 +306,7 @@ umasep = False #args.UMASEP
 options = args.options
 dointerp = args.DoInterp
 
-srag_associations = args.SRAGAssociations
+associations = args.Associations
 auto_flare_time = args.AutoFlareTime
 auto_cme_time = args.AutoCMETime
 cme_start_time=args.CME_start_time
@@ -299,6 +327,18 @@ cme_derivation_process=args.CME_derivation_process
 cme_derivation_method=args.CME_derivation_method
 cme_measurement_type=args.CME_measurement_type
 
+flare_last_data_time=args.FLARE_last_data_time
+flare_start_time=args.FLARE_start_time
+flare_peak_time=args.FLARE_peak_time
+flare_end_time=args.FLARE_end_time
+flare_location=args.FLARE_location
+flare_intensity=args.FLARE_intensity
+flare_integrated_intensity=args.FLARE_integrated_intensity
+flare_noaa_region=args.FLARE_noaa_region
+flare_peak_ratio=args.FLARE_peak_ratio
+flare_catalog=args.FLARE_catalog
+flare_catalog_id=args.FLARE_catalog_id
+flare_urls=[val for val in args.FLARE_urls.strip().split(",")]
 
 
 date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.opsep(
@@ -327,7 +367,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.opsep
     idsep_path=idsep_path,
     location=location,
     species=species,
-    srag_associations=srag_associations,
+    associations=associations,
     auto_flare_time=auto_flare_time,
     auto_cme_time=auto_cme_time,
     cme_start_time=cme_start_time,
@@ -346,6 +386,18 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.opsep
     cme_urls=cme_urls,
     cme_derivation_process=cme_derivation_process,
     cme_derivation_method=cme_derivation_method,
-    cme_measurement_type=cme_measurement_type)
+    cme_measurement_type=cme_measurement_type,
+    flare_last_data_time=flare_last_data_time,
+    flare_start_time=flare_start_time,
+    flare_peak_time=flare_peak_time,
+    flare_end_time=flare_end_time,
+    flare_location=flare_location,
+    flare_intensity=flare_intensity,
+    flare_integrated_intensity=flare_integrated_intensity,
+    flare_noaa_region=flare_noaa_region,
+    flare_peak_ratio=flare_peak_ratio,
+    flare_catalog=flare_catalog,
+    flare_catalog_id=flare_catalog_id,
+    flare_urls=flare_urls)
 
 if showplot: plt.show()

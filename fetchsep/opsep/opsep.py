@@ -2056,7 +2056,7 @@ class Output:
         self.issue_time = pd.NaT
         
         #Find associations from the SRAG list, SRAG_SEP_List_R11_CLEARversion.csv
-        self.associations = {}
+        self.associations = assoc_lists.empty_associations_dict()
         #Specify a flare association by inputting a flare time (peak time is best)
         self.flare_time = pd.NaT
         #Lists of CME and Flare dicts in CCMC json format
@@ -2436,12 +2436,41 @@ class Output:
 
     def add_donki_cme(self, cme_start_time):
         """ Use CME start time to identify CME in DONKI and extract info. """
-        cme = fetch_cme.get_donki_cme(cme_start_time, format='json')
-        if not cme:
+        cme_json = fetch_cme.get_donki_cme(cme_start_time, format='json')
+        if not cme_json:
             print(f"add_donki_cme: CME not found for {cme_start_time}")
             return
         else:
-            self.cmes.append(cme)
+            self.cmes.append(cme_json)
+            #Add CME to associations for output csv list
+            cme_info = fetch_cme.get_donki_cme(cme_start_time, format='dict')
+            self.associations = assoc_lists.donki_cme_to_associations(cme_info, self.associations)
+
+
+    def add_manual_flare(self, flare_last_data_time=pd.NaT,
+        flare_start_time=pd.NaT, flare_peak_time=pd.NaT, flare_end_time=pd.NaT,
+        flare_location=None, flare_intensity=np.nan, flare_integrated_intensity=np.nan,
+        flare_noaa_region=None, flare_peak_ratio=np.nan, flare_catalog=None,
+        flare_catalog_id=None, flare_urls=[]):
+        """ Create flare CCMC JSON trigger block from manually entered values """
+
+        flare_json = fetch_flare.manual_flare_ccmc_json(
+            flare_last_data_time=flare_last_data_time,
+            flare_start_time=flare_start_time,
+            flare_peak_time=flare_peak_time,
+            flare_end_time=flare_end_time,
+            flare_location=flare_location,
+            flare_intensity=flare_intensity,
+            flare_integrated_intensity=flare_integrated_intensity,
+            flare_noaa_region=flare_noaa_region,
+            flare_peak_ratio=flare_peak_ratio,
+            flare_catalog=flare_catalog,
+            flare_catalog_id=flare_catalog_id,
+            flare_urls=flare_urls)
+
+        if flare_json:
+            self.flares.append(flare_json)
+            self.associations = assoc_lists.flare_ccmc_json_to_associations(flare_json, associations=self.associations)
 
 
     def add_manual_cme(self, cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
@@ -2449,13 +2478,13 @@ class Output:
         cme_acceleration_kms2=np.nan, cme_lat=np.nan, cme_lon=np.nan,
         cme_height_rs=np.nan,
         cme_time_at_height_time=pd.NaT, cme_time_at_height_height=np.nan,
-        cme_coordinates="", cme_catalog="",
-        cme_catalog_id="", cme_urls=[],
-        cme_derivation_process="", cme_derivation_method="",
-        cme_measurement_type=""):
-        """ Create CME trigger block from manually entered values """
+        cme_coordinates=None, cme_catalog=None,
+        cme_catalog_id=None, cme_urls=[],
+        cme_derivation_process=None, cme_derivation_method=None,
+        cme_measurement_type=None):
+        """ Create CME CCMC JSON trigger block from manually entered values """
         
-        cme = fetch_cme.manual_cme_trigger(cme_start_time=cme_start_time,
+        cme_json = fetch_cme.manual_cme_ccmc_json(cme_start_time=cme_start_time,
                 cme_liftoff_time=cme_liftoff_time,
                 cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
                 cme_acceleration_kms2=cme_acceleration_kms2,
@@ -2469,21 +2498,29 @@ class Output:
                 cme_derivation_method=cme_derivation_method,
                 cme_measurement_type=cme_measurement_type)
 
-        if cme:
-            self.cmes.append(cme)
+        if cme_json:
+            self.cmes.append(cme_json)
+            self.associations = assoc_lists.cme_ccmc_json_to_associations(cme_json, associations=self.associations)
         
         return
+
 
     def add_noaa_science_flare(self, flare_time):
         flare_time = dh.str_to_datetime(flare_time)
         if pd.isnull(flare_time): return
-        flare_info = fetch_flare.get_noaa_flare(flare_time, format='json')
-        if not flare_info:
+ 
+        #JSON trigger block
+        flare_json = fetch_flare.get_noaa_flare(flare_time, format='json')
+        if not flare_json:
             print(f"add_noaa_science_flare: Flare not found for {flare_time}")
             return
         else:
-            self.flares.append(flare_info)
-        
+            self.flares.append(flare_json)
+            #Add flare info to associations for output csv list
+            #flare_info contains more information that the CCMC json, so better to use
+            flare_info = fetch_flare.get_noaa_flare(flare_time, format='dict')
+            self.associations = assoc_lists.flare_info_to_association(flare_info, associations=self.associations)
+
         return
         
 
@@ -2523,20 +2560,20 @@ class Output:
         #Returns dictionary; all values will be null if no start time match
         startdate = self.data.results[best_ix].sep_start_time
         print(f"Selected startdate {startdate} to search for associations.")
-        associations, proton_info = assoc_lists.identify_associations_in_list(startdate, list_name='srag')
+        associations = assoc_lists.identify_associations_in_list(startdate, list_name='srag')
 
         self.associations = associations
 
-        cme = assoc_lists.list_to_ccmc_cme(associations) #list of CCMC CME trigger blocks
+        cme = assoc_lists.associations_to_ccmc_cme(associations) #list of CCMC CME trigger blocks
         self.cmes = self.cmes + cme
-        flare = assoc_lists.list_to_ccmc_flare(associations) #list of CCMC flare trigger blocks
+        flare = assoc_lists.associations_to_ccmc_flare(associations) #list of CCMC flare trigger blocks
         self.flares = self.flares + flare
 
         return
 
 
     def add_associations(self,
-        srag_associations=False, auto_flare_time='', auto_cme_time='',
+        associations=False, auto_flare_time='', auto_cme_time='',
         cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
         cme_half_width_deg=np.nan, cme_speed_kms=np.nan,
         cme_acceleration_kms2=np.nan, cme_lat=np.nan, cme_lon=np.nan,
@@ -2545,12 +2582,24 @@ class Output:
         cme_coordinates="", cme_catalog="",
         cme_catalog_id="", cme_urls=[],
         cme_derivation_process="", cme_derivation_method="",
-        cme_measurement_type=""):
+        cme_measurement_type="",
+        flare_last_data_time=pd.NaT,
+        flare_start_time=pd.NaT,
+        flare_peak_time=pd.NaT,
+        flare_end_time=pd.NaT,
+        flare_location=None,
+        flare_intensity=np.nan,
+        flare_integrated_intensity=np.nan,
+        flare_noaa_region=None,
+        flare_peak_ratio=np.nan,
+        flare_catalog=None,
+        flare_catalog_id=None,
+        flare_urls=[]):
         """ Add associated flare, cme, and other related information.
 
             INPUTS:
             
-            :srag_associations: (bool) If True, will look for flare, CME, etc associations
+            :associations: (bool) If True, will look for flare, CME, etc associations
                 in reference/SRAG_SEP_List_R11_CLEARversion.csv
             :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
                 files will be searched for a flare coincident with this time.
@@ -2563,7 +2612,7 @@ class Output:
         """
 
         #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
-        if srag_associations:
+        if associations:
             self.find_srag_associations()
 
         #If user specified flare time
@@ -2574,20 +2623,34 @@ class Output:
         if auto_cme_time != '':
             self.add_donki_cme(auto_cme_time)
 
+        #Manually add flare trigger block if user entered values
+        self.add_manual_flare(flare_last_data_time=flare_last_data_time,
+            flare_start_time=flare_start_time,
+            flare_peak_time=flare_peak_time,
+            flare_end_time=flare_end_time,
+            flare_location=flare_location,
+            flare_intensity=flare_intensity,
+            flare_integrated_intensity=flare_integrated_intensity,
+            flare_noaa_region=flare_noaa_region,
+            flare_peak_ratio=flare_peak_ratio,
+            flare_catalog=flare_catalog,
+            flare_catalog_id=flare_catalog_id,
+            flare_urls=flare_urls)
+ 
         #Manually add CME trigger block if user entered values
         self.add_manual_cme(cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
-        cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
-        cme_acceleration_kms2=cme_acceleration_kms2,
-        cme_lat=cme_lat, cme_lon=cme_lon,
-        cme_height_rs=cme_height_rs,
-        cme_time_at_height_time=cme_time_at_height_time,
-        cme_time_at_height_height=cme_time_at_height_height,
-        cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
-        cme_catalog_id=cme_catalog_id, cme_urls=cme_urls,
-        cme_derivation_process=cme_derivation_process,
-        cme_derivation_method=cme_derivation_method,
-        cme_measurement_type=cme_measurement_type)
-        
+            cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
+            cme_acceleration_kms2=cme_acceleration_kms2,
+            cme_lat=cme_lat, cme_lon=cme_lon,
+            cme_height_rs=cme_height_rs,
+            cme_time_at_height_time=cme_time_at_height_time,
+            cme_time_at_height_height=cme_time_at_height_height,
+            cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
+            cme_catalog_id=cme_catalog_id, cme_urls=cme_urls,
+            cme_derivation_process=cme_derivation_process,
+            cme_derivation_method=cme_derivation_method,
+            cme_measurement_type=cme_measurement_type)
+ 
         return
 
 
@@ -2603,18 +2666,18 @@ class Output:
         return
 
 
-    def fill_trigger_blocks(self):
+    def add_trigger_blocks(self):
         """ If CME or flare information available, add trigger blocks
             to json.
             
         """
         if len(self.cmes) > 0:
             for cme in self.cmes:
-                self.json_dict = ccmc_json.fill_cme_trigger(self.json_dict, self.json_type,
+                self.json_dict = ccmc_json.add_cme_trigger(self.json_dict, self.json_type,
                         cme)
         if len(self.flares) > 0:
             for flare in self.flares:
-                self.json_dict = ccmc_json.fill_flare_trigger(self.json_dict, self.json_type,
+                self.json_dict = ccmc_json.add_flare_trigger(self.json_dict, self.json_type,
                         flare)
         return
 
@@ -2675,7 +2738,7 @@ class Output:
         """
         self.set_json_filename()
         self.fill_json_header()
-        self.fill_trigger_blocks()
+        self.add_trigger_blocks()
         
         #Cycle through all Analyze objects for the various event definitions
         for i, analyze in enumerate(self.data.results):
@@ -3021,7 +3084,7 @@ def opsep(str_startdate, str_enddate, experiment,
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
     doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
     location='earth', species='proton',
-    srag_associations=False,
+    associations=False,
     auto_flare_time='', auto_cme_time='',
     cme_start_time=pd.NaT,
     cme_liftoff_time=pd.NaT,
@@ -3032,13 +3095,25 @@ def opsep(str_startdate, str_enddate, experiment,
     cme_height_rs=np.nan,
     cme_time_at_height_time=pd.NaT,
     cme_time_at_height_height=np.nan,
-    cme_coordinates="",
-    cme_catalog="",
-    cme_catalog_id="",
+    cme_coordinates=None,
+    cme_catalog=None,
+    cme_catalog_id=None,
     cme_urls=[],
-    cme_derivation_process="",
-    cme_derivation_method="",
-    cme_measurement_type=""):
+    cme_derivation_process=None,
+    cme_derivation_method=None,
+    cme_measurement_type=None,
+    flare_last_data_time=pd.NaT,
+    flare_start_time=pd.NaT,
+    flare_peak_time=pd.NaT,
+    flare_end_time=pd.NaT,
+    flare_location=None,
+    flare_intensity=np.nan,
+    flare_integrated_intensity=np.nan,
+    flare_noaa_region=None,
+    flare_peak_ratio=np.nan,
+    flare_catalog=None,
+    flare_catalog_id=None,
+    flare_urls=[]):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3075,8 +3150,8 @@ def opsep(str_startdate, str_enddate, experiment,
             cfg.templatepath directory
         :spacecraft: (string) primary or secondary is experiment is GOES-RT
         :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
-        :srag_associations: (bool) If True, will look for flare, CME, etc associations
-            in reference/SRAG_SEP_List_R11_CLEARversion.csv
+        :associations: (bool) If True, will look for flare, CME, etc associations
+            in lists: reference/SRAG_SEP_List_R11_CLEARversion.csv igr_list.csv user_associations.csv
         :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
             files will be searched for a flare coincident with this time.
             The flare_time should correspond to a time equal to or 
@@ -3162,8 +3237,10 @@ def opsep(str_startdate, str_enddate, experiment,
 
     output_data = Output(flux_data, json_type, spase_id=spase_id, json_mode=json_mode)
 
-    output_data.add_associations(srag_associations=srag_associations,
+    output_data.add_associations(associations=associations, #lists
+        #Pulled from NOAA or DONKI
         auto_flare_time=auto_flare_time, auto_cme_time=auto_cme_time,
+        #Manually added CME
         cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
         cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
         cme_acceleration_kms2=cme_acceleration_kms2,
@@ -3175,7 +3252,20 @@ def opsep(str_startdate, str_enddate, experiment,
         cme_catalog_id=cme_catalog_id, cme_urls=cme_urls,
         cme_derivation_process=cme_derivation_process,
         cme_derivation_method=cme_derivation_method,
-        cme_measurement_type=cme_measurement_type)
+        cme_measurement_type=cme_measurement_type,
+        #Manually added flare
+        flare_last_data_time=flare_last_data_time,
+        flare_start_time=flare_start_time,
+        flare_peak_time=flare_peak_time,
+        flare_end_time=flare_end_time,
+        flare_location=flare_location,
+        flare_intensity=flare_intensity,
+        flare_integrated_intensity=flare_integrated_intensity,
+        flare_noaa_region=flare_noaa_region,
+        flare_peak_ratio=flare_peak_ratio,
+        flare_catalog=flare_catalog,
+        flare_catalog_id=flare_catalog_id,
+        flare_urls=flare_urls)
 
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()

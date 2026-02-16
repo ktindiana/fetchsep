@@ -324,6 +324,10 @@ def ccmc_flare_block():
 
 def clean_trigger_block(trigger_dict):
     """ Delete null or empty fields from CCMC trigger block """
+    #If already empty, return
+    if not trigger_dict:
+        return trigger_dict
+        
     keys = trigger_dict.keys()
 
     bad_keys = []
@@ -365,9 +369,10 @@ def clean_trigger_block(trigger_dict):
     return trigger_dict
 
 
-def fill_cme_trigger(template, json_type, cme_dict):
+def add_cme_trigger(template, json_type, cme_dict):
     """ Provided a dictionary with the right fields of the CME trigger
-        block in the CCMC format, create and/or add to trigger block.
+        block in the CCMC format, create and/or add to trigger block to
+        the full json template.
     
     """
     
@@ -392,9 +397,10 @@ def fill_cme_trigger(template, json_type, cme_dict):
     return template
 
 
-def fill_flare_trigger(template, json_type, flare_dict):
-    """ Provided a dictionary with the right fields of the CME trigger
-        block in the CCMC format, create and/or add to trigger block.
+def add_flare_trigger(template, json_type, flare_dict):
+    """ Provided a dictionary with the right fields of the flare trigger
+        block in the CCMC format, create and/or add to trigger block to the
+        full json template.
     
     """
     if not flare_dict:

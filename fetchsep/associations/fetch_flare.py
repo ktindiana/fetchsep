@@ -13,6 +13,7 @@ import cftime
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
+from decimal import *
 
 #GOES spacecraft categories needed for GOES X-ray data
 #Spacecraft in the GOES-R+ series
@@ -522,8 +523,12 @@ def remove_swpc_calibration(flux):
             :calibrated_flux: (float) SWPC scaling factor removed
         
     """
+    flux = Decimal(flux)
+    factor = Decimal(0.7)
+    context = Context(prec=5)
+    corr_flux = context.divide(flux, factor)
 
-    return flux/0.7
+    return corr_flux
 
 
 def flare_class(peak_intensity):
@@ -534,18 +539,25 @@ def flare_class(peak_intensity):
         return fl_class
 
     classes = ["A", "B", "C", "M", "X"]
-    intensities = {"X": {'min': 1e-4, 'max': 1},
-                   "M": {'min':1e-5, 'max': 1e-4},
-                   "C": {'min':1e-6, 'max': 1e-5},
-                   "B": {'min':1e-7, 'max': 1e-6},
-                   "A": {'min':1e-8, 'max': 1e-7},
+    intensities = {"X": {'min': Decimal((0, (0, 0, 0, 0, 1, 0), -5)), #1e-4
+                         'max': Decimal((0, (1, 0, 0, 0, 0, 0), -5))}, #1
+                   "M": {'min': Decimal((0, (0, 0, 0, 0, 0, 1), -5)), #1e-5
+                         'max': Decimal((0, (0, 0, 0, 0, 1, 0), -5))}, #1e-4
+                   "C": {'min': Decimal((0, (0, 0, 0, 0, 0, 0, 1), -6)), #1e-6
+                         'max': Decimal((0, (0, 0, 0, 0, 0, 1), -5))}, #1e-5
+                   "B": {'min': Decimal((0, (0, 0, 0, 0, 0, 0, 1), -7)), #1e-7
+                         'max': Decimal((0, (0, 0, 0, 0, 0, 0, 1), -6))}, #1e-6
+                   "A": {'min': Decimal((0, (0, 0, 0, 0, 0, 0, 1), -8)), #1e-8
+                         'max': Decimal((0, (0, 0, 0, 0, 0, 0, 1), -7))}, #1e-7
                    }
 
+    peak_intensity = Decimal(peak_intensity)
+    getcontext().prec = 10
+    context = Context(prec=10)
     for cl in classes:
-        if peak_intensity >= intensities[cl]['min'] and peak_intensity < intensities[cl]['max']:
-            number = peak_intensity/intensities[cl]['min']
-            number = str(number)
-            fl_class = f"{cl}{number[0:3]}"
+        if (peak_intensity.compare(intensities[cl]['min']) == Decimal(1) or peak_intensity.compare(intensities[cl]['min']) == Decimal(0)) and peak_intensity.compare(intensities[cl]['max']) == Decimal(-1):
+            number = context.divide(peak_intensity, intensities[cl]['min'])
+            fl_class = f"{cl}{number.quantize(Decimal('.1'), rounding=ROUND_DOWN)}"
  
     return fl_class
 
@@ -933,3 +945,43 @@ def get_lmsal_flares(start_date, end_date):
 #                }
 
 #"event_starttime",  "fl_fluence", "ar_noaaclass"
+
+
+##########################################################
+################# MANUAL FLARE INPUT #####################
+##########################################################
+def manual_flare_ccmc_json(flare_last_data_time=pd.NaT,
+    flare_start_time=pd.NaT,
+    flare_peak_time=pd.NaT,
+    flare_end_time=pd.NaT,
+    flare_location=None,
+    flare_intensity=np.nan,
+    flare_integrated_intensity=np.nan,
+    flare_noaa_region=None,
+    flare_peak_ratio=np.nan,
+    flare_catalog=None,
+    flare_catalog_id=None,
+    flare_urls=[]):
+    """ Create a flare trigger block for the CCMC SEP Scoreboard json schema
+        using manual inputs.
+        
+    """
+ 
+    flare = {
+        "last_data_time": dh.time_to_zulu(flare_last_data_time),
+        "start_time": dh.time_to_zulu(flare_start_time),
+        "peak_time": dh.time_to_zulu(flare_peak_time),
+        "end_time": dh.time_to_zulu(flare_end_time),
+        "location": flare_location,
+        "intensity": flare_intensity,
+        "integrated_intensity": flare_integrated_intensity,
+        "noaa_region": flare_noaa_region,
+        "peak_ratio": flare_peak_ratio,
+        "catalog": flare_catalog,
+        "catalog_id": flare_catalog_id,
+        "urls": flare_urls
+    }
+
+    flare = ccmc_json.clean_trigger_block(flare)
+
+    return flare

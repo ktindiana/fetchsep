@@ -147,11 +147,17 @@ def read_in_flux_files(experiment, flux_type, startdate,
     return dates, fluxes, energy_bins
 
 
+def fluxes_to_df(dates, fluxes, energy_bins):
+    """ Convert dates and fluxes lists into a pandas dataframe with
+        columns labeled with energy bins.
+        
+    """
 
 
 def get_data(str_startdate, str_enddate, experiment,
         flux_type, options, dointerp, showplot, saveplot,
-        write_fluxes=True, spacecraft="", path_to_data=''):
+        write_fluxes=True, spacecraft="", path_to_data='',
+        format='dict'):
     """ Download data. Create an output file of all fluxes in the
         specified date range.
     
@@ -170,6 +176,9 @@ def get_data(str_startdate, str_enddate, experiment,
         :spacecraft: (string) primary or secondary if exp_name = GOES-RT
         :path_to_data: (string) if set to a value, will be used as the location to
             store downloaded data
+        :format: (string) 'dict' to get dictionary with list of dates and energy_bins 
+            with fluxes in numpy array; 'dataframe' or 'df' to get timeseries in 
+            pandas DataFrame.
 
     
     """
@@ -193,7 +202,6 @@ def get_data(str_startdate, str_enddate, experiment,
     #READ IN FLUXES
     dates, fluxes, energy_bins = read_in_flux_files(experiment, flux_type,
         startdate, enddate, options, dointerp, write_fluxes=write_fluxes, spacecraft=spacecraft)
-            
             
     if showplot or saveplot:
         exp_name='' #only for user-provided files, not relevant to download.py

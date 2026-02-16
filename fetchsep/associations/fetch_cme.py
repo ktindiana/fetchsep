@@ -173,7 +173,7 @@ def donki_cme_to_ccmc_json(list_cme):
         
         INPUTS:
 
-            :cme: (dict) in the format of cme_select in get_donki_cme,
+            :cme: (dict) in the format of cme_info in get_donki_cme,
                 i.e. uses keys that are the same as the columns in
                 fetchsep association lists
                         
@@ -302,7 +302,7 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
         print(f"get_donki_cme: No DONKI CME found for {starttime}.")
         return {}
 
-    cme_select = {"DONKI CME Start Time": cme_start_times[ix],
+    cme_info = {"DONKI CME Start Time": cme_start_times[ix],
                   "DONKI CME Speed": convert_to_float(cme_speeds[ix]),
                   "DONKI CME Half Width": convert_to_float(cme_half_angles[ix]),
                   "DONKI CME Lat": convert_to_float(cme_latitudes[ix]),
@@ -318,12 +318,12 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
                   }
 
     if format == 'json':
-        cme_select = donki_cme_to_ccmc_json(cme_select)
+        cme_info = donki_cme_to_ccmc_json(cme_info)
 
-    return cme_select
+    return cme_info
 
 
-def get_donki_cme_list(start_date, end_date, minimum_speed=None, minimum_halfAngle=None, feature='LE', format='pd'):
+def get_donki_cme_range(start_date, end_date, minimum_speed=None, minimum_halfAngle=None, feature='LE', format='pd'):
     """ Get a specific DONKI CME identified by start time (first look time).
         Preference for CME that is:
             Most Accurate
@@ -341,7 +341,7 @@ def get_donki_cme_list(start_date, end_date, minimum_speed=None, minimum_halfAng
                 
         OUTPUTS:
         
-            :cme_list: (pandas Dataframe or dictionary) All CMEs
+            :cme_range: (pandas Dataframe or dictionary) All CMEs
     
     """
     if isinstance(start_date,datetime.date):
@@ -376,7 +376,7 @@ def get_donki_cme_list(start_date, end_date, minimum_speed=None, minimum_halfAng
     cme_21_5 = [convert_to_time(val) for val in cme_21_5]
     cme_submission_times = [convert_to_time(val) for val in cme_submission_times]
 
-    cme_list = {"DONKI CME Start Time": cme_start_times,
+    cme_range = {"DONKI CME Start Time": cme_start_times,
                   "DONKI CME Speed": cme_speeds,
                   "DONKI CME Half Width": cme_half_angles,
                   "DONKI CME Lat": cme_latitudes,
@@ -392,9 +392,9 @@ def get_donki_cme_list(start_date, end_date, minimum_speed=None, minimum_halfAng
                   }
 
     if format == 'pd':
-        cme_list = pd.DataFrame(cme_list)
+        cme_range = pd.DataFrame(cme_range)
 
-    return cme_list
+    return cme_range
 
 
 ##########################################################
@@ -426,14 +426,14 @@ def cdaw_cme_to_ccmc_json(list_cme):
         else:
             del cme['start_time']
 
-        if not pd.isnull(list_cme['Event Latitude']):
-            cme['lat'] = list_cme['Event Latitude']
+        if not pd.isnull(list_cme['Event Source Latitude']):
+            cme['lat'] = list_cme['Event Source Latitude']
             cme['coordinates'] = 'HEEQ'
         else:
             del cme['lat']
 
-        if not pd.isnull(list_cme['Event Longitude']):
-            cme['lon'] = list_cme['Event Longitude']
+        if not pd.isnull(list_cme['Event Source Longitude']):
+            cme['lon'] = list_cme['Event Source Longitude']
             cme['coordinates'] = 'HEEQ'
         else:
             del cme['lon']
@@ -477,7 +477,7 @@ def cdaw_cme_to_ccmc_json(list_cme):
 ##########################################################
 ################## MANUAL CME INPUT ######################
 ##########################################################
-def manual_cme_trigger(cme_start_time = pd.NaT,
+def manual_cme_ccmc_json(cme_start_time = pd.NaT,
     cme_liftoff_time=pd.NaT,
     cme_half_width_deg=np.nan,
     cme_speed_kms=np.nan,
@@ -488,13 +488,13 @@ def manual_cme_trigger(cme_start_time = pd.NaT,
     cme_lat=np.nan,
     cme_lon=np.nan,
     cme_pa=np.nan,
-    cme_coordinates="",
-    cme_catalog="",
-    cme_catalog_id="",
+    cme_coordinates=None,
+    cme_catalog=None,
+    cme_catalog_id=None,
     cme_urls=[],
-    cme_derivation_process="",
-    cme_derivation_method="",
-    cme_measurement_type=""):
+    cme_derivation_process=None,
+    cme_derivation_method=None,
+    cme_measurement_type=None):
     """ Create a CME trigger block for the CCMC SEP Scoreboard json schema
         using manual inputs.
         
