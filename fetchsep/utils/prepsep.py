@@ -353,16 +353,12 @@ def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop
                 df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == str(sep))]
             if df_check.empty:
                 if enforce_sep_stop:
-                    sys.exit("move_obs: The observation with observation "
-                        "window starting at " + str(obs_st) + " contains "
-                        "an SEP event with threshold crossing time\n "
-                        + str(df) + "\n "
-                        "This SEP " +str(sep) +" is not in the approved SEP file "
-                        + target_dir + "/approved_SEP.csv. Outputs "
-                        "cannot be moved until the SEP event has been "
-                        "approved. Exiting.")
+                    sys.exit(f"move_obs: The observation with observation window starting at {obs_st} " "contains an SEP event with threshold crossing time\n "
+                        f"{df}\n "
+                        f"This SEP {sep} is not in the approved SEP file {target_dir}/approved_SEP.csv. "
+                        "Outputs cannot be moved until the SEP event has been approved. Exiting.")
             else:
-                print("SEP Event is approved or no SEP present: " + str(sep))
+                print(f"SEP Event is approved or no SEP present: {sep}")
 
 
 
@@ -503,13 +499,18 @@ def move_output(target_dir, subdir='', enforce_new=True,
 
 
 def update_observations(target_dir, start_date, end_date, experiment,
-    flux_type, threshold, user_name='', user_file='',
-    json_type='observations', spase_id='', showplot=False, saveplot=True,
-    detect_prev_event=False, two_peaks=False, umasep=False, options='',
+    flux_type='', spacecraft='', user_thresholds='',
+    user_name='', user_file='',
+    json_type='observations', json_mode='measurement', spase_id='',
+    showplot=False, saveplot=True,
+    detect_prev_event=False, two_peaks=False, options='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-    dointerp=False, spacecraft='', doBGSubIDSEP=False,
+    dointerp=False, doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton', associations=False):
+    location='earth', species='proton',
+    associations=False, save_associations=False,
+    auto_flare_time='', auto_cme_time='',
+    source_lat=np.nan, source_lon=np.nan, noaa_region=np.nan):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -528,6 +529,18 @@ def update_observations(target_dir, start_date, end_date, experiment,
             :ninterp: (bool) False means that will not apply interpolation in data gaps
             :associations: (bool) set to True to find flare, CME, radio info
                 associated with SEP events
+            :save_associations: (bool) If True, will save the user-input flare, CME, and location to
+                user-maintained associations list in fetchsep/reference/user_associations.csv
+            :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
+                files will be searched for a flare coincident with this time.
+                The flare_time should correspond to a time equal to or 
+                between the flare start and end time. The peak time is preferable as
+                flares are selected by minimizing between this specified time 
+                and the measured flare peak.
+            :auto_cme_time: (string) find CME in DONKI catalog with preferred selections
+            :source_lat: (float) latitude of flare or eruption
+            :source_lon: (float) longitude of flare or eruption
+            :noaa_region: (int) active region number
                 
         OUTPUTS:
         
@@ -546,15 +559,36 @@ def update_observations(target_dir, start_date, end_date, experiment,
         IDSEPEnhancement=IDSEPEnhancement)
     
     startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
-        opsep.run_all(start_date, end_date, experiment, flux_type,
-        user_name=user_name, user_file=user_file,
-        json_type=json_type, spase_id=spase_id, showplot=showplot,
-        saveplot=saveplot, detect_prev_event=detect_prev_event,
-        two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
-        options=options, doBGSubOPSEP=doBGSubOPSEP,
-        OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
-        bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,
-        doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
-        idsep_path=idsep_path, location=location, species=species)
+        opsep(start_date, end_date, experiment,
+        flux_type=flux_type,
+        spacecraft=spacecraft,
+        user_thresholds=user_thresholds,
+        dointerp=dointerp,
+        user_name=user_name,
+        user_file=user_file,
+        json_type=json_type,
+        json_mode=json_mode,
+        spase_id=spase_id,
+        showplot=showplot,
+        saveplot=saveplot,
+        detect_prev_event=detect_prev_event,
+        two_peaks=two_peaks,
+        options=options,
+        doBGSubOPSEP=doBGSubOPSEP,
+        OPSEPEnhancement=OPSEPEnhancement,
+        bgstartdate=bgstartdate,
+        bgenddate=bgenddate,
+        doBGSubIDSEP=doBGSubIDSEP,
+        IDSEPEnhancement=IDSEPEnhancement,
+        idsep_path=idsep_path,
+        location=location,
+        species=species,
+        associations=associations,
+        save_associations=save_associations,
+        auto_flare_time=auto_flare_time,
+        auto_cme_time=auto_cme_time,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        noaa_region=noaa_region)
 
     return subdir

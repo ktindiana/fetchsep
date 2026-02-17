@@ -333,7 +333,11 @@ def clean_trigger_block(trigger_dict):
     bad_keys = []
     for key in keys:
         if isinstance(trigger_dict[key], list):
-            if len(trigger_dict[key]) == 0:
+            arr = trigger_dict[key]
+            for ii in range(len(arr)-1,-1,-1):
+                if pd.isnull(arr[ii]) or arr[ii] == '':
+                    arr.pop(ii)
+            if len(arr) == 0:
                 bad_keys.append(key)
 
         elif isinstance(trigger_dict[key], dict):

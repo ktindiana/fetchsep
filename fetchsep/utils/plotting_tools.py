@@ -435,6 +435,7 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
     plt.xticks(rotation=45, ha="right")
 
+    plt.grid(axis="both")
     #ax.xaxis_date()
     #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
     if 'counts' in flux_units: ylog=False
@@ -693,6 +694,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
     plt.xticks(rotation=45, ha="right")
 
+    plt.grid(axis="both")
     plt.yscale("log")
     if 'counts' in flux_units:
         plt.yscale("linear")

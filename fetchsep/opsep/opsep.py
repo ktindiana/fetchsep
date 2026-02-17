@@ -2472,9 +2472,9 @@ class Output:
 
 
     def add_manual_cme(self, cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
-        cme_half_width_deg=np.nan, cme_speed_kms=np.nan,
-        cme_acceleration_kms2=np.nan, cme_lat=np.nan, cme_lon=np.nan,
-        cme_height_rs=np.nan,
+        cme_half_width=np.nan, cme_speed=np.nan,
+        cme_acceleration=np.nan, cme_lat=np.nan, cme_lon=np.nan,
+        cme_height=np.nan,
         cme_time_at_height_time=pd.NaT, cme_time_at_height_height=np.nan,
         cme_coordinates=None, cme_catalog=None,
         cme_catalog_id=None, cme_urls=[],
@@ -2484,10 +2484,10 @@ class Output:
         
         cme_json = fetch_cme.manual_cme_ccmc_json(cme_start_time=cme_start_time,
                 cme_liftoff_time=cme_liftoff_time,
-                cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
-                cme_acceleration_kms2=cme_acceleration_kms2,
+                cme_half_width=cme_half_width, cme_speed=cme_speed,
+                cme_acceleration=cme_acceleration,
                 cme_lat=cme_lat, cme_lon=cme_lon,
-                cme_height_rs=cme_height_rs,
+                cme_height=cme_height,
                 cme_time_at_height_time=cme_time_at_height_time,
                 cme_time_at_height_height=cme_time_at_height_height,
                 cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
@@ -2523,7 +2523,7 @@ class Output:
         
 
 
-    def find_srag_associations(self):
+    def find_list_associations(self):
         """ Identify flare, CME, radio, etc data from Steve Johnson's 
             SRAG SEP list for an SEP event.
             
@@ -2559,6 +2559,10 @@ class Output:
         startdate = self.data.results[best_ix].sep_start_time
         print(f"Selected startdate {startdate} to search for associations.")
         associations = assoc_lists.identify_associations_in_list(startdate, list_name='srag')
+        if associations == assoc_lists.empty_associations_dict():
+            associations = assoc_lists.identify_associations_in_list(startdate, list_name='IGR')
+        if associations == assoc_lists.empty_associations_dict():
+            associations = assoc_lists.identify_associations_in_list(startdate, list_name='user')
 
         self.associations = associations
 
@@ -2573,9 +2577,9 @@ class Output:
     def add_associations_to_output(self,
         associations=False, auto_flare_time='', auto_cme_time='',
         cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
-        cme_half_width_deg=np.nan, cme_speed_kms=np.nan,
-        cme_acceleration_kms2=np.nan, cme_lat=np.nan, cme_lon=np.nan,
-        cme_height_rs=np.nan,
+        cme_half_width=np.nan, cme_speed=np.nan,
+        cme_acceleration=np.nan, cme_lat=np.nan, cme_lon=np.nan,
+        cme_height=np.nan,
         cme_time_at_height_time=pd.NaT, cme_time_at_height_height=np.nan,
         cme_coordinates="", cme_catalog="",
         cme_catalog_id="", cme_urls=[],
@@ -2614,7 +2618,7 @@ class Output:
 
         #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
         if associations:
-            self.find_srag_associations()
+            self.find_list_associations()
 
         #If user specified flare time
         if auto_flare_time != '':
@@ -2640,10 +2644,10 @@ class Output:
  
         #Manually add CME trigger block if user entered values
         self.add_manual_cme(cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
-            cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
-            cme_acceleration_kms2=cme_acceleration_kms2,
+            cme_half_width=cme_half_width, cme_speed=cme_speed,
+            cme_acceleration=cme_acceleration,
             cme_lat=cme_lat, cme_lon=cme_lon,
-            cme_height_rs=cme_height_rs,
+            cme_height=cme_height,
             cme_time_at_height_time=cme_time_at_height_time,
             cme_time_at_height_height=cme_time_at_height_height,
             cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,
@@ -2652,6 +2656,14 @@ class Output:
             cme_derivation_method=cme_derivation_method,
             cme_measurement_type=cme_measurement_type)
  
+ 
+        if not pd.isnull(source_lat):
+            self.associations['Event Source Latitude'] = float(source_lat)
+        if not pd.isnull(source_lon):
+            self.associations['Event Source Longitude'] = float(source_lon)
+        if not pd.isnull(noaa_region):
+            self.associations['Active Region'] = int(noaa_region)
+
         return
 
 
@@ -2712,7 +2724,7 @@ class Output:
         sep_last_time = self.sep_last_time()
         
         if pd.isnull(sep_first_time) or pd.isnull(sep_last_time):
-            print(f"add_associations_to_user_list: Cannot add associations if no SEP event. start time: {sep_first_time}, end time: {sep_last_time}")
+            print(f"save_associations_to_user_list: Cannot add associations if no SEP event. start time: {sep_first_time}, end time: {sep_last_time}")
             return
         else:
             user_list.add_sep_first_time(df, index, sep_first_time)
@@ -2838,6 +2850,20 @@ class Output:
         return filename
 
 
+#    def clean_dictionary(self, in_dict):
+#        """ Remove all null or empty string values from a flat dictionary """
+#        clean_dict = in_dict
+#        bad_keys = []
+#        for key in in_dict.keys():
+#            if pd.isnull(in_dict[key]) or in_dict[key] == '':
+#                bad_keys.append(key)
+#                
+#        for key in bad_keys:
+#            clean_dict.pop(key)
+#
+#        return clean_dict
+
+
     def create_csv_dict(self):
         """ A flat dictionary of values for all event definitions. """
 
@@ -2859,8 +2885,8 @@ class Output:
                 "Native Flux Type": self.data.flux_type,
                 "Options": opts,
                 "Background Subtraction": bgsub,
-                "Time Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
-                "Time Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
+                "Analyzed Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
+                "Analyzed Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
                 "All Fluxes Time Series": self.data.fluxes_filename,
                 "JSON": self.json_filename
                 }
@@ -2874,6 +2900,7 @@ class Output:
             dict.update(self.associations)
         
         dict = self.set_all_null_to_none(dict)
+        #dict = self.clean_dictionary(dict)
         df = pd.DataFrame([dict])
         
         filename = self.json_filename
@@ -2900,8 +2927,8 @@ class Output:
                 "Native Flux Type": self.data.flux_type,
                 "Options": self.data.options,
                 "Background Subtraction": bgsub,
-                "Time Period Start": self.data.startdate,
-                "Time Period End": self.data.enddate,
+                "Analyzed Period Start": self.data.startdate,
+                "Analyzed Period End": self.data.enddate,
                 "All Fluxes Time Series": self.data.fluxes_filename,
                 "JSON": self.json_filename
                 }
@@ -2913,6 +2940,8 @@ class Output:
         #Add flare, cme, radio, etc, associations
         if self.associations:
             dict.update(self.associations)
+
+        #dict = self.clean_dictionary(dict)
 
         header = ''
         row = ''
@@ -3171,11 +3200,11 @@ def opsep(str_startdate, str_enddate, experiment,
     auto_flare_time='', auto_cme_time='',
     cme_start_time=pd.NaT,
     cme_liftoff_time=pd.NaT,
-    cme_half_width_deg=np.nan,
-    cme_speed_kms=np.nan,
-    cme_acceleration_kms2=np.nan,
+    cme_half_width=np.nan,
+    cme_speed=np.nan,
+    cme_acceleration=np.nan,
     cme_lat=np.nan, cme_lon=np.nan,
-    cme_height_rs=np.nan,
+    cme_height=np.nan,
     cme_time_at_height_time=pd.NaT,
     cme_time_at_height_height=np.nan,
     cme_coordinates=None,
@@ -3238,6 +3267,8 @@ def opsep(str_startdate, str_enddate, experiment,
         :IDSEPEnhancement: (bool) Set to true to use the thresholds calculated in IDSEP
         :associations: (bool) If True, will look for flare, CME, etc associations
             in lists: reference/SRAG_SEP_List_R11_CLEARversion.csv igr_list.csv user_associations.csv
+        :save_associations: (bool) If True, will save the user-input flare, CME, and location to
+            user-maintained associations list in fetchsep/reference/user_associations.csv
         :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
             files will be searched for a flare coincident with this time.
             The flare_time should correspond to a time equal to or 
@@ -3250,10 +3281,10 @@ def opsep(str_startdate, str_enddate, experiment,
         
         cme_start_time=pd.NaT,
         cme_liftoff_time=pd.NaT,
-        cme_half_width_deg=np.nan,
-        cme_speed_kms=np.nan,
-        cme_acceleration_kms2=np.nan,
-        cme_height_rs=np.nan,
+        cme_half_width=np.nan,
+        cme_speed=np.nan,
+        cme_acceleration=np.nan,
+        cme_height=np.nan,
         cme_time_at_height_time=pd.NaT,
         cme_time_at_height_height=np.nan,
         cme_coordinates="",
@@ -3328,10 +3359,10 @@ def opsep(str_startdate, str_enddate, experiment,
         auto_flare_time=auto_flare_time, auto_cme_time=auto_cme_time,
         #Manually added CME
         cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
-        cme_half_width_deg=cme_half_width_deg, cme_speed_kms=cme_speed_kms,
-        cme_acceleration_kms2=cme_acceleration_kms2,
+        cme_half_width=cme_half_width, cme_speed=cme_speed,
+        cme_acceleration=cme_acceleration,
         cme_lat=cme_lat, cme_lon=cme_lon,
-        cme_height_rs=cme_height_rs,
+        cme_height=cme_height,
         cme_time_at_height_time=cme_time_at_height_time,
         cme_time_at_height_height=cme_time_at_height_height,
         cme_coordinates=cme_coordinates, cme_catalog=cme_catalog,

@@ -1,4 +1,4 @@
-SEP Reference Time,Flare Magnitude Deprecated,Flare Xray Start Time,Flare Xray Peak Time,Flare Xray End Time,Flare Class,Flare Magnitude,Flare Integrated Flux,Flare Duration,Flare Xray Time To Peak,Flare Catalog ID,Event Source Latitude,Event Source Longitude,Event Source Reference,CDAW CME Speed,GOES Xray Satellite,Comments
+SEP Reference Time,Flare Magnitude Deprecated,Flare Xray Start Time,Flare Xray Peak Time,Flare Xray End Time,Flare Class,Flare Magnitude,Flare Integrated Flux,Flare Duration,Flare Time To Peak,Flare Catalog ID,Event Source Latitude,Event Source Longitude,Event Source Reference,CDAW CME Speed,GOES Xray Satellite,Comments
 1986-02-03 20:40:00,2e-05,,,,M2.8,0.000028571,,,,,-9.0,-27.0,IGR List,,,IGR List
 1986-02-04 07:35:00,,,,,,,,,,,-3.0,-21.0,IGR List,,,IGR List
 1986-02-06 06:22:00,0.0002,,,,X2.8,0.00028571,,,,,-7.0,2.0,IGR List,,,IGR List

@@ -178,8 +178,9 @@ def donki_cme_to_ccmc_json(list_cme):
                 fetchsep association lists
                         
     """
+    cme = {}
     if not list_cme:
-        return {}
+        return cme
         
     if not pd.isnull(list_cme['DONKI CME Speed']):
         cme = ccmc_json.ccmc_cme_block()
@@ -410,8 +411,10 @@ def cdaw_cme_to_ccmc_json(list_cme):
                 fetchsep association lists for CDAW CMEs
                         
     """
+    cme={}
+    
     if not list_cme:
-        return {}
+        return cme
         
     if not pd.isnull(list_cme['CDAW CME Speed']):
         cme = ccmc_json.ccmc_cme_block()
@@ -479,10 +482,10 @@ def cdaw_cme_to_ccmc_json(list_cme):
 ##########################################################
 def manual_cme_ccmc_json(cme_start_time = pd.NaT,
     cme_liftoff_time=pd.NaT,
-    cme_half_width_deg=np.nan,
-    cme_speed_kms=np.nan,
-    cme_acceleration_kms2=np.nan,
-    cme_height_rs=np.nan,
+    cme_half_width=np.nan,
+    cme_speed=np.nan,
+    cme_acceleration=np.nan,
+    cme_height=np.nan,
     cme_time_at_height_time=pd.NaT,
     cme_time_at_height_height=np.nan,
     cme_lat=np.nan,
@@ -498,6 +501,34 @@ def manual_cme_ccmc_json(cme_start_time = pd.NaT,
     """ Create a CME trigger block for the CCMC SEP Scoreboard json schema
         using manual inputs.
         
+        INPUTS:
+            
+            :cme_start_time: (string, datetime) typically first look time on LASCO C2; first time visible on a coronagraph image
+            :cme_liftoff_time: (string, datetime) time eruption lifts off from the Sun. The 
+                CACTuS catalog provides this value. Onset time in CDAW SOHO LASCO CME Catalog. 
+            :cme_half_width: (float) Half the width of the CME, typically a parameter from SWPC_CAT or CME measuring tool
+            :cme_speed: (float) speed in km/s 
+            :cme_acceleration: (float) acceleration in km/s^2
+            :cme_height: (float) CME height in Rsun that corresponds with speed
+            :cme_time_at_height_time: (string, datetime) Time that a CME is at a specific 
+                height, e.g. time at 21.5 Rsun 
+            :cme_time_at_height_height: (float) height related to cme_time_at_height_time, 
+                e.g. 21.5 Rsun
+            :cme_lat: (float) latitude of CME source eruption
+            :cme_lon: (float) longitude of CME source eruption
+            :cme_pa: (float) CME plane-of-sky position angle (measured from solar north in
+                degrees counter-clockwise )
+            :cme_coordinates: (string) Coordinate system for CME lat/lon parameters, 
+                e.g. HEEQ or Carrington
+            :cme_catalog: (string) Name of catalog where CME information was pulled from.
+                e.g. ARTEMIS, DONKI, HELCATS, JHU APL, CACTUS_NRL, CACTUS_SIDC, CORIMP,
+                SEEDS, SOHO_CDAW, STEREO_COR1
+            :cme_catalog_id: (string) id that uniquely identifies this CME data in the catalog
+            :cme_urls: (list) List of urls where CME information can be found, or information was pulled from
+            :cme_derivation_process: (string) automated/manual
+            :cme_derivation_method: (string) WPC_CAT, StereoCAT, Plane-of-sky, FlareDerived
+            :cme_measurement_type: (string) LE (leading edge), TE (Trailing Edge), RHB (Right Hand Boundary), LHB (Left Hand Boundary), BW (Black White Boundary), COR (Prominence Core), DIS (Disconnection Front), SH (Shock Front)
+        
     """
 
     cme = {
@@ -506,10 +537,10 @@ def manual_cme_ccmc_json(cme_start_time = pd.NaT,
         "lat": cme_lat,
         "lon": cme_lon,
         "pa": cme_pa,
-        "half_width": cme_half_width_deg,
-        "speed": cme_speed_kms,
-        "acceleration": cme_acceleration_kms2,
-        "height": cme_height_rs,
+        "half_width": cme_half_width,
+        "speed": cme_speed,
+        "acceleration": cme_acceleration,
+        "height": cme_height,
         "time_at_height": {
             "time": dh.time_to_zulu(cme_time_at_height_time),
             "height": cme_time_at_height_height

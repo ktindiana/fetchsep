@@ -3,6 +3,7 @@
 import fetchsep.utils.prepsep as prepsep
 import argparse
 import fetchsep.utils.experiments as expts
+import numpy as np
 
 valid_experiments = expts.valid_experiments()
 
@@ -47,10 +48,6 @@ parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES-RT is selected, choose the primary or secondary spacecraft."))
 
-parser.add_argument("--Associations",
-        help=("Set flag to associate flare, CME, radio, etc information "
-            "if an SEP event is found in the data. "), action="store_true")
-
 parser.add_argument("--Threshold", type=str, default="",
         help=("Additional energy and flux threshold which will be used to "
                 "define the event. To define an integral flux threshold: "
@@ -74,6 +71,33 @@ parser.add_argument("--TwoPeaks",
                 "before increasing again to the true peak of the event."),
                 action="store_true")
 
+#Adding Flare, CME, Location associated information
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "derived from the SRAG, IGR, and user-maintained historical event lists."), action="store_true")
+            
+parser.add_argument("--SaveAssociations",
+        help=("Set flag to write flare, CME, location associations input by the user for the analyzed SEP event to the user-maintained associations list: fetchsep/reference/user_associations.csv. "), action="store_true")
+
+parser.add_argument("--AutoFlareTime", type=str, default='',
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a flare in the NOAA NCEI science archives. "
+            "Time should be equal to or between the flare start and end time, "
+            "with the peak as the preferable time."))
+
+parser.add_argument("--AutoCMETime", type=str, default='',
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a CME in DONKI. Use the CME start time, which is "
+            "generally the LASCO C2 first look time."))
+
+parser.add_argument("--Source-latitude", type=float, default=np.nan,
+                    help="Latitude of eruption source (deg), if not specified in flare location.")
+
+parser.add_argument("--Source-longitude", type=float, default=np.nan,
+                    help="Longitude of eruption source (deg), if not specified in flare location.")
+
+parser.add_argument("--NOAA-region", type=int, default=np.nan,
+                    help="NOAA active region number, if not specified for flare.")
 
 args = parser.parse_args()
 
@@ -86,11 +110,18 @@ end_date = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
-associations = args.Associations
 threshold = args.Threshold
 dointerp = args.DoInterp
 two_peaks = args.TwoPeaks
 subdir = ''
+
+associations = args.Associations
+save_associations = args.SaveAssociations
+auto_flare_time = args.AutoFlareTime
+auto_cme_time = args.AutoCMETime
+source_lat = args.Source_latitude
+source_lon = args.Source_longitude
+noaa_region = args.NOAA_region
 
 if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
@@ -99,8 +130,20 @@ if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, dointerp=dointerp, two_peaks=two_peaks, spacecraft=spacecraft,
-        associations=associations)
+    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment,
+        flux_type=flux_type,
+        spacecraft=spacecraft,
+        user_thresholds=threshold,
+        dointerp=dointerp,
+        two_peaks=two_peaks,
+        associations=associations,
+        save_associations=save_associations,
+        auto_flare_time=auto_flare_time,
+        auto_cme_time=auto_cme_time,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        noaa_region=noaa_region)
+    
     prepsep.move_output(target_dir, subdir=subdir, enforce_new=enforce_new,
         enforce_sep_stop=enforce_sep_stop)
 
