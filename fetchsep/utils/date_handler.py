@@ -17,7 +17,9 @@ def str_to_datetime(date):
         
         :dt: (datetime) - datetime conversion of date
     """
-        
+    if isinstance(date, datetime.date):
+        return date
+    
     if date == '':
         return pd.NaT
     

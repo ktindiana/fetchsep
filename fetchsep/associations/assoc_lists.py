@@ -39,7 +39,18 @@ def clean_file(input_path, output_path):
 
 
 def string_location(lat, lon):
-    """Put lat, lon in string location format """
+    """ Put lat, lon in string location format 
+    
+        INPUTS:
+        
+            :lat: (float, int) latitude
+            :lon: (float, int) longitude
+            
+        OUTPUTS:
+        
+            :location: (string) e.g. N20W35
+            
+    """
     
     lat = int(lat)
     lon = int(lon)
@@ -62,13 +73,46 @@ def string_location(lat, lon):
     return location
 
 
+def numerical_location(location):
+    """ Put string location into lat, lon 
+ 
+        INPUTS:
+                    
+            :location: (string) e.g. N20W35
+            
+        OUTPUTS:
+        
+            :lat: (float) latitude
+            :lon: (float) longitude
+    
+    """
+    location = locations.strip()
+    
+    if pd.isnull(location) or location == '':
+        return np.nan, np.nan
+    
+    if 'W' in location:
+        location = location.split('W')
+        lon = float(location[1])
+    elif 'E' in location:
+        location = location.split('E')
+        lon = -float(location[1])
+
+    if 'N' in location[0]:
+        lat = float(location[0].split('N')[1])
+    elif 'S' in location[0]:
+        lat = -float(location[0].split('S')[1])
+
+    return lat, lon
+
+
 
 ###########################################################################
 ################## GENERAL ASSOCIATION LIST FUNCTIONS #####################
 ###########################################################################
 #Columns output in final SEP list, e.g. for the CLEAR SEP Benchmark Dataset
 #All possible association information
-list_output_columns = ['Solar Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Reference', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Event Source Reference 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'ESP CDAW CME First Look Time', 'ESP CDAW CME LASCO Speed', 'ACE CME Passage Time', 'ACE Bz', 'Sudden Impulse Time', 'Sudden Impulse Amplitude', 'GLE Event Number', 'PRF', 'Comments']
+list_output_columns = ['Solar Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Reference', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Event Source Reference 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'ESP CDAW CME First Look Time', 'ESP CDAW CME LASCO Speed', 'ACE CME Passage Time', 'ACE Bz', 'Sudden Impulse Time', 'Sudden Impulse Amplitude', 'GLE Event Number', 'PRF', 'Comments']
 
 list_time_columns = ['Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
 
@@ -81,12 +125,19 @@ list_string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Cl
 
 
 flare_columns = ['Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time',
-            'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration',
-            'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite']
+    'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration',
+    'Flare Xray Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite']
 
 donki_cme_columns = ['DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width',
-            'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Feature',
-            'DONKI CME Measurement Technique', 'DONKI CME Catalog ID']
+    'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Feature',
+    'DONKI CME Measurement Technique', 'DONKI CME Catalog ID']
+
+cdaw_cme_columns = ['CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width',
+    'CDAW CME Mean Position Angle']
+
+source_loc_columns = ['Event Source Location From Center', 'Event Source Latitude',
+    'Event Source Longitude', 'Event Source Reference']
+
 
 
 def is_time_column(col):
@@ -284,6 +335,13 @@ def flare_ccmc_json_to_associations(flare_json, associations={}):
         associations['Flare Catalog ID'] = flare_json['catalog_id']
     else:
         associations['Flare Catalog ID'] = None
+
+    if 'location' in flare_json.keys():
+        lat, lon = numerical_location(flare_json['location'])
+        if not pd.isnull(lat):
+            assocations['Event Source Latitude'] = lat
+        if not pd.isnull(lon):
+            associations['Event Source Longitude'] = lon
 
     return associations
 
@@ -676,7 +734,7 @@ def cme_ccmc_json_to_associations(cme_json, associations={}, catalog='DONKI'):
         if 'catalog_id' in cme_json.keys():
             associations['DONKI CME Catalog ID'] = cme_json['catalog_id']
         else:
-            associations['DONKI CME Catalog ID'] = cme_json['catalog_id']
+            associations['DONKI CME Catalog ID'] = None
 
     return associations
 
@@ -1172,6 +1230,7 @@ class IGRList():
             
         """
         self.id = "IGR List"
+        self.filename = os.path.join('fetchsep','reference','IGR_list.csv')
         self.reference_columns = ["SEP Reference Time"]
 
         self.time_columns = ['SEP Reference Time', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time']
@@ -1241,7 +1300,7 @@ class IGRList():
             converted from excel into text format and cleaned.
             
         """
-        igr_list = 'fetchsep/reference/IGR_list.csv'
+        igr_list = self.filename
         df = pd.read_csv(igr_list)
         
         #Cast string columns
@@ -1299,18 +1358,18 @@ class UserList:
             
         """
         self.id = "User List"
-        self.reference_columns = ["SEP Start Time", "SEP End Time"]
+        self.reference_columns = ["First SEP Start Time", "Last SEP End Time"]
+        self.filename = os.path.join('fetchsep','reference', 'user_associations.csv')
+        #All possible columns in user list
+        self.time_columns = self.reference_columns + list_time_columns
+        self.float_columns = list_float_columns
+        self.int_columns = list_int_columns
+        self.string_columns =  ['SEP Location'] + list_string_columns
 
-        self.time_columns = ['InitiationDT', 'SEP Reference Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'P10_FluxStart', 'P10_StartDT', 'P10_OnsetMax_DT', 'P10_PeakDT', 'P10_EndDT', 'P50_FluxStart', 'P50_StartDT', 'P50_OnsetPeakDT', 'P50_PeakDT', 'P50_EndDT', 'P100_FluxStart', 'P100_StartDT', 'Onset_P100_PkDT', 'Event_P100_PkDT', 'P100_EndDT','ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
-
-        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Xray Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak', 'AR Area', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
-            #'CDAW CME Width' contains text
-
-        self.int_columns = ['Flare Catalog ID', 'Solar Cycle', 'Active Region', 'GOES Xray Satellite', 'GOES Protons Satellite']
-
-        self.string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Source Reference', 'Event Source Reference 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+        self.create_list(type=type)
 
         return
+
 
     def is_time_column(self,col):
         if col in self.time_columns:
@@ -1342,58 +1401,275 @@ class UserList:
 
     def cast_time_columns(self,df):
         for col in self.time_columns:
-            df[col] = pd.to_datetime(df[col])
+            if col in df.columns:
+                df[col] = pd.to_datetime(df[col])
             
         return df
         
 
     def cast_string_columns(self,df):
         for col in self.string_columns:
-            df[col] = df[col].fillna('').astype(str)
-            df[col] = df[col].astype(str)
+            if col in df.columns:
+                df[col] = df[col].fillna('').astype(str)
+                df[col] = df[col].astype(str)
             
         return df
 
 
     def cast_float_columns(self,df):
         for col in self.float_columns:
-            df[col] = df[col].astype(float)
+            if col in df.columns:
+                df[col] = df[col].astype(float)
             
         return df
 
 
-    def create_list(type):
+    def read_list(self):
+        """ Read in the SRAG list provided by Steve Johnson (SRAG) 
+            converted from excel into text format and cleaned.
+            
+        """
+        if not os.path.exists(self.filename):
+            print(f"UserList.read_list: {self.filename} does not exist. Run create_list().")
+            return pd.DataFrame()
+            
+        df = pd.read_csv(self.filename)
+        
+        #Cast string columns
+        df = self.cast_string_columns(df)
+
+        #Cast time columns
+        df = self.cast_time_columns(df)
+        
+        return df
+
+
+    def create_list(self, type="minimal"):
         """ Create the user list if it doesn't already exist.
+            If the user list already exists and is of type minimal,
+            specifying type 'all' will add the rest of list_output_columns 
+            to the existing list.
+        
+            INPUTS:
+            
+                :type: (string) minimal or all. minimal creates a list with
+                    a subset of columns for only flares, CMEs, and event source location.
+                    all creates a list with all association columns in list_output_columns.
         
         """
-        filename = 'user_associations_list.csv'
-        fullpath = os.path.join('fetchsep','reference',filename)
-        
-        columns = ['Location', 'First SEP Start Time', 'Last SEP End Time']
+        columns = ['SEP Location', 'First SEP Start Time', 'Last SEP End Time']
         
         if type == "minimal":
             add_columns = ['Flare Xray Start Time', 'Flare Xray Peak Time',
                 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude',
                 'Flare Integrated Flux', 'Flare Duration', 'Flare Xray Time To Peak',
-                'Flare Catalog ID', 'GOES Xray Satellite', 'Active Region', 'Event Source Latitude',
-                'Event Source Longitude','CDAW CME First Look Time', 'CDAW CME Speed',
-                'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time',
-                'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon',
-                'DONKI CME Time at 21.5', 'DONKI CME Catalog ID',
-                'DONKI CME Measurement Technique', 'Comments']
+                'Flare Catalog ID', 'GOES Xray Satellite', 'Active Region',
+                'Event Source Latitude', 'Event Source Longitude',
+                'CDAW CME First Look Time', 'CDAW CME Speed',
+                'CDAW CME Width', 'CDAW CME Mean Position Angle',
+                'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width',
+                'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5',
+                'DONKI CME Catalog ID','DONKI CME Measurement Technique', 'Comments']
             columns = columns + add_columns
 
         elif type == "all":
             columns = columns + list_output_columns
 
-        if os.path.exists(fullpath):
-            df = pd.read_csv(fullpath)
+        if os.path.exists(self.filename):
+            df = pd.read_csv(self.filename)
             
             #If converting from minimal to all, add columns
             for col in columns:
                 if col not in df.columns:
                     df.insert(column=col, value=[None]*len(df))
-
         else:
             #Create empty dataframe with specified columns
             df = pd.DataFrame(columns=columns)
+
+        df.to_csv(self.filename, index=False)
+        return df
+
+
+    def write_list(self, df):
+        df.to_csv(self.filename, index=False)
+        return
+
+
+    def add_flare(self, df, index, flare, format='dict'):
+        """ Add flare information to user list.
+        
+            INPUTS:
+            
+                :df: (pandas DataFrame) user list
+                :index: (int) row index where flare information should be added
+                :flare: (dict) either flare_info dictionary or CCMC json flare
+                    trigger block format
+                :format: (string) 'dict' for flare_info, 'json' for CCMC json 
+                    flare trigger block
+                    
+            OUTPUTS:
+            
+                :df: (pandas DataFrame) with flare information added to index row
+        
+        """
+
+        #Empty dictionary
+        if not flare:
+            return df
+
+        #Intensity is required; if missing, likely a dictionary of all null
+        if pd.isnull(flare['intensity']):
+            return df
+
+        if format == 'dict':
+            associations = flare_info_to_associations(flare)
+        elif format == 'json':
+            associations = flare_ccmc_json_to_associations(flare)
+            
+        for col in flare_columns:
+            df.loc[index,col] = associations[col]
+
+        return df
+
+
+    def add_donki_cme(self, df, index, cme):
+        """ Add DONKI information to user list. File output from 
+            fetch_cme.get_donki_cme with format dict.
+        
+            INPUTS:
+            
+                :df: (pandas DataFrame) user list
+                :index: (int) row index where flare information should be added
+                :cme: (dict) File output from fetch_cme.get_donki_cme with format dict
+                    
+            OUTPUTS:
+            
+                :df: (pandas DataFrame) with DONKI CME information added to index row
+        
+        """
+
+        #Empty dictionary
+        if not cme:
+            return df
+
+        #if missing, likely dictionary contains all null
+        if pd.isnull(cme['DONKI CME Speed']):
+            return df
+
+        associations = donki_cme_to_associations(cme)
+            
+        for col in donki_cme_columns:
+            df.loc[index,col] = associations[col]
+
+        return df
+
+
+    def add_cme_ccmc_json(self, df, index, cme, catalog='DONKI'):
+        """ Add CME information to user list. File output from 
+            fetch_cme.manual_cme_ccmc_json in CCMC JSON CME trigger block.
+            Use catalog field to determine DONKI or CDAW. Default to 
+            DONKI if catalog field is blank.
+        
+            INPUTS:
+            
+                :df: (pandas DataFrame) user list
+                :index: (int) row index where flare information should be added
+                :cme: (dict) File output from fetch_cme.manual_cme_ccmc_json 
+                    in CCMC JSON CME trigger block format
+                    
+            OUTPUTS:
+            
+                :df: (pandas DataFrame) with DONKI CME information added to index row
+        
+        """
+
+        #Empty dictionary
+        if not cme:
+            return df
+
+        #if missing, likely dictionary contains all null
+        if 'speed' not in cme.keys():
+            return df
+        if pd.isnull(cme['speed']):
+            return df
+
+        if 'catalog' in cme.keys():
+            if not pd.isnull(cme['catalog']) and cme['catalog'] != '':
+                catalog = cme['catalog']
+        
+        associations = cme_ccmc_json_to_associations(cme, catalog=catalog)
+        
+        cme_col = []
+        if catalog == 'DONKI' or catalog == 'donki':
+            cme_col = donki_cme_columns
+        elif catalog == 'SOHO_CDAW' or catalog == 'soho_cdaw':
+            cme_col = cdaw_cme_columns
+        
+        for col in cme_col:
+            df.loc[index,col] = associations[col]
+
+        return df
+
+        
+    def add_source_latitude(self, df, index, lat):
+        """ Add event source latitude to user list. """
+        
+        if not pd.isnull(lat) and lat != '':
+            df.loc[index, 'Event Source Latitude'] = float(lat)
+
+        return df
+
+
+    def add_source_longitude(self, df, index, lon):
+        """ Add event source longitude to user list. """
+
+        if not pd.isnull(lon) and lon != '':
+            df.loc[index, 'Event Source Longitude'] = float(lon)
+
+        return df
+
+
+    def add_sep_location(self, df, index, location):
+        """ Add location where SEP was observed, i.e. Earth, Mars, STEREO-A """
+        if not pd.isnull(location) and location != '':
+            df.loc[index,'SEP Location'] = location
+        
+        return df
+
+
+    def add_noaa_region(self, df, index, ar):
+        """ Add NOAA active region number. """
+        
+        if not pd.isnull(ar) and ar != '':
+            df.loc[index, 'Active Region'] = int(ar)
+            
+        return df
+
+
+    def add_sep_first_time(self, df, index, first_time):
+        """ Add first start time of SEP event. """
+        
+        first_time = dh.str_to_datetime(first_time)
+        
+        if not pd.isnull(first_time) and first_time != '':
+            df.loc[index, 'First SEP Start Time'] = first_time
+            
+        return df
+
+
+    def add_sep_last_time(self, df, index, last_time):
+        """ Add last end time of SEP event. """
+        
+        last_time = dh.str_to_datetime(last_time)
+        
+        if not pd.isnull(last_time) and last_time != '':
+            df.loc[index, 'Last SEP End Time'] = last_time
+            
+        return df
+
+
+    def delete_row(self, df, index):
+        """ Delete the row in the user associations list located at index """
+
+        df = df.drop(index=index)
+        return df

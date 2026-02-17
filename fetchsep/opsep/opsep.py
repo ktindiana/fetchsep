@@ -2055,10 +2055,8 @@ class Output:
         self.json_filename = None #output path and filename
         self.issue_time = pd.NaT
         
-        #Find associations from the SRAG list, SRAG_SEP_List_R11_CLEARversion.csv
+        #Find associations from the SRAG, IGR, User list or manual inputs
         self.associations = assoc_lists.empty_associations_dict()
-        #Specify a flare association by inputting a flare time (peak time is best)
-        self.flare_time = pd.NaT
         #Lists of CME and Flare dicts in CCMC json format
         self.cmes = []
         self.flares = []
@@ -2519,7 +2517,7 @@ class Output:
             #Add flare info to associations for output csv list
             #flare_info contains more information that the CCMC json, so better to use
             flare_info = fetch_flare.get_noaa_flare(flare_time, format='dict')
-            self.associations = assoc_lists.flare_info_to_association(flare_info, associations=self.associations)
+            self.associations = assoc_lists.flare_info_to_associations(flare_info, associations=self.associations)
 
         return
         
@@ -2572,7 +2570,7 @@ class Output:
         return
 
 
-    def add_associations(self,
+    def add_associations_to_output(self,
         associations=False, auto_flare_time='', auto_cme_time='',
         cme_start_time=pd.NaT, cme_liftoff_time=pd.NaT,
         cme_half_width_deg=np.nan, cme_speed_kms=np.nan,
@@ -2594,7 +2592,10 @@ class Output:
         flare_peak_ratio=np.nan,
         flare_catalog=None,
         flare_catalog_id=None,
-        flare_urls=[]):
+        flare_urls=[],
+        source_lat=np.nan,
+        source_lon=np.nan,
+        noaa_region=np.nan):
         """ Add associated flare, cme, and other related information.
 
             INPUTS:
@@ -2653,6 +2654,88 @@ class Output:
  
         return
 
+
+    def sep_first_time(self):
+        """ Get the earliest SEP start time for all event definitions. """
+        first_start_time = pd.NaT
+        
+        for i, analyze in enumerate(self.data.results):
+            if not pd.isnull(analyze.sep_start_time):
+                if pd.isnull(first_start_time):
+                    first_start_time = analyze.sep_start_time
+                else:
+                    if analyze.sep_start_time < first_start_time:
+                        first_start_time = analyze.sep_start_time
+                        
+        return first_start_time
+        
+
+    def sep_last_time(self):
+        """ Get the lastest SEP end time for all event definitions. """
+        last_end_time = pd.NaT
+        
+        for i, analyze in enumerate(self.data.results):
+            if not pd.isnull(analyze.sep_end_time):
+                if pd.isnull(last_end_time):
+                    last_end_time = analyze.sep_end_time
+                else:
+                    if last_end_time < analyze.sep_end_time:
+                        last_end_time = analyze.sep_end_time
+                        
+        return last_end_time
+
+
+    def save_associations_to_user_list(self, index=np.nan,
+        source_lat=np.nan, source_lon=np.nan, noaa_region=np.nan,
+        location=None):
+        """ Add user-specified flare, CME, and location associations for 
+            analyzed SEP event into the user list, saved in
+            fetchsep/reference/user_assocations.csv.
+            
+            Can only add one flare. Can add a CME in the DONKI and CDAW columns,
+            if the catalogs are specified.
+            
+            Add event and associations to the end of the list.
+            Or update values at specified index.
+            
+        """
+        user_list = assoc_lists.UserList()
+        df = user_list.read_list()
+
+        if pd.isnull(index):
+            index = len(df)
+ 
+        if not pd.isnull(location) and location != '':
+            user_list.add_sep_location(df, index, location)
+ 
+        sep_first_time = self.sep_first_time()
+        sep_last_time = self.sep_last_time()
+        
+        if pd.isnull(sep_first_time) or pd.isnull(sep_last_time):
+            print(f"add_associations_to_user_list: Cannot add associations if no SEP event. start time: {sep_first_time}, end time: {sep_last_time}")
+            return
+        else:
+            user_list.add_sep_first_time(df, index, sep_first_time)
+            user_list.add_sep_last_time(df, index, sep_last_time)
+
+        if len(self.flares) > 0:
+            user_list.add_flare(df, index, self.flares[0], format='json')
+
+        if len(self.cmes) > 0:
+            for cme in self.cmes:
+                user_list.add_cme_ccmc_json(df, index, cme)
+
+        if not pd.isnull(source_lat):
+            user_list.add_source_latitude(df, index, source_lat)
+            
+        if not pd.isnull(source_lon):
+            user_list.add_source_longitude(df, index, source_lon)
+            
+        if not pd.isnull(noaa_region):
+            user_list.add_noaa_region(df, index, noaa_region)
+
+        user_list.write_list(df)
+        return
 
 
     def fill_json_header(self):
@@ -3084,7 +3167,7 @@ def opsep(str_startdate, str_enddate, experiment,
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
     doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
     location='earth', species='proton',
-    associations=False,
+    associations=False, save_associations=False,
     auto_flare_time='', auto_cme_time='',
     cme_start_time=pd.NaT,
     cme_liftoff_time=pd.NaT,
@@ -3113,7 +3196,10 @@ def opsep(str_startdate, str_enddate, experiment,
     flare_peak_ratio=np.nan,
     flare_catalog=None,
     flare_catalog_id=None,
-    flare_urls=[]):
+    flare_urls=[],
+    source_lat=np.nan,
+    source_lon=np.nan,
+    noaa_region=np.nan):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3237,7 +3323,7 @@ def opsep(str_startdate, str_enddate, experiment,
 
     output_data = Output(flux_data, json_type, spase_id=spase_id, json_mode=json_mode)
 
-    output_data.add_associations(associations=associations, #lists
+    output_data.add_associations_to_output(associations=associations, #lists
         #Pulled from NOAA or DONKI
         auto_flare_time=auto_flare_time, auto_cme_time=auto_cme_time,
         #Manually added CME
@@ -3266,6 +3352,9 @@ def opsep(str_startdate, str_enddate, experiment,
         flare_catalog=flare_catalog,
         flare_catalog_id=flare_catalog_id,
         flare_urls=flare_urls)
+
+    if save_associations:
+        output_data.save_associations_to_user_list(source_lat=source_lat, source_lon=source_lon, noaa_region=noaa_region, location=location)
 
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()
