@@ -482,7 +482,8 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=False,
+def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
+    umasep=False, dointerp=False,
     showplot=False, saveplot=True, associations=False, detect_prev_event=False,
     two_peaks=False):
     """ Run all of the time periods and experiments in the list
@@ -494,7 +495,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Fal
 
         :sep_filename: (string) file containing list of events
             and experiments to run
-        :outfname: (string) name of a file that will report any
+        :statusfname: (string) name of a file that will report any
             errors encountered when running each event in the list
         :threshold: (string) any additional thresholds to run
             beyond >10 MeV, 10 pfu and >100 MeV, 1 pfu. Specify
@@ -523,7 +524,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Fal
         idsep_paths, locations, particles = read_sep_dates(sep_filename)
 
     #Prepare output file listing events and flags
-    fout = open(os.path.join(cfg.listpath,"opsep",outfname),"w+")
+    fout = open(os.path.join(cfg.listpath,"opsep",statusfname),"w+")
     fout.write('#Experiment,SEP Date,Exception\n')
 
     #---RUN ALL SEP EVENTS---
@@ -573,11 +574,11 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Fal
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.opsep(start_date,
-                end_date, experiment, flux_type, user_name=user_name, user_file=user_file,
+            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_opsep(start_date,
+                end_date, experiment, flux_type=flux_type, user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
-                two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
+                two_peaks=two_peaks, user_thresholds=threshold,
                 options=option, doBGSubOPSEP=doBGSubOPSEP,
                 OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
                 bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,

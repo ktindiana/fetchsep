@@ -559,7 +559,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         IDSEPEnhancement=IDSEPEnhancement)
     
     startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
-        opsep(start_date, end_date, experiment,
+        opsep.run_opsep(start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,
         user_thresholds=user_thresholds,

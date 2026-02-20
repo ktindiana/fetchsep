@@ -360,7 +360,7 @@ source_lat = args.Source_latitude
 source_lon = args.Source_longitude
 noaa_region = args.NOAA_region
 
-date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.opsep(
+date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_opsep(
     str_startdate, str_enddate, experiment,
     flux_type=flux_type,
     spacecraft=spacecraft,

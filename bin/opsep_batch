@@ -24,10 +24,9 @@ parser.add_argument("--Filename", type=str, default='tmp.csv', \
         help=("Name of csv file containing list of SEP start dates and files."
         "Default is tmp.csv."))
 
-parser.add_argument("--OutFilename", type=str, default='out.csv', \
+parser.add_argument("--StatusFilename", type=str, default='batch_run_status.csv', \
         help=("Name of csv file containing list of SEP dates with "
-            "flags indicating status after run with "
-            "operational_sep_quantities.py. Default is lists/out.csv."))
+            "flags indicating status of opsep run. Default is batch_run_status.csv."))
 
 parser.add_argument("--Threshold", type=str, default="",
         help=("An additional energy and flux thresholds (written as 100,1 "
@@ -52,7 +51,7 @@ parser.add_argument("--DoInterp",
 
 args = parser.parse_args()
 sep_filename = args.Filename
-outfname = args.OutFilename
+statusfname = args.StatusFilename
 threshold = args.Threshold
 associations = args.Associations
 dointerp=args.DoInterp
@@ -60,7 +59,7 @@ umasep = False #args.UMASEP
 
 logger = logging.getLogger('opsep')
 
-batch.run_all_events(sep_filename, outfname, threshold, umasep=umasep,
+batch.run_all_events(sep_filename, threshold, statusfname=statusfname, umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
     associations=associations, detect_prev_event=detect_prev_event_default,
     two_peaks=two_peaks_default)

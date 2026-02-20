@@ -3185,7 +3185,7 @@ def calculate_event_info(flux_data):
 
 
 ######## MAIN PROGRAM #########
-def opsep(str_startdate, str_enddate, experiment,
+def run_opsep(str_startdate, str_enddate, experiment,
     flux_type='',
     user_name='', user_file='',
     json_type='', json_mode='', spase_id='',
