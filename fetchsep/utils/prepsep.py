@@ -376,7 +376,7 @@ def move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep, obs_st,
     
     df = df_sep.loc[(df_sep["Observation Window Start"] == obs_st)]
     if not df.empty:
-        print(df)
+        print(df.to_string())
         for sep in df["Threshold Crossing Time"]:
             if not pd.isnull(sep):
                 zulu_sep = dh.time_to_zulu(sep)
