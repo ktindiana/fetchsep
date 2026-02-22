@@ -1,9 +1,11 @@
 from . import config as cfg
 from . import tools
 from . import date_handler as dh
+from . import experiments as expts
 from ..json import ccmc_json_handler as ccmc_json
 import numpy as np
 import pandas as pd
+import matplotlib
 import matplotlib.pylab as plt
 import seaborn as sns
 import matplotlib.gridspec as gridspec
@@ -378,6 +380,101 @@ def make_math_label(label):
     return label
 
 
+def define_colors(energy_bins, event_definitions=None):
+    """ Colors for flux time series """
+    
+    integral_colors = {
+                '>1 MeV'     : '#bdbdbd', #'#b3b3b3',
+                '>5 MeV'     : '#f0ad4e', #'#ffd480',
+                '>10 MeV'    : '#ff0000',
+                '>30 MeV'    : '#9467bd', #'#6b3d9a',
+                '>50 MeV'    : '#0000ff',
+                '>60 MeV'    : '#6e6e6e', #'#000000',
+                '>100 MeV'   : '#00ff00',
+                '>500 MeV'   : '#00cfd1', #SEP Scoreboard choice
+                '>1.0 MeV'     : '#bdbdbd',
+                '>5.0 MeV'     : '#f0ad4e', #SEP Scoreboard choice,
+                '>10.0 MeV'    : '#ff0000',
+                '>30.0 MeV'    : '#9467bd',
+                '>50.0 MeV'    : '#0000ff',
+                '>60.0 MeV'    : '#6e6e6e',
+                '>100.0 MeV'   : '#00ff00',
+                '>500.0 MeV'   : '#00cfd1', # SWPC '#f39c12'
+                }
+
+    #Fluxes
+    #Colors not close in shade to the GOES colors
+    flux_colors = [
+        "#1B3A4B",  # deep slate blue (cool)
+        "#2A9D8F",  # sea green (cool)
+        "#A7C957",  # yellow-green (cool-leaning)
+        "#9C6644",  # sienna (warm)
+        "#E9C46A",  # muted gold (warm)
+        "#6D597A",  # smoky plum (cool)
+        "#CDB4DB",  # pale lavender (cool)
+        "#3A5A40",  # deep forest (cool)
+        "#D4A373",  # sand (warm)
+        "#52796F",  # cool sage (cool)
+
+        "#3E7CB1",  # muted sky blue (cool)
+        "#588157",  # muted green (cool)
+        "#BC6C25",  # brown-orange (warm)
+        "#B08968",  # warm tan (warm)
+        "#E56B6F",  # muted coral (warm)
+        "#9F86C0",  # soft violet (cool)
+        "#28536B",  # steel teal (cool)
+        "#7F5539",  # cocoa (warm)
+        "#B56576",  # dusty rose (warm-neutral)
+        "#8D99AE",  # blue-gray (cool-neutral)
+
+    ]
+
+
+    #Thresholds not associated with a flux energy bin
+#    threshold_colors =  ['black', 'red', 'blue', 'green', 'cyan', 'magenta',
+#                'violet', 'orange', 'brown', 'darkred', 'deepskyblue',
+#                'mediumseagreen', 'lightseagreen', 'purple', 'sandybrown',
+#                'cadetblue', 'goldenrod', 'navy', 'palevioletred',
+#                'saddlebrown']
+ 
+
+
+    threshold_colors = [
+        "#5AA9E6",  # light azure (cool)
+        "#7FB069",  # soft leaf (cool)
+        "#EAAC8B",  # soft peach (warm)
+        "#4C5B5C",  # blue slate (cool-neutral)
+        "#344E41",  # dark moss (cool)
+        "#ADB5BD",  # light cool gray (neutral)
+    ]
+
+    #Flux energy bin colors
+    color_map = {}
+    for i, bin in enumerate(energy_bins):
+        label = tools.setup_energy_bin_label(bin)
+        if label in integral_colors.keys():
+            color_map.update({label: integral_colors[label]})
+        else:
+            color_map.update({label: flux_colors[i]})
+
+    #Threshold colors
+    if event_definitions != None:
+        for i, evdef in enumerate(event_definitions):
+            bin = [evdef['energy_channel'].min, evdef['energy_channel'].max]
+            label = tools.setup_energy_bin_label(bin)
+            if label in color_map.keys():
+                continue
+            elif label in integral_colors.keys():
+                color_map.update({label: integral_colors[label]})
+            else:
+                color_map.update({label: threshold_colors[i]})
+
+
+    return color_map
+
+
+
+
 def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     energy_bins, showplot, ylog=True):
     """ Plot the fluxes for visualization only.
@@ -411,22 +508,22 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     
     fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)
-    colors = define_colors()
+    colors = define_colors(energy_bins)
+    
     #Plot the fluxes
     for j in range(len(energy_bins)):
         energy_bin = energy_bins[j]
-
-        if energy_bin[1] == -1:
-            legend_label = f">{energy_bin[0]} {energy_units}"
-        else:
-            legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
-
+        energy_label = tools.setup_energy_bin_label(energy_bin)
         is_good = check_for_good_fluxes(fluxes[j])
         if not is_good:
             continue
+        
+        #Don't plot integral channels on plots with differential units
+        if flux_type == 'differential' and '>' in energy_label:
+            continue
 
         maskfluxes = np.ma.masked_where(fluxes[j] <=0, fluxes[j])
-        ax.plot(dates, maskfluxes,'.-', markersize=3, label=legend_label) #, marker='.')
+        ax.plot(dates, maskfluxes,'.-', markersize=3, label=energy_label, color=colors[energy_label]) #, marker='.')
 
     plt.title(plot_title)
     ylabel = f"Intensity [{flux_units}]"
@@ -435,7 +532,7 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
     plt.xticks(rotation=45, ha="right")
 
-    plt.grid(axis="both")
+    plt.grid(axis="y")
     #ax.xaxis_date()
     #ax.xaxis.set_major_formatter(DateFormatter('%Y-%m-%d\n%H:%M'))
     if 'counts' in flux_units: ylog=False
@@ -562,9 +659,9 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             start_end_label = "Start, End above background"
 
         if not pd.isnull(sep_start_times[i]):
-            ax[i].axvline(sep_start_times[i],color='black',linestyle=':')
+            ax[i].axvline(sep_start_times[i],color='black',linestyle=':', linewidth=2)
             ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
-                        label=start_end_label)
+                        label=start_end_label, linewidth=2)
 
 
 
@@ -598,26 +695,6 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         plt.close(fig)
 
 
-def define_colors():
-
-#    goes_colors = { '>1 MeV proton'     : '#b3b3b3',
-#                    '>5 MeV proton'     : '#ffd480',
-#                    '>10 MeV proton'    : '#ff0000',
-#                    '>30 MeV proton'    : '#6b3d9a',
-#                    '>50 MeV proton'    : '#0000ff',
-#                    '>60 MeV proton'    : '#000000',
-#                    '>100 MeV proton'   : '#00ff00',
-#                    '>500 MeV proton'   : '#f39c12',
-#                }
-
-    colors = ['black','red','blue','green','cyan','magenta','violet',\
-            'orange','brown','darkred','deepskyblue','mediumseagreen',
-            'lightseagreen','purple','sandybrown','cadetblue','goldenrod',
-            'navy','palevioletred','saddlebrown']
-
-    return colors
-
-
 def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     all_dates, all_fluxes, all_energy_bins, event_definitions,
     sep_start_times, sep_end_times, showplot, saveplot, spacecraft='',
@@ -643,27 +720,30 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
-    colors = define_colors()
+    colors = define_colors(all_energy_bins, event_definitions=event_definitions)
+
     #Plot the fluxes
     for j in range(len(all_energy_bins)):
         energy_bin = all_energy_bins[j]
-
-        if energy_bin[1] == -1:
-            legend_label = f">{energy_bin[0]} {energy_units}"
-        else:
-            legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
-
+        energy_label = tools.setup_energy_bin_label(energy_bin)
+    
         is_good = check_for_good_fluxes(all_fluxes[j])
         if not is_good:
             continue
 
+        #Don't plot integral channels on plots with differential units
+        if flux_type == 'differential' and '>' in energy_label:
+            continue
+
         maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
-        ax.plot(all_dates, maskfluxes,'.-', markersize=3, label=legend_label) #, marker='.')
+        ax.plot(all_dates, maskfluxes,'.-', markersize=3, label=energy_label, color=colors[energy_label]) #, marker='.')
 
     #Plot the threshold crossing times
     for i in range(len(event_definitions)):
         energy_bin = [event_definitions[i]['energy_channel'].min,
                     event_definitions[i]['energy_channel'].max]
+        energy_label = tools.setup_energy_bin_label(energy_bin)
+        
         threshold = event_definitions[i]['threshold'].threshold
         flux_units = event_definitions[i]['threshold'].threshold_units
 
@@ -673,15 +753,12 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         if threshold == cfg.opsep_min_threshold:
             threshold_label = "above background"
 
-        if energy_bin[1] == -1:
-            line_label = f">{energy_bin[0]} {energy_units}, {threshold_label}"
-        else:
-            line_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units},\n{threshold_label}"
+        line_label = f"{energy_label}, {threshold_label}"
 
         if not pd.isnull(sep_start_times[i]):
-            ax.axvline(sep_start_times[i],color=colors[i],linestyle=':',
-                        label=line_label)
-            ax.axvline(sep_end_times[i],color=colors[i],linestyle=':')
+            ax.axvline(sep_start_times[i],color=colors[energy_label],linestyle=':',
+                        label=line_label, linewidth=2)
+            ax.axvline(sep_end_times[i],color=colors[energy_label],linestyle=':', linewidth=2)
 
     plt.title(plot_title)
     
@@ -694,7 +771,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
     plt.xticks(rotation=45, ha="right")
 
-    plt.grid(axis="both")
+    plt.grid(axis="y")
     plt.yscale("log")
     if 'counts' in flux_units:
         plt.yscale("linear")
@@ -738,10 +815,17 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
  
     modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+ 
     exp_name = experiment
     if experiment == "user":
         exp_name = user_name
 
+    energy_bins = []
+    if experiment != "user":
+        expt = expts.experiment_info(experiment)
+        energy_bins = expt[flux_type]['energy_bins']
+    else:
+        energy_bins = cfg.user_energy_bins
 
     #plot integral fluxes (either input or estimated)
     nthresh = len(event_definitions)
@@ -755,7 +839,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     fig = plt.figure(figname,figsize=(10,8))
     ax = plt.subplot(111)
     markers = ['o','P','D','v','^','<','>','*','d','+','8','p','h','1','X','x']
-    colors = define_colors()
+    colors = define_colors(energy_bins, event_definitions=event_definitions)
+    
     for i in range(nthresh):
     
         if len(fluence_spectra[i]) == 0:
@@ -763,6 +848,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
         ncross = ncross + 1
 
         energy_bin = [event_definitions[i]['energy_channel'].min, event_definitions[i]['energy_channel'].max]
+        energy_label = tools.setup_energy_bin_label(energy_bin)
+        
         flspec_units = fluence_spectra_units[i]
         threshold_label = f"{event_definitions[i]['threshold'].threshold} {event_definitions[i]['threshold'].threshold_units}"
         threshold_label = make_math_label(threshold_label)
@@ -771,13 +858,10 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
             threshold_label = "above background"
 
         #Create labels
-        if energy_bin[1] == -1:
-            legend_label = f">{energy_bin[0]} {energy_units}, {threshold_label}"
-        else:
-            legend_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}, {threshold_label}"
+        legend_label = f"{energy_label}, {threshold_label}"
 
         ax.plot(energy_bin_centers,fluence_spectra[i],markers[i],
-                color=colors[i], mfc='none', label=legend_label)
+                color=colors[energy_label], mfc='none', label=legend_label)
     
     plt.grid(which="both", axis="both")
     plot_title = f"Event-Integrated Fluence Spectra\n {exp_name} {title_mod} {flux_type}"

@@ -486,7 +486,7 @@ def make_idsep_dirs(add_path=''):
         print('Making directory: ', check_path)
         os.makedirs(check_path)
 
-    paths = ['csv','pkl']
+    paths = ['csv'] #,'pkl']
     
     for path in paths:
         check_path = os.path.join(cfg.outpath,'idsep',add_path, path)
@@ -502,7 +502,7 @@ def make_idsep_dirs(add_path=''):
 
 
 
-def idsep(str_startdate, str_enddate, experiment,
+def run_idsep(str_startdate, str_enddate, experiment,
         flux_type, exp_name, user_file, is_unixtime, options, dointerp,
         remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
         write_fluxes=True, spacecraft=""):

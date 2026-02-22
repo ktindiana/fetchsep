@@ -7,7 +7,7 @@ templates/
 
 fetchsep.cfg
 
-CLEAR/
+./CLEAR/
 
 fetchsep/reference/user_associations.csv
 

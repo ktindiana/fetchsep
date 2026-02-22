@@ -271,7 +271,7 @@ idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options,
 
 
 if startpoint == "IDSEP":
-    fetchsep.idsep.idsep(str_startdate, str_enddate,
+    fetchsep.idsep.run_idsep(str_startdate, str_enddate,
         experiment, flux_type, exp_name, user_file, is_unixtime,
         options, dointerp, remove_above, for_inclusive,
         plot_timeseries_only, showplot, saveplot, spacecraft=spacecraft)

@@ -415,8 +415,9 @@ def find_last_good(idx, arr):
 def write_df(df, name, verbose=True, add_path=''):
     """Writes a pandas dataframe to the standard location in multiple formats
     """
-    dataformats = (('pkl' , getattr(df, 'to_pickle'), {}),
-                   ('csv',  getattr(df, 'to_csv'), dict(index=False)))
+    dataformats = (('csv',  getattr(df, 'to_csv'), {'index': False}),)
+    #('pkl' , getattr(df, 'to_pickle'), {}),
+    
     for ext, write_func, kwargs in dataformats:
         filepath = os.path.join(cfg.outpath, 'idsep', add_path, ext, name + '.' + ext)
         write_func(filepath, **kwargs)
@@ -498,6 +499,9 @@ def calc_bg_stats(df, nsigma, col):
 def plot_dist_hist(df, iteration):
     """ PLOT HISTOGRAMS OF THE DATA TO INVESTIGATE distribution. """
     if iteration != 0: return
+    
+    if not os.path.isdir(os.path.join(cfg.plotpath,'idsep','hist')):
+        os.mkdir(os.path.join(cfg.plotpath,'idsep','hist'))
 
     firstdate = df['dates'].iloc[0]
     lastdate = df['dates'].iloc[-1]

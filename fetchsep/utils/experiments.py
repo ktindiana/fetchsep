@@ -195,8 +195,8 @@ def experiment_info(experiment):
                 'integral': {
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'energy_bins': [[30,-1],[60,-1]],
-                    'energy_bin_centers': [30,60],
+                    'energy_bins': [[30.0,-1],[60.0,-1]],
+                    'energy_bin_centers': [30.0,60.0],
                     'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/'
                 }
             },
@@ -268,8 +268,8 @@ def experiment_info(experiment):
                 'differential': {
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
-                    'energy_bins': [[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]],
-                    'energy_bin_centers': calculate_geometric_means([[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]]),
+                    'energy_bins': [[4.3,7.8],[7.8,25.0],[25.0,40.9],[40.9,53.0]],
+                    'energy_bin_centers': calculate_geometric_means([[4.3,7.8],[7.8,25.0],[25.0,40.9],[40.9,53.0]]),
                     'url': 'http://ulysses.physik.uni-kiel.de/costep/level3/l3i/'
                 },
                 'integral':{
@@ -384,9 +384,9 @@ def experiment_info(experiment):
                        [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
                        [10.0,13.0],[14.0,17.0],[17.0,22.0],[21.0,28.0],
                        [26.0,32.0],[32.0,40.0],[41.0,51.0],
-                       [51.0,67.0],[54.0,79.0],[79.0,114.0],[111.0,140.]],
-                    'energy_bin_centers': [1.6, 2.0, 2.4, 3.0, 3.7, 4.6, 5.8, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.0, 36.4, 45.6, 54.1, 67.5, 95.0, 116],
+                       [51.0,67.0],[54.0,79.0],[79.0,114.0],[111.0,140.0]],
+                    'energy_bin_centers': [1.6, 2.0, 2.4, 3.0, 3.7, 4.6, 5.8, 7.2, 9.1, 11.0,
+                        15.4, 18.9, 23.3, 29.0, 36.4, 45.6, 54.1, 67.5, 95.0, 116.0],
                     'url': 'https://export.srl.utu.fi'
                 },
                 'integral':{
@@ -420,8 +420,8 @@ def experiment_info(experiment):
                        [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
                        [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
                        [64.0,80.0],[80.0,101.0],[101.0,131.0]],
-                    'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108],
+                    'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11.0,
+                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108.0],
                     'url': 'https://export.srl.utu.fi'
                 },
                 'integral':{
@@ -455,7 +455,7 @@ def experiment_info(experiment):
                        [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
                        [64.0,80.0],[80.0,101.0],[101.0,131.0]],
                     'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108],
+                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108.0],
                     'url': 'https://export.srl.utu.fi'
                 },
                 'integral':{
@@ -505,10 +505,10 @@ def experiment_info(experiment):
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,44.0],
                         [39.0,82.0],[84.0,200.0],[110.0,500.0],
-                        [375, 375],[465,465],[605,605], [685,-1]],
+                        [375.0, 375.0],[465.0,465.0],[605.0,605.0], [685.0,-1]],
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,44.0],
                         [39.0,82.0],[84.0,200.0],[110.0,500.0],
-                        [375, 375],[465,465],[605,605], [685,-1]]),
+                        [375.0, 375.0],[465.0,465.0],[605.0,605.0], [685.0,-1]]),
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
                 },
                 'integral': {
@@ -932,7 +932,7 @@ def experiment_info(experiment):
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'energy_bins': [[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
+                    'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[100.0,-1],[60.0,-1],[500.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,100.0,60.0,500.0],
                     'url': 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/'
                 }
@@ -963,7 +963,7 @@ def experiment_info(experiment):
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'energy_bins': [[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],[60,-1],[500,-1]],
+                    'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[100.0,-1],[60.0,-1],[500.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,100.0,60.0,500.0],
                     'url': 'https://services.swpc.noaa.gov/json/goes/'
                 }
