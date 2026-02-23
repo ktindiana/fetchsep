@@ -353,8 +353,12 @@ def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop
                 df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == str(sep))]
             if df_check.empty:
                 if enforce_sep_stop:
+                    # SAVE THE UNAPPROVED SEP EVENT DATAFRAME
+                    os.makedirs('./tmp', exist_ok=True)
+                    df.to_pickle('./tmp/unapproved_sep_df.pkl')
+
                     sys.exit(f"move_obs: The observation with observation window starting at {obs_st} " "contains an SEP event with threshold crossing time\n "
-                        f"{df}\n "
+                        f"{df.to_string()}\n "
                         f"This SEP {sep} is not in the approved SEP file {target_dir}/approved_SEP.csv. "
                         "Outputs cannot be moved until the SEP event has been approved. Exiting.")
             else:
