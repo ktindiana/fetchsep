@@ -385,21 +385,21 @@ def define_colors(energy_bins, event_definitions=None):
     
     integral_colors = {
                 '>1 MeV'     : '#bdbdbd', #'#b3b3b3',
-                '>5 MeV'     : '#f0ad4e', #'#ffd480',
+                '>5 MeV'     : '#ffd480', # '#f0ad4e'
                 '>10 MeV'    : '#ff0000',
-                '>30 MeV'    : '#9467bd', #'#6b3d9a',
+                '>30 MeV'    : '#6b3d9a', #'#9467bd',
                 '>50 MeV'    : '#0000ff',
-                '>60 MeV'    : '#6e6e6e', #'#000000',
+                '>60 MeV'    : '#000000', #'#6e6e6e'
                 '>100 MeV'   : '#00ff00',
-                '>500 MeV'   : '#00cfd1', #SEP Scoreboard choice
+                '>500 MeV'   : 'darkturquoise', #SEP Scoreboard choice '#00cfd1',
                 '>1.0 MeV'     : '#bdbdbd',
-                '>5.0 MeV'     : '#f0ad4e', #SEP Scoreboard choice,
+                '>5.0 MeV'     : '#ffd480', #SEP Scoreboard choice,
                 '>10.0 MeV'    : '#ff0000',
-                '>30.0 MeV'    : '#9467bd',
+                '>30.0 MeV'    : '#6b3d9a',
                 '>50.0 MeV'    : '#0000ff',
-                '>60.0 MeV'    : '#6e6e6e',
+                '>60.0 MeV'    : '#000000',
                 '>100.0 MeV'   : '#00ff00',
-                '>500.0 MeV'   : '#00cfd1', # SWPC '#f39c12'
+                '>500.0 MeV'   : 'darkturquoise', # SWPC '#f39c12'
                 }
 
     #Fluxes
@@ -412,8 +412,8 @@ def define_colors(energy_bins, event_definitions=None):
         "#E36414",  # burnt orange
         "#FF9F1C",  # light orange
 
-        "#1B9E77",  # teal
-        "#20B2AA",  # light teal
+        "#2A9D8F",  # sea green
+        "mediumaquamarine",
 
         "#C44536",  # strong red-orange
         "#E56B6F",  # muted coral (warm)
@@ -427,13 +427,14 @@ def define_colors(energy_bins, event_definitions=None):
         "#588157",  # forest
         "#6A994E",  # medium green
 
-        "#E9C46A",  # muted gold
-        "#F4D35E",  # soft yellow
+        "goldenrod", #"#E9C46A",  # muted gold
+        "khaki",  #"#F4D35E" soft yellow
 
 
         "#1D3557",  # deep navy (not pure blue)
         "#F77F00",  # warm orange
-        "#2A9D8F",  # sea green
+        "#1B9E77",  # teal
+        "#20B2AA",  # light teal
         "#9E2A2B",  # deep brick
         "#7FB069",  # soft green
 
@@ -442,12 +443,14 @@ def define_colors(energy_bins, event_definitions=None):
 
 
     threshold_colors = [
-        "#A7C957",  # yellow-green
-        "#1B4332",  # deep teal-green
         "#BC6C25",  # brown-orange
         "#386641",  # deep green
-        "#118AB2",  # blue-teal
-        "#7209B7",  # violet
+        "dimgrey",
+        "silver",
+        "magenta",  # violet
+        "lightsteelblue",
+        "#A7C957",  # yellow-green
+        "#5AA9E6",  # light azure
     ]
 
 
