@@ -405,48 +405,143 @@ def define_colors(energy_bins, event_definitions=None):
     #Fluxes
     #Colors not close in shade to the GOES colors
     flux_colors = [
-        "#1B3A4B",  # deep slate blue (cool)
-        "#2A9D8F",  # sea green (cool)
-        "#A7C957",  # yellow-green (cool-leaning)
-        "#9C6644",  # sienna (warm)
-        "#E9C46A",  # muted gold (warm)
-        "#6D597A",  # smoky plum (cool)
-        "#CDB4DB",  # pale lavender (cool)
-        "#3A5A40",  # deep forest (cool)
-        "#D4A373",  # sand (warm)
-        "#52796F",  # cool sage (cool)
+        #Tab20-like
+        "#2C5282",  # dark blue
+        "#3A86FF",  # bright blue (not #0000ff)
 
-        "#3E7CB1",  # muted sky blue (cool)
-        "#588157",  # muted green (cool)
-        "#BC6C25",  # brown-orange (warm)
-        "#B08968",  # warm tan (warm)
+        "#E36414",  # burnt orange
+        "#FF9F1C",  # light orange
+
+        "#1B9E77",  # teal
+        "#20B2AA",  # light teal
+
+        "#C44536",  # strong red-orange
         "#E56B6F",  # muted coral (warm)
-        "#9F86C0",  # soft violet (cool)
-        "#28536B",  # steel teal (cool)
-        "#7F5539",  # cocoa (warm)
-        "#B56576",  # dusty rose (warm-neutral)
-        "#8D99AE",  # blue-gray (cool-neutral)
+
+        "#5E60CE",  # indigo
+        "#9D4EDD",  # light violet
+
+        "#A47148",  # warm brown
+        "#D4A373",  # sand
+
+        "#588157",  # forest
+        "#6A994E",  # medium green
+
+        "#E9C46A",  # muted gold
+        "#F4D35E",  # soft yellow
+
+
+        "#1D3557",  # deep navy (not pure blue)
+        "#F77F00",  # warm orange
+        "#2A9D8F",  # sea green
+        "#9E2A2B",  # deep brick
+        "#7FB069",  # soft green
+
 
     ]
-
-
-    #Thresholds not associated with a flux energy bin
-#    threshold_colors =  ['black', 'red', 'blue', 'green', 'cyan', 'magenta',
-#                'violet', 'orange', 'brown', 'darkred', 'deepskyblue',
-#                'mediumseagreen', 'lightseagreen', 'purple', 'sandybrown',
-#                'cadetblue', 'goldenrod', 'navy', 'palevioletred',
-#                'saddlebrown']
- 
 
 
     threshold_colors = [
-        "#5AA9E6",  # light azure (cool)
-        "#7FB069",  # soft leaf (cool)
-        "#EAAC8B",  # soft peach (warm)
-        "#4C5B5C",  # blue slate (cool-neutral)
-        "#344E41",  # dark moss (cool)
-        "#ADB5BD",  # light cool gray (neutral)
+        "#A7C957",  # yellow-green
+        "#1B4332",  # deep teal-green
+        "#BC6C25",  # brown-orange
+        "#386641",  # deep green
+        "#118AB2",  # blue-teal
+        "#7209B7",  # violet
     ]
+
+
+#    #GOES SAFE COLORS
+#    flux_colors = [
+#        "#28536B",  # steel teal (cool)
+#        "#5AA9E6",  # light azure (cool)
+#        "#A7C957",  # yellow-green (neutral)
+#        "#588157",  # muted green (cool-neutral)
+#        "#3A5A40",  # deep forest (cool-neutral)
+#        "#CDB4DB",  # pale lavender (soft warm finish)
+#        "#6D597A",  # smoky plum (neutral-warm)
+#        "#7F5539",  # cocoa
+#        "#D4A373",  # sand
+#
+#        "#1B3A4B",  # deep slate blue (cool)
+#        "#3E7CB1",  # muted sky blue (cool)
+#        "#2A9D8F",  # sea green (cool)
+#        "#52796F",  # cool sage (cool-neutral)
+#        "#9F86C0",  # soft violet (neutral-cool)
+#        "#E9C46A",  # muted gold (warm-neutral)
+#        "#E56B6F",  # muted coral (warm)
+#        "#B08968",  # warm tan
+#
+#
+#        # --- Distinct hues (cool + accent colors first) ---
+##        "#1B3A4B",  # deep slate blue
+##        "#3E7CB1",  # muted sky blue
+##        "#5AA9E6",  # light azure
+##        "#2A9D8F",  # sea green
+##        "#588157",  # muted green
+##        "#A7C957",  # yellow-green
+##        "#28536B",  # steel teal
+##        "#52796F",  # cool sage
+##        "#3A5A40",  # deep forest
+##        "#9F86C0",  # soft violet
+##        "#CDB4DB",  # pale lavender
+##        "#6D597A",  # smoky plum
+##        "#E9C46A",  # muted gold
+##        "#E56B6F",  # muted coral
+#
+#        # --- Browns, tans, and grays at the end ---
+#        "#BC6C25",  # brown-orange
+#        "#9C6644",  # sienna
+#        "#8D99AE",  # blue-gray
+#
+##        # --- Group 1 ---
+##        "#1B3A4B",  # deep slate blue (cool)
+##        "#3E7CB1",  # muted sky blue (cool)
+##        "#2A9D8F",  # sea green (cool)
+##        "#588157",  # muted green (cool-neutral)
+##        "#BC6C25",  # brown-orange (warm)
+##
+##        # --- Group 3 ---
+##        "#5AA9E6",  # light azure (cool)
+##        "#8D99AE",  # blue-gray (cool-neutral)
+##        "#6D597A",  # smoky plum (cool-neutral)
+##        "#B08968",  # warm tan (warm-neutral)
+##        "#E9C46A",  # muted gold (warm)
+##
+##        # --- Group 2 ---
+##        "#28536B",  # steel teal (cool)
+##        "#52796F",  # cool sage (cool-neutral)
+##        "#A7C957",  # yellow-green (neutral)
+##        "#D4A373",  # sand (warm-neutral)
+##        "#9C6644",  # sienna (warm)
+##
+##        # --- Group 4 ---
+##        "#9F86C0",  # soft violet (cool)
+##        "#CDB4DB",  # pale lavender (cool)
+##        "#3A5A40",  # deep forest (cool-neutral)
+##        "#B56576",  # dusty rose (warm-neutral)
+##        "#E56B6F",  # muted coral (warm)
+#
+#    ]
+#
+#
+#    #Thresholds not associated with a flux energy bin
+##    threshold_colors =  ['black', 'red', 'blue', 'green', 'cyan', 'magenta',
+##                'violet', 'orange', 'brown', 'darkred', 'deepskyblue',
+##                'mediumseagreen', 'lightseagreen', 'purple', 'sandybrown',
+##                'cadetblue', 'goldenrod', 'navy', 'palevioletred',
+##                'saddlebrown']
+# 
+#
+#
+#    threshold_colors = [
+#        "#5AA9E6",  # light azure (cool)
+#        "#7FB069",  # soft leaf (cool)
+#        "#EAAC8B",  # soft peach (warm)
+#        "#4C5B5C",  # blue slate (cool-neutral)
+#        "#344E41",  # dark moss (cool)
+#        "#ADB5BD",  # light cool gray (neutral)
+#    ]
 
     #Flux energy bin colors
     color_map = {}
