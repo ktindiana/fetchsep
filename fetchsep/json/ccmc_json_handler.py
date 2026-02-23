@@ -323,7 +323,7 @@ def ccmc_flare_block():
 
 
 def clean_trigger_block(trigger_dict):
-    """ Delete null or empty fields from CCMC trigger block """
+    """ Delete null or empty fields from a single CCMC trigger block """
     #If already empty, return
     if not trigger_dict:
         return trigger_dict
@@ -1541,7 +1541,38 @@ def add_trigger_array(trigger_array, injson):
     main_key = return_main_key(injson)
     injson[main_key].update({"triggers": trigger_array})
     return injson
+ 
+ 
+def append_trigger_array(trigger_array, injson):
+    """ Append triggers to an existing trigger block in the json or
+        create a trigger block if one doesn't exist.
+        
+        INPUTS:
+        
+        :trigger_array: (array of dictionaries) each element of the array is a
+            dictionary for a specific trigger. See CCMC's json schema for
+            allowed triggers.
+            
+        :injson: (json) file intended for output containing all SEP
+            information.
+            
+        OUTPUTS:
+        
+        :injson: (json) file with trigger information added
+        
+    """
+    clean_array = []
+    for trig in trigger_array:
+        for key in trig.keys(): #should only be one key: 'cme', 'flare', etc
+            ctrig = clean_trigger_block(trig[key])
+            clean_array.append({key: ctrig})
     
+    main_key = return_main_key(injson)
+    if "triggers" in injson[main_key].keys():
+        injson[main_key]["triggers"] =  injson[main_key]["triggers"] + clean_array
+    else:
+        injson[main_key].update({"triggers": clean_array})
+    return injson
     
 
 def set_json_value_by_index(value, injson, key_id, channel_index=0, index=0):

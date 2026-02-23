@@ -22,7 +22,10 @@ def str_to_datetime(date):
     
     if date == '':
         return pd.NaT
-    
+
+    if date == None:
+        return pd.NaT
+
     #If user entered zulu time or similar
     #YYYY-MM-DDTHH:MM:SSZ or YYYY-MM-DDTHH:MM:SS
     if 'T' in date:

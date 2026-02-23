@@ -265,6 +265,10 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
     if isinstance(starttime, str):
         starttime=dh.str_to_datetime(starttime)
     
+    if pd.isnull(starttime):
+        print(f"get_donki_cme: Improper time format {starttime}.")
+        return {}
+    
     startdate = starttime - datetime.timedelta(hours=6)
     enddate = starttime + datetime.timedelta(hours=6)
     

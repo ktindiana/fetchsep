@@ -847,7 +847,11 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
 
     if isinstance(request_time, str):
         request_time=dh.str_to_datetime(request_time)
-    
+
+    if pd.isnull(request_time):
+        print(f"get_noaa_flare: Improper time format {request_time}.")
+        return flare_info
+
     #If no experiment specified, default to primary GOES if available
     if experiment == None:
         experiment = identify_which_goes_xray_spacecraft(request_time, spacecraft="primary")

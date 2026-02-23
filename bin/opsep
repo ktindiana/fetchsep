@@ -181,17 +181,21 @@ parser.add_argument("--Associations",
 parser.add_argument("--SaveAssociations",
         help=("Set flag to write flare, CME, location associations input by the user for the analyzed SEP event to the user-maintained associations list: fetchsep/reference/user_associations.csv. "), action="store_true")
 
-parser.add_argument("--AutoFlareTime", type=str, default='',
+parser.add_argument("--AutoFlareTime", type=str, default=None,
         help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
             "to identify a flare in the NOAA NCEI science archives. "
             "Time should be equal to or between the flare start and end time, "
             "with the peak as the preferable time."))
 
-parser.add_argument("--AutoCMETime", type=str, default='',
+parser.add_argument("--AutoCMETime", type=str, default=None,
         help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
             "to identify a CME in DONKI. Use the CME start time, which is "
             "generally the LASCO C2 first look time."))
 
+parser.add_argument("--Trigger", type=str, default=None,
+        help=("Filename containing a json trigger block in the CCMC SEP Scoreboard format. "
+            "Expected file format {\"trigger\": [{'cme':{...}}, {'flare':{...}}]} with any "
+            "number of triggers inside. "))
 
 #####MANUAL INPUT OF CME PARAMETERS
 parser.add_argument("--CME-start-time", default=pd.NaT,
@@ -337,6 +341,7 @@ associations = args.Associations
 save_associations = args.SaveAssociations
 auto_flare_time = args.AutoFlareTime
 auto_cme_time = args.AutoCMETime
+trigger = args.Trigger
 cme_start_time=args.CME_start_time
 cme_liftoff_time=args.CME_liftoff_time
 cme_half_width=args.CME_half_width
@@ -403,6 +408,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     save_associations=save_associations,
     auto_flare_time=auto_flare_time,
     auto_cme_time=auto_cme_time,
+    trigger=trigger,
     cme_start_time=cme_start_time,
     cme_liftoff_time=cme_liftoff_time,
     cme_half_width=cme_half_width,
