@@ -40,6 +40,17 @@ parser.add_argument("--FluxType", type=str, choices=['integral',
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES-RT is selected, choose the primary or secondary spacecraft. Default = primary."))
+        
+parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7], default=1,
+        help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
+            "will always be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
+            "Other energy channels are plotted with colors that are different from these GOES colors. "
+            "Multiple color schemes are offered: 1 - Colors in Tab20-like order that are distinct from "
+            "shade to GOES colors; 2 - Standard Python Tab10 with red replaced with muted coral; "
+            "3 - Standard Python Set1 with red replaced with muted coral; "
+            "4 - Standard Python Tab20 with red replaced with muted coral; 5 - Colors to browns, all "
+            "distinct from GOES colors; 6 - Reds to blues disctinct from GOES colors; "
+            "7 - Interleaved colors distinct from GOES colors"))
 
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
@@ -298,6 +309,7 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+color_scheme = args.ColorScheme
 user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
@@ -364,6 +376,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     str_startdate, str_enddate, experiment,
     flux_type=flux_type,
     spacecraft=spacecraft,
+    color_scheme=color_scheme,
     user_thresholds=user_thresholds,
     dointerp=dointerp,
     user_name=user_name,

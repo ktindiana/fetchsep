@@ -11,6 +11,7 @@ import seaborn as sns
 import matplotlib.gridspec as gridspec
 from matplotlib.dates import DateFormatter
 import math
+from itertools import cycle
 from sklearn.utils.validation import check_consistent_length
 from sklearn.utils.validation import check_array
 import datetime
@@ -380,9 +381,27 @@ def make_math_label(label):
     return label
 
 
-def define_colors(energy_bins, event_definitions=None):
-    """ Colors for flux time series """
+def define_colors(energy_bins, event_definitions=None, color_scheme=1):
+    """ Colors for flux time series. Colors are mapped to energy bins
+        and event definitions (energy bin + threshold).
+        
+        Users can choose different color schemes according to their
+        preference.
+        
+        The standard integral energy channels are plotted with 
+        SWPC/SEP Scoreboard colors. Other energy channels are plotted
+        with colors that are distinct from the integral channel colors.
+        
+        INPUTS:
+        
+            :energy_bins: (list) e.g. [[10,-1],[30,-1],[50,-1]]
+            :event_definitions: (object) contains energy channel and threshold
+            :color_scheme: (int) allows user to select different color schemes
+        
     
+    """
+    #########
+    #Integral channel GOES colors to match NOAA SWPC and SEP Scoreboards
     integral_colors = {
                 '>1 MeV'     : '#bdbdbd', #'#b3b3b3',
                 '>5 MeV'     : '#ffd480', # '#f0ad4e'
@@ -402,131 +421,291 @@ def define_colors(energy_bins, event_definitions=None):
                 '>500.0 MeV'   : 'darkturquoise', # SWPC '#f39c12'
                 }
 
-    #Fluxes
-    #Colors not close in shade to the GOES colors
-    flux_colors = [
-        #Tab20-like
-        "#2C5282",  # dark blue
-        "#3A86FF",  # bright blue (not #0000ff)
+    #########
+    #Colors for other energy bins
+ 
+    #### DEFAULT ####
+    #Colors in Tab20-like order that are not close in shade to GOES colors.
+    if color_scheme == 1:
+        #Fluxes
+        flux_colors = [
+            #Tab20-like
+            "#2C5282",  # dark blue
+            "#3A86FF",  # bright blue (not #0000ff)
 
-        "#E36414",  # burnt orange
-        "#FF9F1C",  # light orange
+            "#E36414",  # burnt orange
+            "#FF9F1C",  # light orange
 
-        "#2A9D8F",  # sea green
-        "mediumaquamarine",
+            "#2A9D8F",  # sea green
+            "mediumaquamarine",
 
-        "#C44536",  # strong red-orange
-        "#E56B6F",  # muted coral (warm)
+            "#C44536",  # strong red-orange
+            "#E56B6F",  # muted coral (warm)
 
-        "#5E60CE",  # indigo
-        "#9D4EDD",  # light violet
+            "#5E60CE",  # indigo
+            "#9D4EDD",  # light violet
 
-        "#A47148",  # warm brown
-        "#D4A373",  # sand
+            "#A47148",  # warm brown
+            "#D4A373",  # sand
 
-        "#588157",  # forest
-        "#6A994E",  # medium green
+            "#588157",  # forest
+            "#6A994E",  # medium green
 
-        "goldenrod", #"#E9C46A",  # muted gold
-        "khaki",  #"#F4D35E" soft yellow
-
-
-        "#1D3557",  # deep navy (not pure blue)
-        "#F77F00",  # warm orange
-        "#1B9E77",  # teal
-        "#20B2AA",  # light teal
-        "#9E2A2B",  # deep brick
-        "#7FB069",  # soft green
+            "goldenrod", #"#E9C46A",  # muted gold
+            "khaki",  #"#F4D35E" soft yellow
 
 
-    ]
+            "#1D3557",  # deep navy (not pure blue)
+            "#F77F00",  # warm orange
+            "#1B9E77",  # teal
+            "#20B2AA",  # light teal
+            "#9E2A2B",  # deep brick
+            "#7FB069",  # soft green
+        ]
+
+        #Additional colors for thresholds
+        threshold_colors = [
+            "#BC6C25",  # brown-orange
+            "#386641",  # deep green
+            "dimgrey",
+            "silver",
+            "magenta",  # violet
+            "lightsteelblue",
+            "#A7C957",  # yellow-green
+            "#5AA9E6",  # light azure
+        ]
+
+    #Standard Python Tab10 with red replaced with muted coral
+    #repeated to make 20 colors for flux time series.
+    #Set2 scheme used for additional thresholds
+    if color_scheme == 2:
+        flux_colors = [
+            "#1f77b4",  # tab:blue
+            "#ff7f0e",  # tab:orange
+            "#2ca02c",  # tab:green
+            "#E65A60",  # reddish coral
+            "#9467bd",  # tab:purple
+            "#8c564b",  # tab:brown
+            "#e377c2",  # tab:pink
+            "#7f7f7f",  # tab:gray
+            "#bcbd22",  # tab:olive
+            "#17becf",  # tab:cyan
+            
+            "#1f77b4",  # tab:blue
+            "#ff7f0e",  # tab:orange
+            "#2ca02c",  # tab:green
+            "#E65A60",  # reddish coral
+            "#9467bd",  # tab:purple
+            "#8c564b",  # tab:brown
+            "#e377c2",  # tab:pink
+            "#7f7f7f",  # tab:gray
+            "#bcbd22",  # tab:olive
+            "#17becf",  # tab:cyan
+        ]
+
+        #Set 2
+        threshold_colors = [
+            "#66c2a5",  # teal
+            "#fc8d62",  # orange
+            "#8da0cb",  # blue-violet
+            "#e78ac3",  # pink
+            "#a6d854",  # green
+            "#ffd92f",  # yellow
+            "#e5c494",  # tan
+            "#b3b3b3",  # gray
+        ]
 
 
-    threshold_colors = [
-        "#BC6C25",  # brown-orange
-        "#386641",  # deep green
-        "dimgrey",
-        "silver",
-        "magenta",  # violet
-        "lightsteelblue",
-        "#A7C957",  # yellow-green
-        "#5AA9E6",  # light azure
-    ]
+    #Standard Python Set1 with red replaced with muted coral
+    #repeated to make 20 colors for flux time series.
+    #Set2 scheme used for additional thresholds
+    if color_scheme == 3:
+        flux_colors = [
+            "#E65A60",  # reddish coral
+            "#377eb8",  # blue
+            "#4daf4a",  # green
+            "#984ea3",  # purple
+            "#ff7f00",  # orange
+            "#ffff33",  # yellow
+            "#a65628",  # brown
+            "#f781bf",  # pink
+            "#999999",  # gray
+                    
+            "#E65A60",  # reddish coral
+            "#377eb8",  # blue
+            "#4daf4a",  # green
+            "#984ea3",  # purple
+            "#ff7f00",  # orange
+            "#ffff33",  # yellow
+            "#a65628",  # brown
+            "#f781bf",  # pink
+            "#999999",  # gray
+        ]
+
+        #Set 2
+        threshold_colors = [
+            "#66c2a5",  # teal
+            "#fc8d62",  # orange
+            "#8da0cb",  # blue-violet
+            "#e78ac3",  # pink
+            "#a6d854",  # green
+            "#ffd92f",  # yellow
+            "#e5c494",  # tan
+            "#b3b3b3",  # gray
+        ]
 
 
-#    #GOES SAFE COLORS
-#    flux_colors = [
-#        "#28536B",  # steel teal (cool)
-#        "#5AA9E6",  # light azure (cool)
-#        "#A7C957",  # yellow-green (neutral)
-#        "#588157",  # muted green (cool-neutral)
-#        "#3A5A40",  # deep forest (cool-neutral)
-#        "#CDB4DB",  # pale lavender (soft warm finish)
-#        "#6D597A",  # smoky plum (neutral-warm)
-#        "#7F5539",  # cocoa
-#        "#D4A373",  # sand
-#
-#        "#1B3A4B",  # deep slate blue (cool)
-#        "#3E7CB1",  # muted sky blue (cool)
-#        "#2A9D8F",  # sea green (cool)
-#        "#52796F",  # cool sage (cool-neutral)
-#        "#9F86C0",  # soft violet (neutral-cool)
-#        "#E9C46A",  # muted gold (warm-neutral)
-#        "#E56B6F",  # muted coral (warm)
-#        "#B08968",  # warm tan
-#
-#
-#        # --- Distinct hues (cool + accent colors first) ---
-##        "#1B3A4B",  # deep slate blue
-##        "#3E7CB1",  # muted sky blue
-##        "#5AA9E6",  # light azure
-##        "#2A9D8F",  # sea green
-##        "#588157",  # muted green
-##        "#A7C957",  # yellow-green
-##        "#28536B",  # steel teal
-##        "#52796F",  # cool sage
-##        "#3A5A40",  # deep forest
-##        "#9F86C0",  # soft violet
-##        "#CDB4DB",  # pale lavender
-##        "#6D597A",  # smoky plum
-##        "#E9C46A",  # muted gold
-##        "#E56B6F",  # muted coral
-#
-#        # --- Browns, tans, and grays at the end ---
-#        "#BC6C25",  # brown-orange
-#        "#9C6644",  # sienna
-#        "#8D99AE",  # blue-gray
-#
-##        # --- Group 1 ---
-##        "#1B3A4B",  # deep slate blue (cool)
-##        "#3E7CB1",  # muted sky blue (cool)
-##        "#2A9D8F",  # sea green (cool)
-##        "#588157",  # muted green (cool-neutral)
-##        "#BC6C25",  # brown-orange (warm)
-##
-##        # --- Group 3 ---
-##        "#5AA9E6",  # light azure (cool)
-##        "#8D99AE",  # blue-gray (cool-neutral)
-##        "#6D597A",  # smoky plum (cool-neutral)
-##        "#B08968",  # warm tan (warm-neutral)
-##        "#E9C46A",  # muted gold (warm)
-##
-##        # --- Group 2 ---
-##        "#28536B",  # steel teal (cool)
-##        "#52796F",  # cool sage (cool-neutral)
-##        "#A7C957",  # yellow-green (neutral)
-##        "#D4A373",  # sand (warm-neutral)
-##        "#9C6644",  # sienna (warm)
-##
-##        # --- Group 4 ---
-##        "#9F86C0",  # soft violet (cool)
-##        "#CDB4DB",  # pale lavender (cool)
-##        "#3A5A40",  # deep forest (cool-neutral)
-##        "#B56576",  # dusty rose (warm-neutral)
-##        "#E56B6F",  # muted coral (warm)
-#
-#    ]
-#
+    #Standard Python Tab20 with red replaced with muted coral
+    #Set2 scheme used for additional thresholds
+    if color_scheme == 4:
+        flux_colors = [
+            "#1f77b4",  # blue
+            "#aec7e8",  # light blue
+            "#ff7f0e",  # orange
+            "#ffbb78",  # light orange
+            "#2ca02c",  # green
+            "#98df8a",  # light green
+            "#E65A60",  # reddish coral
+            "#ff9896",  # light red
+            "#9467bd",  # purple
+            "#c5b0d5",  # light purple
+            "#8c564b",  # brown
+            "#c49c94",  # light brown
+            "#e377c2",  # pink
+            "#f7b6d2",  # light pink
+            "#7f7f7f",  # gray
+            "#c7c7c7",  # light gray
+            "#bcbd22",  # olive
+            "#dbdb8d",  # light olive
+            "#17becf",  # cyan
+            "#9edae5",  # light cyan
+        ]
+
+        #Set 2
+        threshold_colors = [
+            "#66c2a5",  # teal
+            "#fc8d62",  # orange
+            "#8da0cb",  # blue-violet
+            "#e78ac3",  # pink
+            "#a6d854",  # green
+            "#ffd92f",  # yellow
+            "#e5c494",  # tan
+            "#b3b3b3",  # gray
+        ]
+
+
+    #Colors to browns, all distinct from GOES colors
+    if color_scheme == 5:
+        flux_colors = [
+            # --- Distinct hues (cool + accent colors first) ---
+            "#1B3A4B",  # deep slate blue
+            "#3E7CB1",  # muted sky blue
+            "#5AA9E6",  # light azure
+            "#2A9D8F",  # sea green
+            "#588157",  # muted green
+            "#A7C957",  # yellow-green
+            "#28536B",  # steel teal
+            "#52796F",  # cool sage
+            "#3A5A40",  # deep forest
+            "#9F86C0",  # soft violet
+            "#CDB4DB",  # pale lavender
+            "#6D597A",  # smoky plum
+            "#E9C46A",  # muted gold
+            "#E56B6F",  # muted coral
+
+            # --- Browns, tans, and grays at the end ---
+            "#BC6C25",  # brown-orange
+            "#9C6644",  # sienna
+            "#7F5539",  # cocoa
+            "#B08968",  # warm tan
+            "#D4A373",  # sand
+            "#8D99AE",  # blue-gray
+        ]
+
+        threshold_colors = [
+            "#5AA9E6",  # light azure (cool)
+            "#7FB069",  # soft leaf (cool)
+            "#EAAC8B",  # soft peach (warm)
+            "#4C5B5C",  # blue slate (cool-neutral)
+            "#344E41",  # dark moss (cool)
+            "#ADB5BD",  # light cool gray (neutral)
+        ]
+
+
+    #Reds to blues and are not the same as GOES colors
+    if color_scheme == 6:
+        flux_colors = [
+            "#C44536",  # strong red-orange
+            "#E36414",  # burnt orange
+            "#F77F00",  # warm orange
+            "#FF9F1C",  # light orange
+            
+            "#BC6C25",  # brown-orange
+            "#D4A373",  # sand
+            "#E9C46A",  # muted gold
+            "#F4D35E",  # soft yellow
+            
+            "#588157",  # forest
+            "#6A994E",  # medium green
+            "#7FB069",  # soft green
+            "#A7C957",  # yellow-green
+            
+            "#2A9D8F",  # sea green
+            "#1B9E77",  # teal
+            "#20B2AA",  # light teal
+            "#118AB2",  # blue-teal
+            
+            "#2C5282",  # dark blue
+            "#3A86FF",  # bright blue (not #0000ff)
+            "#5E60CE",  # indigo
+            "#9D4EDD",  # light violet
+        ]
+
+        threshold_colors = [
+            "#9E2A2B",  # deep brick
+            "#A47148",  # warm brown
+            "#386641",  # deep green
+            "#1B4332",  # deep teal-green
+            "#1D3557",  # deep navy (not pure blue)
+            "#7209B7",  # violet
+        ]
+
+    #Interleaved colors not close to GOES colors
+    if color_scheme == 7:
+        flux_colors = [
+            # High-contrast alternating warm/cool
+            "#9E2A2B",  # deep brick
+            "#1D3557",  # deep navy
+            "#E36414",  # burnt orange
+            "#2A9D8F",  # sea green
+            "#F4D35E",  # soft yellow
+            "#3A86FF",  # bright blue
+            "#BC6C25",  # brown-orange
+            "#1B9E77",  # teal
+            "#C44536",  # red-orange
+            "#5E60CE",  # indigo
+            "#D4A373",  # sand
+            "#386641",  # deep green
+            "#FF9F1C",  # light orange
+            "#118AB2",  # blue-teal
+            "#A47148",  # warm brown
+            "#7209B7",  # violet
+            "#E9C46A",  # muted gold
+            "#588157",  # forest green
+            "#F77F00",  # warm orange
+            "#2C5282",  # dark blue
+        ]
+
+        threshold_colors = [
+            "#A7C957",  # yellow-green
+            "#1B4332",  # dark teal-green
+            "#6A994E",  # medium green
+            "#20B2AA",  # light teal
+            "#7FB069",  # soft green
+            "#9D4EDD",  # light violet
+        ]
+
+
 #
 #    #Thresholds not associated with a flux energy bin
 ##    threshold_colors =  ['black', 'red', 'blue', 'green', 'cyan', 'magenta',
@@ -536,15 +715,6 @@ def define_colors(energy_bins, event_definitions=None):
 ##                'saddlebrown']
 # 
 #
-#
-#    threshold_colors = [
-#        "#5AA9E6",  # light azure (cool)
-#        "#7FB069",  # soft leaf (cool)
-#        "#EAAC8B",  # soft peach (warm)
-#        "#4C5B5C",  # blue slate (cool-neutral)
-#        "#344E41",  # dark moss (cool)
-#        "#ADB5BD",  # light cool gray (neutral)
-#    ]
 
     #Flux energy bin colors
     color_map = {}
@@ -571,10 +741,23 @@ def define_colors(energy_bins, event_definitions=None):
     return color_map
 
 
+def vline_styles(event_definitions):
+    """ Set line styles for vertical lines for different 
+        event definitions.
+        
+    """
+    lines = ["--","-.",":"]
+    linecycler = cycle(lines)
+    styles = []
+    for i in range(len(event_definitions)):
+        styles.append(next(linecycler))
+        
+    return styles
+    
 
 
 def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
-    energy_bins, showplot, ylog=True):
+    energy_bins, showplot, ylog=True, color_scheme=1):
     """ Plot the fluxes for visualization only.
         
         INPUT:
@@ -606,7 +789,7 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     
     fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)
-    colors = define_colors(energy_bins)
+    colors = define_colors(energy_bins, color_scheme=color_scheme)
     
     #Plot the fluxes
     for j in range(len(energy_bins)):
@@ -797,7 +980,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     all_dates, all_fluxes, all_energy_bins, event_definitions,
     sep_start_times, sep_end_times, showplot, saveplot, spacecraft='',
     doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False):
+    OPSEPEnhancement=False, IDSEPEnhancement=False, color_scheme=1):
     """ Plot all energy bins with all event definitions """
 
     suffix = "All_Bins"
@@ -818,7 +1001,9 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
-    colors = define_colors(all_energy_bins, event_definitions=event_definitions)
+    colors = define_colors(all_energy_bins, color_scheme=color_scheme,
+        event_definitions=event_definitions)
+    vstyles = vline_styles(event_definitions)
 
     #Plot the fluxes
     for j in range(len(all_energy_bins)):
@@ -854,9 +1039,9 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         line_label = f"{energy_label}, {threshold_label}"
 
         if not pd.isnull(sep_start_times[i]):
-            ax.axvline(sep_start_times[i],color=colors[energy_label],linestyle=':',
+            ax.axvline(sep_start_times[i],color=colors[energy_label],linestyle=vstyles[i],
                         label=line_label, linewidth=2)
-            ax.axvline(sep_end_times[i],color=colors[energy_label],linestyle=':', linewidth=2)
+            ax.axvline(sep_end_times[i],color=colors[energy_label],linestyle=vstyles[i], linewidth=2)
 
     plt.title(plot_title)
     
