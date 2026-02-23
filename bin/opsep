@@ -288,6 +288,22 @@ parser.add_argument("--NOAA-region", type=int, default=np.nan,
                     help="NOAA active region number, if not specified for flare.")
 
 
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
 #parser.add_argument("--UMASEP",
 #        help=("Flag to calculate flux values and thresholds specific to "
 #            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
@@ -377,6 +393,12 @@ source_lat = args.Source_latitude
 source_lon = args.Source_longitude
 noaa_region = args.NOAA_region
 
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+
+
 date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_opsep(
     str_startdate, str_enddate, experiment,
     flux_type=flux_type,
@@ -440,6 +462,10 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     flare_urls=flare_urls,
     source_lat=source_lat,
     source_lon=source_lon,
-    noaa_region=noaa_region)
+    noaa_region=noaa_region,
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists)
 
 if showplot: plt.show()

@@ -53,7 +53,7 @@ parser.add_argument("--saveplot",
         help="Flag to save plots to file", action="store_true")
 
 parser.add_argument("--datapath", type=str, default='',
-        help=("Specify path where data should be downloaded. Will default to "
+        help=("Specify path where satellite data should be downloaded. Will default to "
             "datapath listed in fetchsep.cfg if a value is not specified."))
 
 parser.add_argument("--ExportConfig", action="store_true",

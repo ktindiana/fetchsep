@@ -3215,10 +3215,6 @@ def calculate_event_info(flux_data):
     return flux_data
 
 
-
-
-
-
 ######## MAIN PROGRAM #########
 def run_opsep(str_startdate, str_enddate, experiment,
     flux_type='', color_scheme=1,
@@ -3263,7 +3259,11 @@ def run_opsep(str_startdate, str_enddate, experiment,
     flare_urls=[],
     source_lat=np.nan,
     source_lon=np.nan,
-    noaa_region=np.nan):
+    noaa_region=np.nan,
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3312,6 +3312,14 @@ def run_opsep(str_startdate, str_enddate, experiment,
             flares are selected by minimizing between this specified time 
             and the measured flare peak.
         :auto_cme_time: (string) find CME in DONKI catalog with preferred selections
+        :path_to_data: (string) path where satellite data should be downloaded. Will default to 
+            datapath listed in fetchsep.cfg if a value is not specified.
+        :path_to_output: (string) path where output files should be saved. Will default to 
+            outpath listed in fetchsep.cfg if a value is not specified.
+        :path_to_plots: (string) path where plots should be saved. Will default to
+            plotpath listed in fetchsep.cfg if a value is not specified.
+        :path_to_lists: (string) path where lists should be saved. Will default to
+            listpath listed in fetchsep.cfg if a value is not specified.
         
         CME parameters that can be input manually:
         
@@ -3346,10 +3354,12 @@ def run_opsep(str_startdate, str_enddate, experiment,
         
     """
     cfg.configure_for(experiment)
-    expts.get_config_energy_units(experiment)
-    expts.get_config_flux_units(experiment)
+    expts.set_config_energy_units(experiment)
+    expts.set_config_flux_units(experiment)
+    cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+        path_to_plots=path_to_plots, path_to_lists=path_to_lists)
     cfg.print_configured_values()
-    
+
     datasets.check_paths(experiment)
 
     #If user specifies a spacecraft but isn't relevant to experiment,

@@ -65,7 +65,7 @@ def get_flux_type(experiment):
         sys.exit(f"You must specify a flux type from options {exp_info['flux_type']}. Exiting.")
 
 
-def get_config_energy_units(experiment):
+def set_config_energy_units(experiment):
     """ Set global energy bin units """
 
     if experiment == "user":
@@ -77,7 +77,7 @@ def get_config_energy_units(experiment):
         cfg.set_energy_units(energy_units)
 
 
-def get_config_flux_units(experiment):
+def set_config_flux_units(experiment):
     """ Set global flux and fluence units """
 
     if experiment == "user":

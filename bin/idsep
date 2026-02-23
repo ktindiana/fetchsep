@@ -8,27 +8,35 @@ import fetchsep.utils.experiments as expts
 valid_experiments = expts.valid_experiments()
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes"))
+
 parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
+
 parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help="Enter name of spacecraft or dataset")
+
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
+
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES-RT is selected, choose the primary or secondary spacecraft."))
+
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
+
 parser.add_argument("--UserFile", type=str, default='tmp.txt', help=("If "
         "you chose user for experiment, specify the filename containing "
         "the fluxes. Specify energy bins and delimeter in code at top. "
         "Default is tmp.txt."))
+
 parser.add_argument("--Unixtime",
         help="Flag to indicate first column in user file is in unixtime",
             action="store_true")
@@ -48,6 +56,7 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
+
 parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
@@ -58,14 +67,33 @@ parser.add_argument("--RemoveAbove", type=float, default=999999,
 parser.add_argument("--ForInclusive",
         help="Write out end times such that they end 1 second before the "
             "next data point begins.", action="store_true")
+
 parser.add_argument("--PlotTimeSeriesOnly",
         help="Only plot the flux timeseries without calculating "
             "background and SEP events.", action="store_true")
 
 parser.add_argument("--showplot",
         help="Flag to display plots", action="store_true")
+
 parser.add_argument("--saveplot",
         help="Flag to save plots to file", action="store_true")
+
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
 parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
               "the current working directory and exit.  Used to prepare a "
@@ -97,9 +125,18 @@ plot_timeseries_only = args.PlotTimeSeriesOnly
 showplot = args.showplot
 saveplot = args.saveplot
 
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+
 fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
     flux_type, exp_name, user_file, is_unixtime, options, dointerp,
     remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-    spacecraft=spacecraft)
+    spacecraft=spacecraft,
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists)
 
 

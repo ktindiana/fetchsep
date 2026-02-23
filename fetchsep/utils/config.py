@@ -90,6 +90,37 @@ def set_datapath(datapath):
     #allow user to set the datapath on the fly across all modules
     pkg_globals['datapath'] = datapath
     print(f"config: Setting global datapath to {datapath}.")
+    
+def set_outpath(outpath):
+    #allow user to set the outpath on the fly across all modules
+    pkg_globals['outpath'] = outpath
+    print(f"config: Setting global outpath to {outpath}.")
+    
+def set_plotpath(plotpath):
+    #allow user to set the plotpath on the fly across all modules
+    pkg_globals['plotpath'] = plotpath
+    print(f"config: Setting global plotpath to {plotpath}.")
+    
+def set_listpath(listpath):
+    #allow user to set the listpath on the fly across all modules
+    pkg_globals['listpath'] = listpath
+    print(f"config: Setting global listpath to {listpath}.")
+
+
+def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
+    path_to_lists=None):
+    #set paths specified by user
+    if path_to_data != None and path_to_data != '':
+        set_datapath(path_to_data)
+    if path_to_output != None and path_to_output != '':
+        set_outpath(path_to_output)
+    if path_to_plots != None and path_to_plots != '':
+        set_plotpath(path_to_plots)
+    if path_to_lists != None and path_to_lists != '':
+        set_listpath(path_to_lists)
+    #Create idsep and opsep subdirectories
+    prepare_dirs()
+
 
 def set_energy_units(energy_units):
     #allow user to set the datapath on the fly across all modules

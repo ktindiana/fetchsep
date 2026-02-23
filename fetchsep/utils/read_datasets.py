@@ -34,59 +34,6 @@ __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-
-#2021-01-06, Changes in 0.2: Added SEPEMv3 data set and made changes to
-#   necessary subroutines to accomodate the new data set.
-#2021-02-25, Changes 0.3: Changed GOES-13, 14, 15 S14 option to include
-#   S14 corrections to channels P6 and P7. Had previously only
-#   applied S14 to P2 - P5 for those experiments.
-#2021-09-24, Changes in 0.4: added a global_var called time_shift
-#   which allows users to shift the times in user-input files by
-#   time_shift number of hours. Changed in read_in_user_files and
-#   added convert_decimal_hour.
-#2021-11-16, Changes in 0.5: added support for GOES-16 and GOES-17
-#   differential fluxes.
-#2022-02-11, Changes in 0.6: Added support for GOES-R (16&17) primary
-#   integral fluxes served by CCMC. These are the real time fluxes
-#   from NOAA archived on the CCMC website. These are not the
-#   official NOAA L2 integral fluxes. Those are not yet
-#   available.
-#2022-02-18, Changes in 0.7: Added checking for data/GOES-R
-#   directory and will make if not present.
-#2022-03-23, Changes in 0.8: Added ability to download and read GOES-16
-#   SEP event file on NOAA's website in check_goesR_data. Modified
-#   read_in_goesR data since the special file contains 30 days
-#   of data with slightly different variable names.
-#2022-05-20. Changes in 0.9: Changed SOHO/EPHIN L3 data from 30 minute
-#   to 10 min data.
-#2022-06-16, changes in 1.0: Added Shaowen Hu's recalibrated GOES
-#   data set as a native data set in the code (SRAG1.2)
-#2022-08-04, changes in 1.1: in extract_date_range, abjusted
-#   the trimming so that the selected time range starts either
-#   on or one point AFTER the specified start. Previously,
-#   the point right before the specified start was included.
-#2022-09-19, changes in 1.2: GOES-14 and GOES-15 hepad files from
-#   2019-09-01 forward are missing a column. Added code to
-#   read_in_goes() to change the expected columns for later dates.
-#2022-11-20, changes in 1.3: Added STEREO-A and B to native data sets.
-#2023-02-09, changes in 1.4: NOAA SWPC moved the location of the historical
-#   GOES-15 and previous data. Updated the url in check_goes_data().
-#   Updated check_goesR_data() to account for two different version
-#   numbers possible in the differential files. Updated read_in_goesR()
-#   to account for the different keys used to extract the flux
-#   values in the different versions.
-#2023-03-2, changes in 1.5: Combining with the read_datasets file
-#   used by SEPAutoID (idsep).
-#3023-06-05, changes in 1.6: NOAA changed the GOES-R data to version 3
-#   in May of 2022. Added ability to grab v3 data in check_goesR.
-#   Fixed bug that grabbed temperature uncorrected proton fluxes in
-#   read_in_goesR() and added v3 file formatting.
-#2023-06-19, changes in 1.7: NOAA added a v3-0-1 format for files
-#   starting in April 2023. Rewrote check_goesR to be more versatile.
-#   Added checking that include v3-0-1 in read_in_goesR.
-#2024-09-09: Added GOES v3-0-2 format, which NOAA began using
-#   exclusively on 2023-10-19.
-
 ssl._create_default_https_context = ssl._create_unverified_context
 
 #Spacecraft in the GOES-R+ series
