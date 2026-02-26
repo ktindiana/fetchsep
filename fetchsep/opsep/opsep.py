@@ -3363,7 +3363,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
         :and generates multiple plots:
         
     """
-    cfg.configure_for(experiment)
+    #cfg.configure_for(experiment)
     expts.set_config_energy_units(experiment)
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,

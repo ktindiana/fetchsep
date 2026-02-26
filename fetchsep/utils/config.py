@@ -70,11 +70,11 @@ def prepare_dirs():
                     print('Making directory:', subdir)
                     os.makedirs(subdir)
 
-def configure_for(experiment):
-    section = 'experiment.' + experiment
-    if section in config.sections():
-        for k in config[section]:
-            pkg_globals[k] = eval(config[section][k])
+#def configure_for(experiment):
+#    section = 'experiment.' + experiment
+#    if section in config.sections():
+#        for k in config[section]:
+#            pkg_globals[k] = eval(config[section][k])
 
 def print_configured_values():
     print()
@@ -106,6 +106,9 @@ def set_listpath(listpath):
     pkg_globals['listpath'] = listpath
     print(f"config: Setting global listpath to {listpath}.")
 
+def set_kurtosis_cut(kurtosis_cut):
+    pkg_globals['kurtosis_cut'] = kurtosis_cut
+    print(f"config: Setting global kurtosis_cut to {kurtosis_cut}.")
 
 def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
     path_to_lists=None):

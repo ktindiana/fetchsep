@@ -93,6 +93,14 @@ def set_config_flux_units(experiment):
             flux_units_differential, fluence_units_differential)
 
 
+def set_config_kurtosis_cut(experiment, flux_type):
+    """ Set global kurtosis_cut values for idsep """
+    
+    exp_info = experiment_info(experiment)
+    kurtosis_cut = exp_info[flux_type]['kurtosis_cut']
+    cfg.set_kurtosis_cut(kurtosis_cut)
+    
+
 def get_spacecraft(experiment, spacecraft):
     """ Checks whether user-specified spacecraft is a valid for experiment.
         If experiment doesn't have a spacecraft option, set to 
@@ -175,6 +183,13 @@ def experiment_info(experiment):
                 'json_mode': '',
                 'species': '',
                 'location': '',
+                'differential': {
+                    'kurtosis_cut': cfg.kurtosis_cut,
+                },
+                'integral': {
+                    'kurtosis_cut': cfg.kurtosis_cut,
+                },
+
             },
 
             'ACE_SIS':{
@@ -191,13 +206,15 @@ def experiment_info(experiment):
                 'differential': {
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
+                    'kurtosis_cut': 999, #idsep for calculating mean background
                 },
                 'integral': {
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[30.0,-1],[60.0,-1]],
                     'energy_bin_centers': [30.0,60.0],
-                    'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/'
+                    'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -217,11 +234,13 @@ def experiment_info(experiment):
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[0.175,0.315]],
                     'energy_bin_centers': calculate_geometric_means([[0.175,0.315]]),
-                    'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/'
+                    'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -245,11 +264,13 @@ def experiment_info(experiment):
                         [398.1,398.1],[630.9,630.9],[1000.0,1000.0]],
                     'energy_bin_centers': [10.0, 15.8, 25.1, 39.8, 65.1, 100.0, 158.5, 251.2,
                         398.1,630.9,1000.0],
-                    'url': 'Request from Shaowen Hu of the NASA Space Radiation Analysis Group'
+                    'url': 'Request from Shaowen Hu of the NASA Space Radiation Analysis Group',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -270,11 +291,13 @@ def experiment_info(experiment):
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.3,7.8],[7.8,25.0],[25.0,40.9],[40.9,53.0]],
                     'energy_bin_centers': calculate_geometric_means([[4.3,7.8],[7.8,25.0],[25.0,40.9],[40.9,53.0]]),
-                    'url': 'http://ulysses.physik.uni-kiel.de/costep/level3/l3i/'
+                    'url': 'http://ulysses.physik.uni-kiel.de/costep/level3/l3i/',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
             
@@ -294,11 +317,13 @@ def experiment_info(experiment):
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]],
                     'energy_bin_centers': calculate_geometric_means([[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]]),
-                    'url': 'https://hesperia.astro.noa.gr/data-retrieval-tool/' #download by hand
+                    'url': 'https://hesperia.astro.noa.gr/data-retrieval-tool/', #download by hand
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -330,11 +355,13 @@ def experiment_info(experiment):
                         [17.78, 19.95], [19.95, 22.39], [22.39, 25.12], [25.12, 28.18],
                         [28.18, 31.62], [31.62, 35.48], [35.48, 39.81], [39.81, 44.67],
                         [44.67, 50.12]]),
-                    'url': 'https://zenodo.org/records/14191918' #download by hand
+                    'url': 'https://zenodo.org/records/14191918', #download by hand
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -354,11 +381,13 @@ def experiment_info(experiment):
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [], #Changes with time, see ERNEf10, ERNEf40, ERNEf50
-                    'url': 'https://export.srl.utu.fi'
+                    'url': 'https://export.srl.utu.fi',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -387,11 +416,13 @@ def experiment_info(experiment):
                        [51.0,67.0],[54.0,79.0],[79.0,114.0],[111.0,140.0]],
                     'energy_bin_centers': [1.6, 2.0, 2.4, 3.0, 3.7, 4.6, 5.8, 7.2, 9.1, 11.0,
                         15.4, 18.9, 23.3, 29.0, 36.4, 45.6, 54.1, 67.5, 95.0, 116.0],
-                    'url': 'https://export.srl.utu.fi'
+                    'url': 'https://export.srl.utu.fi',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -422,11 +453,13 @@ def experiment_info(experiment):
                        [64.0,80.0],[80.0,101.0],[101.0,131.0]],
                     'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11.0,
                         15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108.0],
-                    'url': 'https://export.srl.utu.fi'
+                    'url': 'https://export.srl.utu.fi',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -456,11 +489,13 @@ def experiment_info(experiment):
                        [64.0,80.0],[80.0,101.0],[101.0,131.0]],
                     'energy_bin_centers': [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
                         15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108.0],
-                    'url': 'https://export.srl.utu.fi'
+                    'url': 'https://export.srl.utu.fi',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -481,11 +516,13 @@ def experiment_info(experiment):
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.2,8.7],[8.7,14.5],[15.0,44.0],[39.0,82.0],[84.0,200.0],[110.0,500.0]],
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,44.0],[39.0,82.0],[84.0,200.0],[110.0,500.0]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -509,14 +546,16 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,44.0],
                         [39.0,82.0],[84.0,200.0],[110.0,500.0],
                         [375.0, 375.0],[465.0,465.0],[605.0,605.0], [685.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral': {
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1], [685,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,685.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
             },
 
@@ -538,14 +577,16 @@ def experiment_info(experiment):
                         [39.0,82.0],[84.0,200.0],[110.0,500.0]],
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,44.0],
                         [39.0,82.0],[84.0,200.0],[110.0,500.0]]),
-                    'url':'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url':'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 50,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0],
-                    'url':'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url':'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 50,
                 },
             },
 
@@ -572,14 +613,16 @@ def experiment_info(experiment):
                                [40.0,80.0],[80.0,165.0],[165.0,500.0],
                                [350.0,420.0],[420.0,510.0],[510.0,700.0],
                                [700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 45,
                 },
                 'integral': {
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins':[[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -604,7 +647,8 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.0,9.0],[9.0,15.0],[15.0,44.0],
                         [40.0,80.0],[80.0,165.0],[165.0,500.0], [350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
@@ -612,6 +656,7 @@ def experiment_info(experiment):
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
                     'url':'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -635,14 +680,16 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.0,9.0],[9.0,15.0],[15.0,44.0],
                         [40.0,80.0],[80.0,165.0],[165.0,500.0],[350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -666,14 +713,16 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.0,9.0],[9.0,15.0],[15.0,44.0],
                         [40.0,80.0],[80.0,165.0],[165.0,500.0],[350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -697,14 +746,16 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.0,9.0],[9.0,15.0],[15.0,44.0],
                         [40.0,80.0],[80.0,165.0],[165.0,500.0],[350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                     }
             },
 
@@ -728,14 +779,16 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,40.0],
                         [38.0,82.0],[84.0,200.0],[110.0,900.0],[330.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -759,14 +812,16 @@ def experiment_info(experiment):
                     'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,40.0],
                         [38.0,82.0],[84.0,200.0],[110.0,900.0],[330.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -790,14 +845,16 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[4.2,8.7],[8.7,14.5],[15.0,40.0],
                         [38.0,82.0],[84.0,200.0],[110.0,900.0],[330.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
-                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/'
+                    'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -821,11 +878,13 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[24.9,38.1],
                         [40.3,73.4],[83.7,98.5],[99.9,118.0],[115.0,143.0],[160.0,242.0],
                         [276.0,404.0],[500.0,-1]]),
-                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/sgps-l2-avg5m/'
+                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes16/l2/data/sgps-l2-avg5m/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -849,11 +908,13 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[23.9,32.6],
                         [40.7,68.2],[83.9,98.4],[99.7,118.0],[123.0,148.0],[156.0,237.0],
                         [267.0,390.0],[500.0,-1]]),
-                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes17/l2/data/sgps-l2-avg5m/'
+                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes17/l2/data/sgps-l2-avg5m/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -877,11 +938,13 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[25.5,38.4],
                         [41.0,77.0],[80.9,97.6],[96.3,118.4],[114.88,138.4],[153.3,229.3],
                         [267.0,390.0],[500.0,-1]]),
-                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes18/l2/data/sgps-l2-avg5m/'
+                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes18/l2/data/sgps-l2-avg5m/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -905,11 +968,13 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.0],[11.64,23.27],[25.9,35.2],
                         [41.0,74.0],[78.0,100.7],[97.9,120.6],[114.6,142.4],[150.7,231.5],
                         [267.0,390.0],[500.0,-1]]),
-                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes19/l2/data/sgps-l2-avg5m/'
+                    'url': 'https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/goes19/l2/data/sgps-l2-avg5m/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -928,13 +993,15 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
                     'fluence_units': 'MeV^-1*cm^-2',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[100.0,-1],[60.0,-1],[500.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,100.0,60.0,500.0],
-                    'url': 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/'
+                    'url': 'https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -958,14 +1025,16 @@ def experiment_info(experiment):
                      'energy_bin_centers': calculate_geometric_means([[3.4,6.48],[5.84,11.00],[11.64,23.27],
                         [25.90, 38.10],[40.30,73.40],
                         [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],[276.0,404.0]]),
-                    'url': 'https://services.swpc.noaa.gov/json/goes/'
+                    'url': 'https://services.swpc.noaa.gov/json/goes/',
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
                     'energy_bins': [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[100.0,-1],[60.0,-1],[500.0,-1]],
                     'energy_bin_centers': [5.0,10.0,30.0,50.0,100.0,60.0,500.0],
-                    'url': 'https://services.swpc.noaa.gov/json/goes/'
+                    'url': 'https://services.swpc.noaa.gov/json/goes/',
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -986,11 +1055,13 @@ def experiment_info(experiment):
                     'fluence_units': 'MeV^-1*cm^-2',
                     'energy_bins': [[4.60, 15.0], [15.0, 25.0],[25.0, 48.0], [48.0, 96.0],[96.0, 145.0], [145.0, 440.0]],
                     'energy_bin_centers': calculate_geometric_means([[4.60, 15.0], [15.0, 25.0],[25.0, 48.0], [48.0, 96.0],[96.0, 145.0], [145.0, 440.0]]),
-                    'url': 'http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/'
+                    'url': 'http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -1016,11 +1087,13 @@ def experiment_info(experiment):
                            [21.87,31.62],[31.62,45.73],[45.73,66.13],
                            [66.13,95.64],[95.64,138.3],[138.3,200.0],
                            [200.0,289.2]]),
-                    'url': 'http://sepem.eu/help/SEPEM_RDS_v2-00.zip'
+                    'url': 'http://sepem.eu/help/SEPEM_RDS_v2-00.zip',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -1048,11 +1121,13 @@ def experiment_info(experiment):
                            [66.13,95.64],[95.64,138.3],[138.3,200.0],
                            [200.0,289.2],[289.2,418.3],[418.3,604.9],
                            [604.9,874.7]]),
-                    'url': 'http://www.sepem.eu/help/SEPEM_RDS_v3.zip'
+                    'url': 'http://www.sepem.eu/help/SEPEM_RDS_v3.zip',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
  
@@ -1078,11 +1153,13 @@ def experiment_info(experiment):
                         [14.9,17.1],[17.0,19.3],[20.8,23.8],
                         [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
                         [35.5,40.5],[40.0,60.0],[60.0,100.0]]),
-                    'url': 'https://izw1.caltech.edu/STEREO/DATA/'
+                    'url': 'https://izw1.caltech.edu/STEREO/DATA/',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -1108,11 +1185,13 @@ def experiment_info(experiment):
                         [14.9,17.1],[17.0,19.3],[20.8,23.8],
                         [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
                         [35.5,40.5],[40.0,60.0],[60.0,100.0]]),
-                    'url': 'https://izw1.caltech.edu/STEREO/DATA/'
+                    'url': 'https://izw1.caltech.edu/STEREO/DATA/',
+                    'kurtosis_cut': 999,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -1133,13 +1212,15 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': None,
                     'fluence_units': None,
+                    'kurtosis_cut': 999,
                 },
                 'integral': {
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
                     'energy_bins': [[5.70,-1]],
                     'energy_bin_centers': [5.70],
-                    'url': 'https://www.nmdb.eu/nest/'
+                    'url': 'https://www.nmdb.eu/nest/',
+                    'kurtosis_cut': 999,
                 }
             
             },
@@ -1159,13 +1240,15 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': None,
                     'fluence_units': None,
+                    'kurtosis_cut': 999,
                 },
                 'integral': {
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
                     'energy_bins': [[0.81,-1]],
                     'energy_bin_centers': [0.81],
-                    'url': 'https://www.nmdb.eu/nest/'
+                    'url': 'https://www.nmdb.eu/nest/',
+                    'kurtosis_cut': 999,
                 }
             },
 
@@ -1184,13 +1267,15 @@ def experiment_info(experiment):
                 'differential':{
                     'flux_units': None,
                     'fluence_units': None,
+                    'kurtosis_cut': 999,
                 },
                 'integral': {
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
                     'energy_bins': [[0.1,-1]],
                     'energy_bin_centers': [0.1],
-                    'url': 'https://www.nmdb.eu/nest/'
+                    'url': 'https://www.nmdb.eu/nest/',
+                    'kurtosis_cut': 999,
                 }
             },
 

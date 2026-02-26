@@ -563,7 +563,9 @@ def run_idsep(str_startdate, str_enddate, experiment,
     """
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
 
-    cfg.configure_for(experiment)
+    if flux_type == '' or flux_type == None:
+        flux_type = expts.get_flux_type(experiment)
+    expts.set_config_kurtosis_cut(experiment, flux_type)
     expts.set_config_energy_units(experiment)
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
@@ -581,9 +583,6 @@ def run_idsep(str_startdate, str_enddate, experiment,
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter start and end dates. Exiting.')
-
-    if flux_type == '' or flux_type == None:
-        flux_type = expts.get_flux_type(experiment)
 
     if experiment != 'user':
         exp_info = expts.experiment_info(experiment)
