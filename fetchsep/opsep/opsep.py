@@ -598,9 +598,9 @@ class Data:
             definition.
             
         """
-        bgfilename = os.path.join(self.idsep_path,'background_mean_fluxes_optimized_FINAL.csv')
-        sigmafilename = os.path.join(self.idsep_path, 'background_sigma_optimized_FINAL.csv')
-        threshfilename = os.path.join(self.idsep_path, 'background_threshold_optimized_FINAL.csv')
+        bgfilename = os.path.join(self.idsep_path,'background_mean_fluxes_FINAL.csv')
+        sigmafilename = os.path.join(self.idsep_path, 'background_sigma_FINAL.csv')
+        threshfilename = os.path.join(self.idsep_path, 'background_threshold_FINAL.csv')
 
         df_mean = pd.read_csv(bgfilename)
         df_mean['dates'] =pd.to_datetime(df_mean['dates'])
@@ -2086,7 +2086,7 @@ class Output:
         json_type = expts.get_json_type(self.data.experiment)
         
         #If json type isn't specified for the experiment in experiments.py
-        if json_type == '':
+        if json_type == '' or json_type == None:
             if self.json_type != '':
                 pass
             else:
@@ -3217,7 +3217,7 @@ def calculate_event_info(flux_data):
 
 ######## MAIN PROGRAM #########
 def run_opsep(str_startdate, str_enddate, experiment,
-    flux_type='', color_scheme=1,
+    flux_type=None, color_scheme=1,
     user_name='', user_file='',
     json_type='', json_mode='', spase_id='',
     dointerp=False, spacecraft='',
@@ -3290,8 +3290,18 @@ def run_opsep(str_startdate, str_enddate, experiment,
             plots directory when run
         :detect_prev_event: (bool) - option for finding start of event
         :two_peaks: (bool) - option for extending event length
+        :options: (string) may specify a series of options as a semi-colon separated list. 
+            uncorrected - for GOES uncorrected differential fluxes
+            S14 - apply Sandberg et al. (2014) effective energies to GOES P2-P6 
+                (derived for GOES uncorrected fluxes)
+            Bruno2017 - apply Bruno (2017) effective energies to GOES-13
+                or GOES-15 P6-P11 channels for either corrected or uncorrected
+                GOES fluxes. Bruno recommends performing background subtraction. 
+            If both S14 and Bruno2017 are specified for GOES-13 or GOES-15, 
+            S14 bins will be applied to P2-P5 and Bruno2017 bins will be applied 
+            to P6-P11 for uncorrected fluxes. e.g. "uncorrected;S14;Bruno17"
         :umasep: (boolean) - call flag to run code for specific time related
-            to the UMASEP model
+            to the UMASEP model (NOT IMPLEMENTED)
         :user_thresholds: (string) - user-input thresholds in the format "30,1"
             for >30 MeV exceeds 1 pfu, "4-7,0.01" for 4-7 MeV differential
             channel exceeds 0.01.  "30,1;4-7,0.01" multiple thresholds
@@ -3362,6 +3372,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     datasets.check_paths(experiment)
 
+    #### SET UP EXPERIMENT VALUES #####
     #If user specifies a spacecraft but isn't relevant to experiment,
     #overrides and sets spacecraft to ''
     spacecraft = expts.get_spacecraft(experiment, spacecraft)
@@ -3369,14 +3380,16 @@ def run_opsep(str_startdate, str_enddate, experiment,
     #Check for empty dates
     if (str_startdate == "" or str_enddate == ""):
         sys.exit('You must enter start and end dates. Exiting.')
- 
-    if flux_type == '':
+
+    if flux_type == '' or flux_type == None:
         flux_type = expts.get_flux_type(experiment)
 
     if experiment != 'user':
         exp_info = expts.experiment_info(experiment)
         location = exp_info['location']
         species = exp_info['species']
+
+    #################
 
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes
@@ -3393,10 +3406,10 @@ def run_opsep(str_startdate, str_enddate, experiment,
     flux_data = calculate_event_info(flux_data)
 
     #Create Output object to write out results
-    if json_type == '':
+    if json_type == '' or json_type == None:
         json_type = expts.get_json_type(experiment)
 
-    if json_mode == '':
+    if json_mode == '' or json_type == None:
         json_mode = expts.get_json_mode(experiment)
 
     output_data = Output(flux_data, json_type, spase_id=spase_id, json_mode=json_mode, trigger=trigger)

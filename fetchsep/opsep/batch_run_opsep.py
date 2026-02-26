@@ -484,8 +484,12 @@ def write_sep_lists(jsonfname, combos):
 
 def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
     umasep=False, dointerp=False,
-    showplot=False, saveplot=True, associations=False, detect_prev_event=False,
-    two_peaks=False):
+    showplot=False, saveplot=True,
+    associations=False,
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None):
     """ Run all of the time periods and experiments in the list
         file. Extract the values of interest and compile them
         in event lists, one list per energy channel and threshold
@@ -506,6 +510,15 @@ def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
             with time
         :associations: (bool) set to true to find flare, CME, radio associated
             with each SEP event
+        :path_to_data: (string) path where satellite data should be downloaded. Will default to 
+            datapath listed in fetchsep.cfg if a value is not specified.
+        :path_to_output: (string) path where output files should be saved. Will default to 
+            outpath listed in fetchsep.cfg if a value is not specified.
+        :path_to_plots: (string) path where plots should be saved. Will default to
+            plotpath listed in fetchsep.cfg if a value is not specified.
+        :path_to_lists: (string) path where lists should be saved. Will default to
+            listpath listed in fetchsep.cfg if a value is not specified.
+
 
         OUTPUTS:
 
@@ -516,6 +529,9 @@ def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
                 channel and threshold combination
 
     """
+    cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+        path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+
     check_list_path()
 
     #READ IN SEP DATES AND experiments
@@ -549,6 +565,9 @@ def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
         idsep_path = idsep_paths[i]
         location = locations[i]
         species = particles[i]
+        
+        detect_prev_event=False
+        two_peaks=False
 
         spase_id = ''
 
@@ -584,7 +603,9 @@ def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
                 bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,
                 doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
                 idsep_path=idsep_path, location=location, species=species,
-                associations=associations)
+                associations=associations,
+                path_to_data=path_to_data, path_to_output=path_to_output,
+                path_to_plots=path_to_plots, path_to_lists=path_to_lists)
 
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')

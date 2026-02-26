@@ -514,7 +514,11 @@ def update_observations(target_dir, start_date, end_date, experiment,
     location='earth', species='proton',
     associations=False, save_associations=False,
     auto_flare_time='', auto_cme_time='',
-    source_lat=np.nan, source_lon=np.nan, noaa_region=np.nan):
+    source_lat=np.nan, source_lon=np.nan, noaa_region=np.nan,
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -545,7 +549,15 @@ def update_observations(target_dir, start_date, end_date, experiment,
             :source_lat: (float) latitude of flare or eruption
             :source_lon: (float) longitude of flare or eruption
             :noaa_region: (int) active region number
-                
+            :path_to_data: (string) path where satellite data should be downloaded. Will default to 
+                datapath listed in fetchsep.cfg if a value is not specified.
+            :path_to_output: (string) path where output files should be saved. Will default to 
+                outpath listed in fetchsep.cfg if a value is not specified.
+            :path_to_plots: (string) path where plots should be saved. Will default to
+                plotpath listed in fetchsep.cfg if a value is not specified.
+            :path_to_lists: (string) path where lists should be saved. Will default to
+                listpath listed in fetchsep.cfg if a value is not specified.
+
         OUTPUTS:
         
             None. Files will be moved if any SEP events in the time frame are approved.
@@ -593,6 +605,10 @@ def update_observations(target_dir, start_date, end_date, experiment,
         auto_cme_time=auto_cme_time,
         source_lat=source_lat,
         source_lon=source_lon,
-        noaa_region=noaa_region)
+        noaa_region=noaa_region,
+        path_to_data=path_to_data,
+        path_to_output=path_to_output,
+        path_to_plots=path_to_plots,
+        path_to_lists=path_to_lists)
 
     return subdir

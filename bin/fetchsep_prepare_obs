@@ -138,6 +138,22 @@ parser.add_argument("--PlotTimeSeriesOnly",
 parser.add_argument("--showplot",
         help="Flag to display plots in IDSEP.", action="store_true")
 
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
 
 ####### OpSEP Arguments #####
 parser.add_argument("--Threshold", type=str, default="",
@@ -237,6 +253,12 @@ remove_above = args.RemoveAbove
 for_inclusive = args.ForInclusive
 plot_timeseries_only = args.PlotTimeSeriesOnly
 
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+
+
 doBGSubIDSEP = args.IDSEPSubtractBG
 IDSEPEnhancement = args.IDSEPEnhancement
 flags = ''
@@ -274,7 +296,11 @@ if startpoint == "IDSEP":
     fetchsep.idsep.run_idsep(str_startdate, str_enddate,
         experiment, flux_type, exp_name, user_file, is_unixtime,
         options, dointerp, remove_above, for_inclusive,
-        plot_timeseries_only, showplot, saveplot, spacecraft=spacecraft)
+        plot_timeseries_only, showplot, saveplot, spacecraft=spacecraft,
+        path_to_data=path_to_data,
+        path_to_output=path_to_output,
+        path_to_plots=path_to_plots,
+        path_to_lists=path_to_lists)
 
     if plot_timeseries_only:
         sys.exit("User selected to only plot the timeseries. Exiting.")
@@ -299,9 +325,10 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
-        septimes_file, detector_list,experiment, flux_type,options, json_type,
+        septimes_file, detector_list,experiment, flux_type, options, json_type,
         batchfile, revise, flags=flags, spacecraft=spacecraft,
-        location=location, species=species, add_path=idsep_name)
+        location=location, species=species, add_path=idsep_name,
+        path_to_output=path_to_output)
 
 
 #THIRD #########################
@@ -324,4 +351,8 @@ statusfname = 'batch_run_status.csv'
 
 batch.run_all_events(sep_filename, statusfname, threshold, umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot, associations=associations,
-    detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)
+    detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default,
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists)

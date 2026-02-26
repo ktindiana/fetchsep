@@ -62,14 +62,16 @@ parser.add_argument("--DoInterp",
                 "linear interpolation in time."), action="store_true")
 
 parser.add_argument("--RemoveAbove", type=float, default=999999,
-        help=("Remove all flux points above a specified value."))
+        help=("Remove all flux points above a specified value. Helps to "
+            "exclude high values above background during the first iteration "
+            "to estimate the background."))
         
 parser.add_argument("--ForInclusive",
-        help="Write out end times such that they end 1 second before the "
+        help="Write out SEP end times such that they end 1 second before the "
             "next data point begins.", action="store_true")
 
 parser.add_argument("--PlotTimeSeriesOnly",
-        help="Only plot the flux timeseries without calculating "
+        help="Only download the data and plot the flux timeseries without calculating "
             "background and SEP events.", action="store_true")
 
 parser.add_argument("--showplot",
@@ -131,9 +133,18 @@ path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
 fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
-    flux_type, exp_name, user_file, is_unixtime, options, dointerp,
-    remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
+    flux_type=flux_type,
     spacecraft=spacecraft,
+    exp_name=exp_name,
+    user_file=user_file,
+    is_unixtime=is_unixtime,
+    options=options,
+    dointerp=dointerp,
+    remove_above=remove_above,
+    for_inclusive=for_inclusive,
+    plot_timeseries_only=plot_timeseries_only,
+    showplot=showplot,
+    saveplot=saveplot,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,

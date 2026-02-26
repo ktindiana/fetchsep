@@ -470,6 +470,45 @@ def check_bg_kurtosis(df, col):
     return is_good, kurt
 
 
+def clean_distribution(df, col):
+    """ Attempt to clean a distribution that has high kurtosis
+        due to a single bottom bin that has a large percentage of the
+        values (i.e. floor). Remove the bin, recalculate the kurtosis, and, 
+        if good, return the cleaned distribution. 
+    
+    """
+    is_good, kurtosis = check_bg_kurtosis(df, col)
+    if is_good: #kurtosis already good
+        return is_good, kurtosis, np.nan
+    
+    if df[col].dropna().empty:
+        return is_good, np.nan
+    
+    bins = make_log_bins()
+    counts, bins = np.histogram(df[col].dropna(), bins=bins)
+
+    #Find the first non-zero bin
+    ix = -1
+    for index, count in enumerate(counts):
+        if count > 0:
+            ix = index
+            break
+    
+    if ix == -1 or ix == len(counts)-1:
+        return is_good, kurtosis, np.nan
+            
+
+    print(f"clean_distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}, first bin {counts[ix]}, upper bins {sum(counts[ix+1:])}")
+    #If >= 50% of values are in the bottom bin, set all of
+    #the values that fall in the bottom bin to np.nan
+    if counts[ix] >= sum(counts[ix+1:]):
+        df.loc[df[col] < bins[ix+1], col] = np.nan
+        is_good_bg, kurtosis = check_bg_kurtosis(df, col)
+        print(f"cleaned distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}")
+    return is_good, kurtosis, bins[1]
+    
+
+
 def calc_bg_stats(df, nsigma, col):
     """ Calculate mean, sigma, threshold 
         If col is specified as a string, will return values for single column
@@ -512,8 +551,7 @@ def plot_dist_hist(df, iteration):
 
         fig = plt.figure()  # Creates a new figure
         ax = fig.add_subplot(111)
-        #ax.set_ylim(0,1000)
-        #is_good, res = check_bg_for_normality(df, col)
+
         is_good, kurtosis = check_bg_kurtosis(df, col)
         bins = make_log_bins()
         hist = df[col].hist(bins=bins, figsize=(8, 6), ax=ax)
@@ -783,12 +821,12 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
                 if not pd.isnull(prev_thresh) and prev_thresh != 0:
                     sub = set_above_threshold_to_nan(sub, prev_thresh, col)
 
-            #Don't use time period if too many of a single value (non-Gaussian distribution)
-            is_good_bg, kurtosis = check_bg_kurtosis(sub, col)
+            ####CHECK FOR ENOUGH BACKGROUND POINTS IN AVERAGING WINDOW
+            #If not enough non-nan points, then use the previous good background
+            #values or very high value
             ngood = len(sub[col].dropna())
             #print(f"Start Time: {starttime}, End Time: {endtime}, Number of good points: {ngood}, Required: {cfg.percent_points*nwin_pts}")
-            if ngood < cfg.percent_points*nwin_pts or not is_good_bg:
-                #If no good points yet, then set to zero
+            if ngood < cfg.percent_points*nwin_pts:
                 if df_means.empty:
                     mean = 1e6
                     sigma = 0
@@ -797,15 +835,48 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
                     mean = df_means[col].iloc[-1]
                     sigma = df_sigmas[col].iloc[-1]
                     threshold = df_thresholds[col].iloc[-1]
+                
+                #Save and go to next time point
+                means.append(mean)
+                sigmas.append(sigma)
+                thresholds.append(threshold)
+                stats1.append(np.nan)
+                continue
 
-            else:
-                #Recalculate the background using the refined data and save
-                mean, sigma, threshold = calc_bg_stats(sub, nsigma, col)
-            
+            ####CHECK THAT BACKGROUND IS OF GOOD QUALITY
+            #Don't use time period if too many of a single value (non-Gaussian distribution)
+            is_good_bg, kurtosis = check_bg_kurtosis(sub, col)
+
+            if not is_good_bg:
+                #Try to clean the distribution and get a good kurtosis value
+                is_clean, kurtosis, bin_high_edge = clean_distribution(sub, col)
+                if not is_clean:
+                    if df_means.empty:
+                        mean = 1e6
+                        sigma = 0
+                        threshold = 1e6
+                    else:
+                        mean = df_means[col].iloc[-1]
+                        sigma = df_sigmas[col].iloc[-1]
+                        threshold = df_thresholds[col].iloc[-1]
+                    #Save and go to next time point
+                    means.append(mean)
+                    sigmas.append(sigma)
+                    thresholds.append(threshold)
+                    stats1.append(kurtosis)
+                    continue
+
+                else:
+                    #Set values in lowest bin to nan so not in distribution
+                    sub[col].loc[sub[col] < bin_high_edge] == np.nan
+
+            #Recalculate the background using the refined data and save
+            mean, sigma, threshold = calc_bg_stats(sub, nsigma, col)
             means.append(mean)
             sigmas.append(sigma)
             thresholds.append(threshold)
             stats1.append(kurtosis)
+
 
         #TESTING - plot histograms of flux distributions in the
         #background averaging window after high points have been removed.
@@ -846,11 +917,11 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
     appx = '_it'+str(iteration)
     if is_final:
         appx = '_FINAL'
-        write_df(df_means,'background_mean_fluxes_optimized'+appx,
+        write_df(df_means,'background_mean_fluxes'+appx,
                 add_path=add_path)
-        write_df(df_sigmas,'background_sigma_optimized'+appx,
+        write_df(df_sigmas,'background_sigma'+appx,
                 add_path=add_path)
-        write_df(df_thresholds,'background_threshold_optimized'+appx,
+        write_df(df_thresholds,'background_threshold'+appx,
                 add_path=add_path)
         write_df(df_stats1,'kurtosis'+appx, add_path=add_path)
 

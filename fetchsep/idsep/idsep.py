@@ -455,23 +455,22 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins, add_path=''):
         
     """
     dict = {'dates': dates}
+    dict_bg = {'dates': dates}
     cols = []
     for ii in range(len(fluxes)):
         bin = energy_bins[ii]
         key = tools.energy_bin_key(bin)
         dict.update({key: fluxes[ii]})
+        dict_bg.update({key: fluxes_bg[ii]})
         cols.append(key)
-    df = pd.DataFrame(dict)
-    df_bg = pd.DataFrame(dict)
+    df = pd.DataFrame(dict) #original SEP fluxes with all background set to zero
+    df_bg = pd.DataFrame(dict_bg)
     
     defbg.write_df(df,'SEP_fluxes_FINAL', add_path=add_path)
     
-    for ii in range(len(fluxes)):
-        df.update({cols[ii]:fluxes[ii]})
-        df_bg.update({cols[ii]:fluxes_bg[ii]})
-
     df[cols] = df[cols] - df_bg[cols]
-    df[df[cols] < 0][cols] = 0
+    for col in cols:
+        df.loc[df[col] < 0, col] = 0
     
     defbg.write_df(df,'SEP_fluxes_background-subtracted_FINAL',add_path=add_path)
 
@@ -503,9 +502,13 @@ def make_idsep_dirs(add_path=''):
 
 
 def run_idsep(str_startdate, str_enddate, experiment,
-    flux_type, exp_name, user_file, is_unixtime, options, dointerp,
-    remove_above, for_inclusive, plot_timeseries_only, showplot, saveplot,
-    write_fluxes=True, spacecraft="",
+    flux_type=None, spacecraft="",
+    exp_name=None, user_file=None,
+    is_unixtime=False, options=None, dointerp=False,
+    remove_above=999999, for_inclusive=False,
+    plot_timeseries_only=False,
+    showplot=False, saveplot=False,
+    write_fluxes=True,
     path_to_data=None,
     path_to_output=None,
     path_to_plots=None,
@@ -513,10 +516,41 @@ def run_idsep(str_startdate, str_enddate, experiment,
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
-        
-        :write_fluxes: (bool) Write fluxes to csv file after read in and processed 
-            for bad points
+
+        :str_startdate: (string) - user input start date "YYYY-MM-DD" or
+            "YYYY-MM-DD HH:MM:SS"
+        :str_enddate: (string) - user input end date "YYYY-MM-DD" or
+            "YYYY-MM-DD HH:MM:SS"
+        :experiment: (string) - "GOES-08" up to "GOES-15", "SEPEM", "SEPEMv3",
+            "EPHIN", "EPHIN_REleASE", or "user"
+        :flux_type: (string) - "integral" or "differential" indicates the type
+            of flux to read in
         :spacecraft: (string) primary or secondary if exp_name = GOES-RT
+        :user_name: (string) - If experiment is "user", set user_name to describe
+            your model or data set (e.g. MyModel), otherwise set to ''.
+        :user_file: (string) - Default is ''. If "user" is selected for experiment,
+            specify name of flux file.
+        :is_unixtime: (bool) True indicates first column in user file is in unixtime
+        :options: (string) may specify a series of options as a semi-colon separated list. 
+            uncorrected - for GOES uncorrected differential fluxes
+            S14 - apply Sandberg et al. (2014) effective energies to GOES P2-P6 
+                (derived for GOES uncorrected fluxes)
+            Bruno2017 - apply Bruno (2017) effective energies to GOES-13
+                or GOES-15 P6-P11 channels for either corrected or uncorrected
+                GOES fluxes. Bruno recommends performing background subtraction. 
+            If both S14 and Bruno2017 are specified for GOES-13 or GOES-15, 
+            S14 bins will be applied to P2-P5 and Bruno2017 bins will be applied 
+            to P6-P11 for uncorrected fluxes. e.g. "uncorrected;S14;Bruno17"
+        :dointerp: (boolean) - set to true to fill in data gaps via linear interpolation in time, otherwise fill with nan values
+        :remove_above: (float) Remove all flux points above a specified value. 
+            Helps to exclude high values above background during the first iteration
+            to estimate the background.
+        :for_inclusive: (bool) Write out SEP end times such that they end 1 second 
+            before the next data point begins.
+        :plot_timeseries_only: (bool) True to only download the data and plot the 
+            flux timeseries without calculating background and SEP events.
+        :write_fluxes: (bool) True to write fluxes to csv file after read in and processed 
+            for bad points (default = True)
         :path_to_data: (string) path where satellite data should be downloaded. Will default to 
             datapath listed in fetchsep.cfg if a value is not specified.
         :path_to_output: (string) path where output files should be saved. Will default to 
@@ -538,8 +572,23 @@ def run_idsep(str_startdate, str_enddate, experiment,
 
     datasets.check_paths(experiment)
 
-    if flux_type == '':
+
+    #### SET UP EXPERIMENT VALUES #####
+    #If user specifies a spacecraft but isn't relevant to experiment,
+    #overrides and sets spacecraft to ''
+    spacecraft = expts.get_spacecraft(experiment, spacecraft)
+
+    #Check for empty dates
+    if (str_startdate == "" or str_enddate == ""):
+        sys.exit('You must enter start and end dates. Exiting.')
+
+    if flux_type == '' or flux_type == None:
         flux_type = expts.get_flux_type(experiment)
+
+    if experiment != 'user':
+        exp_info = expts.experiment_info(experiment)
+
+    #################
 
     startdate = dh.str_to_datetime(str_startdate)
     enddate = dh.str_to_datetime(str_enddate)
@@ -641,38 +690,41 @@ def run_idsep(str_startdate, str_enddate, experiment,
 
         #Identify SEP events in full time range
         #SEP identification proves to be very robust
-        global dwell_pts
-        SEPstart, SEPend, fluxes_sep = tools.identify_sep_above_background(dates, fluxes_high)
+        #This plot for niter-1 is the same as FINALSEP. Will only be different if idsep
+        #automatically extended the data set to accomodate the required
+        #date lengths. Don't calculate and plot if it will be redundant.
+        get_sep = True
+        if is_final and dates[0] == startdate:
+            get_sep = False
+        if get_sep:
+            global dwell_pts #to get value from tools and print to screen
+            SEPstart, SEPend, fluxes_sep = tools.identify_sep_above_background(dates, fluxes_high)
 
-        if showplot or saveplot:
-            plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
-                exp_name, options, dates, fluxes, fluxes_sep, energy_bins, doBGSub,
-                showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot)
+            if showplot or saveplot:
+                plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
+                    exp_name, options, dates, fluxes, fluxes_sep, energy_bins, doBGSub,
+                    showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot)
 
 
         #Taking the estimated background flux and remove SEP periods
-        padding = 2 #niter - iter #number of days on either side of SEP start and end
-        if iter == niter-2: #Final round
+        padding = 2 #number of days on either side of SEP start and end
+        if iter <= niter-2: #Final round
             fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding)
-        if iter < niter-2:
-            fluxes_bg_init, fluxes_sep_padded = separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding)
+ 
 
     print(f"TIMESTAMP: Completed background and SEP event separation, {datetime.datetime.now()}")
     
 
     #Trim fluxes to the date range specified by the user
-    trim_dates, trim_fluxes_high = datasets.extract_date_range(startdate,
-                enddate, dates, fluxes_high)
-    trim_dates, trim_fluxes = datasets.extract_date_range(startdate,
-                enddate, dates, fluxes)
-    trim_bg_dates, trim_fluxes_bg = datasets.extract_date_range(startdate,
-                enddate, dates, fluxes_bg)
+    trim_dates, trim_fluxes_high = datasets.extract_date_range(startdate, enddate, dates, fluxes_high)
+    trim_dates, trim_fluxes = datasets.extract_date_range(startdate, enddate, dates, fluxes)
+    trim_bg_dates, trim_ave_bg = datasets.extract_date_range(startdate, enddate, dates, ave_background)
     #Expect that this solution is exactly the same as the last one in the loop above,
     #UNLESS the dates need to be trimmed down
     SEPstart, SEPend, final_fluxes_sep = tools.identify_sep_above_background(trim_dates, trim_fluxes_high)
     
     #Write background-subtracted SEP only fluxes to file
-    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_fluxes_bg, energy_bins, add_path=idsep_name)
+    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_ave_bg, energy_bins, add_path=idsep_name)
     
     #Write start and end times to file
     write_sep_dates(experiment, exp_name, flux_type, energy_bins,
