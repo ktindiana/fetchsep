@@ -15,96 +15,10 @@ import numpy as np
 #import process
 #import re
 
-__version__ = "2.0"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-
-#2021-01-12 changes in v0.2: Added fluence to json file. Added threshold
-#   crossing entry for end of event.
-#2021-02-11 changes in 0.3: Changed logic so that if integral flux was
-#   derived from differential flux, and the flux did not cross the
-#   threshold applied to the integral channel, then all_clear_boolean = True.
-#   Previously, the code checked if the energy bin existed and set
-#   all_clear_boolean to None if not. This produced the wrong value in the
-#   case where differential channels were converted to integral.
-#2021-02-24, changes in v0.4: Added subroutines to read in json file and
-#   convert zulu time to datetime.
-#   Modified fill_json to account for change in threshold fluences array in
-#   v2.5 of operational_sep_quantities.py.
-#2021-05-18, changes in 0.5: Realized that there were some differences
-#   between the json files produced here and the CCMC format. CCMC defines
-#   the fluences field as an array allowing multiple fluences, so the fluences
-#   field was changed to an array here.
-#   CCMC also has "event_lengths" as an array that allows the specification
-#   of multiple start and end times. Changed the field name from "event_length"
-#   to "event_lengths" and made it an array. Only one entry to
-#   "event_lengths" is created by this program.
-#2021-07-20, changes in 1.0: Went up an integer in version number because
-#   making major changes to exactly match CCMC JSON format for the SEP
-#   Scoreboard. Version 1.0 of this file works with v3.0 of
-#   operational_sep_quantities.py, which has been modified for the same
-#   purpose.
-#   Removing contacts field from json due to NASA privacy rules.
-#   Changed zulu time to keep seconds.
-#   If multiple thresholds applied to a single energy channel,
-#   values will be saved in one energy channel block as array
-#   entries (previously writing separate blocks for unique
-#   energy-threshold combinations.
-#   Removing any attempt to differentiate between values not
-#   filled out because they are not supported by the model
-#   or values not filled out because there was no forecast.
-#   Will have to apply that kind of information downstream.
-#   JSON fields that have not been filled in are removed
-#   from the final output json file.
-#2021-08-18, changes in 1.1: Added subroutines from
-#   validation_json_handler.py in the validation project
-#   to access entries in the json file in a variety of ways.
-#   This code, coupled with keys.py, will allow users
-#   to access any values in the json files produced by
-#   operational_sep_quantities.py
-#2021-08-30, changes in 1.2: fixed bug in identifying energy
-#   bins in fill_json. In clean_json, will remove the block for
-#   an energy channel if the max flux is stored as a negative
-#   value.
-#2021-09-16, changes in 1.3: support for json_type, introduced
-#   in operational_sep_quantities.py v3.2. Allows user to indicate
-#   if a user input file should be written to observation or model
-#   json file in fill_json and clean_json.
-#2021-09-20, changes in 1.4: Added threshold units to the all clear
-#   fields in fill_json (I had previously forgotten them and the
-#   fields were being left as empty strings).
-#2022-06-07, changed in 1.5: Don't try to guess Spase ID. If the
-#   user doesn't specify an ID and the field is empty, leave it as
-#   an empty string.
-#2022-11-10, changes in 1.6: The all_clear logic was changed in fill_json.
-#   The code no longer checks the peak flux values to determine 
-#   all_clear if a threshold isn't crossed. Specific energy channel
-#   and threshold crossing combinations are now strictly enforced
-#   for all_clear statues (>10 MeV, 10 pfu; >100 MeV, 1 pfu)
-#   All other energy channels are allowed
-#   to use any threshold crossing to determine all_clear status.
-#2023-04-18, changes in 1.7: Fixed bug in fill_json that assigned
-#   the wrong units to the fluence spectrum if the energy block
-#   for an integral channel, but the input data consisted of
-#   differential fluxes. Was wrongly assigning fluence units of
-#   e.g. 1/cm^2 when should have been 1/(MeV*cm^2).
-#   In the get_value_by_* subroutines, added code to extract some of the
-#   trigger information.
-#   Added set_json_value_by_index() which allows the user to change a value in
-#   the json. In the context of this code, may be most useful to add
-#   the trigger information and change the issue time.
-#2023-7-06, changes in 1.8: cast max flux as float in fill_json
-#   because found that models with 0 flux resulted in an error
-#   when dumping json.
-#2023-10-01, changes in 1.9: Added subroutines to transform
-#   threshold and energy channels to string keys.
-#2024-04-24, changes in 2.0: Made changes to accomodate new fields
-#   from CCMC. "model": {"flux_type": } --> "source_info": {"native_flux_type":}
-#   Modified clean_json to remove the options field if nothing added.
-#   Changed event_lengths threshold field to threshold_start and added
-#   threshold_end.
 
 def about_ccmc_json_handler():
     """ ABOUT ccmc_json_handler.py
@@ -284,6 +198,14 @@ def observation_json():
     print("ccmc_json_handler: observation_json: Initilizing observation json.")
     return template
 
+## NOT IN CCMC JSON SCHEMA
+def active_region_block():
+    ar = { 'noaa_region': np.nan,
+            'lat': np.nan,
+            'lon': np.nan,
+            'catalog': '',
+        }
+    return ar
 
 def ccmc_cme_block():
     cme = { 'start_time': pd.NaT,
@@ -372,6 +294,44 @@ def clean_trigger_block(trigger_dict):
 
     return trigger_dict
 
+
+##FETCHSEP FIELD NOT IN CCMC JSON
+def add_farside_trigger(template, json_type, farside_bool):
+    """ Add a trigger field that indicates if event is farside True or False """
+    key, type_key, win_key, exp_key = set_keys(json_type)
+    
+    try:
+        check = template[key]['triggers']
+    except:
+        template[key].update({'triggers':[]})
+        
+    if not pd.isnull(farside_bool):
+        template[key]['triggers'].append({"farside":farside_bool})
+    return template
+
+
+##FETCHSEP FIELD NOT IN CCMC JSON
+def add_active_region(template, json_type, ar_dict):
+    """ Add active region location to triggers 
+        
+    
+    """
+    if not ar_dict:
+        return template
+
+    key, type_key, win_key, exp_key = set_keys(json_type)
+
+    ar_dict = clean_trigger_block(ar_dict)
+
+    try:
+        check = template[key]['triggers']
+    except:
+        template[key].update({'triggers':[]})
+        
+    template[key]['triggers'].append({"active_region":ar_dict})
+
+    return template
+    
 
 def add_cme_trigger(template, json_type, cme_dict):
     """ Provided a dictionary with the right fields of the CME trigger

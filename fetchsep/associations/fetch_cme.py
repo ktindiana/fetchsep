@@ -61,10 +61,23 @@ def get_donki_cmes(start_date, end_date, minimum_speed=None, minimum_halfAngle=N
                 shock measurement if choice is available. Default LE.
     
     """
+    if isinstance(start_date, str):
+        start_date=dh.str_to_datetime(start_date)
+
+    if isinstance(end_date, str):
+        end_date=dh.str_to_datetime(end_date)
+    
+    if (end_date - start_date) < datetime.timedelta(hours=24):
+        end_date = start_date + datetime.timedelta(hours=24)
+    
+    start_date = start_date.strftime('%Y-%m-%d')
+    end_date = end_date.strftime('%Y-%m-%d')
+
 
     #Start/End date in YYYY-MM-DD format
     url = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/CME?startDate=' + start_date + '&endDate=' + end_date
     try:
+        print(f"get_donki_cmes: Querying {url}")
         response = requests.get(url, timeout=15)
         cmes_ = response.json()
     except:
@@ -266,14 +279,17 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
         starttime=dh.str_to_datetime(starttime)
     
     if pd.isnull(starttime):
-        print(f"get_donki_cme: Improper time format {starttime}.")
+        print(f"get_donki_cme: Improper time format {starttime}. Use e.g. YYYY-MM-DD HH:MM:SS or YYYY-MM-DDTHH:MM:SSZ or datetime.")
         return {}
     
     startdate = starttime - datetime.timedelta(hours=6)
     enddate = starttime + datetime.timedelta(hours=6)
     
-    start_date = startdate.strftime('%Y-%m-%dT%H:%M:%SZ')
-    end_date = enddate.strftime('%Y-%m-%dT%H:%M:%SZ')
+    if (enddate - startdate) < datetime.timedelta(hours=24):
+        enddate = startdate + datetime.timedelta(hours=24)
+    
+    start_date = startdate.strftime('%Y-%m-%d')
+    end_date = enddate.strftime('%Y-%m-%d')
     
     cmes = get_donki_cmes(start_date, end_date, minimum_speed=minimum_speed, minimum_halfAngle=minimum_halfAngle)
 

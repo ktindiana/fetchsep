@@ -2068,6 +2068,7 @@ class Output:
         self.cmes = []
         self.flares = []
         self.trigger = trigger #file with trigger block to add to output json
+        self.farside  = None #True for farside source of SEP event; False if for sure not farside
         
         # Subdirectory with unique string to hold data
         self.subdir = tools.opsep_subdir(self.data.experiment, self.data.flux_type,
@@ -2440,6 +2441,7 @@ class Output:
  
         return event_info_list
 
+
     def add_donki_cme(self, cme_start_time):
         """ Use CME start time to identify CME in DONKI and extract info. """
         cme_json = fetch_cme.get_donki_cme(cme_start_time, format='json')
@@ -2530,6 +2532,56 @@ class Output:
         return
         
 
+    def add_solar_cycle(self):
+        """ Fill in the Solar Cycle in associations """
+        self.associations = assoc_lists.add_solar_cycle(self.data.startdate, associations=self.associations)
+        return
+
+
+    def add_farside(self):
+        """ Check if farside event """
+        self.associations = assoc_lists.add_farside(self.associations)
+        
+        #Longitude or human identified as farside event
+        if 'Farside' in self.associations['Case']:
+            self.farside = True
+        
+        #If not farside and longitude is know, then definitely not farside
+        elif not pd.isnull(self.associations['Event Source Longitude']):
+            self.farside = False
+
+        return
+
+
+    def add_sep_event_type(self):
+        """ Add labels SPE or ESPE appropriately in EventType columns of associations """
+        
+        type = ''
+        
+        for i, analyze in enumerate(self.data.results):
+            #SPE: >10 MeV, 10 pfu
+            if analyze.event_definition['energy_channel'].min == 10 and analyze.event_definition['energy_channel'].units == 'MeV':
+                if analyze.event_definition['threshold'].threshold == 10 and analyze.event_definition['threshold'].units == 'pfu':
+                    if not pd.isnull(analyze.sep_start_time):
+                        if type != 'ESPE': #prioritize ESPE
+                            type = 'SPE'
+                    else:
+                        if type != 'ESPE': #prioritize ESPE
+                            type = 'SubEvent'
+                    
+            if analyze.event_definition['energy_channel'].min == 100 and analyze.event_definition['energy_channel'].units == 'MeV':
+                if analyze.event_definition['threshold'].threshold == 1 and analyze.event_definition['threshold'].units == 'pfu':
+                    if not pd.isnull(analyze.sep_start_time):
+                            type = 'ESPE'
+                    else:
+                        if type != 'SPE': #prioritize SPE
+                            type = 'SubEvent'
+
+        if type != '':
+            self.associations['EventType'] = type
+
+        return
+
 
     def find_list_associations(self):
         """ Identify flare, CME, radio, etc data from Steve Johnson's 
@@ -2568,9 +2620,9 @@ class Output:
         print(f"Selected startdate {startdate} to search for associations.")
         associations = assoc_lists.identify_associations_in_list(startdate, list_name='srag')
         if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, list_name='IGR')
-        if associations == assoc_lists.empty_associations_dict():
             associations = assoc_lists.identify_associations_in_list(startdate, list_name='user')
+        if associations == assoc_lists.empty_associations_dict():
+            associations = assoc_lists.identify_associations_in_list(startdate, list_name='IGR')
 
         self.associations = associations
 
@@ -2624,19 +2676,24 @@ class Output:
             
         """
 
-        #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv
+        #Associated flare, CME, etc extracted from SRAG_SEP_List_R11_CLEARversion.csv and other lists
+        #Do this first because it will fill in all associations columns and replace anything
+        #that may have been there before
         if associations:
             self.find_list_associations()
 
         #If user specified flare time
+        #Add to existing associations (replace flare values); append trigger blocks
         if auto_flare_time != '' and auto_flare_time != None:
             self.add_noaa_science_flare(auto_flare_time)
 
         #If user specified CME time
+        #Add to existing associations (replace DONKI CME values); append trigger blocks
         if auto_cme_time != '' and auto_cme_time != None:
             self.add_donki_cme(auto_cme_time)
 
         #Manually add flare trigger block if user entered values
+        #Add to existing associations (replace flare values); append trigger blocks
         self.add_manual_flare(flare_last_data_time=flare_last_data_time,
             flare_start_time=flare_start_time,
             flare_peak_time=flare_peak_time,
@@ -2651,6 +2708,7 @@ class Output:
             flare_urls=flare_urls)
  
         #Manually add CME trigger block if user entered values
+        #Add to existing associations (replace flare values); append trigger blocks
         self.add_manual_cme(cme_start_time=cme_start_time, cme_liftoff_time=cme_liftoff_time,
             cme_half_width=cme_half_width, cme_speed=cme_speed,
             cme_acceleration=cme_acceleration,
@@ -2664,7 +2722,7 @@ class Output:
             cme_derivation_method=cme_derivation_method,
             cme_measurement_type=cme_measurement_type)
  
- 
+        #Directly write to associations; overwrite any existing values
         if not pd.isnull(source_lat):
             self.associations['Event Source Latitude'] = float(source_lat)
         if not pd.isnull(source_lon):
@@ -2672,6 +2730,11 @@ class Output:
         if not pd.isnull(noaa_region):
             self.associations['Active Region'] = int(noaa_region)
 
+        ####AUTOMATICALLY CALCULATE AND ADD TO ASSOCIATIONS
+        self.add_solar_cycle()
+        self.add_sep_event_type()
+        self.add_farside()
+        
         return
 
 
@@ -2768,6 +2831,16 @@ class Output:
 
         return
 
+    def create_active_region_block(self):
+        """ Fill active region trigger block with AR information """
+        ar = ccmc_json.active_region_block()
+        ar['noaa_region'] = self.associations['Active Region']
+        ar['lat'] = self.associations['Event Source Latitude']
+        ar['lon'] = self.associations['Event Source Longitude']
+        ar['catalog'] = self.associations['Event Source Reference']
+        
+        return ar
+
 
     def add_trigger_blocks(self):
         """ If CME or flare information available, add trigger blocks
@@ -2782,6 +2855,13 @@ class Output:
             for flare in self.flares:
                 self.json_dict = ccmc_json.add_flare_trigger(self.json_dict, self.json_type,
                         flare)
+                        
+        if self.farside:
+            self.json_dict = ccmc_json.add_farside_trigger(self.json_dict, self.json_type, self.farside)
+            
+        ar = self.create_active_region_block()
+        self.json_dict = ccmc_json.add_active_region(self.json_dict, self.json_type, ar)
+ 
         return
 
 
@@ -3363,7 +3443,6 @@ def run_opsep(str_startdate, str_enddate, experiment,
         :and generates multiple plots:
         
     """
-    #cfg.configure_for(experiment)
     expts.set_config_energy_units(experiment)
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
@@ -3462,100 +3541,3 @@ def run_opsep(str_startdate, str_enddate, experiment,
     if showplot: plt.show()
     
     return flux_data.startdate, flux_data.sep_date, jsonfname, event_dict_csv, event_dict_pkl
-
-
-
-
-
-############ OLD UMASEP-RELATED CODE ##################
-    ####NOT YET REPRODUCED IN CLASS
-    #Calculate times used in UMASEP
-#    umasep_times =[]
-#    umasep_fluxes=[]
-#    if umasep:
-#        umasep_times, umasep_fluxes = calculate_umasep_info(energy_thresholds,
-#                        flux_thresholds, dates, integral_fluxes, crossing_time)
-
-#### TO BE INCORPORATED INTO ANALYZE CLASS IF DEEMED NECESSARY ####
-#def calculate_umasep_info(energy_thresholds,flux_thresholds,dates,
-#                integral_fluxes, crossing_time):
-#    """ Uses the integral fluxes (either input or estimated from differential
-#        channels) and all the energy and flux thresholds set in the main program
-#        to calculate SEP event quantities specific to the UMASEP model.
-#            Flux at threshold crossing time + 3, 4, 5, 6, 7 hours
-#
-#        INPUTS:
-#
-#        :energy_thresholds: (float 1xn array) - energy channels for which thresholds
-#            are applied
-#        :flux_thresholds: (float 1xn array) - flux thresholds that are applied
-#        :dates: (datetime 1xm array) - dates associated with flux time profile
-#        :integral_fluxes: (float nxm array) - fluxes for each energy channel for
-#            which a threshold is applied; each is the same length as dates
-#        :crossing_time: (datetime 1xn array) - threshold crossing times for each energy
-#            channel for which a threshold is applied
-#
-#        OUTPUTS:
-#
-#        :proton_delay_times: (datetime nx5 array) - times 3, 4, 5, 6, 7 hours
-#            after crossing time for n thresholds
-#        :proton_flux: (float nx5 array) - value of flux at each delay time and for
-#            each threshold
-#
-#    """
-#    nthresh = len(flux_thresholds)
-#    proton_flux = []
-#    delays = [datetime.timedelta(hours=3), datetime.timedelta(hours=4),
-#                    datetime.timedelta(hours=5), datetime.timedelta(hours=6),
-#                    datetime.timedelta(hours=7)]
-#    ndelay = len(delays)
-#    delay_times = []
-#    proton_delay_times = []  #actual time point corresponding to flux
-#
-#    #Match the correct time delay with the correct threshold
-#    for i in range(nthresh):
-#        if crossing_time[i] == 0:
-#            delay_times.append(0)
-#            continue
-#        all_delays = []
-#        for delay in delays:
-#            all_delays.append(crossing_time[i] + delay)
-#            #Make sure that delayed time doesn't exceed input time range
-#            if crossing_time[i] + delay > dates[len(dates)-1]:
-#                sys.exit("An UMASEP delayed time (Ts+3, 4, 5, 6, 7 hrs) "
-#                        "exceeded the user's input time range. Please rerun "
-#                        "and extend end time.")
-#
-#        delay_times.append(all_delays) #all delays for a given threshold
-#
-#    for i in range(nthresh):
-#        save_flux = [0]*ndelay
-#        save_dates = [0]*ndelay
-#        if delay_times[i] == 0:
-#            proton_delay_times.append(0)
-#            proton_flux.append(0)
-#            continue
-#        for k in range(ndelay):
-#            save_index = -1
-#            for j in range(len(dates)):
-#                if dates[j] <= delay_times[i][k]:
-#                    save_index = j
-#
-#            #GET FLUX AT DELAYED TIME WITH 10 MINUTE AVERAGE
-#            #May choose to modify if input data set has something other than
-#            #5 minute time cadence.
-#            if save_index == -1: #should not happen, unless dates has no length
-#                sys.exit("Did not find an appropriate UMASEP flux point. "
-#                        "Exiting.")
-#            if save_index == 0: #also should be no way for this to happen
-#                save_flux[k] = (integral_fluxes[i][save_index] + \
-#                            integral_fluxes[i][save_index +1])/2.
-#            else:
-#                save_flux[k] = (integral_fluxes[i][save_index] + \
-#                            integral_fluxes[i][save_index - 1])/2.
-#            save_dates[k] = dates[save_index]
-#
-#        proton_flux.append(save_flux)
-#        proton_delay_times.append(save_dates)
-#
-#    return proton_delay_times, proton_flux

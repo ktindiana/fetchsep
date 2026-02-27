@@ -45,6 +45,9 @@ def get_solar_cycle(request_date):
         and return the integer identifier, e.g. 25 for Solar Cycle 25.
         
     """
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+ 
     keys = solar_cycle.keys()
     for key in keys:
         if request_date >= solar_cycle[key]['start_time'] and \
