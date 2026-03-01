@@ -99,10 +99,41 @@ parser.add_argument("--listpath", type=str, default=None,
         help=("Specify path where lists should be saved. Will default to "
             "listpath listed in fetchsep.cfg if a value is not specified."))
 
+parser.add_argument("--kurtosis_cut", type=float, default=None,
+        help=("Set IDSEP kurtosis_cut quality reqirement. Data distributions with kurtosis > kurtosis_cut "
+            "will be excluded from calculating mean background. Some native experiments have a "
+            "predefined kurtosis_cut value in experiments.py. Set a value here to override. "
+            "Will default to values in experiments.py or fetchsep.cfg."))
+
+parser.add_argument("--idsep_nsigma", type=float, default=None,
+        help=("Set idsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + idsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
+parser.add_argument("--init_win", type=float, default=None,
+        help=("Set IDSEP init_win to indicate the length of the averaging window used "
+            "in the first rough calculation of the mean background. Recommend >=30 days. "
+            "Often use 150 days. Will default to value in fetchsep.cfg."))
+
+parser.add_argument("--sliding_win", type=float, default=None,
+        help=("Set IDSEP sliding_win to indicate the length of the averaging window used "
+            "to calculate the refined daily mean background. A backward-smoothing window "
+            "of 5 up to 27 days works well. Will default to value in fetchsep.cfg."))
+            
+parser.add_argument("--percent_points", type=float, default=None,
+        help=("Set IDSEP percent_points from 0 to 1.0 to determine the number of points "
+            "that must be considered background in the sliding window in order to calculate "
+            "the mean background, intended to avoid mean and sigma calculation from too few "
+            "points. It may be desireable to change the percent of points required in the "
+            "background window depending on window length. "
+            "percent_points = 0.4 works well for a 5-day sliding_win. "
+            "Will default to value in fetchsep.cfg."))
+
 parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
-              "the current working directory and exit.  Used to prepare a "
-              "starting point for creating a new user configuration."))
+            "the current working directory and exit.  Used to prepare a "
+            "starting point for creating a new user configuration. "
+            "Will default to value in fetchsep.cfg."))
 
 args = parser.parse_args()
 
@@ -135,6 +166,12 @@ path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
+kurtosis_cut=args.kurtosis_cut
+idsep_nsigma=args.idsep_nsigma
+init_win=args.init_win
+sliding_win=args.sliding_win
+percent_points=args.percent_points
+
 fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
     flux_type=flux_type,
     spacecraft=spacecraft,
@@ -151,6 +188,11 @@ fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,
-    path_to_lists=path_to_lists)
+    path_to_lists=path_to_lists,
+    kurtosis_cut=kurtosis_cut,
+    idsep_nsigma=idsep_nsigma,
+    init_win=init_win,
+    sliding_win=sliding_win,
+    percent_points=percent_points)
 
 

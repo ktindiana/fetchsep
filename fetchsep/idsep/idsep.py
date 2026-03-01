@@ -512,7 +512,12 @@ def run_idsep(str_startdate, str_enddate, experiment,
     path_to_data=None,
     path_to_output=None,
     path_to_plots=None,
-    path_to_lists=None):
+    path_to_lists=None,
+    kurtosis_cut=None,
+    idsep_nsigma=None,
+    init_win=None,
+    sliding_win=None,
+    percent_points=None):
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
@@ -570,6 +575,8 @@ def run_idsep(str_startdate, str_enddate, experiment,
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+    cfg.configure_idsep(kurtosis_cut=kurtosis_cut, idsep_nsigma=idsep_nsigma,
+        init_win=init_win, sliding_win=sliding_win, percent_points=percent_points)
     cfg.print_configured_values()
 
     datasets.check_paths(experiment)

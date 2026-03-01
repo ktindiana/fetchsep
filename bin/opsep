@@ -320,6 +320,12 @@ parser.add_argument("--listpath", type=str, default=None,
         help=("Specify path where lists should be saved. Will default to "
             "listpath listed in fetchsep.cfg if a value is not specified."))
 
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
+
 #parser.add_argument("--UMASEP",
 #        help=("Flag to calculate flux values and thresholds specific to "
 #            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
@@ -415,6 +421,8 @@ path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
+opsep_nsigma = args.opsep_nsigma
+
 
 date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_opsep(
     str_startdate, str_enddate, experiment,
@@ -484,6 +492,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,
-    path_to_lists=path_to_lists)
+    path_to_lists=path_to_lists,
+    opsep_nsigma=opsep_nsigma)
 
 if showplot: plt.show()

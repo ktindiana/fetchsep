@@ -515,8 +515,6 @@ class Data:
         if not os.path.exists(os.path.join(cfg.plotpath,'opsep', subdir)):
             os.mkdir(os.path.join(cfg.plotpath,'opsep', subdir))
 
-        
- 
         return
 
 
@@ -3365,7 +3363,8 @@ def run_opsep(str_startdate, str_enddate, experiment,
     path_to_data=None,
     path_to_output=None,
     path_to_plots=None,
-    path_to_lists=None):
+    path_to_lists=None,
+    opsep_nsigma=None):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3433,6 +3432,9 @@ def run_opsep(str_startdate, str_enddate, experiment,
             plotpath listed in fetchsep.cfg if a value is not specified.
         :path_to_lists: (string) path where lists should be saved. Will default to
             listpath listed in fetchsep.cfg if a value is not specified.
+        :opsep_nsigma: (float) when performing background subtraction or identifying 
+            enhancements above background, fluxes > mean + opsep_nsigma*sigma. Will
+            default to value in fetchsep.cfg if not specified.
         
         CME parameters that can be input manually:
         
@@ -3470,6 +3472,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+    cfg.configure_opsep(opsep_nsigma=opsep_nsigma)
     cfg.print_configured_values()
 
     datasets.check_paths(experiment)

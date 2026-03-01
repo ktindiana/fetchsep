@@ -34,7 +34,7 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
         :experiment: (string) name of experiment
         :flux_type: (string) integral or differential
         :options: (string array)
-        :energy_bins: (1x2 float array) [low edge,high edge]
+        :energy_bin: (1x2 float array) [low edge,high edge]
             If the bin is >10 MeV, [10,-1]
         
     """
@@ -182,6 +182,38 @@ parser.add_argument("--listpath", type=str, default=None,
             "listpath listed in fetchsep.cfg if a value is not specified."))
 
 
+###### IDSEP Arguments #######
+parser.add_argument("--kurtosis_cut", type=float, default=None,
+        help=("Set IDSEP kurtosis_cut quality reqirement. Data distributions with kurtosis > kurtosis_cut "
+            "will be excluded from calculating mean background. Some native experiments have a "
+            "predefined kurtosis_cut value in experiments.py. Set a value here to override. "
+            "Will default to values in experiments.py or fetchsep.cfg."))
+
+parser.add_argument("--idsep_nsigma", type=float, default=None,
+        help=("Set idsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + idsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
+parser.add_argument("--init_win", type=float, default=None,
+        help=("Set IDSEP init_win to indicate the length of the averaging window used "
+            "in the first rough calculation of the mean background. Recommend >=30 days. "
+            "Often use 150 days. Will default to value in fetchsep.cfg."))
+
+parser.add_argument("--sliding_win", type=float, default=None,
+        help=("Set IDSEP sliding_win to indicate the length of the averaging window used "
+            "to calculate the refined daily mean background. A backward-smoothing window "
+            "of 5 up to 27 days works well. Will default to value in fetchsep.cfg."))
+            
+parser.add_argument("--percent_points", type=float, default=None,
+        help=("Set IDSEP percent_points from 0 to 1.0 to determine the number of points "
+            "that must be considered background in the sliding window in order to calculate "
+            "the mean background, intended to avoid mean and sigma calculation from too few "
+            "points. It may be desireable to change the percent of points required in the "
+            "background window depending on window length. "
+            "percent_points = 0.4 works well for a 5-day sliding_win. "
+            "Will default to value in fetchsep.cfg."))
+
+
 ####### OpSEP Arguments #####
 parser.add_argument("--Threshold", type=str, default="",
         help=("An additional energy and flux thresholds "
@@ -194,6 +226,12 @@ parser.add_argument("--Threshold", type=str, default="",
 parser.add_argument("--Associations",
         help=("Set flag to associate flare, CME, radio, etc information "
             "if an SEP event is found in the data. "), action="store_true")
+
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
 
 #parser.add_argument("--UMASEP",
 #        help=("Set flag to calculate flux values and thresholds "
@@ -238,7 +276,7 @@ parser.add_argument("--BatchFile", type=str, default='batch_event_list.csv',
                 "Will look for an existing batch file if StartPoint is BATCH."
                 "Default is batch_event_list.txt."))
 
-parser.add_argument("--ReferenceEnergyBin", type=str, default="10,-1",
+parser.add_argument("--ReferenceEnergyBin", type=str, default=None,
         help=("Specify an energy bin array to use to create the batch file. "
             "The energy bin must exactly match an energy bin in the dataset. "
             "The SEP event list for this energy bin created by IDSEP will "
@@ -287,6 +325,13 @@ path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
+kurtosis_cut=args.kurtosis_cut
+idsep_nsigma=args.idsep_nsigma
+init_win=args.init_win
+sliding_win=args.sliding_win
+percent_points=args.percent_points
+
+opsep_nsigma = args.opsep_nsigma
 
 doBGSubIDSEP = args.IDSEPSubtractBG
 IDSEPEnhancement = args.IDSEPEnhancement
@@ -307,12 +352,17 @@ associations = args.Associations
 umasep = False #args.UMASEP
 json_type = args.JSONType
 
-energy_bin = args.ReferenceEnergyBin
-energy_bin = energy_bin.strip().split(",")
-energy_bin[0] = float(energy_bin[0])
-if energy_bin[1] != -1: energy_bin[1] = float(energy_bin[1])
 batchfile = args.BatchFile
 startpoint = args.StartPoint
+
+ref_energy_bin = args.ReferenceEnergyBin
+if ref_energy_bin == None and startpoint != "BATCH":
+    sys.exit("Enter a reference energy bin with exact bin edges indicating which energy "
+            "channel should be used to create SEP lists and batch files for OPSEP. --ReferenceEnergyBin")
+ref_energy_bin = ref_energy_bin.strip().split(",")
+ref_energy_bin[0] = float(ref_energy_bin[0])
+if ref_energy_bin[1] != -1: ref_energy_bin[1] = float(ref_energy_bin[1])
+
 
 if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
@@ -333,7 +383,12 @@ if startpoint == "IDSEP":
         path_to_data=path_to_data,
         path_to_output=path_to_output,
         path_to_plots=path_to_plots,
-        path_to_lists=path_to_lists)
+        path_to_lists=path_to_lists,
+        kurtosis_cut=kurtosis_cut,
+        idsep_nsigma=idsep_nsigma,
+        init_win=init_win,
+        sliding_win=sliding_win,
+        percent_points=percent_points)
 
     if plot_timeseries_only:
         sys.exit("User selected to only plot the timeseries. Exiting.")
@@ -354,7 +409,7 @@ if experiment == "GOES":
 ################################
 
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    septimes_file = septimes_fname(experiment, flux_type, exp_name, options, energy_bin, spacecraft=spacecraft)
+    septimes_file = septimes_fname(experiment, flux_type, exp_name, options, ref_energy_bin, spacecraft=spacecraft)
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
@@ -389,4 +444,5 @@ batch.run_all_events(sep_filename, threshold,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,
-    path_to_lists=path_to_lists)
+    path_to_lists=path_to_lists,
+    opsep_nsigma=opsep_nsigma)

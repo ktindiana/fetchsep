@@ -1,4 +1,5 @@
 import configparser
+import argparse
 import os.path
 import shutil
 
@@ -86,6 +87,7 @@ def print_configured_values():
     print("======= END CONFIG VALUES =========================")
     print()
 
+##### PATHS ####
 def set_datapath(datapath):
     #allow user to set the datapath on the fly across all modules
     pkg_globals['datapath'] = datapath
@@ -106,10 +108,6 @@ def set_listpath(listpath):
     pkg_globals['listpath'] = listpath
     print(f"config: Setting global listpath to {listpath}.")
 
-def set_kurtosis_cut(kurtosis_cut):
-    pkg_globals['kurtosis_cut'] = kurtosis_cut
-    print(f"config: Setting global kurtosis_cut to {kurtosis_cut}.")
-
 def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
     path_to_lists=None):
     #set paths specified by user
@@ -125,6 +123,54 @@ def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
     prepare_dirs()
 
 
+#### IDSEP ####
+def set_kurtosis_cut(kurtosis_cut):
+    pkg_globals['kurtosis_cut'] = kurtosis_cut
+    print(f"config: Setting global kurtosis_cut to {kurtosis_cut}.")
+
+def set_idsep_nsigma(idsep_nsigma):
+    pkg_globals['idsep_nsigma'] = idsep_nsigma
+    print(f"config: Setting global idsep_nsigma to {idsep_nsigma}.")
+
+def set_idsep_init_win(init_win):
+    pkg_globals['init_win'] = init_win
+    print(f"config: Setting global idsep init_win to {init_win}.")
+
+def set_idsep_sliding_win(sliding_win):
+    pkg_globals['sliding_win'] = sliding_win
+    print(f"config: Setting global idsep sliding_win to {sliding_win}.")
+
+def set_idsep_percent_points(percent_points):
+    pkg_globals['percent_points'] = percent_points
+    print(f"config: Setting global idsep percent_points to {percent_points}.")
+
+def configure_idsep(kurtosis_cut=None, idsep_nsigma=None,
+    init_win=None, sliding_win=None, percent_points=None):
+    if kurtosis_cut != None:
+        set_kurtosis_cut(kurtosis_cut)
+        print(f"configure_idsep: Superceding any kurtosis_cut value set in experiments.py")
+    if idsep_nsigma != None:
+        set_idsep_nsigma(idsep_nsigma)
+    if init_win != None:
+        set_idsep_init_win(init_win)
+    if sliding_win != None:
+        set_idsep_sliding_win(sliding_win)
+    if percent_points != None:
+        set_idsep_percent_points(percent_points)
+
+
+
+#### OPSEP ####
+def set_opsep_nsigma(opsep_nsigma):
+    pkg_globals['opsep_nsigma'] = opsep_nsigma
+    print(f"config: Setting global opsep_nsigma to {opsep_nsigma}.")
+
+def configure_opsep(opsep_nsigma=None):
+    if opsep_nsigma != None:
+        set_opsep_nsigma(opsep_nsigma)
+
+
+#### UNITS ####
 def set_energy_units(energy_units):
     #allow user to set the datapath on the fly across all modules
     pkg_globals['energy_units'] = energy_units
@@ -143,5 +189,30 @@ def set_flux_units(flux_units_integral, fluence_units_integral,
 if __name__ == '__main__':
     """If called from the command line, copy the package config file to the current
     working directory to give the user an example to start with."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--datapath", type=str, default=None,
+            help=("Specify path where satellite data should be downloaded. Will default to "
+                "datapath listed in fetchsep.cfg if a value is not specified."))
+
+    parser.add_argument("--outpath", type=str, default=None,
+            help=("Specify path where output files should be saved. Will default to "
+                "outpath listed in fetchsep.cfg if a value is not specified."))
+                
+    parser.add_argument("--plotpath", type=str, default=None,
+            help=("Specify path where plots should be saved. Will default to "
+                "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+    parser.add_argument("--listpath", type=str, default=None,
+            help=("Specify path where lists should be saved. Will default to "
+                "listpath listed in fetchsep.cfg if a value is not specified."))
+
+    args = parser.parse_args()
+    path_to_data = args.datapath
+    path_to_output = args.outpath
+    path_to_plots = args.plotpath
+    path_to_lists = args.listpath
+
     export_config()
-    prepare_dirs()
+    set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+        path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+#    prepare_dirs()
