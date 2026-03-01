@@ -7,7 +7,10 @@ import fetchsep.utils.experiments as expts
 
 valid_experiments = expts.valid_experiments()
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: IDSEP uses an iterative method to robustly calculate the mean background and expected level of variation (sigma) in a flux time series. A threshold of mean + n*sigma is used to identify enhanced values above background. A set of criteria are applied to identify enhancements due to SEP events. Exported files include time series of mean background, sigma, SEP fluxes with background set to zero, background-subtracted SEP fluxes with background set to zero, and files containing SEP event start and end times.")
+
+)
 
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""

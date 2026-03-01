@@ -6,7 +6,11 @@ import fetchsep.utils.experiments as expts
 
 valid_experiments = expts.valid_experiments()
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: Download data onto your computer into the data/ folder, create a simple csv time series file in output/download, and plot.")
+)
+
+
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes"))

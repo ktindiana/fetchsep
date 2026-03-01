@@ -22,7 +22,12 @@ import argparse
     
 """
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: Given multiple SEP event lists produced for different GOES satellites (output from batch runs of OPSEP), compile into a single list by choosing event information from the primary satellite at the time of the SEP event.")
+
+)
+
+
 parser.add_argument("--Filename", type=str, default='',
         help=("Name of file with a list of all SEP lists produced for individual GOES satellites, e.g. ./output/opsep/GOES-06_integral_enhance_idsep/GOES-06_integral_enhance_idsep.1986-01-01.1994-11-30_sep_events.csv."))
 

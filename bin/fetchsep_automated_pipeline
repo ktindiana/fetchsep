@@ -72,7 +72,11 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
 #increases above background and output a preliminary list of
 #SEP events.
 ##################################
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: This automated pipeline uses the full capabilities of FetchSEP to create a rough SEP event list from scratch for any timeframe and any experiment. Specify start and end times and this routine will identify all SEP events in the time series and analyze each one individually. It is expected that the automatically created batch_run file will have to be edited by the user to appropriately capture each SEP event and then rerun starting at BATCH to create a clean set of SEP event and non-event time periods. WORKFLOW: This routine calls IDSEP to calculate the mean background and identify enhancements due to SEPs. The SEP start and end times are formatted into a batch run file for OPSEP that is split into non-event and single SEP event time periods. OPSEP analyzes each time period, extracting SEP event characteristics if event definition thresholds (e.g. >10 MeV, 10 pfu) are crossed.")
+)
+
+
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\" with quotes"))
 

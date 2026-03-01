@@ -7,20 +7,27 @@ import fetchsep.utils.experiments as expts
 
 valid_experiments = expts.valid_experiments()
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: Convert the SEPTimes files produced by IDSEP into batch run lists to run OPSEP. The batch run list will cover a continuous time period divided into SEP event and non-event periods. SEP event start and end times are automatically padded with some time prior to and after the event, if possible.")
+)
+
 parser.add_argument("--SEPTimes", type=str, default='',
         help=("Filename with SEP start and end times."))
+
 parser.add_argument("--DetectorList", type=str, default='',
         help=("Filename with months and GOES detectors if "
             "multiple detectors were compiled to create the "
             "dataset."))
+
 parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help=("Enter name of spacecraft or dataset. "
             "Use Experiment if only one experiment was used to "
             "create the SEP event list. Otherwise ignore."))
+
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
         help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
+
 parser.add_argument("--options", type=str, default='', help=("You "
         "may specify a series of options as a semi-colon separated list "
         "surrounded by quotations.\n"
@@ -36,6 +43,7 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
+
 parser.add_argument("--OutFile", type=str, default='out_event_list.txt',
         help=("Name of output SEP event list file."))
 
@@ -52,7 +60,6 @@ outfile = args.OutFile
 if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
 
-event_list.make_event_list(septimes_file,detector_list,experiment,
-        flux_type,options,outfile)
+event_list.make_event_list(septimes_file, detector_list, experiment, flux_type, options, outfile)
 
 

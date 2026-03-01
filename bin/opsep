@@ -21,7 +21,10 @@ import numpy as np
 
 valid_experiments = expts.valid_experiments()
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: OPSEP analyzes a single SEP event to calculate threshold crossings, peak fluxes, and event-integrated fluence and fluence spectra for automatic (>10 MeV, 10 pfu and >100 MeV, 1 pfu) and user-provided event definitions. OPSEP may perform background subtraction and identify enhancements above background using the mean background calculated by IDSEP or a time period specified by the user. OPSEP outputs flux time series in a simple csv format and json files in the CCMC SEP Scoreboard format, which is also the same format used by SPHINX for SEP model validation. Users may input their own time profiles (e.g. produced by a prediction model) to analyze SEP event characteristics. SEP events may be associated with flares, CMEs, radio data, etc by referencing a number of SEP event lists stored in the reference/ directory, including SEP lists compiled by SRAG, Cane et al., and Ian Richardson. Users may input their own flare, CME, and source locations associations via command line or in a file containing a CCMC SEP Scoreboard trigger block.")
+)
+
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes"))

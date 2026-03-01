@@ -18,11 +18,14 @@ two_peaks_default = False #Set to true if get ShortEvent flag
 ############## END DEFAULTS #################
 
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: Batch run OPSEP to analyze individual SEP event or non-event time periods. Produce csv files containing an SEP event list and a non-event list for all time periods analyzed.")
+)
 
 parser.add_argument("--Filename", type=str, default='tmp.csv', \
-        help=("Name of csv file containing list of SEP start dates and files."
-        "Default is tmp.csv."))
+        help=("Name of csv file containing list of SEP start dates and files. Expected columns: "
+            "#Start Time,End Time,Experiment,Flux Type,Flags,User Experiment Name,User Filename,Options,BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,Location,Species. "
+            "Default is tmp.csv."))
 
 parser.add_argument("--StatusFilename", type=str, default='batch_run_status.csv', \
         help=("Name of csv file containing list of SEP dates with "
