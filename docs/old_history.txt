@@ -822,3 +822,27 @@ def about_opsep(): #only for documentation purposes
 #   Modified clean_json to remove the options field if nothing added.
 #   Changed event_lengths threshold field to threshold_start and added
 #   threshold_end.
+
+
+########### batch_run_opsep.py CHANGE LOG ###############
+#Changes in 0.2: Modified so that output list files will indicate
+#   when an observation or flux did not exceed a certain threshold
+#   for a given SEP event. Added a column specifying SEP date to
+#    sep_list
+#2021-01-14, Changes in 0.3: Made consistent with operational_sep_quantities.py
+#   v2.3 which includes background subtraction and various energy bin options.
+#   Added more fields to list file to allow better specification of each data
+#   set.
+#2021-02-24, Changes in 0.4: Read in json files produced by
+#   operational_sep_quantities.py and then write certain quantities to list.
+#2021-04-05, Changes in 0.4.1: Reads pathnames from config.py.
+#   Added checking for listpath. Code will check for listpath and create.
+#2021-05-17, changes in 0.5: Discovered differences in CCMC's json files.
+#   Making changes here to be consistent with their format. CCMC defines
+#   "fluences" and "event_lengths" as arrays.
+#2021-08-17, changes in 0.6: Making modifications to reflect changes in
+#   operational_sep_quantities.py v3.0 w.r.t. inputs and outputs.
+#   run_multi_sep.py now works with keys.py and ccmc_json_handler.py to
+#   read in values from the json file and write out to list.
+#2021-09-16, changes in 0.7: Add support for the JSONType (json_type)
+#   variable added in operational_sep_quantities.py v3.2.

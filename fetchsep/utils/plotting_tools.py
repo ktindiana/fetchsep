@@ -201,7 +201,8 @@ def check_for_good_fluxes(flux):
 def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     fluxes, dates, energy_bins, means, sigmas, saveplot,
     spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False):
+    OPSEPEnhancement=False, IDSEPEnhancement=False,
+    color_scheme=1, no_goes_colors=False):
     """Plot fluxes with time for all of the energy bins on the same plot. The
         estimated mean background levels are plotted as dashed lines.
         Zero values are masked, which is useful when make plots of the
@@ -229,6 +230,8 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     flux_units = tools.get_flux_units(flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = tools.get_energy_units()
+    
+    colors = define_colors(energy_bins, color_scheme=color_scheme, no_goes_colors=no_goes_colors)
     
     #All energy channels in specified date range with event start and stop
     #Plot all channels of user specified data
@@ -261,7 +264,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
             mean = np.nanmean(np.array(means[i]))
             
         legend_label = tools.setup_energy_bin_label(energy_bins[i])
-        p = ax.plot_date(dates,maskfluxes, '-', label=legend_label)
+        p = ax.plot_date(dates,maskfluxes, '-', label=legend_label, color=colors[i])
         color = p[0].get_color()
         if i==0:
             plt.axhline(mean,color=color,linestyle=':', label="Mean Background")
@@ -381,7 +384,7 @@ def make_math_label(label):
     return label
 
 
-def define_colors(energy_bins, event_definitions=None, color_scheme=1):
+def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_colors=False):
     """ Colors for flux time series. Colors are mapped to energy bins
         and event definitions (energy bin + threshold).
         
@@ -397,6 +400,8 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
             :energy_bins: (list) e.g. [[10,-1],[30,-1],[50,-1]]
             :event_definitions: (object) contains energy channel and threshold
             :color_scheme: (int) allows user to select different color schemes
+            :no_goes_colors: (bool) True will turn off using the integral_colors
+                for >5, >10, >30, etc MeV
         
     
     """
@@ -418,67 +423,227 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
                 '>50.0 MeV'    : '#0000ff',
                 '>60.0 MeV'    : '#000000',
                 '>100.0 MeV'   : '#00ff00',
-                '>500.0 MeV'   : 'darkturquoise', # SWPC '#f39c12'
+                '>500.0 MeV'   : 'darkturquoise', # SWPC
                 }
 
     #########
     #Colors for other energy bins
  
     #### DEFAULT ####
-    #Colors in Tab20-like order that are not close in shade to GOES colors.
+    ######Tab 10-like bright, exciting, cosmic DEFAULT
     if color_scheme == 1:
         #Fluxes
         flux_colors = [
-            #Tab20-like
-            "#2C5282",  # dark blue
-            "#3A86FF",  # bright blue (not #0000ff)
-
-            "#E36414",  # burnt orange
-            "#FF9F1C",  # light orange
-
-            "#2A9D8F",  # sea green
-            "mediumaquamarine",
-
-            "#C44536",  # strong red-orange
-            "#E56B6F",  # muted coral (warm)
-
-            "#5E60CE",  # indigo
-            "#9D4EDD",  # light violet
-
-            "#A47148",  # warm brown
-            "#D4A373",  # sand
-
-            "#588157",  # forest
-            "#6A994E",  # medium green
-
-            "goldenrod", #"#E9C46A",  # muted gold
-            "khaki",  #"#F4D35E" soft yellow
-
-
-            "#1D3557",  # deep navy (not pure blue)
-            "#F77F00",  # warm orange
-            "#1B9E77",  # teal
-            "#20B2AA",  # light teal
-            "#9E2A2B",  # deep brick
-            "#7FB069",  # soft green
+            "#1A3D8C",  # vivid cosmic blue
+            "#FF6D2E",  # bright molten orange
+            "#00A28A",  # strong teal / alien green
+            "#E63946",  # vivid cosmic red
+            "#8C4BDC",  # adjusted nebula purple (distinct from #6A4DC9)
+            "#F0C27B",  # glowing sand / orange
+            "#4DA6FF",  # bright sky blue
+            "#FF6B91",  # adjusted coral: less orange, more pink/magenta
+            "#3FA76D",  # forest green
+            "#2EC4E6",  # electric plasma blue (replaces bright violet)
+            "#B078F0",  # bright nebula violet
         ]
 
-        #Additional colors for thresholds
         threshold_colors = [
-            "#BC6C25",  # brown-orange
-            "#386641",  # deep green
-            "dimgrey",
-            "silver",
-            "magenta",  # violet
-            "lightsteelblue",
-            "#A7C957",  # yellow-green
-            "#5AA9E6",  # light azure
+            #Go with Set 1-like bright, exciting, cosmic DEFAULT
+            "#5B4F6D",  # muted cool purple (slate-like)
+            "#B88628",  # warm mustard / starlight gold
+            "#853841",  # muted wine red
+            "#0E715B",  # deep teal / cosmic ocean
+            "#BFB288",  # soft khaki / nebula dust
+            "#6B8C2A",  # muted olive-green / planetary surface
         ]
+
+
+    ######Tab 20-like exciting, dark, and soft space exploration palette
+    if color_scheme == 2:
+        flux_colors = [
+            # Blue pair (space & deep sky)
+            "#1D3B6A",  # deep vibrant cosmic blue
+            "#5B8BC9",  # brightened light sky blue
+
+            # Orange pair (Mars / rover dust)
+            "#C26834",  # vivid burnt Mars orange
+            "#E3A875",  # lively desert sand orange
+
+            # Green / Teal pair (Earth, instruments)
+            "#2E8E82",  # energetic dark teal
+            "#6CC6B7",  # brighter pale teal
+
+            # Red / Coral pair (Mars, spacecraft accents)
+            "#A53433",  # bold brick red
+            "#E07D79",  # warm dusty coral
+
+            # Purple / Indigo pair (space nebula / shadows)
+            "#4B49A8",  # more vibrant dark indigo
+            "#8F78D4",  # brighter muted violet
+
+            # Brown / Sand pair (lunar / asteroid surfaces)
+            "#876048",  # rich dark brown
+            "#D1B081",  # warm sand
+
+            # Extra accent greens (Earth / habitat elements)
+            "#538160",  # lively forest green
+            "#9ACF9D",  # fresh soft green
+
+            # Extra accent oranges (engine / solar panels)
+            "#B5743B",  # brighter metallic burnt orange
+            "#E8AC5A",  # muted gold-orange
+
+            # Extra blues (space instruments)
+            "#1B4463",  # deep navy
+            "#5797D5",  # soft sky blue
+                       ]
+
+        threshold_colors = [
+            "#4DA6FF",  # bright sky blue
+            "#FF6D2E",  # vivid molten orange
+            "#70E0C8",  # bright aqua / nebula gas
+            "#FF7F91",  # bright coral / stellar highlights
+            "#B44FD9",  # bright magenta-violet / nebula accent
+            "#FFD460",  # glowing starlight gold
+
+        ]
+
+
+    ######Set 1-like color scheme inspired by Mars
+    if color_scheme == 3:
+        #Set 1-like Mars
+        flux_colors = [
+            "#1D3B6A",  # deep vibrant cosmic blue
+            "#C26834",  # vivid burnt Mars orange
+            "#2E8E82",  # energetic dark teal
+            "#A53433",  # bold brick red
+            "#4B49A8",  # more vibrant dark indigo
+            "#876048",  # rich dark brown
+            "#5B8BC9",  # brightened light sky blue
+            "#E3A875",  # lively desert sand orange
+            "#6CC6B7",  # brighter pale teal
+            "#E07D79",  # warm dusty coral
+                       ]
+
+        threshold_colors = [
+            "#4DA6FF",  # bright sky blue
+            "#FF6D2E",  # vivid molten orange
+            "#70E0C8",  # bright aqua / nebula gas
+            "#FF7F91",  # bright coral / stellar highlights
+            "#B44FD9",  # bright magenta-violet / nebula accent
+            "#FFD460",  # glowing starlight gold
+        ]
+
+
+    ####Set 1-like inspired by nebulae and supernovae
+    if color_scheme == 4:
+        #Set 1-like nebulae
+        flux_colors = [
+            "#2C2D72",  # deep cosmic indigo (space background)
+            "#4B6CB7",  # muted sky blue (stellar gas)
+            "#D94F1A",  # fiery orange (supernova shock)
+            "#FF9E3D",  # glowing amber (nebula dust)
+            "#E03E5C",  # vivid cosmic red (hot star regions)
+            "#B75CC2",  # nebula pink/purple (ionized gases)
+            "#1F8F7A",  # teal (aurora-like gas clouds)
+            "#70C9C4",  # soft aqua (diffuse gas)
+            "#8B5C42",  # asteroid / rocky brown (planetary surfaces)
+            "#E0B56B",  # soft gold (starlight glow)
+        ]
+
+        threshold_colors = [
+            #With the Orion nebula scheme
+            "#3B9CFF",  # bright sky blue
+            "#FF5733",  # vivid orange-red
+            "#1ABC9C",  # bright teal
+            "#FF6F91",  # pink / coral
+            "#9B59B6",  # strong magenta-violet
+            "#FFD700",  # gold / starlight yellow
+        ]
+
+
+    ####Set 1-like, inspired by Ring Nebula and Orion Nebula
+    if color_scheme == 5:
+        flux_colors = [
+            "#0B285D",  # deep cosmic blue
+            "#355BA1",  # darker nebula blue
+            "#1C7AA0",  # rich Orion blue (avoids darkturquoise)
+            "#D9451A",  # fiery nebula orange
+            "#E68C2F",  # muted glowing amber
+            "#9B3FBF",  # vibrant magenta-violet
+            "#2A8C80",  # dark teal (distinct from darkturquoise)
+            "#D05F5B",  # dusty coral / stellar highlights
+            "#3B7D9A",  # medium darker blue
+            "#D1AA53",  # starlight gold / glowing edges
+                       ]
+
+        threshold_colors = [
+            #With the Orion nebula scheme
+            "#3B9CFF",  # bright sky blue
+            "#FF5733",  # vivid orange-red
+            "#1ABC9C",  # bright teal
+            "#FF6F91",  # pink / coral
+            "#9B59B6",  # strong magenta-violet
+            "#FFD700",  # gold / starlight yellow
+
+        ]
+
+
+    ####Tab 20-like very bright color scheme
+    if color_scheme == 6:
+        #BRIGHT
+        flux_colors = [
+            # Blue pair
+            "#3366CC",  # brighter dark blue
+            "#66B2FF",  # brighter light blue
+
+            # Orange pair
+            "#FF7F33",  # brighter dark orange
+            "#FFCC66",  # brighter light orange
+
+            # Green / Teal pair
+            "#33B2AA",  # brighter dark teal
+            "#80E0D9",  # brighter light teal
+
+            # Red / Coral pair
+            "#E64C3C",  # brighter dark red-orange
+            "#FF8A88",  # brighter light coral
+
+            # Purple / Indigo pair
+            "#6666FF",  # brighter dark indigo
+            "#B366FF",  # brighter light violet
+
+            # Brown / Sand pair
+            "#C78C51",  # brighter dark brown
+            "#E8C18D",  # brighter light sand
+
+            # Extra accent greens
+            "#73A46C",  # brighter dark forest green
+            "#A8D18A",  # brighter soft green
+
+            # Extra accent oranges
+            "#D68B46",  # brighter brown-orange
+            "#FFA333",  # brighter warm orange
+
+            # Extra blues
+            "#264C99",  # brighter deep navy
+            "#66C2FF",  # brighter light azure
+        ]
+
+        threshold_colors = [
+            "#6C757D",  # cool lunar gray
+            "#C2185B",  # deep supernova magenta
+            "#7B1FA2",  # dark cosmic plum
+            "#A3B18A",  # sage / muted planetary green
+            "#8D6E63",  # asteroid taupe
+            "#B8860B",  # dark metallic gold
+        ]
+
+
 
     #Standard Python Tab10 with red replaced with muted coral
-    #repeated to make 20 colors for flux time series.
-    #Set2 scheme used for additional thresholds
-    if color_scheme == 2:
+    #Distinct scheme used for additional thresholds
+    if color_scheme == 7:
         flux_colors = [
             "#1f77b4",  # tab:blue
             "#ff7f0e",  # tab:orange
@@ -490,21 +655,11 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
             "#7f7f7f",  # tab:gray
             "#bcbd22",  # tab:olive
             "#17becf",  # tab:cyan
-            
-            "#1f77b4",  # tab:blue
-            "#ff7f0e",  # tab:orange
-            "#2ca02c",  # tab:green
-            "#E65A60",  # reddish coral
-            "#9467bd",  # tab:purple
-            "#8c564b",  # tab:brown
-            "#e377c2",  # tab:pink
-            "#7f7f7f",  # tab:gray
-            "#bcbd22",  # tab:olive
-            "#17becf",  # tab:cyan
         ]
 
-        #Set 2
+        
         threshold_colors = [
+            #Set 2
             "#66c2a5",  # teal
             "#fc8d62",  # orange
             "#8da0cb",  # blue-violet
@@ -517,9 +672,8 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
 
 
     #Standard Python Set1 with red replaced with muted coral
-    #repeated to make 20 colors for flux time series.
-    #Set2 scheme used for additional thresholds
-    if color_scheme == 3:
+    #Distinct scheme used for additional thresholds
+    if color_scheme == 8:
         flux_colors = [
             "#E65A60",  # reddish coral
             "#377eb8",  # blue
@@ -530,34 +684,25 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
             "#a65628",  # brown
             "#f781bf",  # pink
             "#999999",  # gray
-                    
-            "#E65A60",  # reddish coral
-            "#377eb8",  # blue
-            "#4daf4a",  # green
-            "#984ea3",  # purple
-            "#ff7f00",  # orange
-            "#ffff33",  # yellow
-            "#a65628",  # brown
-            "#f781bf",  # pink
-            "#999999",  # gray
         ]
 
-        #Set 2
+        
         threshold_colors = [
-            "#66c2a5",  # teal
-            "#fc8d62",  # orange
-            "#8da0cb",  # blue-violet
-            "#e78ac3",  # pink
-            "#a6d854",  # green
-            "#ffd92f",  # yellow
-            "#e5c494",  # tan
-            "#b3b3b3",  # gray
+            "#1F5F8B",  # cool – slate-teal blue
+            "#D4A017",  # warm – mustard
+            "#8E3B46",  # warm – wine
+            "#0B6E4F",  # cool – deep sea green
+            "#C2B280",  # warm – khaki
+            "#4A4E69",  # cool – cool slate
+            "#B8E620",  # warm – chartreuse
+            "#2D6A4F",  # cool – forest green
+            "#6B8E23",  # warm – olive-drab
         ]
 
 
-    #Standard Python Tab20 with red replaced with muted coral
+    #Standard Python Tab20 with red replaced with coral
     #Set2 scheme used for additional thresholds
-    if color_scheme == 4:
+    if color_scheme == 9:
         flux_colors = [
             "#1f77b4",  # blue
             "#aec7e8",  # light blue
@@ -581,31 +726,32 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
             "#9edae5",  # light cyan
         ]
 
-        #Set 2
+        
         threshold_colors = [
-            "#66c2a5",  # teal
-            "#fc8d62",  # orange
-            "#8da0cb",  # blue-violet
-            "#e78ac3",  # pink
-            "#a6d854",  # green
-            "#ffd92f",  # yellow
-            "#e5c494",  # tan
-            "#b3b3b3",  # gray
+            "#1F5F8B",  # cool – slate-teal blue
+            "#D4A017",  # warm – mustard
+            "#8E3B46",  # warm – wine
+            "#0B6E4F",  # cool – deep sea green
+            "#C2B280",  # warm – khaki
+            "#4A4E69",  # cool – cool slate
+            "#B8E620",  # warm – chartreuse
+            "#2D6A4F",  # cool – forest green
+            "#6B8E23",  # warm – olive-drab
         ]
 
 
-    #Colors to browns, all distinct from GOES colors
-    if color_scheme == 5:
+    #Tab 20-like muted blues, olives, purples colors to browns, all distinct from GOES colors
+    if color_scheme == 10:
         flux_colors = [
             # --- Distinct hues (cool + accent colors first) ---
             "#1B3A4B",  # deep slate blue
             "#3E7CB1",  # muted sky blue
-            "#5AA9E6",  # light azure
+            #"#5AA9E6",  # light azure
             "#2A9D8F",  # sea green
             "#588157",  # muted green
             "#A7C957",  # yellow-green
             "#28536B",  # steel teal
-            "#52796F",  # cool sage
+            #"#52796F",  # cool sage
             "#3A5A40",  # deep forest
             "#9F86C0",  # soft violet
             "#CDB4DB",  # pale lavender
@@ -618,8 +764,8 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
             "#9C6644",  # sienna
             "#7F5539",  # cocoa
             "#B08968",  # warm tan
-            "#D4A373",  # sand
-            "#8D99AE",  # blue-gray
+            #"#D4A373",  # sand
+            #"#8D99AE",  # blue-gray
         ]
 
         threshold_colors = [
@@ -632,8 +778,8 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
         ]
 
 
-    #Reds to blues and are not the same as GOES colors
-    if color_scheme == 6:
+    #Tab 20-like autumn colors; Reds to blues and are not the same as GOES colors
+    if color_scheme == 11:
         flux_colors = [
             "#C44536",  # strong red-orange
             "#E36414",  # burnt orange
@@ -670,72 +816,100 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1):
             "#7209B7",  # violet
         ]
 
-    #Interleaved colors not close to GOES colors
-    if color_scheme == 7:
+
+    #Tab 20-like bold, dark autumn colors with strong visual separation
+    if color_scheme == 12:
         flux_colors = [
-            # High-contrast alternating warm/cool
-            "#9E2A2B",  # deep brick
-            "#1D3557",  # deep navy
-            "#E36414",  # burnt orange
-            "#2A9D8F",  # sea green
-            "#F4D35E",  # soft yellow
-            "#3A86FF",  # bright blue
-            "#BC6C25",  # brown-orange
-            "#1B9E77",  # teal
-            "#C44536",  # red-orange
-            "#5E60CE",  # indigo
-            "#D4A373",  # sand
-            "#386641",  # deep green
-            "#FF9F1C",  # light orange
-            "#118AB2",  # blue-teal
-            "#A47148",  # warm brown
-            "#7209B7",  # violet
-            "#E9C46A",  # muted gold
-            "#588157",  # forest green
-            "#F77F00",  # warm orange
-            "#2C5282",  # dark blue
+            "#8E2C2C",  # deep brick (not red)
+            "#A23E48",  # wine
+            "#B5651D",  # strong amber-brown
+            "#C67C00",  # dark goldenrod (not orange)
+            "#D4A017",  # bold gold
+            "#6B8E23",  # olive drab
+            "#4F772D",  # deep olive green
+            "#3A5F0B",  # dark moss
+            "#006400",  # dark green (not bright green)
+            "#2F4F4F",  # dark slate teal (not cyan)
+            "#0B3C49",  # deep blue-slate (not blue)
+            "#1B4965",  # strong steel blue
+            "#2E4057",  # dark desaturated blue
+            "#5C415D",  # smoky plum-brown (not purple)
+            "#7A306C",  # deep magenta-brown (not violet)
+            "#9A031E",  # dark crimson-brown (not pure red)
+            "#BB9457",  # bold tan
+            "#99582A",  # saddle brown
+            "#6C757D",  # strong cool gray
+            "#495057",  # dark gray (not black)
+        ]
+        
+        threshold_colors = [
+            "#FF6B3A",  # vivid vermilion (brighter than prior rust tones)
+            "#FFD23F",  # strong sunflower yellow
+            "#B8E620",  # electric yellow-green (not neon green)
+            "#00A86B",  # jade green (not bright green or cyan)
+            "#4DA8DA",  # bright sky blue (not royal blue)
+            "#7B2CBF",  # bright amethyst (not GOES purple)
+        ]
+
+
+    #Tab 20-like bright, soft rainbow primary cycle with high visibility
+    if color_scheme == 13:
+        flux_colors = [
+            "#F94144",  # bright coral-red (not pure red)
+            "#F3722C",  # vivid orange-red (distinct from GOES orange)
+            "#F9C74F",  # bright golden yellow
+            "#90BE6D",  # soft bright green (not neon)
+            "#43AA8B",  # aqua-green (not cyan)
+            "#4D908E",  # bright teal
+            "#577590",  # strong steel blue
+            "#4895EF",  # bright sky blue (not #0000ff)
+            "#4361EE",  # clear blue-indigo
+            "#B5179E",  # magenta (not GOES purple)
+            "#F72585",  # bright pink
+            "#FF8FAB",  # light rose
+            "#FFB703",  # saturated yellow-orange
+            "#A7C957",  # bright yellow-green
+            "#06D6A0",  # vivid mint (not cyan)
+            "#3A86FF",  # electric blue (not pure)
+            "#8338EC",  # bright violet (distinct from GOES purple)
+            "#FFBE0B",  # strong sunflower
+            "#E76F51",  # bright terracotta
+            "#2EC4B6",  # vibrant teal-green
         ]
 
         threshold_colors = [
-            "#A7C957",  # yellow-green
-            "#1B4332",  # dark teal-green
-            "#6A994E",  # medium green
-            "#20B2AA",  # light teal
-            "#7FB069",  # soft green
-            "#9D4EDD",  # light violet
+            "#7B2CBF",  # deep amethyst
+            "#1D3557",  # dark navy-slate (not pure blue)
+            "#2D6A4F",  # deep forest green (not bright)
+            "#9E2A2B",  # dark brick (not pure red)
+            "#6B4226",  # dark brown
+            "#3A0CA3",  # deep indigo (not GOES purple)
         ]
 
 
-#
-#    #Thresholds not associated with a flux energy bin
-##    threshold_colors =  ['black', 'red', 'blue', 'green', 'cyan', 'magenta',
-##                'violet', 'orange', 'brown', 'darkred', 'deepskyblue',
-##                'mediumseagreen', 'lightseagreen', 'purple', 'sandybrown',
-##                'cadetblue', 'goldenrod', 'navy', 'palevioletred',
-##                'saddlebrown']
-# 
-#
-
     #Flux energy bin colors
     color_map = {}
+    #cycle through colors
+    colorcycler = cycle(flux_colors)
     for i, bin in enumerate(energy_bins):
         label = tools.setup_energy_bin_label(bin)
-        if label in integral_colors.keys():
+        if label in integral_colors.keys() and not no_goes_colors:
             color_map.update({label: integral_colors[label]})
         else:
-            color_map.update({label: flux_colors[i]})
+            color_map.update({label: next(colorcycler)})
 
     #Threshold colors
+    threshcycler = cycle(threshold_colors)
     if event_definitions != None:
         for i, evdef in enumerate(event_definitions):
             bin = [evdef['energy_channel'].min, evdef['energy_channel'].max]
             label = tools.setup_energy_bin_label(bin)
             if label in color_map.keys():
                 continue
-            elif label in integral_colors.keys():
+            elif label in integral_colors.keys() and not no_goes_colors:
                 color_map.update({label: integral_colors[label]})
             else:
-                color_map.update({label: threshold_colors[i]})
+                color_map.update({label: next(threshcycler)})
 
 
     return color_map
@@ -757,7 +931,8 @@ def vline_styles(event_definitions):
 
 
 def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
-    energy_bins, showplot, ylog=True, color_scheme=1):
+    energy_bins, showplot, saveplot, ylog=True, color_scheme=1, no_goes_colors=False,
+    figname='basic.png'):
     """ Plot the fluxes for visualization only.
         
         INPUT:
@@ -770,6 +945,8 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
                 using event definitions, called evaluated_dates in Data obj
             :fluxes: (2D arr, probably numpy) all fluxes that were
                 evaluted with event definitions, called evaluated_fluxes in Data obj
+            :color_scheme: (int) choices of 1 to 7
+            :no_goes_colors: (bool) if True won't use SWPC colors for >5, >10, etc MeV
 
         OUTPUT:
         
@@ -784,12 +961,11 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     if experiment == "user":
         exp_name = user_name
 
-    figname = f"{exp_name}_Data"
     plot_title = f"{exp_name} Data"
     
     fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)
-    colors = define_colors(energy_bins, color_scheme=color_scheme)
+    colors = define_colors(energy_bins, color_scheme=color_scheme, no_goes_colors=no_goes_colors)
     
     #Plot the fluxes
     for j in range(len(energy_bins)):
@@ -827,17 +1003,22 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     for item in ([ax.xaxis.label] + ax.get_xticklabels()):
         item.set_fontsize(10)
 
+    if saveplot:
+        print(f"plot_fluxes_basic: Saving plot {figname}")
+        fig.savefig(figname)
+
     if not showplot:
         plt.close(fig)
 
 
 
-def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
+def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_name, options,
     evaluated_dates, evaluated_fluxes, evaluated_energy_bins, event_definitions,
     sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
     max_fluxes, max_flux_times, showplot, saveplot, spacecraft='',
     doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False):
+    OPSEPEnhancement=False, IDSEPEnhancement=False,
+    color_scheme=1, no_goes_colors=False):
     """ Plot the fluxes used for event definitions with threshold,
         start and end times, onset peak and max flux.
         
@@ -872,11 +1053,13 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
         OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
  
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
     exp_name = experiment
     if experiment == "user":
         exp_name = user_name
+ 
+    colors = define_colors(all_energy_bins, event_definitions=event_definitions,
+        color_scheme=color_scheme, no_goes_colors=no_goes_colors)
  
     #Plot selected results
     #Event definition from integral fluxes
@@ -918,30 +1101,30 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
         is_good = check_for_good_fluxes(fluxes)
         if not is_good:
             continue
-        
+ 
+        #Find energy bin to get index for colors
+        energy_label = tools.setup_energy_bin_label(energy_bin)
+ 
         #Create labels
         ylabel = f"Intensity\n[{flux_units}]"
         ylabel = make_math_label(ylabel)
-        if energy_bin[1] == -1 and flux_type == "integral":
-            data_label = f"{exp_name} >{energy_bin[0]} {energy_units}"
-        elif energy_bin[1] == -1 and flux_type == "differential":
-            data_label = f"{exp_name} Estimated >{energy_bin[0]} {energy_units}"
-        else:
-            data_label = f"{exp_name} {energy_bin[0]}-{energy_bin[1]} {energy_units}"
+        data_label = f"{exp_name} {energy_label}"
+        if energy_bin[1] == -1 and flux_type == "differential":
+            data_label = f"{exp_name} Estimated {energy_label}"
 
     
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
-        ax[i].plot(dates,maskfluxes,'.-', markersize=3, label=data_label)#,marker=".")
+        ax[i].plot(dates, maskfluxes,'.-', markersize=3, label=data_label, color=colors[energy_label])
 
         start_end_label = "Start, End"
         if threshold != cfg.opsep_min_threshold:
-            ax[i].axhline(threshold,color='red',linestyle=':', label=threshold_label)
+            ax[i].axhline(threshold,color='black',linestyle=':', label=threshold_label)
         else:
             start_end_label = "Start, End above background"
 
         if not pd.isnull(sep_start_times[i]):
-            ax[i].axvline(sep_start_times[i],color='black',linestyle=':', linewidth=2)
-            ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
+            ax[i].axvline(sep_start_times[i],color=colors[energy_label],linestyle=':', linewidth=2)
+            ax[i].axvline(sep_end_times[i],color=colors[energy_label],linestyle=':',
                         label=start_end_label, linewidth=2)
 
 
@@ -950,8 +1133,8 @@ def opsep_plot_event_definitions(experiment, flux_type, user_name, options,
             ax[i].plot_date(onset_peak_times[i],onset_peaks[i],'o',color="black",
                     label="Onset Peak")
         if not pd.isnull(max_fluxes[i]) and not pd.isnull(max_flux_times[i]):
-            ax[i].plot_date(max_flux_times[i],max_fluxes[i],'ro',mfc='none',
-                    label="Max Flux")
+            ax[i].plot_date(max_flux_times[i],max_fluxes[i],'o',mfc='none', color='firebrick',
+                    label="Max Flux", linewidth=3)
 
 
         if i == nthresh-1:
@@ -980,7 +1163,8 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     all_dates, all_fluxes, all_energy_bins, event_definitions,
     sep_start_times, sep_end_times, showplot, saveplot, spacecraft='',
     doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False, color_scheme=1):
+    OPSEPEnhancement=False, IDSEPEnhancement=False, color_scheme=1,
+    no_goes_colors=False):
     """ Plot all energy bins with all event definitions """
 
     suffix = "All_Bins"
@@ -1002,7 +1186,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
     colors = define_colors(all_energy_bins, color_scheme=color_scheme,
-        event_definitions=event_definitions)
+        event_definitions=event_definitions, no_goes_colors=no_goes_colors)
     vstyles = vline_styles(event_definitions)
 
     #Plot the fluxes
@@ -1079,7 +1263,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     event_definitions, evaluated_dates, energy_bin_centers, fluence_spectra,
     fluence_spectra_units, showplot, saveplot, spacecraft='',
     doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False):
+    OPSEPEnhancement=False, IDSEPEnhancement=False,
+    color_scheme=1, no_goes_colors=False):
     """ Plot the fluence spectrum calculated by OpSEP. 
         
         fluence_spectra correspond to multiple event_definitions.
@@ -1122,7 +1307,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     fig = plt.figure(figname,figsize=(10,8))
     ax = plt.subplot(111)
     markers = ['o','P','D','v','^','<','>','*','d','+','8','p','h','1','X','x']
-    colors = define_colors(energy_bins, event_definitions=event_definitions)
+    colors = define_colors(energy_bins, event_definitions=event_definitions, color_scheme=color_scheme,
+        no_goes_colors=no_goes_colors)
     
     for i in range(nthresh):
     
@@ -1144,7 +1330,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
         legend_label = f"{energy_label}, {threshold_label}"
 
         ax.plot(energy_bin_centers,fluence_spectra[i],markers[i],
-                color=colors[energy_label], mfc='none', label=legend_label)
+                color=colors[energy_label], mfc='none', label=legend_label, linewidth=3)
     
     plt.grid(which="both", axis="both")
     plot_title = f"Event-Integrated Fluence Spectra\n {exp_name} {title_mod} {flux_type}"

@@ -108,6 +108,7 @@ class Data:
         self.flux_type = None
         self.spacecraft = '' #GOES only; primary or secondary
         self.color_scheme=1
+        self.no_goes_colors=False #Set to True to turn off SWPC colors
 
         self.startdate = pd.NaT
         self.enddate = pd.NaT
@@ -433,12 +434,12 @@ class Data:
 
 
     def load_info(self, startdate, enddate, experiment, flux_type,
-        color_scheme=1,
+        spacecraft='', color_scheme=1, no_goes_colors=False,
         user_name='', user_file='', spase_id='', showplot=False, saveplot=False,
         two_peaks=False, definitions='', options='',
         doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-        doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='output/idsep/csv/',
-        dointerp=False, spacecraft='', location='earth', species='proton'):
+        doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
+        dointerp=False, location='earth', species='proton'):
         """ Create new Data object and load with all values.
         
             INPUT:
@@ -480,6 +481,7 @@ class Data:
         self.experiment = experiment
         self.flux_type = flux_type
         self.color_scheme = color_scheme
+        self.no_goes_colors = no_goes_colors
         self.user_name = user_name #user input experiment (model or obs name)
         self.user_filename = user_file
         self.set_dates(startdate, enddate)
@@ -527,21 +529,24 @@ class Data:
                 spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
                 doBGSubIDSEP=self.doBGSubIDSEP,
                 OPSEPEnhancement=self.OPSEPEnhancement,
-                IDSEPEnhancement=self.IDSEPEnhancement)
+                IDSEPEnhancement=self.IDSEPEnhancement,
+                color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors)
         plt_tools.opsep_plot_bgfluxes("Background_Fluxes", self.experiment, self.flux_type,
                 self.options, self.user_name, self.bgfluxes, self.bgdates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
                 spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
                 doBGSubIDSEP=self.doBGSubIDSEP,
                 OPSEPEnhancement=self.OPSEPEnhancement,
-                IDSEPEnhancement=self.IDSEPEnhancement)
+                IDSEPEnhancement=self.IDSEPEnhancement,
+                color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors)
         plt_tools.opsep_plot_bgfluxes("SEP_Fluxes", self.experiment,
                 self.flux_type, self.options, self.user_name, self.fluxes, self.dates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
                 spacecraft = self.spacecraft, doBGSubOPSEP=self.doBGSubOPSEP,
                 doBGSubIDSEP=self.doBGSubIDSEP,
                 OPSEPEnhancement=self.OPSEPEnhancement,
-                IDSEPEnhancement=self.IDSEPEnhancement)
+                IDSEPEnhancement=self.IDSEPEnhancement,
+                color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors)
         
         if showplot:
             plt.show()
@@ -554,9 +559,19 @@ class Data:
             other than MeV and species other than protons.
             
         """
+        suffix = "All_Bins_simple"
+        figname, subdir = tools.opsep_naming_scheme(self.startdate, suffix,
+            self.experiment, self.flux_type, self.user_name, self.options,
+            spacecraft=self.spacecraft,
+            doBGSubOPSEP=self.doBGSubOPSEP, doBGSubIDSEP=self.doBGSubIDSEP,
+            OPSEPEnhancement=self.OPSEPEnhancement, IDSEPEnhancement=self.IDSEPEnhancement)
+ 
+        figname = os.path.join(cfg.plotpath,'opsep',subdir,f"{figname}.png")
+ 
         plt_tools.plot_fluxes_basic(self.experiment, self.user_name, self.flux_type,
-            self.dates, self.fluxes, self.energy_bins, self.showplot,
-            color_scheme=self.color_scheme)
+            self.dates, self.fluxes, self.energy_bins, self.showplot, self.saveplot,
+            color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors,
+            figname=figname)
 
 
     def opsep_background_and_sep_separation(self, all_dates, all_fluxes):
@@ -2317,7 +2332,9 @@ class Output:
         else:
             mftime = None
 
-        dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,
+        prof_filename = os.path.join(cfg.outpath,'opsep', self.subdir, analyze.sep_profile)
+        
+        dict = {f"{channel_label} {threshold_label} Flux Time Series": prof_filename,
                 f"{channel_label} {threshold_label} SEP Start Time": sttime,
                 f"{channel_label} {threshold_label} SEP End Time": endtime,
                 f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
@@ -2374,8 +2391,9 @@ class Output:
         if threshold == cfg.opsep_min_threshold:
             threshold_label = "above background"
 
-
-        dict = {f"{channel_label} {threshold_label} Flux Time Series": analyze.sep_profile,
+        prof_filename = os.path.join(cfg.outpath,'opsep', self.subdir, analyze.sep_profile)
+        
+        dict = {f"{channel_label} {threshold_label} Flux Time Series": prof_filename,
                 f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time,
                 f"{channel_label} {threshold_label} SEP End Time": analyze.sep_end_time,
                 f"{channel_label} {threshold_label} SEP Duration ({analyze.duration_units})": analyze.duration,
@@ -2538,7 +2556,7 @@ class Output:
         return
 
 
-    def add_farside(self):
+    def set_farside(self):
         """ Check if farside event """
         self.associations = assoc_lists.add_farside(self.associations)
         
@@ -2546,8 +2564,8 @@ class Output:
         if 'Farside' in self.associations['Case']:
             self.farside = True
         
-        #If not farside and longitude is know, then definitely not farside
-        elif not pd.isnull(self.associations['Event Source Longitude']):
+        #If not farside and longitude is known, then definitely not farside
+        elif not pd.isnull(self.associations['Event Source Longitude']) or not pd.isnull(self.associations['DONKI CME Lon']):
             self.farside = False
 
         return
@@ -2556,29 +2574,27 @@ class Output:
     def add_sep_event_type(self):
         """ Add labels SPE or ESPE appropriately in EventType columns of associations """
         
-        type = ''
+        type = 'NonEvent' #default no SEP
         
         for i, analyze in enumerate(self.data.results):
+            #If any event occurs, start with SubEvent
+            if not pd.isnull(analyze.sep_start_time):
+                if type != 'ESPE' and type != 'SPE':
+                    type = 'SubEvent'
+            
             #SPE: >10 MeV, 10 pfu
             if analyze.event_definition['energy_channel'].min == 10 and analyze.event_definition['energy_channel'].units == 'MeV':
-                if analyze.event_definition['threshold'].threshold == 10 and analyze.event_definition['threshold'].units == 'pfu':
+                if analyze.event_definition['threshold'].threshold == 10 and analyze.event_definition['threshold'].threshold_units == 'pfu':
                     if not pd.isnull(analyze.sep_start_time):
                         if type != 'ESPE': #prioritize ESPE
                             type = 'SPE'
-                    else:
-                        if type != 'ESPE': #prioritize ESPE
-                            type = 'SubEvent'
                     
             if analyze.event_definition['energy_channel'].min == 100 and analyze.event_definition['energy_channel'].units == 'MeV':
-                if analyze.event_definition['threshold'].threshold == 1 and analyze.event_definition['threshold'].units == 'pfu':
+                if analyze.event_definition['threshold'].threshold == 1 and analyze.event_definition['threshold'].threshold_units == 'pfu':
                     if not pd.isnull(analyze.sep_start_time):
                             type = 'ESPE'
-                    else:
-                        if type != 'SPE': #prioritize SPE
-                            type = 'SubEvent'
 
-        if type != '':
-            self.associations['EventType'] = type
+        self.associations['EventType'] = type
 
         return
 
@@ -2607,9 +2623,9 @@ class Output:
                 energy_diff = diff
                 best_threshold = threshold
                 best_ix = i
-            elif diff == energy_diff and threshold < best_threshold:
-                #Use timing from lowest threshold applied to get as close
-                #to capturing the start of the full event as possible
+            elif diff == energy_diff and threshold > best_threshold:
+                #Use timing from highest threshold applied to get start and end times
+                #within a known SEP event in the associations list
                 energy_diff = diff
                 best_threshold = threshold
                 best_ix = i
@@ -2617,12 +2633,14 @@ class Output:
         #Get the event start time from the best event_definition
         #Returns dictionary; all values will be null if no start time match
         startdate = self.data.results[best_ix].sep_start_time
-        print(f"Selected startdate {startdate} to search for associations.")
-        associations = assoc_lists.identify_associations_in_list(startdate, list_name='srag')
+        enddate = self.data.results[best_ix].sep_end_time
+        print(f"Selected SEP start time {startdate} and end time {enddate} to search for associations.")
+        #Search lists in order of preference
+        associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='srag')
         if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, list_name='user')
+            associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='user')
         if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, list_name='IGR')
+            associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='IGR')
 
         self.associations = associations
 
@@ -2733,7 +2751,7 @@ class Output:
         ####AUTOMATICALLY CALCULATE AND ADD TO ASSOCIATIONS
         self.add_solar_cycle()
         self.add_sep_event_type()
-        self.add_farside()
+        self.set_farside()
         
         return
 
@@ -2856,7 +2874,7 @@ class Output:
                 self.json_dict = ccmc_json.add_flare_trigger(self.json_dict, self.json_type,
                         flare)
                         
-        if self.farside:
+        if not pd.isnull(self.farside):
             self.json_dict = ccmc_json.add_farside_trigger(self.json_dict, self.json_type, self.farside)
             
         ar = self.create_active_region_block()
@@ -3000,7 +3018,7 @@ class Output:
                 "Analyzed Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Analyzed Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
                 "All Fluxes Time Series": self.data.fluxes_filename,
-                "JSON": self.json_filename
+                "JSON": os.path.join(cfg.outpath,'opsep', self.subdir, self.json_filename)
                 }
         
         for analyze in self.data.results:
@@ -3042,7 +3060,7 @@ class Output:
                 "Analyzed Period Start": self.data.startdate,
                 "Analyzed Period End": self.data.enddate,
                 "All Fluxes Time Series": self.data.fluxes_filename,
-                "JSON": self.json_filename
+                "JSON": os.path.join(cfg.outpath,'opsep', self.subdir, self.json_filename)
                 }
         
         for analyze in self.data.results:
@@ -3121,14 +3139,15 @@ class Output:
         fluence_spectra, fluence_spectra_units = self.extract_analyze_lists()
         
         plt_tools.opsep_plot_event_definitions(self.data.experiment,
-            self.data.flux_type, self.data.user_name, self.data.options,
+            self.data.flux_type, self.data.energy_bins, self.data.user_name, self.data.options,
             self.data.evaluated_dates, analyzed_fluxes,
             self.data.evaluated_energy_bins, event_definitions,
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
             spacecraft=self.data.spacecraft, doBGSubOPSEP=self.data.doBGSubOPSEP,
             doBGSubIDSEP=self.data.doBGSubIDSEP, OPSEPEnhancement=self.data.OPSEPEnhancement,
-            IDSEPEnhancement=self.data.IDSEPEnhancement)
+            IDSEPEnhancement=self.data.IDSEPEnhancement,
+            color_scheme=self.data.color_scheme, no_goes_colors=self.data.no_goes_colors)
 
 
     def plot_all_fluxes(self):
@@ -3147,7 +3166,7 @@ class Output:
             doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
             OPSEPEnhancement=self.data.OPSEPEnhancement,
             IDSEPEnhancement=self.data.IDSEPEnhancement,
-            color_scheme=self.data.color_scheme)
+            color_scheme=self.data.color_scheme, no_goes_colors=self.data.no_goes_colors)
 
 
     def plot_fluence_spectra(self):
@@ -3175,20 +3194,22 @@ class Output:
             self.data.saveplot, spacecraft=self.data.spacecraft,
             doBGSubOPSEP=self.data.doBGSubOPSEP, doBGSubIDSEP=self.data.doBGSubIDSEP,
             OPSEPEnhancement=self.data.OPSEPEnhancement,
-            IDSEPEnhancement=self.data.IDSEPEnhancement)
+            IDSEPEnhancement=self.data.IDSEPEnhancement,
+            color_scheme=self.data.color_scheme, no_goes_colors=self.data.no_goes_colors)
         
 
 
 
 ##### OPSEP MAIN FUNCTIONS ####
 
-def load_input_data(str_startdate, str_enddate, experiment,
-    flux_type, color_scheme, user_name, user_file,
-    showplot, saveplot, two_peaks,
-    user_thresholds, options,
-    doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
-    doBGSubIDSEP, IDSEPEnhancement, idsep_path,
-    dointerp, spacecraft, location, species):
+def load_input_data(startdate, enddate, experiment, flux_type,
+        spacecraft='', color_scheme=1, no_goes_colors=False,
+        user_thresholds='',
+        user_name='', user_file='', spase_id='', showplot=False, saveplot=False,
+        two_peaks=False, definitions='', options='',
+        doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
+        doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
+        dointerp=False, location='earth', species='proton'):
     """ Instantiate an InputData object. Load all data.
         If differential fluxes specified, estimate integral fluxes.
 
@@ -3229,8 +3250,9 @@ def load_input_data(str_startdate, str_enddate, experiment,
     flux_data = Data()
     
     #Load all info, including specifying desired SEP event definitions (user_thresholds)
-    flux_data.load_info(str_startdate, str_enddate, experiment, flux_type,
-        color_scheme=color_scheme, user_name=user_name, user_file=user_file,
+    flux_data.load_info(startdate, enddate, experiment, flux_type,
+        color_scheme=color_scheme, no_goes_colors=no_goes_colors,
+        user_name=user_name, user_file=user_file,
         showplot=showplot, saveplot=saveplot,
         two_peaks=two_peaks, definitions=user_thresholds, options=options,
         doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
@@ -3297,7 +3319,7 @@ def calculate_event_info(flux_data):
 
 ######## MAIN PROGRAM #########
 def run_opsep(str_startdate, str_enddate, experiment,
-    flux_type=None, color_scheme=1,
+    flux_type=None, color_scheme=1, no_goes_colors=False,
     user_name='', user_file='',
     json_type='', json_mode='', spase_id='',
     dointerp=False, spacecraft='',
@@ -3359,6 +3381,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
         :flux_type: (string) - "integral" or "differential" indicates the type
             of flux to read in
         :color_scheme: (int) set from 1 - 5 to change plotting color scheme
+        :no_goes_colors: (bool) set to True to NOT use SWPC colors for >5, >10, >30, etc
         :user_name: (string) - If experiment is "user", set user_name to describe
             your model or data set (e.g. MyModel), otherwise set to ''.
         :user_file: (string) - Default is ''. If "user" is selected for experiment,
@@ -3472,13 +3495,17 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     #Instantiate an InputData object to hold all of the input data
     #information and fluxes
-    flux_data = load_input_data(str_startdate, str_enddate, experiment,
-                flux_type, color_scheme, user_name, user_file,
-                showplot, saveplot, two_peaks,
-                user_thresholds, options,
-                doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate,
-                doBGSubIDSEP, IDSEPEnhancement, idsep_path,
-                dointerp, spacecraft, location, species)
+    flux_data = load_input_data(str_startdate, str_enddate, experiment, flux_type,
+                spacecraft=spacecraft,
+                color_scheme=color_scheme, no_goes_colors=no_goes_colors,
+                user_name=user_name, user_file=user_file,
+                showplot=showplot, saveplot=saveplot, two_peaks=two_peaks,
+                user_thresholds=user_thresholds, options=options,
+                doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
+                bgstartdate=bgstartdate, bgenddate=bgenddate,
+                doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
+                idsep_path=idsep_path, dointerp=dointerp,
+                location=location, species=species)
             
 
     #Calculate SEP info for each event definition and create Analyze objects.

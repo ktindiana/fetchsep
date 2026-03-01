@@ -13,32 +13,10 @@ import logging
 import sys
 import os
 
-__version__ = "0.7"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-#Changes in 0.2: Modified so that output list files will indicate
-#   when an observation or flux did not exceed a certain threshold
-#   for a given SEP event. Added a column specifying SEP date to
-#    sep_list
-#2021-01-14, Changes in 0.3: Made consistent with operational_sep_quantities.py
-#   v2.3 which includes background subtraction and various energy bin options.
-#   Added more fields to list file to allow better specification of each data
-#   set.
-#2021-02-24, Changes in 0.4: Read in json files produced by
-#   operational_sep_quantities.py and then write certain quantities to list.
-#2021-04-05, Changes in 0.4.1: Reads pathnames from config.py.
-#   Added checking for listpath. Code will check for listpath and create.
-#2021-05-17, changes in 0.5: Discovered differences in CCMC's json files.
-#   Making changes here to be consistent with their format. CCMC defines
-#   "fluences" and "event_lengths" as arrays.
-#2021-08-17, changes in 0.6: Making modifications to reflect changes in
-#   operational_sep_quantities.py v3.0 w.r.t. inputs and outputs.
-#   run_multi_sep.py now works with keys.py and ccmc_json_handler.py to
-#   read in values from the json file and write out to list.
-#2021-09-16, changes in 0.7: Add support for the JSONType (json_type)
-#   variable added in operational_sep_quantities.py v3.2.
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('opsep')
@@ -95,7 +73,6 @@ def check_list_path():
         print('check_paths: Directory containing lists, ' + cfg.listpath +
         '/opsep, does not exist. Creating.')
         os.mkdir(os.path.join(cfg.listpath,'opsep'));
-
 
 
 def read_sep_dates(sep_filename):
@@ -482,7 +459,39 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
+def clean_non_event_df(df):
+    """ Remove columns that are not populated in non-event dataframe """
+    #Columns with these strings will never be populated or aren't relevant in non-event periods
+    #SEP quantity-related columns
+    nonevent_exlude_columns = ['SEP Start Time', 'SEP End Time', 'Fluence', 'Rise Time', 'Duration']
+    
+    #Remove columns related to SEP quantities
+    columns = df.columns.to_list()
+    for col in columns:
+        #If exclusion string in the column, drop the column
+        for val in nonevent_exlude_columns:
+            if val in col:
+                df = df.drop(col, axis=1)
+
+    #Some columns are all empty strings
+    #Replace with None so will be dropped
+    columns = df.columns.to_list()
+    for col in columns:
+        #We want to keep the Quality Flags fields
+        if 'Quality' not in col:
+            df[col].replace('', None, inplace=True)
+ 
+    
+    #Associations columns will be empty.
+    #Remove any remaining columns that are completely null.
+    df = df.dropna(axis=1, how='all')
+    
+    return df
+
+
+def run_all_events(sep_filename, threshold,
+    statusfname='batch_run_status.csv',
+    color_scheme=1, no_goes_colors=False,
     umasep=False, dointerp=False,
     showplot=False, saveplot=True,
     associations=False,
@@ -594,7 +603,9 @@ def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
             startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_opsep(start_date,
-                end_date, experiment, flux_type=flux_type, user_name=user_name, user_file=user_file,
+                end_date, experiment, flux_type=flux_type,
+                color_scheme=color_scheme, no_goes_colors=no_goes_colors,
+                user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
                 two_peaks=two_peaks, user_thresholds=threshold,
@@ -665,6 +676,7 @@ def run_all_events(sep_filename, threshold, statusfname='batch_run_status.csv',
     quiet_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_non_events.csv"
     quiet_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, quiet_fname_csv)
     print(f"batch_run_opsep: Writing non-event periods to csv file {quiet_fname_csv}")
+    df_quiet_csv = clean_non_event_df(df_quiet_csv)
     df_quiet_csv.to_csv(quiet_fname_csv, index=False)
 
 #    df_all_pkl = pd.DataFrame(dict_all_pkl)

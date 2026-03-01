@@ -41,17 +41,30 @@ parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES-RT is selected, choose the primary or secondary spacecraft. Default = primary."))
         
-parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7], default=1,
+parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
         help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
-            "will always be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
+            "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
             "Other energy channels are plotted with colors that are different from these GOES colors. "
-            "Multiple color schemes are offered: 1 - Colors in Tab20-like order that are distinct from "
-            "shade to GOES colors; 2 - Standard Python Tab10 with red replaced with muted coral; "
-            "3 - Standard Python Set1 with red replaced with muted coral; "
-            "4 - Standard Python Tab20 with red replaced with muted coral; 5 - Colors to browns, all "
-            "distinct from GOES colors; 6 - Reds to blues disctinct from GOES colors; "
-            "7 - Interleaved colors distinct from GOES colors"))
+            "Multiple color schemes are offered:\n"
+            "1 - Tab 10-like bright, exciting, cosmic;\n "
+            "2 - Tab 20-like exciting, dark, and soft space exploration palette;\n "
+            "3 - Set 1-like inspired by Mars;\n "
+            "4 - Set 1-like inspired by nebulae and supernovae;\n "
+            "5 - Set 1-like inspired by Ring Nebula and Orion Nebula;\n "
+            "6 - Tab 20-like very bright color scheme;\n "
+            "7 - Standard Python Tab 10;\n "
+            "8 - Standard Python Set1 with red replaced with coral;\n "
+            "9 - Standard Python Tab20 with red replaced with coral;\n "
+            "10 - Tab 20-like muted blues, olives, purples colors to browns;\n "
+            "11 - Tab 20-like autumn colors;\n "
+            "12 - Tab 20-like bold, dark autumn colors;\n "
+            "13 - Tab 20-like bright, soft rainbow;"))
 
+parser.add_argument("--NoGOESColors",
+        help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
+            "Set to True not to use these colors and to use the seleted color scheme instead."),
+            action="store_true")
+            
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
@@ -330,6 +343,7 @@ experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
 color_scheme = args.ColorScheme
+no_goes_colors = args.NoGOESColors
 user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
@@ -404,6 +418,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     flux_type=flux_type,
     spacecraft=spacecraft,
     color_scheme=color_scheme,
+    no_goes_colors=no_goes_colors,
     user_thresholds=user_thresholds,
     dointerp=dointerp,
     user_name=user_name,

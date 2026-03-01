@@ -212,14 +212,24 @@ def add_farside(associations):
         to determine if it is a farside event and add update Case column.
         
     """
+    is_farside = False
+    #Defer to specific event source location entries
     if not pd.isnull(associations['Event Source Longitude']):
         if associations['Event Source Longitude'] < -90 or associations['Event Source Longitude'] > 90:
-            case = associations['Case']
-            if 'Farside' not in case:
-                if pd.isnull(case) or case == '':
-                   assocations['Case'] = 'Farside'
-                else:
-                    assocations['Case'] = f"{assocations['Case']}/Farside"
+            is_farside = True
+
+    #Take advantage of DONKI CME measurements, if available
+    elif not pd.isnull(associations['DONKI CME Lon']):
+        if associations['DONKI CME Lon'] < -90 or associations['DONKI CME Lon'] > 90:
+            is_farside = True
+
+    if is_farside:
+        case = associations['Case']
+        if 'Farside' not in case:
+            if pd.isnull(case) or case == '':
+               associations['Case'] = 'Farside'
+            else:
+                associations['Case'] = f"{associations['Case']}/Farside"
 
     return associations
 
@@ -844,7 +854,7 @@ def fill_associations(df, index):
 
 
 #Given an SEP time from OpSEP, find the same SEP event in the associations list
-def identify_associations_in_list(sepdate, list_name='srag'):
+def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
     """ Given a SEP date, identify an event in the associations list associated
         with that date. 
     
@@ -854,7 +864,10 @@ def identify_associations_in_list(sepdate, list_name='srag'):
         
         INPUTS:
         
-            :sepdate: (datetime) reference time (start, peak) of SEP event that want to
+            :sep_start: (datetime) start time of SEP event that want to
+                find in list; try time of enhancement above background
+                for >10 MeV or proton energies ~10 MeV or threshold crossing time
+            :sep_end: (datetime) end time of SEP event that want to
                 find in list; try time of enhancement above background
                 for >10 MeV or proton energies ~10 MeV or threshold crossing time
             :list_name: (string) list to pull from for associated flares, CMEs, etc
@@ -868,6 +881,9 @@ def identify_associations_in_list(sepdate, list_name='srag'):
         
     """
     null_assoc = empty_associations_dict()
+
+    if pd.isnull(sep_start) or pd.isnull(sep_end):
+        return null_assoc
 
     if list_name == 'srag':
         assoc_list = SRAGList()
@@ -883,11 +899,14 @@ def identify_associations_in_list(sepdate, list_name='srag'):
     df = assoc_list.read_list()
     df = assoc_list.calculate_sep_reference_times(df)
 
-    if isinstance(sepdate, str):
-        sepdate=dh.str_to_datetime(sepdate)
+    if isinstance(sep_start, str):
+        sep_start=dh.str_to_datetime(sep_start)
+    if isinstance(sep_end, str):
+        sep_end=dh.str_to_datetime(sep_end)
 
-    #Check if sepdate falls within know SEP start and end
-    index = df.loc[(df[assoc_reference_columns[0]] <= sepdate) & (sepdate < df[assoc_reference_columns[1]])].index
+
+    #Check if SEP start time falls within know SEP start and end
+    index = df.loc[(df[assoc_reference_columns[0]] <= sep_start) & (sep_start < df[assoc_reference_columns[1]])].index
     event_index = -1
     
     ####UNIQUELY FOUND SEP BETWEEN REFERENCE FIRST AND LAST TIMES
@@ -900,12 +919,18 @@ def identify_associations_in_list(sepdate, list_name='srag'):
     else:
         tolerance = datetime.timedelta(hours=6) #search horizon
 
-        #Check if sepdate falls within know SEP start and end within a certain
+        #Check if sep start falls within know SEP start and end within a certain
         #tolerated time difference; e.g. sep start - 6 hrs < date < sep end + 6 hours
-        index = df.loc[((df[assoc_reference_columns[0]]-tolerance) <= sepdate) & (sepdate < (df[assoc_reference_columns[1]]+tolerance))].index
+        #For events that are close together, check that the SEP end time isn't before
+        #the start time of the known SEP events in the list
+        index = df.loc[((df[assoc_reference_columns[0]]-tolerance) <= sep_start) & (sep_start < (df[assoc_reference_columns[1]]+tolerance)) & (sep_end > df[assoc_reference_columns[0]])].index
+
+        ###NO SEP FOUND WITHIN TOLERANCE
+        if len(index) == 0:
+            event_index = -1
         
         ####UNIQUELY FOUND SEP IN EXPANDED DATE RANGE
-        if len(index) == 1:
+        elif len(index) == 1:
             event_index = index[0]
             
         ####ELSE MULTIPLE MATCHES
@@ -913,7 +938,7 @@ def identify_associations_in_list(sepdate, list_name='srag'):
         else:
             check_min_diff = np.nan
             col = assoc_reference_columns[0]
-            diff = df[col] - sepdate
+            diff = df[col] - sep_start
             ix = []
             diff[col] = abs(diff[col])
             min_diff = diff[col].min() #minimize on time difference to sep start
@@ -925,18 +950,18 @@ def identify_associations_in_list(sepdate, list_name='srag'):
                     event_index = ix[0]
                 else:
                     print(f"identify_associations_in_list: Found more than one possible "
-                        f"match for {sepdate}. Taking first occurrence.")
+                        f"match for {sep_start}. Taking first occurrence.")
                     event_index = ix[0]
 
     if event_index == -1:
-        print(f"identify_associations_in_list: No match was found in {assoc_list.id} for {sepdate}.")
+        print(f"identify_associations_in_list: No match was found in {assoc_list.id} for {sep_start}.")
         #Return series with columns with appropriate null values
         return null_assoc
     else:
         output_col = list_output_columns
         associations = fill_associations(df, event_index)
         proton_info = df[assoc_reference_columns].iloc[event_index]
-        print(f"identify_associations_in_list: Match found in {assoc_list.id} for {sepdate} with an entry for {proton_info}")
+        print(f"identify_associations_in_list: Match found in {assoc_list.id} for {sep_start} to {sep_end} with an entry for {assoc_reference_columns[0]} {proton_info[0]} {assoc_reference_columns[1]} {proton_info[1]}")
         return associations
 
     return null_assoc
@@ -1057,7 +1082,11 @@ def associations_to_ccmc_flare(associations):
         del flare['urls']
  
         all_flares.append(flare)
- 
+
+    #If have the science version of the flare, don't need to deprecated in the json
+    if len(all_flares) > 0:
+        return all_flares
+
     #SWPC X-ray operational data that is now deprecated after GOES-R launched
     if not pd.isnull(associations['Flare Xray Start Time Deprecated']):
         times = []
