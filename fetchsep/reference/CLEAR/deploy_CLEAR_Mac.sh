@@ -157,7 +157,9 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     cp fetchsep/reference/CLEAR/batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt "${outpath}"/idsep/GOES-13_differential_uncor_S14_B17/.
     cp fetchsep/reference/CLEAR/batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt "${outpath}"/idsep/GOES-15_differential_uncor_S14_B17/.
 
-if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ] || [[ "${startpoint}" = "BATCH" ]]; then
+fi
+
+if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]] || [[ "${startpoint}" = "BATCH" ]]; then
     ######################################################################
     ############## BATCH OPSEP USING CURATED CLEAR LISTS #################
     ######################################################################
@@ -218,13 +220,13 @@ fi
 #Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
-find ./"${outpath}"/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
+find "${outpath}"/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
 python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
 rm CLEARlists.txt
 
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
-find ./"${outpath}"/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
+find "${outpath}"/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
 python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
 rm CLEARlists.txt
 

@@ -1,6 +1,7 @@
 from ..utils import read_datasets as datasets
 from ..utils import config as cfg
 from ..utils import experiments as expts
+from ..utils import analysis
 from ..utils import error_check
 from ..utils import tools
 from ..utils import date_handler as dh
@@ -557,7 +558,7 @@ class Data:
             other than MeV and species other than protons.
             
         """
-        suffix = "All_Bins_simple"
+        suffix = "All_Bins_tprofile"
         figname, subdir = tools.opsep_naming_scheme(self.startdate, suffix,
             self.experiment, self.flux_type, self.user_name, self.options,
             spacecraft=self.spacecraft,
@@ -840,7 +841,7 @@ class Data:
             suffix='fluxes_all_bins')
         self.fluxes_filename = os.path.basename(fluxes_filename)
 
-        time_res = tools.determine_time_resolution(dates)
+        time_res = analysis.determine_time_resolution(dates)
         self.time_resolution = time_res.total_seconds()
 
         #A plain plot of the data that is visualized for the user
@@ -873,7 +874,7 @@ class Data:
             #If integral channel, estimate integral fluxes
             if evdef['energy_channel'].max == -1:
                 energy_threshold = evdef['energy_channel'].min
-                integral_flux = tools.from_differential_to_integral_flux(self.experiment,
+                integral_flux = analysis.from_differential_to_integral_flux(self.experiment,
                             energy_threshold, self.energy_bins, self.fluxes,
                             bruno2017=self.goes_Bruno2017,
                             energy_bin_centers=self.energy_bin_centers)
@@ -1227,7 +1228,7 @@ class Analyze:
         if len(trim_flux) == 0:
             return first_start_time, first_end_time
         
-        sep_start_time, sep_end_time = tools.identify_sep_noaa(trim_dates, trim_flux, threshold)
+        sep_start_time, sep_end_time = analysis.identify_sep_noaa(trim_dates, trim_flux, threshold)
         if pd.isnull(sep_start_time) or pd.isnull(sep_end_time):
             return first_start_time, first_end_time
         else:
@@ -1293,13 +1294,13 @@ class Analyze:
         
         #When applying a threshold, use NOAA SWPC logic
         if threshold != cfg.opsep_min_threshold:
-            sep_start_time, sep_end_time = tools.identify_sep_noaa(dates, fluxes, threshold)
+            sep_start_time, sep_end_time = analysis.identify_sep_noaa(dates, fluxes, threshold)
             if data.two_peaks:
                 sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
-            sep_start_time, sep_end_time, SPEfluxes = tools.identify_sep_above_background_one(dates, fluxes)
+            sep_start_time, sep_end_time, SPEfluxes = analysis.identify_sep_above_background_one(dates, fluxes)
 
         #In case that date range ended before fell before threshold,
         #use the last time in the file
@@ -1602,7 +1603,7 @@ class Analyze:
         #Convert dates into a series of times in hours for fitting
         trim_times = [((t - dates[0]).total_seconds() + 60)/(60*60) for t in trim_dates]
  
-        minimize_func = minimize(tools.func_residual, default_pars,
+        minimize_func = minimize(analysis.func_residual, default_pars,
                     args = [trim_times, trim_fluxes],
                     nan_policy= 'propagate', max_nfev=np.inf)
 
@@ -1611,10 +1612,10 @@ class Analyze:
         best_a = best_pars['alpha']
         best_b = best_pars['beta']
         best_Ip = best_pars['peak_intensity']
-        best_fit = tools.modified_weibull(trim_times, best_Ip, best_a, best_b)
+        best_fit = analysis.modified_weibull(trim_times, best_Ip, best_a, best_b)
         
         #Calculate chisq
-        err = tools.normchisq(best_fit, trim_fluxes, sigma=self.bgsigma)
+        err = analysis.normchisq(best_fit, trim_fluxes, sigma=self.bgsigma)
 
         print(f"calculate_onset_peak_from_fit ==== {energy_bin} MeV =====")
         print(f"Best fit Weibull for onset peak Ip: {best_Ip}, a: {best_a}, b: {best_b}")
@@ -1630,7 +1631,7 @@ class Analyze:
 
         #IF WEIBULL FIT SUCCESSFUL
         #Find maximum curvature in the fit using the second derivative
-        max_curve_idx, yderiv, yderiv2, norm_yderiv, norm_yderiv2 = tools.find_max_curvature(best_fit)
+        max_curve_idx, yderiv, yderiv2, norm_yderiv, norm_yderiv2 = analysis.find_max_curvature(best_fit)
 
         max_curve_model_time = trim_times[max_curve_idx]
         max_curve_model_date = trim_dates[max_curve_idx]
@@ -1665,9 +1666,9 @@ class Analyze:
         #Weibull fit metrics
         print(f"WEIBULL DERIVATIVE: max yderiv: {yderiv}, norm max yderiv: {norm_yderiv}, min yderiv2: {yderiv2}, norm min yderiv2: {norm_yderiv2}")
 
-        MLE = tools.mean_log_error(best_fit, trim_fluxes)
+        MLE = analysis.mean_log_error(best_fit, trim_fluxes)
         print(f"MEAN LOG ERROR OF WEIBULL FIT: {MLE}")
-        n2, n10 = tools.within_factor(best_fit, trim_fluxes)
+        n2, n10 = analysis.within_factor(best_fit, trim_fluxes)
         print(f"WEIBULL FIT percent within factor of 2: {n2}%, within a factor of 10: {n10}%")
 
 

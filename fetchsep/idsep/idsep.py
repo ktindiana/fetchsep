@@ -1,6 +1,7 @@
 from ..utils import config as cfg
 from ..utils import read_datasets as datasets
 from ..utils import date_handler as dh
+from ..utils import analysis
 from ..utils import define_background_idsep as defbg
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
@@ -300,7 +301,7 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
         
     """
     #duration of each data point
-    time_res = tools.determine_time_resolution(dates)
+    time_res = analysis.determine_time_resolution(dates)
     if for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
@@ -704,7 +705,7 @@ def run_idsep(str_startdate, str_enddate, experiment,
             get_sep = False
         if get_sep:
             global dwell_pts #to get value from tools and print to screen
-            SEPstart, SEPend, fluxes_sep = tools.identify_sep_above_background(dates, fluxes_high)
+            SEPstart, SEPend, fluxes_sep = analysis.identify_sep_above_background(dates, fluxes_high)
 
             if showplot or saveplot:
                 plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
@@ -727,7 +728,7 @@ def run_idsep(str_startdate, str_enddate, experiment,
     trim_bg_dates, trim_ave_bg = datasets.extract_date_range(startdate, enddate, dates, ave_background)
     #Expect that this solution is exactly the same as the last one in the loop above,
     #UNLESS the dates need to be trimmed down
-    SEPstart, SEPend, final_fluxes_sep = tools.identify_sep_above_background(trim_dates, trim_fluxes_high)
+    SEPstart, SEPend, final_fluxes_sep = analysis.identify_sep_above_background(trim_dates, trim_fluxes_high)
     
     #Write background-subtracted SEP only fluxes to file
     write_sep_fluxes(trim_dates, final_fluxes_sep, trim_ave_bg, energy_bins, add_path=idsep_name)
