@@ -184,18 +184,24 @@ def forecast_json():
        "source_info": {"native_flux_type": ""},
        "options": "",
        "issue_time": "",
-       "mode": "real-time",
+       "mode": "forecast",
        "forecasts": []
         }}
-    print("ccmc_json_handler: forecast_json: Initilizing forecast json.")
+    print("ccmc_json_handler: forecast_json: Initializing forecast json.")
     return template
 
 
 def observation_json():
     """ header for observation json """
     
-    template = {"sep_observation_submission": {"notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],"observatory": { "short_name": "", "spase_id": ""}, "source_info": {"native_flux_type": ""},"options": "","issue_time": "","mode": "measurement","observations": [] }}
-    print("ccmc_json_handler: observation_json: Initilizing observation json.")
+    template = {"sep_observation_submission": {"notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],
+        "observatory": { "short_name": "", "spase_id": ""},
+        "source_info": {"native_flux_type": ""},
+        "options": "",
+        "issue_time": "",
+        "mode": "measurement",
+        "observations": [] }}
+    print("ccmc_json_handler: observation_json: Initializing observation json.")
     return template
 
 ## NOT IN CCMC JSON SCHEMA
@@ -322,6 +328,10 @@ def add_active_region(template, json_type, ar_dict):
     key, type_key, win_key, exp_key = set_keys(json_type)
 
     ar_dict = clean_trigger_block(ar_dict)
+
+    #If empty block
+    if not ar_dict:
+        return template
 
     try:
         check = template[key]['triggers']

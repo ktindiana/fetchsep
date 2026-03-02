@@ -170,6 +170,23 @@ def is_str_column(col):
         return False
 
 
+def cast_value(col, val):
+    """ Cast value according to its type """
+    if pd.isnull(val):
+        return val
+    
+    if is_float_column(col):
+        return float(val)
+
+    if is_int_column(col):
+        return int(val)
+        
+    if is_str_column(val):
+        return str(val)
+
+    return val
+
+
 #Dictionary with appropriate null values for the columns in list_output_col
 #This associations dictionary matches the columns in Steve's SEP event list
 #and that are exported out to the .csv file after each SEP event is analyzed
@@ -848,6 +865,7 @@ def fill_associations(df, index):
     associations = empty_associations_dict()
     for col in df.columns:
         if col in associations.keys():
+            val = df[col].iloc[index]
             associations[col] = df[col].iloc[index]
 
     return associations
@@ -871,7 +889,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
                 find in list; try time of enhancement above background
                 for >10 MeV or proton energies ~10 MeV or threshold crossing time
             :list_name: (string) list to pull from for associated flares, CMEs, etc
-                "srag" is SRAG_SEP_List_R11_CLEARversion.csv
+                "srag" is SRAG_SEP_List.csv
                 "user" is the list the user maintains in fetchsep/reference/user_associations.csv
                 
         OUTPUT:
@@ -962,6 +980,10 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         associations = fill_associations(df, event_index)
         proton_info = df[assoc_reference_columns].iloc[event_index]
         print(f"identify_associations_in_list: Match found in {assoc_list.id} for {sep_start} to {sep_end} with an entry for {assoc_reference_columns[0]} {proton_info[0]} {assoc_reference_columns[1]} {proton_info[1]}")
+        #Cast types in associations to avoid Int64, etc
+        for key in associations.keys():
+            associations[key] = cast_value(key, associations[key])
+ 
         return associations
 
     return null_assoc
@@ -1171,7 +1193,7 @@ class SRAGList:
             
         """
         self.id = "SRAG SEP List"
-        self.filename = 'SRAG_SEP_List_R11_CLEARversion.csv'
+        self.filename = 'SRAG_SEP_List.csv'
         self.list = pd.DataFrame()
         self.reference_columns = ['First SEP Start Time', 'Last SEP End Time']
 
@@ -1234,7 +1256,8 @@ class SRAGList:
             df[col] = df[col].astype(float)
             
         return df
-        
+ 
+ 
 
     def combine_comments(self, df):
         df["Comments1"] = df["Comments1"].where(pd.notna(df["Comments1"]), '')
@@ -1386,7 +1409,7 @@ class SRAGList:
         df = self.update_flares(df)
         df = self.update_cmes(df)
         
-        self.write_list(df, filename='SRAG_SEP_List_R11_CLEARversion_UPDATED.csv')
+        self.write_list(df, filename='SRAG_SEP_List_UPDATED.csv')
 
 
 ###########################################################################

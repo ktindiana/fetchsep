@@ -642,12 +642,12 @@ def run_all_events(sep_filename, threshold,
                     dict_all_pkl[key].append(event_dict_pkl[key])
 
             plt.close('all')
+            print(f"ANALYSIS SUCCEEDED: {experiment} {user_name} {start_date}")
             reload(opsep)
 
         except SystemExit as e:
             # this log will include traceback
             logger.exception('opsep failed with exception')
-            # this log will just include content in sys.exit
             logger.error(str(e))
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')
@@ -655,6 +655,7 @@ def run_all_events(sep_filename, threshold,
                 fout.write(experiment + ',')
             fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
             fout.write('\n')
+            print(f"ANALYSIS FAILED: {experiment} {user_name} {start_date} due to {e}")
             reload(opsep)
             continue
 
