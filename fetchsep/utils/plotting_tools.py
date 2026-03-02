@@ -1117,16 +1117,15 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
         ax[i].plot(dates, maskfluxes,'.-', markersize=3, label=data_label, color=colors[energy_label])
 
-        start_end_label = f"Start, End"
         if threshold != cfg.opsep_min_threshold:
             ax[i].axhline(threshold,color='black',linestyle='--', label=f"Threshold {threshold_label}")
         else:
-            start_end_label = "Start, End above background"
+            ax[i].axhline(max_fluxes[i],color='black',linestyle='--', lw=0, label=f"Above background")
 
         if not pd.isnull(sep_start_times[i]):
             ax[i].axvline(sep_start_times[i],color='black',linestyle=':', linewidth=2)
             ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
-                        label=start_end_label, linewidth=2)
+                        label="Start, End", linewidth=2)
 
 
         if not pd.isnull(onset_peaks[i]) and not pd.isnull(onset_peak_times[i]):
