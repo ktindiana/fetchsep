@@ -498,7 +498,8 @@ def run_all_events(sep_filename, threshold,
     path_to_data=None,
     path_to_output=None,
     path_to_plots=None,
-    path_to_lists=None):
+    path_to_lists=None,
+    opsep_nsigma=None):
     """ Run all of the time periods and experiments in the list
         file. Extract the values of interest and compile them
         in event lists, one list per energy channel and threshold
@@ -616,7 +617,8 @@ def run_all_events(sep_filename, threshold,
                 idsep_path=idsep_path, location=location, species=species,
                 associations=associations,
                 path_to_data=path_to_data, path_to_output=path_to_output,
-                path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+                path_to_plots=path_to_plots, path_to_lists=path_to_lists,
+                opsep_nsigma=opsep_nsigma)
 
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')

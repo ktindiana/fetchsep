@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib
 import matplotlib.pylab as plt
+from matplotlib.lines import Line2D
 import seaborn as sns
 import matplotlib.gridspec as gridspec
 from matplotlib.dates import DateFormatter
@@ -264,7 +265,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
             mean = np.nanmean(np.array(means[i]))
             
         legend_label = tools.setup_energy_bin_label(energy_bins[i])
-        p = ax.plot_date(dates,maskfluxes, '-', label=legend_label, color=colors[i])
+        p = ax.plot_date(dates,maskfluxes, '-', label=legend_label, color=colors[legend_label])
         color = p[0].get_color()
         if i==0:
             plt.axhline(mean,color=color,linestyle=':', label="Mean Background")
@@ -961,7 +962,7 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     if experiment == "user":
         exp_name = user_name
 
-    plot_title = f"{exp_name} Data"
+    plot_title = f"{exp_name}"
     
     fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)
@@ -1074,10 +1075,10 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
 
     if nthresh > 4:
         #fig = plt.figure(figname,figsize=(12,12))
-        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,12))
+        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,12), layout='constrained')
     else:
         #fig = plt.figure(figname,figsize=(12,9))
-        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9))
+        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9), layout='constrained')
         if nthresh == 1: ax = [ax]
 
     fig.canvas.manager.set_window_title(figname)
@@ -1108,33 +1109,32 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
         #Create labels
         ylabel = f"Intensity\n[{flux_units}]"
         ylabel = make_math_label(ylabel)
-        data_label = f"{exp_name} {energy_label}"
+        data_label = f"{energy_label}"
         if energy_bin[1] == -1 and flux_type == "differential":
-            data_label = f"{exp_name} Estimated {energy_label}"
+            data_label = f"Estimated {energy_label}"
 
     
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
         ax[i].plot(dates, maskfluxes,'.-', markersize=3, label=data_label, color=colors[energy_label])
 
-        start_end_label = "Start, End"
+        start_end_label = f"Start, End"
         if threshold != cfg.opsep_min_threshold:
-            ax[i].axhline(threshold,color='black',linestyle=':', label=threshold_label)
+            ax[i].axhline(threshold,color='black',linestyle='--', label=f"Threshold {threshold_label}")
         else:
             start_end_label = "Start, End above background"
 
         if not pd.isnull(sep_start_times[i]):
-            ax[i].axvline(sep_start_times[i],color=colors[energy_label],linestyle=':', linewidth=2)
-            ax[i].axvline(sep_end_times[i],color=colors[energy_label],linestyle=':',
+            ax[i].axvline(sep_start_times[i],color='black',linestyle=':', linewidth=2)
+            ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
                         label=start_end_label, linewidth=2)
 
 
-
         if not pd.isnull(onset_peaks[i]) and not pd.isnull(onset_peak_times[i]):
-            ax[i].plot_date(onset_peak_times[i],onset_peaks[i],'o',color="black",
+            ax[i].plot_date(onset_peak_times[i],onset_peaks[i],'o',color='black',
                     label="Onset Peak")
         if not pd.isnull(max_fluxes[i]) and not pd.isnull(max_flux_times[i]):
-            ax[i].plot_date(max_flux_times[i],max_fluxes[i],'o',mfc='none', color='firebrick',
-                    label="Max Flux", linewidth=3)
+            ax[i].plot_date(max_flux_times[i],max_fluxes[i],'s',mfc='none', color='black',
+                    label="Max Flux", mew=2)
 
 
         if i == nthresh-1:
@@ -1145,7 +1145,7 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
         ax[i].set_yscale("log")
         if 'counts' in flux_units:
             ax[i].set_yscale("linear")
-        ax[i].legend(loc='upper right')
+        ax[i].legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
         for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
             item.set_fontsize(10)
 
@@ -1157,6 +1157,7 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
         fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
     if not showplot:
         plt.close(fig)
+
 
 
 def opsep_plot_all_bins(experiment, flux_type, user_name, options,

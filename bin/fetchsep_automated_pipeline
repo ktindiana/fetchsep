@@ -324,6 +324,9 @@ path_to_data = args.datapath
 path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
+cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+    path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+
 
 kurtosis_cut=args.kurtosis_cut
 idsep_nsigma=args.idsep_nsigma
@@ -359,9 +362,10 @@ ref_energy_bin = args.ReferenceEnergyBin
 if ref_energy_bin == None and startpoint != "BATCH":
     sys.exit("Enter a reference energy bin with exact bin edges indicating which energy "
             "channel should be used to create SEP lists and batch files for OPSEP. --ReferenceEnergyBin")
-ref_energy_bin = ref_energy_bin.strip().split(",")
-ref_energy_bin[0] = float(ref_energy_bin[0])
-if ref_energy_bin[1] != -1: ref_energy_bin[1] = float(ref_energy_bin[1])
+if ref_energy_bin != None:
+    ref_energy_bin = ref_energy_bin.strip().split(",")
+    ref_energy_bin[0] = float(ref_energy_bin[0])
+    if ref_energy_bin[1] != -1: ref_energy_bin[1] = float(ref_energy_bin[1])
 
 
 if flux_type == '':

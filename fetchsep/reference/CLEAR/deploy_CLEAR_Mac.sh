@@ -157,7 +157,7 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     cp fetchsep/reference/CLEAR/batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt "${outpath}"/idsep/GOES-13_differential_uncor_S14_B17/.
     cp fetchsep/reference/CLEAR/batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt "${outpath}"/idsep/GOES-15_differential_uncor_S14_B17/.
 
-
+if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ] || [[ "${startpoint}" = "BATCH" ]]; then
     ######################################################################
     ############## BATCH OPSEP USING CURATED CLEAR LISTS #################
     ######################################################################
@@ -209,6 +209,11 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
 
 fi
 
+######################################################################
+################ COMPILE CURATED LISTS INTO PRIMARY ##################
+######################################################################
+# MAKE SURE TO INCLUDE --StartPoint COMPILE if all batch runs of OPSEP
+# are already complete and you want to extract to a single list.
 
 #Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
 date '+%Y-%m-%d %H:%M:%S'

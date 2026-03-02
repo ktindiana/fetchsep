@@ -845,7 +845,7 @@ class Data:
 
         #A plain plot of the data that is visualized for the user
         #and could be manually saved, but is not written out as a default.
-        if self.showplot:
+        if self.showplot or self.saveplot:
             self.plot_fluxes_basic()
 
         #Plot background and SEP separation, may or may not include background
