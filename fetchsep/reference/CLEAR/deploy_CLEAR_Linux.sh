@@ -140,8 +140,9 @@ if [[ "${startpoint}" = "ALL" ]]; then
              python bin/idsep \
                 --StartDate "${start_date[GOES-${n}/${type}]}" --EndDate "${end_date[GOES-${n}/${type}]}" \
                 --Experiment GOES_${n} --Spacecraft $type --FluxType integral --RemoveAbove 10 --saveplot \
-                --outpath outpath --plotpath plotpath --listpath listpath --idsep_nsigma idsep_nsigma \
-                --init_win init_win --sliding_win sliding_win --percent_points percent_points \
+                --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" \
+                --idsep_nsigma "${idsep_nsigma}" --init_win "${init_win}" --sliding_win "${sliding_win}" \
+                --percent_points "${percent_points}" \
                 > "${outpath}"/GOES_${n}_integral_${type}_idsep.log
 
              echo
@@ -156,8 +157,9 @@ if [[ "${startpoint}" = "ALL" ]]; then
              --StartDate "${start_date[GOES-${n}]}" --EndDate "${end_date[GOES-${n}]}" \
              --Experiment GOES-${n} --FluxType differential --RemoveAbove 10 --saveplot \
              --options "S14;Bruno2017;uncorrected" \
-             --outpath outpath --plotpath plotpath --listpath listpath --idsep_nsigma idsep_nsigma \
-             --init_win init_win --sliding_win sliding_win --percent_points percent_points \
+             --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" \
+             --idsep_nsigma "${idsep_nsigma}" --init_win "${init_win}" --sliding_win "${sliding_win}" \
+             --percent_points "${percent_points}" \
              >"${outpath}"/GOES-${n}_differential_uncor_S14_B17_idsep.log
 
           echo
@@ -189,8 +191,8 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
              --Experiment GOES-${n} --FluxType integral --Threshold "30,1;50,1" \
              --BatchFile batch_event_list_GOES-${n}_integral_enhance_idsep_CLEAR.txt \
              --IDSEPEnhancement --Associations --StartPoint BATCH \
-             --outpath outpath --plotpath plotpath --listpath listpath \
-             --opsep_nsigma opsep_nsigma \
+             --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" \
+             --opsep_nsigma "${opsep_nsigma}" \
              >"${outpath}"/GOES-${n}_integral_batch.log
           echo
        else
@@ -207,8 +209,8 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
                 --Experiment GOES_${n} --Spacecraft $type --FluxType integral --Threshold "30,1;50,1" \
                 --BatchFile batch_event_list_GOES_${n}_integral_${type}_enhance_idsep_CLEAR.txt \
                 --IDSEPEnhancement --Associations --StartPoint BATCH \
-                --outpath outpath --plotpath plotpath --listpath listpath \
-                --opsep_nsigma opsep_nsigma \
+                --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" \
+                --opsep_nsigma "${opsep_nsigma}" \
                 >"${outpath}"/GOES_${n}_integral_${type}_batch.log
              echo
           done
@@ -228,8 +230,8 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
              --Experiment GOES-${n} --FluxType differential --Threshold "30,1;50,1" \
              --BatchFile batch_event_list_GOES-${n}_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt \
              --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH --options "S14;Bruno2017;uncorrected" \
-             --outpath outpath --plotpath plotpath --listpath listpath \
-             --opsep_nsigma opsep_nsigma \
+             --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" \
+             --opsep_nsigma "${opsep_nsigma}" \
              >"${outpath}"/GOES-${n}_differential_uncor_S14_B17_bgsub_batch.log
           echo
        }
