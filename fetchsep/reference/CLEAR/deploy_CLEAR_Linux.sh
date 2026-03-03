@@ -42,22 +42,32 @@
 
 #COMMAND LINE ARGUMENTS
 #----------------------
-#In the command line, the argument LISTS may be added to skip the calculation of
+#In the command line, the argument BATCH may be added to skip the calculation of
 #the mean background with IDSEP IF IT WAS ALREADY DONE PREVIOUSLY.
 #The background calculation is extremely time consuming and it needn't be repeated.
-#If the user only wants to regenerate the SEP lists,
-#the argument LISTS will skip to that part of the script.
+#If the user only wants to regenerate the primary GOES final SEP lists,
+#the argument COMPILE will skip to that part of the script.
 
-#When run without an argument, will default to startpoint ALL and the script will:
+#./deploy_CLEAR_Linux.sh ALL
+#./deploy_CLEAR_Linux.sh BATCH
+#./deploy_CLEAR_Linux.sh COMPILE
+
+#ALL or no argument (default), the script will:
 #    - Set up environment
 #    - Download data and calculate mean background and sigma with IDSEP (12+ hours)
 #    - Copy CLEAR curated batch files
 #    - Generate SEP lists (2+ hours)
+#    - Compile into single list of SEP events taken from the primary GOES
 
-#When run with the argument LISTS, the script will:
+#BATCH, the script will:
 #    - Set up environment
 #    - Copy CLEAR curated batch files
 #    - Generate SEP lists (2+ hours)
+#    - Compile into single list of SEP events taken from the primary GOES
+
+#COMPILE, the script will:
+#    - Set up environment
+#    - Compile into single list of SEP events taken from the primary GOES
 
 startpoint=${1:-"ALL"}
 if [ -z "$1" ]; then
@@ -176,7 +186,7 @@ fi
 #run starting at this point to regenerate the SEP event lists.
 # MAKE SURE TO INCLUDE --StartPoint BATCH or the batch file will be
 #overwritten by a new run of idsep within fetchsep_automated_pipeline
-if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
+if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "BATCH" ]]; then
     for n in 06 07 08 10 11 13 15 RT; do
        if [[ $n != RT ]]; then
           date '+%Y-%m-%d %H:%M:%S'
@@ -238,18 +248,26 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "LISTS" ]]; then
     done
 fi
 
-#Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
-date '+%Y-%m-%d %H:%M:%S'
-echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
-find "${outpath}"/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
-rm CLEARlists.txt
+if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "BATCH" ]] || [[ "${startpoint}" = "COMPILE" ]]; then
+######################################################################
+################ COMPILE CURATED LISTS INTO PRIMARY ##################
+######################################################################
+# If all batch runs of OPSEP are already complete and want to extract to a single list.
 
-date '+%Y-%m-%d %H:%M:%S'
-echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
-find "${outpath}"/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
-rm CLEARlists.txt
+    #Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
+    date '+%Y-%m-%d %H:%M:%S'
+    echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
+    find "${outpath}"/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
+    python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}"
+    rm CLEARlists.txt
+
+    date '+%Y-%m-%d %H:%M:%S'
+    echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
+    find "${outpath}"/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
+    python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}"
+    rm CLEARlists.txt
+
+fi
 
 date '+%Y-%m-%d %H:%M:%S'
 echo "Completed"

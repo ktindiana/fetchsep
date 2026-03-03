@@ -277,6 +277,21 @@ def write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, f
     return fname
 
 
+def make_lists_array(lists):
+    """ If lists is a string, make an array of the filenames inside. """
+
+    if not os.path.isfile(lists):
+        sys.exit(f"make_lists_array: File does not exist. {lists}")
+    
+    arr = []
+    with open(lists, 'r') as file:
+        for list in file:
+            list = list.strip()
+            arr.append(list)
+            
+    return arr
+
+
 def create_primary_goes_sep_list(lists, prefix='GOES', path_to_data=None,
     path_to_output=None, path_to_plots=None, path_to_lists=None,):
     """ Provided a set of SEP events lists created by batch running

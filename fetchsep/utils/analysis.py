@@ -257,7 +257,7 @@ def identify_sep_above_background_one(dates, fluxes):
     print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
     print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
     print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
-                
+
     npts = len(dates)
 
     IsSPE = False
@@ -374,7 +374,7 @@ def identify_sep_above_background(dates, fluxes):
     print("Requiring " + str(nconsec) + " points (" + str(nconsec*time_res_sec/(60.*60.)) + " hours) to define an onset.")
     print("Allowing " + str(allow_miss) + " points to be missed in onset definition.")
     print("Event ends after " + str(dwell_pts) + " points are below threshold (dwell time).")
-                
+  
     npts = len(dates)
 
     IsSPE = False
@@ -700,19 +700,4 @@ def find_max_curvature(y):
     #Max of the first derivative
     #Min of 2nd derivative
     return min_deriv2_idx+2, yderiv[max_deriv_idx], yderiv2[min_deriv2_idx], norm_yderiv[max_deriv_idx], norm_yderiv2[min_deriv2_idx]
-
-
-def make_lists_array(lists):
-    """ If lists is a string, make an array of the filenames inside. """
-
-    if not os.path.isfile(lists):
-        sys.exit(f"make_lists_array: File does not exist. {lists}")
-    
-    arr = []
-    with open(lists, 'r') as file:
-        for list in file:
-            list = list.strip()
-            arr.append(list)
-            
-    return arr
     

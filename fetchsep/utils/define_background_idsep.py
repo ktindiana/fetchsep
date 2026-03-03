@@ -498,13 +498,13 @@ def clean_distribution(df, col):
         return is_good, kurtosis, np.nan
             
 
-    print(f"clean_distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}, first bin {counts[ix]}, upper bins {sum(counts[ix+1:])}")
+    #print(f"clean_distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}, first bin {counts[ix]}, upper bins {sum(counts[ix+1:])}")
     #If >= 50% of values are in the bottom bin, set all of
     #the values that fall in the bottom bin to np.nan
     if counts[ix] >= sum(counts[ix+1:]):
         df.loc[df[col] < bins[ix+1], col] = np.nan
         is_good_bg, kurtosis = check_bg_kurtosis(df, col)
-        print(f"cleaned distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}")
+        #print(f"cleaned distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}")
     return is_good, kurtosis, bins[1]
     
 

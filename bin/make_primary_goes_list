@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import fetchsep.utils.analysis as tools
+import fetchsep.utils.tools as tools
 import argparse
 
 

@@ -43,22 +43,26 @@ REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
 
 REM COMMAND LINE ARGUMENTS
 REM ----------------------
-REM In the command line, the argument LISTS may be added to skip the calculation of
+REM In the command line, the argument BATCH may be added to skip the calculation of
 REM the mean background with IDSEP IF IT WAS ALREADY DONE PREVIOUSLY.
 REM The background calculation is extremely time consuming and it needn't be repeated.
-REM If the user only wants to regenerate the SEP lists,
-REM the argument LISTS will skip to that part of the script.
 
-REM When run without an argument, will default to startpoint ALL and the script will:
+REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
+REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat ALL
+REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat BATCH
+
+REM ALL or no argument (default), the script will:
 REM     - Set up environment
 REM     - Download data and calculate mean background and sigma with IDSEP (12+ hours)
 REM     - Copy CLEAR curated batch files
 REM     - Generate SEP lists (2+ hours)
+REM     - Compile into single list of SEP events taken from the primary GOES
 
-REM When run with the argument LISTS, the script will:
+REM BATCH, the script will:
 REM     - Set up environment
 REM     - Copy CLEAR curated batch files
 REM     - Generate SEP lists (2+ hours)
+REM     - Compile into single list of SEP events taken from the primary GOES
 
 
 SET "startpoint=ALL"
@@ -231,13 +235,13 @@ REM Create a single SEP list by extracting SEP events for the primary GOES satel
 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 Get-ChildItem -Path "%outpath%"\opsep\ -Filter "*_integral_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%"
 del CLEARlists.txt
 
 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 Get-ChildItem -Path .\CLEAR\output\opsep\ -Filter "*_differential_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%"
 del CLEARlists.txt
 
 
