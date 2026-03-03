@@ -943,6 +943,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         #the start time of the known SEP events in the list
         index = df.loc[((df[assoc_reference_columns[0]]-tolerance) <= sep_start) & (sep_start < (df[assoc_reference_columns[1]]+tolerance)) & (sep_end > df[assoc_reference_columns[0]])].index
 
+        print(index)
         ###NO SEP FOUND WITHIN TOLERANCE
         if len(index) == 0:
             event_index = -1
@@ -952,25 +953,17 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
             event_index = index[0]
             
         ####ELSE MULTIPLE MATCHES
-        #OPTIMIZE BY CHOOSING CLOSEST START TIME TO sepdate
-        else:
-            check_min_diff = np.nan
+        #OPTIMIZE BY CHOOSING CLOSEST START TIME TO sep_start
+        elif len(index) > 1:
             col = assoc_reference_columns[0]
-            diff = df[col] - sep_start
-            ix = []
-            diff[col] = abs(diff[col])
-            min_diff = diff[col].min() #minimize on time difference to sep start
-            if min_diff <= tolerance:
-                ix = diff[col].index[diff[col] == min_diff]
-                if len(ix) == 0:
-                    event_index = -1
-                elif len(ix) == 1:
-                    event_index = ix[0]
-                else:
-                    print(f"identify_associations_in_list: Found more than one possible "
-                        f"match for {sep_start}. Taking first occurrence.")
-                    event_index = ix[0]
-
+            min_diff = tolerance
+            for ix in index:
+                diff = df[col].iloc[ix] - sep_start
+                diff = abs(diff)
+                if diff <= min_diff:
+                    min_diff = diff
+                    event_index = ix
+ 
     if event_index == -1:
         print(f"identify_associations_in_list: No match was found in {assoc_list.id} for {sep_start}.")
         #Return series with columns with appropriate null values
@@ -979,7 +972,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         output_col = list_output_columns
         associations = fill_associations(df, event_index)
         proton_info = df[assoc_reference_columns].iloc[event_index]
-        print(f"identify_associations_in_list: Match found in {assoc_list.id} for {sep_start} to {sep_end} with an entry for {assoc_reference_columns[0]} {proton_info[0]} {assoc_reference_columns[1]} {proton_info[1]}")
+        print(f"identify_associations_in_list: Analyzed {assoc_reference_columns[0]} {proton_info[0]} to {assoc_reference_columns[1]} {proton_info[1]} found in {assoc_list.id} {sep_start} to {sep_end}.")
         #Cast types in associations to avoid Int64, etc
         for key in associations.keys():
             associations[key] = cast_value(key, associations[key])

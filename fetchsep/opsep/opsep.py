@@ -1291,7 +1291,16 @@ class Analyze:
         
         sep_start_time = pd.NaT
         sep_end_time = pd.NaT
-        
+
+        #GOES-R satellites have contamination from trapped electrons in the >10 MeV channel.
+        #Do not want to count the little variations due to that contamination as SEP events.
+        #For GOES-R, require >10 MeV max exceed 1.5 pfu before checking if SEP event.
+        goes_R = expts.goes_R()
+        if data.experiment in goes_R or data.experiment == "GOES-RT":
+            if energy_bin == [10,-1]:
+                if np.nanmax(fluxes) < 1.5:
+                    return sep_start_time, sep_end_time
+
         #When applying a threshold, use NOAA SWPC logic
         if threshold != cfg.opsep_min_threshold:
             sep_start_time, sep_end_time = analysis.identify_sep_noaa(dates, fluxes, threshold)

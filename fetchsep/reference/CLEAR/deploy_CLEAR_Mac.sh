@@ -221,13 +221,13 @@ fi
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 find "${outpath}"/opsep/* -name "*_integral_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}"
 rm CLEARlists.txt
 
 date '+%Y-%m-%d %H:%M:%S'
 echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 find "${outpath}"/opsep/* -name "*_differential_*_sep_events.csv" > CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}"
 rm CLEARlists.txt
 
 date '+%Y-%m-%d %H:%M:%S'
