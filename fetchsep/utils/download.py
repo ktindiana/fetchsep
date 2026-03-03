@@ -182,11 +182,8 @@ def get_data(str_startdate, str_enddate, experiment,
 
     
     """
-    cfg.configure_for(experiment)
 
-    if path_to_data != '':
-        cfg.set_datapath(path_to_data)
-
+    cfg.set_config_paths(path_to_data=path_to_data)
     cfg.print_configured_values()
 
     startdate = dh.str_to_datetime(str_startdate)
