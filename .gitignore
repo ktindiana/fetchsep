@@ -9,6 +9,8 @@ fetchsep.cfg
 
 ./CLEAR/
 
+fetchsep/reference/user_associations.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

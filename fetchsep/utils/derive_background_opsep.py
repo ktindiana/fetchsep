@@ -506,7 +506,7 @@ def derive_background(experiment, flux_type, options,
     bgfluxes, sepfluxes = separate_sep_and_background(fluxes, means, sigmas,
                         doBGSub=doBGSub)
                      
-    print("=====BACKROUND IDENITIFCATION=====")
+    print("=====BACKGROUND IDENTIFICATION=====")
     for k in range(len(means)):
         print(f"Mean: {means[k]} +- {cfg.opsep_nsigma} * {sigmas[k]}")
     

@@ -1,5 +1,6 @@
 from ..opsep import opsep
 from . import config as cfg
+from . import date_handler as dh
 from ..json import keys
 from ..json import ccmc_json_handler as ccmc_json
 from . import tools
@@ -100,10 +101,10 @@ def make_observation_window_list(path):
             #Observation Window
             obs_win = ccmc_json.return_json_value_by_index(data,id_pred_win,0)
             str_obs_win_st = obs_win["start_time"]
-            obs_st = ccmc_json.zulu_to_time(str_obs_win_st)
+            obs_st = dh.zulu_to_time(str_obs_win_st)
             
             str_obs_win_end = obs_win["end_time"]
-            obs_end = ccmc_json.zulu_to_time(str_obs_win_end)
+            obs_end = dh.zulu_to_time(str_obs_win_end)
 
             win_st.append(obs_st)
             win_end.append(obs_end)
@@ -234,10 +235,10 @@ def check_for_sep(path):
             #Observation Window
             obs_win = ccmc_json.return_json_value_by_index(data,id_pred_win,i)
             str_obs_win_st = obs_win["start_time"]
-            obs_st = ccmc_json.zulu_to_time(str_obs_win_st)
+            obs_st = dh.zulu_to_time(str_obs_win_st)
             
             str_obs_win_end = obs_win["end_time"]
-            obs_end = ccmc_json.zulu_to_time(str_obs_win_end)
+            obs_end = dh.zulu_to_time(str_obs_win_end)
 
             #Threshold Crossings
             thresh_crossings = ccmc_json.return_json_value_by_index(data,thresh_id,i)
@@ -256,7 +257,7 @@ def check_for_sep(path):
                     thresh_key = ccmc_json.threshold_to_key(threshold)
                     
                     str_cross_time = tc["crossing_time"]
-                    cross_time = ccmc_json.zulu_to_time(str_cross_time)
+                    cross_time = dh.zulu_to_time(str_cross_time)
                     if pd.isnull(cross_time) or cross_time == 0\
                         or cross_time == '':
                         continue
@@ -352,16 +353,16 @@ def check_approved_sep(target_dir, df_sep, df_approved, obs_st, enforce_sep_stop
                 df_check = df_approved.loc[(df_approved["Threshold Crossing Time"] == str(sep))]
             if df_check.empty:
                 if enforce_sep_stop:
-                    sys.exit("move_obs: The observation with observation "
-                        "window starting at " + str(obs_st) + " contains "
-                        "an SEP event with threshold crossing time\n "
-                        + str(df) + "\n "
-                        "This SEP " +str(sep) +" is not in the approved SEP file "
-                        + target_dir + "/approved_SEP.csv. Outputs "
-                        "cannot be moved until the SEP event has been "
-                        "approved. Exiting.")
+                    # SAVE THE UNAPPROVED SEP EVENT DATAFRAME
+                    os.makedirs('./tmp', exist_ok=True)
+                    df.to_pickle('./tmp/unapproved_sep_df.pkl')
+
+                    sys.exit(f"move_obs: The observation with observation window starting at {obs_st} " "contains an SEP event with threshold crossing time\n "
+                        f"{df.to_string()}\n "
+                        f"This SEP {sep} is not in the approved SEP file {target_dir}/approved_SEP.csv. "
+                        "Outputs cannot be moved until the SEP event has been approved. Exiting.")
             else:
-                print("SEP Event is approved or no SEP present: " + str(sep))
+                print(f"SEP Event is approved or no SEP present: {sep}")
 
 
 
@@ -370,7 +371,7 @@ def move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep, obs_st,
     
     """
     #Move the quiet and approved observations
-    zulu_st = ccmc_json.make_ccmc_zulu_time(obs_st)
+    zulu_st = dh.time_to_zulu(obs_st)
     zulu_st = zulu_st.replace(':','')
     
     selectfiles = [f for f in allfiles if zulu_st in f]
@@ -379,10 +380,10 @@ def move_files(target_dir, obspath, pltpath, allfiles, allplots, df_sep, obs_st,
     
     df = df_sep.loc[(df_sep["Observation Window Start"] == obs_st)]
     if not df.empty:
-        print(df)
+        print(df.to_string())
         for sep in df["Threshold Crossing Time"]:
             if not pd.isnull(sep):
-                zulu_sep = ccmc_json.make_ccmc_zulu_time(sep)
+                zulu_sep = dh.time_to_zulu(sep)
                 zulu_sep = zulu_sep.replace(':','')
                 selectplots2 = [f for f in allplots if zulu_sep in f]
                 if selectplots2:
@@ -502,13 +503,23 @@ def move_output(target_dir, subdir='', enforce_new=True,
 
 
 def update_observations(target_dir, start_date, end_date, experiment,
-    flux_type, threshold, user_name='', user_file='',
-    json_type='observations', spase_id='', showplot=False, saveplot=True,
-    detect_prev_event=False, two_peaks=False, umasep=False, options='',
+    flux_type='', spacecraft='', user_thresholds='',
+    user_name='', user_file='',
+    color_scheme=1, no_goes_colors=False,
+    json_type='observations', json_mode='measurement', spase_id='',
+    showplot=False, saveplot=True,
+    detect_prev_event=False, two_peaks=False, options='',
     doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-    nointerp=False, spacecraft='', doBGSubIDSEP=False,
+    dointerp=False, doBGSubIDSEP=False,
     IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton', associations=False):
+    location='earth', species='proton',
+    associations=False, save_associations=False,
+    auto_flare_time='', auto_cme_time='',
+    source_lat=np.nan, source_lon=np.nan, noaa_region=np.nan,
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None):
     """ Run opsep for a time period that starts where the last set of observations
         in target_dir end.
         
@@ -520,14 +531,34 @@ def update_observations(target_dir, start_date, end_date, experiment,
                 transferred to the target_dir
             :end_date: (string) YYYY-MM-DD or "YYYY-MM-DD HH:MM:SS" in quotes, end date
                 of the observation time period
-            :experiment: (string) spacecraft, eg. GOES_RT, GOES-13, STEREO-A, etc
+            :experiment: (string) spacecraft, eg. GOES-RT, GOES-13, STEREO-A, etc
             :flux_type: (string) integral or differential
             :threshold: (string) additional thresholds to apply to fluxes, see opsep for
                 more guidance
             :ninterp: (bool) False means that will not apply interpolation in data gaps
             :associations: (bool) set to True to find flare, CME, radio info
                 associated with SEP events
-                
+            :save_associations: (bool) If True, will save the user-input flare, CME, and location to
+                user-maintained associations list in fetchsep/reference/user_associations.csv
+            :auto_flare_time: (string) if specified, NOAA NCEI X-ray science flare summary
+                files will be searched for a flare coincident with this time.
+                The flare_time should correspond to a time equal to or 
+                between the flare start and end time. The peak time is preferable as
+                flares are selected by minimizing between this specified time 
+                and the measured flare peak.
+            :auto_cme_time: (string) find CME in DONKI catalog with preferred selections
+            :source_lat: (float) latitude of flare or eruption
+            :source_lon: (float) longitude of flare or eruption
+            :noaa_region: (int) active region number
+            :path_to_data: (string) path where satellite data should be downloaded. Will default to 
+                datapath listed in fetchsep.cfg if a value is not specified.
+            :path_to_output: (string) path where output files should be saved. Will default to 
+                outpath listed in fetchsep.cfg if a value is not specified.
+            :path_to_plots: (string) path where plots should be saved. Will default to
+                plotpath listed in fetchsep.cfg if a value is not specified.
+            :path_to_lists: (string) path where lists should be saved. Will default to
+                listpath listed in fetchsep.cfg if a value is not specified.
+
         OUTPUTS:
         
             None. Files will be moved if any SEP events in the time frame are approved.
@@ -545,15 +576,42 @@ def update_observations(target_dir, start_date, end_date, experiment,
         IDSEPEnhancement=IDSEPEnhancement)
     
     startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
-        opsep.run_all(start_date, end_date, experiment, flux_type,
-        user_name=user_name, user_file=user_file,
-        json_type=json_type, spase_id=spase_id, showplot=showplot,
-        saveplot=saveplot, detect_prev_event=detect_prev_event,
-        two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
-        options=options, doBGSubOPSEP=doBGSubOPSEP,
-        OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
-        bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
-        doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
-        idsep_path=idsep_path, location=location, species=species)
+        opsep.run_opsep(start_date, end_date, experiment,
+        flux_type=flux_type,
+        spacecraft=spacecraft,
+        color_scheme=color_scheme,
+        no_goes_colors=no_goes_colors,
+        user_thresholds=user_thresholds,
+        dointerp=dointerp,
+        user_name=user_name,
+        user_file=user_file,
+        json_type=json_type,
+        json_mode=json_mode,
+        spase_id=spase_id,
+        showplot=showplot,
+        saveplot=saveplot,
+        detect_prev_event=detect_prev_event,
+        two_peaks=two_peaks,
+        options=options,
+        doBGSubOPSEP=doBGSubOPSEP,
+        OPSEPEnhancement=OPSEPEnhancement,
+        bgstartdate=bgstartdate,
+        bgenddate=bgenddate,
+        doBGSubIDSEP=doBGSubIDSEP,
+        IDSEPEnhancement=IDSEPEnhancement,
+        idsep_path=idsep_path,
+        location=location,
+        species=species,
+        associations=associations,
+        save_associations=save_associations,
+        auto_flare_time=auto_flare_time,
+        auto_cme_time=auto_cme_time,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        noaa_region=noaa_region,
+        path_to_data=path_to_data,
+        path_to_output=path_to_output,
+        path_to_plots=path_to_plots,
+        path_to_lists=path_to_lists)
 
     return subdir

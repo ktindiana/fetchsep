@@ -3,6 +3,9 @@
 import fetchsep.opsep
 import argparse
 import matplotlib.pyplot as plt
+import fetchsep.utils.experiments as expts
+import pandas as pd
+import numpy as np
 
 #INPUTS:
 #   Start and end dates of SEP event
@@ -15,7 +18,13 @@ import matplotlib.pyplot as plt
 #       integral flux
 #   showplot: set this flag to plot the SEP fluxes or background-
 #       subtracted SEP fluxes; also plot fluence
-parser = argparse.ArgumentParser()
+
+valid_experiments = expts.valid_experiments()
+
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: OPSEP analyzes a single SEP event to calculate threshold crossings, peak fluxes, and event-integrated fluence and fluence spectra for automatic (>10 MeV, 10 pfu and >100 MeV, 1 pfu) and user-provided event definitions. OPSEP may perform background subtraction and identify enhancements above background using the mean background calculated by IDSEP or a time period specified by the user. OPSEP outputs flux time series in a simple csv format and json files in the CCMC SEP Scoreboard format, which is also the same format used by SPHINX for SEP model validation. Users may input their own time profiles (e.g. produced by a prediction model) to analyze SEP event characteristics. SEP events may be associated with flares, CMEs, radio data, etc by referencing a number of SEP event lists stored in the reference/ directory, including SEP lists compiled by SRAG, Cane et al., and Ian Richardson. Users may input their own flare, CME, and source locations associations via command line or in a file containing a CCMC SEP Scoreboard trigger block.")
+)
+
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes"))
@@ -24,26 +33,41 @@ parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
 
-parser.add_argument("--Experiment", type=str, choices=['GOES', 'GOES-05',
-        'GOES-06', 'GOES-07', 'GOES-08',
-        'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
-        'GOES-16', 'GOES-17','GOES-18','GOES_RT', 'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE',
-        'ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B', 'ACE_SIS',
-        'ACE_EPAM_electrons', 'IMP8_CPME', 'user'],
+parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help="Enter name of spacecraft or dataset")
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
-        help=("Do you want to use integral or differential fluxes?"))
+        help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
-        help=("If GOES_RT is selected, choose the primary or secondary spacecraft. Default = primary."))
+        help=("If GOES-RT is selected, choose the primary or secondary spacecraft. Default = primary."))
+        
+parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
+        help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
+            "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
+            "Other energy channels are plotted with colors that are different from these GOES colors. "
+            "Multiple color schemes are offered:\n"
+            "1 - Tab 10-like bright, exciting, cosmic;\n "
+            "2 - Tab 20-like exciting, dark, and soft space exploration palette;\n "
+            "3 - Set 1-like inspired by Mars;\n "
+            "4 - Set 1-like inspired by nebulae and supernovae;\n "
+            "5 - Set 1-like inspired by Ring Nebula and Orion Nebula;\n "
+            "6 - Tab 20-like very bright color scheme;\n "
+            "7 - Standard Python Tab 10;\n "
+            "8 - Standard Python Set1 with red replaced with coral;\n "
+            "9 - Standard Python Tab20 with red replaced with coral;\n "
+            "10 - Tab 20-like muted blues, olives, purples colors to browns;\n "
+            "11 - Tab 20-like autumn colors;\n "
+            "12 - Tab 20-like bold, dark autumn colors;\n "
+            "13 - Tab 20-like bright, soft rainbow;"))
 
-parser.add_argument("--Associations",
-        help=("Set flag to associate flare, CME, radio, etc information "
-            "if an SEP event is found in the data. "), action="store_true")
-
+parser.add_argument("--NoGOESColors",
+        help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
+            "Set to True not to use these colors and to use the seleted color scheme instead."),
+            action="store_true")
+            
 parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
         "chose user for experiment, specify the name of the model or "
         "experiment that you are analyzing (no spaces)."))
@@ -53,10 +77,16 @@ parser.add_argument("--UserFile", type=str, default='', help=("If "
         "the fluxes. Specify energy bins and delimeter in code at top."))
 
 parser.add_argument("--JSONType", type=str, choices=['model',
-        'observations'], default='observations',
+        'observations'], default='',
         help=("For user-input files, specify whether they are observations "
         "or model predictions to generate a JSON file in the correct format. "
-        "Choices are \"model\" or \"observations\" Default is observations."))
+        "Choices are \"model\" or \"observations\"."))
+
+parser.add_argument("--JSONMode", type=str, choices=['measurement', 'forecast',
+        'historical', 'nowcast', 'simulated_realtime_forecast', 'simulated_realtime_nowcast', 'other'], default='',
+        help=("For user-input files, specify the mode. Observations would use "
+            "\"measurement\". Models will default to \"forecast\". "
+            "Choose from the other options as appropriate for your input. "))
 
 parser.add_argument("--spase_id", type=str, default='', help=("If your "
         "model or data source has an associated Spase ID, specify here. "
@@ -68,7 +98,7 @@ parser.add_argument("--Location", type=str, default='earth',
             "earth, mars, psp, stereoa, stereob, dawn, juno, L1, L2, L4, L5. You may "
             "enter another location if needed. Default = earth."))
 
-parser.add_argument("--Species", type=str, default='protons',
+parser.add_argument("--Species", type=str, default='proton',
         help=("Location of time profile. CCMC json files recognize: electron, proton, "
               " helium, helium3, helium4, oxygen, iron, ion. You may "
               "enter another location if needed. Default = proton"))
@@ -101,10 +131,9 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
 
-parser.add_argument("--NoInterp",
-        help=("Do not fill in negative or missing fluxes via "
-                "linear interpolation in time. Set as None values "
-                "instead."), action="store_true")
+parser.add_argument("--DoInterp",
+        help=("Fill in negative or missing fluxes via "
+                "linear interpolation in time. Default is to set as nan values."), action="store_true")
 
 parser.add_argument("--IDSEPEnhancement",
         help="Set flag to use background mean+n*sigma found with IDSEP "
@@ -160,6 +189,143 @@ parser.add_argument("--TwoPeaks",
                 "before increasing again to the true peak of the event."),
                 action="store_true")
 
+########## FLARE, CME ASSOCIATIONS #############
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "derived from the SRAG, IGR, and user-maintained historical event lists."), action="store_true")
+
+parser.add_argument("--SaveAssociations",
+        help=("Set flag to write flare, CME, location associations input by the user for the analyzed SEP event to the user-maintained associations list: fetchsep/reference/user_associations.csv. "), action="store_true")
+
+parser.add_argument("--AutoFlareTime", type=str, default=None,
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a flare in the NOAA NCEI science archives. "
+            "Time should be equal to or between the flare start and end time, "
+            "with the peak as the preferable time."))
+
+parser.add_argument("--AutoCMETime", type=str, default=None,
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a CME in DONKI. Use the CME start time, which is "
+            "generally the LASCO C2 first look time."))
+
+parser.add_argument("--Trigger", type=str, default=None,
+        help=("Filename containing a json trigger block in the CCMC SEP Scoreboard format. "
+            "Expected file format {\"trigger\": [{'cme':{...}}, {'flare':{...}}]} with any "
+            "number of triggers inside. "))
+
+#####MANUAL INPUT OF CME PARAMETERS
+parser.add_argument("--CME-start-time", default=pd.NaT,
+                    help="Manual input CME start time; first time visible on a coronagraph image.")
+
+parser.add_argument("--CME-liftoff-time", default=pd.NaT,
+                    help="Manual input CME liftoff time; time eruption lifts off from the Sun.")
+
+
+# CME geometry & kinematics
+parser.add_argument("--CME-half-width", type=float, default=np.nan,
+                    help="Manual input CME half width (deg)")
+parser.add_argument("--CME-speed", type=float, default=np.nan,
+                    help="Manual input CME speed (km/s)")
+parser.add_argument("--CME-acceleration", type=float, default=np.nan,
+                    help="Manual input CME acceleration (km/s^2)")
+parser.add_argument("--CME-latitude", type=float, default=np.nan,
+                    help="Manual input CME latitude (deg)")
+parser.add_argument("--CME-longitude", type=float, default=np.nan,
+                    help="Manual input CME longitude (deg)")
+parser.add_argument("--CME-height", type=float, default=np.nan,
+                    help="Manual input CME height (Rs) for CME-speed")
+
+parser.add_argument("--CME-time-at-height-height", type=float, default=np.nan,
+                    help="Manual input height, e.g. 21.5 Rs")
+parser.add_argument("--CME-time-at-height-time", default=pd.NaT,
+                    help="Manual input time when CME reached specified height "
+                    "(specified with CME-time-at-height-height), e.g. time at "
+                    "which CME reached 21.5 Rs.")
+
+
+# Metadata
+parser.add_argument("--CME-coordinates", default="",
+                    help="Manual input CME coordinate system (e.g., HEEQ)")
+parser.add_argument("--CME-catalog", default="",
+                    help=("Manual input CME catalog name: ARTEMIS, DONKI, HELCATS, "
+                    "JHU APL, CACTUS_NRL, CACTUS_SIDC, CORIMP, SEEDS, SOHO_CDAW, "
+                    " STEREO_COR1, SWPC, MLSO_KCOR"))
+parser.add_argument("--CME-catalog-id", default="",
+                    help=("Manual input of unique CME ID in catalog."))
+parser.add_argument("--CME-urls", default='',
+                    help="Manual input of comma-separated URLS associated with CME")
+
+# Derivation technique
+parser.add_argument("--CME-derivation-process", default="",
+                    help="Manual input CME Derivation process, automated/manual")
+parser.add_argument("--CME-derivation-method", default="",
+                    help="Manual input derivation method, SWPC_CAT, StereoCAT, Plane-of-sky, FlareDerived")
+parser.add_argument("--CME-measurement-type", default="",
+                    help=("Manual input measurement type, allowed values: LE (leading edge), "
+                        "TE (Trailing Edge), RHB (Right Hand Boundary), LHB (Left Hand Boundary), "
+                        "BW (Black White Boundary), COR (Prominence Core), DIS (Disconnection Front), "
+                        "SH (Shock Front)"))
+
+parser.add_argument("--Flare-last-data-time", default=pd.NaT,
+                    help="Time of last data used")
+parser.add_argument("--Flare-start-time", default=pd.NaT,
+                    help="Flare start time")
+parser.add_argument("--Flare-peak-time", default=pd.NaT,
+                    help="Flare peak time")
+parser.add_argument("--Flare-end-time", default=pd.NaT,
+                    help="Flare end time")
+
+# Physical properties
+parser.add_argument("--Flare-location", default=None,
+                    help="Stonyhurst location (e.g., N15W33)")
+parser.add_argument("--Flare-intensity", type=float, default=np.nan,
+                    help="Peak X-ray intensity (W/m^2)")
+parser.add_argument("--Flare-integrated-intensity", type=float, default=np.nan,
+                    help="Time-integrated X-ray flux")
+parser.add_argument("--Flare-noaa-region", type=int, default=np.nan,
+                    help="NOAA active region number")
+parser.add_argument("--Flare-peak-ratio", type=float, default=np.nan,
+                    help="Ratio of peak flux to background")
+
+# Metadata
+parser.add_argument("--Flare-catalog", default=None,
+                    help="Catalog name (e.g., DONKI, SWPC)")
+parser.add_argument("--Flare-catalog-id", default=None,
+                    help="Catalog identifier")
+parser.add_argument("--Flare-urls", nargs="*", default='',
+                    help="Manual input of comma-separated URLS associated with flare")
+
+# SEP source information
+parser.add_argument("--Source-latitude", type=float, default=np.nan,
+                    help="Latitude of eruption source (deg), if not specified in flare location.")
+parser.add_argument("--Source-longitude", type=float, default=np.nan,
+                    help="Longitude of eruption source (deg), if not specified in flare location.")
+parser.add_argument("--NOAA-region", type=int, default=np.nan,
+                    help="NOAA active region number, if not specified for flare.")
+
+
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
+
 #parser.add_argument("--UMASEP",
 #        help=("Flag to calculate flux values and thresholds specific to "
 #            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
@@ -170,7 +336,9 @@ parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
               "the current working directory and exit.  Used to prepare a "
               "starting point for creating a new user configuration."))
-                    
+                        
+
+
 args = parser.parse_args()
 
 if args.ExportConfig:
@@ -183,10 +351,12 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
-associations = args.Associations
+color_scheme = args.ColorScheme
+no_goes_colors = args.NoGOESColors
 user_name = args.ExperimentName
 user_file = args.UserFile
 json_type = args.JSONType
+json_mode = args.JSONMode
 spase_id = args.spase_id
 location = args.Location
 species = args.Species
@@ -204,33 +374,125 @@ detect_prev_event = args.DetectPreviousEvent
 two_peaks = args.TwoPeaks
 umasep = False #args.UMASEP
 options = args.options
-nointerp = args.NoInterp
+dointerp = args.DoInterp
+
+associations = args.Associations
+save_associations = args.SaveAssociations
+auto_flare_time = args.AutoFlareTime
+auto_cme_time = args.AutoCMETime
+trigger = args.Trigger
+cme_start_time=args.CME_start_time
+cme_liftoff_time=args.CME_liftoff_time
+cme_half_width=args.CME_half_width
+cme_speed=args.CME_speed
+cme_acceleration=args.CME_acceleration
+cme_lat=args.CME_latitude
+cme_lon=args.CME_longitude
+cme_height=args.CME_height
+cme_time_at_height_time=args.CME_time_at_height_time
+cme_time_at_height_height=args.CME_time_at_height_height
+cme_coordinates=args.CME_coordinates
+cme_catalog=args.CME_catalog
+cme_catalog_id=args.CME_catalog_id
+cme_urls=[val for val in args.CME_urls.strip().split(",")]
+cme_derivation_process=args.CME_derivation_process
+cme_derivation_method=args.CME_derivation_method
+cme_measurement_type=args.CME_measurement_type
+
+flare_last_data_time=args.Flare_last_data_time
+flare_start_time=args.Flare_start_time
+flare_peak_time=args.Flare_peak_time
+flare_end_time=args.Flare_end_time
+flare_location=args.Flare_location
+flare_intensity=args.Flare_intensity
+flare_integrated_intensity=args.Flare_integrated_intensity
+flare_noaa_region=args.Flare_noaa_region
+flare_peak_ratio=args.Flare_peak_ratio
+flare_catalog=args.Flare_catalog
+flare_catalog_id=args.Flare_catalog_id
+flare_urls=[val for val in args.Flare_urls.strip().split(",")]
+
+source_lat = args.Source_latitude
+source_lon = args.Source_longitude
+noaa_region = args.NOAA_region
+
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+
+opsep_nsigma = args.opsep_nsigma
 
 
-date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_all(
-    str_startdate, str_enddate, experiment, flux_type,
+date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_opsep(
+    str_startdate, str_enddate, experiment,
+    flux_type=flux_type,
+    spacecraft=spacecraft,
+    color_scheme=color_scheme,
+    no_goes_colors=no_goes_colors,
+    user_thresholds=user_thresholds,
+    dointerp=dointerp,
     user_name=user_name,
     user_file=user_file,
     json_type=json_type,
+    json_mode=json_mode,
     spase_id=spase_id,
     showplot=showplot,
     saveplot=saveplot,
     detect_prev_event=detect_prev_event,
     two_peaks=two_peaks,
     umasep=umasep,
-    user_thresholds=user_thresholds,
     options=options,
     doBGSubOPSEP=doBGSubOPSEP,
     OPSEPEnhancement=OPSEPEnhancement,
     bgstartdate=bgstartdate,
     bgenddate=bgenddate,
-    nointerp=nointerp,
-    spacecraft=spacecraft,
     doBGSubIDSEP=doBGSubIDSEP,
     IDSEPEnhancement=IDSEPEnhancement,
     idsep_path=idsep_path,
     location=location,
     species=species,
-    associations=associations)
+    associations=associations,
+    save_associations=save_associations,
+    auto_flare_time=auto_flare_time,
+    auto_cme_time=auto_cme_time,
+    trigger=trigger,
+    cme_start_time=cme_start_time,
+    cme_liftoff_time=cme_liftoff_time,
+    cme_half_width=cme_half_width,
+    cme_speed=cme_speed,
+    cme_acceleration=cme_acceleration,
+    cme_lat=cme_lat,
+    cme_lon=cme_lon,
+    cme_height=cme_height,
+    cme_time_at_height_time=cme_time_at_height_time,
+    cme_time_at_height_height=cme_time_at_height_height,
+    cme_coordinates=cme_coordinates,
+    cme_catalog=cme_catalog,
+    cme_catalog_id=cme_catalog_id,
+    cme_urls=cme_urls,
+    cme_derivation_process=cme_derivation_process,
+    cme_derivation_method=cme_derivation_method,
+    cme_measurement_type=cme_measurement_type,
+    flare_last_data_time=flare_last_data_time,
+    flare_start_time=flare_start_time,
+    flare_peak_time=flare_peak_time,
+    flare_end_time=flare_end_time,
+    flare_location=flare_location,
+    flare_intensity=flare_intensity,
+    flare_integrated_intensity=flare_integrated_intensity,
+    flare_noaa_region=flare_noaa_region,
+    flare_peak_ratio=flare_peak_ratio,
+    flare_catalog=flare_catalog,
+    flare_catalog_id=flare_catalog_id,
+    flare_urls=flare_urls,
+    source_lat=source_lat,
+    source_lon=source_lon,
+    noaa_region=noaa_region,
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists,
+    opsep_nsigma=opsep_nsigma)
 
 if showplot: plt.show()

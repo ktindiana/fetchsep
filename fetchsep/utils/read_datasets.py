@@ -1,5 +1,7 @@
 from . import config as cfg
 from . import tools
+from . import experiments as expts
+from . import date_handler as dh
 import pandas as pd
 import re
 import calendar
@@ -32,68 +34,16 @@ __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-
-#2021-01-06, Changes in 0.2: Added SEPEMv3 data set and made changes to
-#   necessary subroutines to accomodate the new data set.
-#2021-02-25, Changes 0.3: Changed GOES-13, 14, 15 S14 option to include
-#   S14 corrections to channels P6 and P7. Had previously only
-#   applied S14 to P2 - P5 for those experiments.
-#2021-09-24, Changes in 0.4: added a global_var called time_shift
-#   which allows users to shift the times in user-input files by
-#   time_shift number of hours. Changed in read_in_user_files and
-#   added convert_decimal_hour.
-#2021-11-16, Changes in 0.5: added support for GOES-16 and GOES-17
-#   differential fluxes.
-#2022-02-11, Changes in 0.6: Added support for GOES-R (16&17) primary
-#   integral fluxes served by CCMC. These are the real time fluxes
-#   from NOAA archived on the CCMC website. These are not the
-#   official NOAA L2 integral fluxes. Those are not yet
-#   available.
-#2022-02-18, Changes in 0.7: Added checking for data/GOES-R
-#   directory and will make if not present.
-#2022-03-23, Changes in 0.8: Added ability to download and read GOES-16
-#   SEP event file on NOAA's website in check_goesR_data. Modified
-#   read_in_goesR data since the special file contains 30 days
-#   of data with slightly different variable names.
-#2022-05-20. Changes in 0.9: Changed SOHO/EPHIN L3 data from 30 minute
-#   to 10 min data.
-#2022-06-16, changes in 1.0: Added Shaowen Hu's recalibrated GOES
-#   data set as a native data set in the code (SRAG1.2)
-#2022-08-04, changes in 1.1: in extract_date_range, abjusted
-#   the trimming so that the selected time range starts either
-#   on or one point AFTER the specified start. Previously,
-#   the point right before the specified start was included.
-#2022-09-19, changes in 1.2: GOES-14 and GOES-15 hepad files from
-#   2019-09-01 forward are missing a column. Added code to
-#   read_in_goes() to change the expected columns for later dates.
-#2022-11-20, changes in 1.3: Added STEREO-A and B to native data sets.
-#2023-02-09, changes in 1.4: NOAA SWPC moved the location of the historical
-#   GOES-15 and previous data. Updated the url in check_goes_data().
-#   Updated check_goesR_data() to account for two different version
-#   numbers possible in the differential files. Updated read_in_goesR()
-#   to account for the different keys used to extract the flux
-#   values in the different versions.
-#2023-03-2, changes in 1.5: Combining with the read_datasets file
-#   used by SEPAutoID (idsep).
-#3023-06-05, changes in 1.6: NOAA changed the GOES-R data to version 3
-#   in May of 2022. Added ability to grab v3 data in check_goesR.
-#   Fixed bug that grabbed temperature uncorrected proton fluxes in
-#   read_in_goesR() and added v3 file formatting.
-#2023-06-19, changes in 1.7: NOAA added a v3-0-1 format for files
-#   starting in April 2023. Rewrote check_goesR to be more versatile.
-#   Added checking that include v3-0-1 in read_in_goesR.
-#2024-09-09: Added GOES v3-0-2 format, which NOAA began using
-#   exclusively on 2023-10-19.
-
 ssl._create_default_https_context = ssl._create_unverified_context
 
 #Spacecraft in the GOES-R+ series
-goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
+goes_R = expts.goes_R()
 #Spacecraft prior to GOES-R
-goes_sc = ["GOES-08", "GOES-09","GOES-10","GOES-11",
-            "GOES-12","GOES-13","GOES-14","GOES-15"]
+goes_sc = expts.goes_sc()
 #Spacecraft prior to GOES-08
-old_goes_sc = ["GOES-05", "GOES-06", "GOES-07"]
+old_goes_sc = expts.old_goes_sc()
+#Neutron monitors
+valid_nm = expts.valid_neutron_monitors()
 
 def about_read_datasets():
     """ About read_datasets.py
@@ -128,80 +78,86 @@ def about_read_datasets():
         
     """
 
-def check_paths():
+def check_paths(experiment):
     """Check that the paths that hold the data and output exist. If not, create.
     """
-    
+    #General paths
+    if not os.path.isdir(cfg.outpath):
+        print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
+        os.mkdir(cfg.outpath)
+
+    if not os.path.isdir(cfg.plotpath):
+        print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
+        os.mkdir(cfg.plotpath)
+        
     print('Checking that paths exist: ' + cfg.datapath + ' and ' + cfg.outpath)
     if not os.path.isdir(cfg.datapath):
         print('check_paths: Directory containing fluxes, ' + cfg.datapath +
         ', does not exist. Creating.')
-        os.mkdir(cfg.datapath);
+        os.mkdir(cfg.datapath)
 
-    if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
-        print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + cfg.datapath + '/GOES')
-        os.mkdir(os.path.join(cfg.datapath, 'GOES'));
+    #Paths to store data for each experiment
+    if experiment == 'GOES-RT':
+        if not os.path.isdir(os.path.join(cfg.datapath,'GOES-RT')):
+            print('check_paths: Directory containing GOES-RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES-RT')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES-RT'));
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'GOES_RT')):
-        print('check_paths: Directory containing GOES_RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES_RT')
-        os.mkdir(os.path.join(cfg.datapath, 'GOES_RT'));
+    elif experiment == 'GOES-SWPC':
+        if not os.path.isdir(os.path.join(cfg.datapath,'GOES-SWPC')):
+            print('check_paths: Directory containing GOES-SWPC fluxes does not exist. Creating ' + cfg.datapath + '/GOES-SWPC')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES-SWPC'));
+            
+    elif 'GOES' in experiment:
+        if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
+            print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + cfg.datapath + '/GOES')
+            os.mkdir(os.path.join(cfg.datapath, 'GOES'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'SEPEM')):
-        print('check_paths: Directory containing SEPEM fluxes does not exist. Creating ' + cfg.datapath + '/SEPEM')
-        os.mkdir(os.path.join(cfg.datapath,'SEPEM'));
+    elif experiment in valid_nm:
+        if not os.path.isdir(os.path.join(cfg.datapath,'NeutronMonitor')):
+            print('check_paths: Directory containing Neutron Monitor measurements does not exist. Creating ' + cfg.datapath + '/NeutronMonitor')
+            os.mkdir(os.path.join(cfg.datapath,'NeutronMonitor'))
+        if not os.path.isdir(os.path.join(cfg.datapath,'NeutronMonitor',experiment)):
+            os.mkdir(os.path.join(cfg.datapath,'NeutronMonitor',experiment))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'SEPEMv3')):
-        print('check_paths: Directory containing SEPEMv3 fluxes does not exist. Creating ' + cfg.datapath + '/SEPEMv3')
-        os.mkdir(os.path.join(cfg.datapath,'SEPEMv3'));
+    elif 'STEREO' in experiment:
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment)):
+            print(f"check_paths: Directory containing {experiment} fluxes does not exist. Creating {cfg.datapath}/{experiment}")
+            os.mkdir(os.path.join(cfg.datapath,experiment))
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment,'LET')):
+            os.mkdir(os.path.join(cfg.datapath,experiment,'LET'))
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment,'HET')):
+            os.mkdir(os.path.join(cfg.datapath,experiment,'HET'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath, 'EPHIN')):
-        print('check_paths: Directory containing EPHIN fluxes does not exist. Creating ' + cfg.datapath + '/EPHIN')
-        os.mkdir(os.path.join(cfg.datapath, 'EPHIN'));
+    elif experiment == 'ACE_SIS':
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
+            print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
+            '/ACE')
+            os.mkdir(os.path.join(cfg.datapath,'ACE'))
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','SIS')):
+            os.mkdir(os.path.join(cfg.datapath,'ACE','SIS'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
-        print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + cfg.datapath + '/ERNE')
-        os.mkdir(os.path.join(cfg.datapath,'ERNE'));
-    if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
-        print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + cfg.datapath + '/ERNE/export.srl.utu.fi')
-        os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'));
+    elif experiment == 'ACE_EPAM_electrons':
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
+            print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
+            '/ACE')
+            os.mkdir(os.path.join(cfg.datapath,'ACE'))
+        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','EPAM')):
+            os.mkdir(os.path.join(cfg.datapath,'ACE','EPAM'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'CalGOES')):
-        print('check_paths: Directory containing CalGOES fluxes does not exist. Creating ' + cfg.datapath + '/CalGOES')
-        os.mkdir(os.path.join(cfg.datapath,'CalGOES'));
+    elif experiment == 'ERNE':
+        if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
+            print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + cfg.datapath + '/ERNE')
+            os.mkdir(os.path.join(cfg.datapath,'ERNE'))
+        if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
+            print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + cfg.datapath + '/ERNE/export.srl.utu.fi')
+            os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'))
 
-    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A')):
-        print('check_paths: Directory containing STEREO-A fluxes does not exist. Creating ' + cfg.datapath +
-        '/STEREO-A')
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-A'));
-    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A','LET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-A','LET'));
-    if not os.path.isdir(os.path.join(cfg.datapath,'STEREO-A','HET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-A','HET'));
+    else:
+        if not os.path.isdir(os.path.join(cfg.datapath,experiment)):
+            print(f"check_paths: Directory containing {experiment} fluxes does not exist. Creating {cfg.datapath}/{experiment}")
+            os.mkdir(os.path.join(cfg.datapath,experiment))
 
-    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B')):
-        print('check_paths: Directory containing STEREO-B fluxes does not exist. Creating ' + cfg.datapath +
-        '/STEREO-B')
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-B'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B','LET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-B','LET'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'STEREO-B','HET')):
-        os.mkdir(os.path.join(cfg.datapath,'STEREO-B','HET'));
-        
-    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
-        print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
-        '/ACE')
-        os.mkdir(os.path.join(cfg.datapath,'ACE'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','SIS')):
-        os.mkdir(os.path.join(cfg.datapath,'ACE','SIS'));
-    if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','EPAM')):
-        os.mkdir(os.path.join(cfg.datapath,'ACE','EPAM'));
-        
-    if not os.path.isdir(cfg.outpath):
-        print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
-        os.mkdir(cfg.outpath);
-    if not os.path.isdir(cfg.plotpath):
-        print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
-        os.mkdir(cfg.plotpath);
+
 
 
 def read_data_manager():
@@ -318,7 +274,7 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
                         'resolution': datetime.timedelta(minutes=5)},
                 'GOES_R': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
-                'GOES_RT': {'cadence': 'day',
+                'GOES-RT': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
                 'EPHIN': {'cadence': 'year',
                         'resolution': datetime.timedelta(minutes=5)},
@@ -333,7 +289,9 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
                 'ACE_EPAM_electrons': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
                 'IMP8_CPME': {'cadence': 'variable',
-                        'resolution': datetime.timedelta(seconds=330)}
+                        'resolution': datetime.timedelta(seconds=330)},
+                'NeutronMonitor':{'cadence': 'day',
+                        'resolution': datetime.timedelta(minutes=1)},
     }
 
     key = experiment
@@ -343,12 +301,13 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
     if 'STEREO' in experiment:
         if 'HET' in filename: key = 'STEREO HET'
         if 'LET' in filename: key = 'STEREO LET'
-    
+    if experiment in valid_nm: key = 'NeutronMonitor'
+
     cadence = manager[key]['cadence']
     resolution = manager[key]['resolution']
 
 
-    if experiment == "GOES_RT" and spacecraft != '':
+    if experiment == "GOES-RT" and spacecraft != '':
         experiment = experiment + '_' + spacecraft
     
     complete = check_completeness(experiment, flux_type, filename, df=df)
@@ -1076,6 +1035,9 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         prefix = 'sci_sgps-l2-avg5m_g18_'
         satellite = 'goes18'
 
+    if experiment == "GOES-19": #2022-09-13 forward
+        prefix = 'sci_sgps-l2-avg5m_g19_'
+        satellite = 'goes19'
 
     #for every day that data is required, check if file is present or
     #needs to be downloaded.
@@ -1086,13 +1048,9 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         day = date.day
         date_suffix = 'd%i%02i%02i' % (year,month,day)
  
-        if experiment == "GOES-16":
-            if date > g16_last_date:
-                print(f"check_goesR_data: Requested {date}. "
-                    f"Last available date for GOES-16 is {g16_last_date}. Continuing.")
  
-        #GOES-R differential data has three possible version numbers
-        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc']
+        #GOES-R differential data has possible version numbers
+        file_ext = ['_v1-0-1.nc', '_v2-0-0.nc', '_v3-0-0.nc', '_v3-0-1.nc', '_v3-0-2.nc', '_v3-0-3.nc']
         
         foundfile = None
         for ext in file_ext:
@@ -1233,7 +1191,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     df = read_data_manager() #file completeness record
 
     #Array of filenames that contain the data requested by the User
-    filenames1 = []  #GOES_RT files
+    filenames1 = []  #GOES-RT files
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
@@ -1261,7 +1219,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
         fname1 = date_suffix + prefix + '_' + spacecraft + '.csv'
-        fullpath1 = os.path.join(cfg.datapath, 'GOES_RT', fname1)
+        fullpath1 = os.path.join(cfg.datapath, 'GOES-RT', fname1)
         exists1 = os.path.isfile(fullpath1)
         
         complete = False
@@ -1285,7 +1243,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
                 response = rerequest(url)
                 if response.status_code == 200:
                     data = response.text
-                    fileout = open(os.path.join(cfg.datapath, 'GOES_RT', fname1),'w')
+                    fileout = open(os.path.join(cfg.datapath, 'GOES-RT', fname1),'w')
                     fileout.write(data)
                     fileout.close()
             except:
@@ -1295,26 +1253,28 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         if fname1 == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join('GOES_RT', fname1))
+            filenames1.append(os.path.join('GOES-RT', fname1))
 
     return filenames1, filenames2, filenames_orien, date
 
 
-def check_goes_RT_differential_data():
+def check_goes_swpc_data(flux_type, spacecraft):
     """ Download the NOAA SWPC most recent 7-day json of differential protons. 
         User has no control of time periods. Will grab the current file at 
         the time of running.
         
     """
-    url = "https://services.swpc.noaa.gov/json/goes/primary/differential-protons-7-day.json"
-    fname1 = "differential-protons-7-day.json"
+
+    url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (spacecraft,flux_type))
+     
+    fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
     filenames1 = []
     print("Trying to download url: " + url)
     try:
         response = rerequest(url)
         if response.status_code == 200:
             data = response.text
-            fileout = open(os.path.join(cfg.datapath, 'GOES_RT', fname1),'w')
+            fileout = open(os.path.join(cfg.datapath, 'GOES-SWPC', fname1),'w')
             fileout.write(data)
             fileout.close()
     except:
@@ -1348,17 +1308,17 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     #GOES-13 for most recent data, then looks at GOES-16 and GOES-17
     #Then continues backwards in time to find a GOES that covers
     #the requested time range
-    #GOES_RT goes back to 2010 or 2011 on CCMC servers, where they
+    #GOES-RT goes back to 2010 or 2011 on CCMC servers, where they
     #archived the primary and secondary integral real time streams.
     #Best to use the NOAA archived integral fluxes for those
-    #time periods. However, for GOES-16 forward, the CCMC GOES_RT
+    #time periods. However, for GOES-16 forward, the CCMC GOES-RT
     #real time stream is the only accessible archive of GOES
     #integral fluxes (as of June 2025).
     
     goes = []
     if flux_type == "integral":
         if startdate >= datetime.datetime(year=2020,month=3,day=8):
-            goes = ["GOES_RT"]
+            goes = ["GOES-RT"]
         else:
             goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
                     "GOES-09", "GOES-08", "GOES-07", "GOES-06",
@@ -1439,7 +1399,7 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
                 filenames1, filenames2, filenames_orien, date = \
                      check_goes_data(stdate, enddt, goes[i], flux_type)
                                      
-            if goes[i]=="GOES_RT" and flux_type == "integral":
+            if goes[i]=="GOES-RT" and flux_type == "integral":
                 filenames1, filenames2, filenames_orien, date = \
                  check_goes_RTdata(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
                  
@@ -1512,7 +1472,7 @@ def identify_which_goes_spacecraft(startdate, enddate, spacecraft="primary"):
     #Check that primary or secondary are specified between the dates requested
     if enddate <= firstdate or startdate >= lastdate:
         print(f"identify_which_goes_spacecraft: Primary and secondary GOES dates are available between: {firstdate} and {lastdate}. Please revise your date request: {stardate} to {enddate}. Returning empty arrays.")
-        return [], []
+        return [], [], []
     
     #Extract the entries between the dates of interest
     df_goes = df_goes.loc[(df_goes['Start Date'] < enddate) & (df_goes['End Date'] >= startdate)]
@@ -1594,10 +1554,10 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
             filenames1, filenames2, filenames_orien, date = \
              check_goesR_data(startdate, enddate, goes_i, flux_type, spacecraft=spacecraft)
 
-        if (goes_i=="GOES_RT" or goes_i in goes_R) and flux_type == "integral":
+        if (goes_i=="GOES-RT" or goes_i in goes_R) and flux_type == "integral":
             filenames1, filenames2, filenames_orien, date = check_goes_RTdata(startdate,
                 enddate, goes_i, flux_type, spacecraft=spacecraft)
-            goes_i = "GOES_RT"
+            goes_i = "GOES-RT"
 
         if len(filenames1) != 0 and filenames1 != None:
             filenames1_all.extend(filenames1)
@@ -1967,7 +1927,7 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
 
                 dfiles = os.listdir(os.path.join(unzipdir,'export.src'))
                 dfiles = [os.path.join(unzipdir,'export.src',x) for x in dfiles if (('HED' in x or 'LED' in x) and ('SL2' in x))]
-                #HED, LET files
+                #HED, LED files
                 filenames1.extend(dfiles) #save filenames
 
     return filenames1
@@ -2424,7 +2384,82 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
     return filenames1
 
 
+def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
+    """ Check if neutron monitor data is present in the data directory. 
+        Download if needed.
+        
+        The data are queried from https://www.nmdb.eu/nest/ via API.
+        
+        Neutron monitor data are requested to be corrected for efficiency
+        (and hopefully this includes pressure). 
+        Units are in Counts/s.
+        
+        Data begins in 1956 for some NM. Only currently active NM are included.
+        
+        INPUTS:
+            
+            :startdate: (datetime) start of time period specified by user
+            :enddate: (datetime) end of time period entered by user
+            :experiment: (string) name of neutron monitor as used by NEST   
+                 
+    """
+    styear = startdate.year
+    stmonth = startdate.month
+    stday = startdate.day
+    endyear = enddate.year
+    endmonth = enddate.month
+    endday = enddate.day
 
+    startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
+    enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
+    Ndays = int((enddt - startdt)/datetime.timedelta(hours=24)) + 1
+
+    df = read_data_manager() #file completeness record
+
+    #Array of filenames that contain the data requested by the User
+    filenames1 = []
+
+    for i in range(Ndays):
+        getday = startdt + i*datetime.timedelta(hours=24)
+        #20010807_OULU.txt
+        fname = f"{getday.strftime('%Y%m%d')}_{experiment}.txt"
+        
+        svfile = os.path.join(cfg.datapath,'NeutronMonitor',experiment,fname)
+        exists = os.path.isfile(svfile)
+        
+        complete = False
+        if exists:
+            #Check if the file is listed as complete
+            complete = check_completeness(experiment, flux_type, svfile, df=df)
+        
+        if not exists or not complete: #download file if not found on your computer
+            url = (f"https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]={experiment}&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year={getday.year}&start_month={getday.month}&start_day={getday.day}&start_hour=00&start_min=00&end_year={getday.year}&end_month={getday.month}&end_day={getday.day}&end_hour=23&end_min=59&yunits=0")
+            print(f"Downloading {experiment} data: {url}")
+            try:
+                urllib.request.urlopen(url, timeout=5)
+                
+                if os.path.exists(svfile):
+                    os.remove(svfile) # if exist, remove it directly
+  
+                wget.download(url, svfile)
+
+            except urllib.request.HTTPError as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                fname = None
+            except socket.timeout as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname = None
+            except Exception as e:
+                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                fname = None
+
+        if fname != None:
+            filenames1.append(svfile)
+        
+    return filenames1
+    
+    
+#https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]=KERG&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year=2009&start_month=09&start_day=01&start_hour=00&start_min=00&end_year=2009&end_month=09&end_day=01&end_hour=23&end_min=59&yunits=0
 
 def check_data(startdate, enddate, experiment, flux_type, user_file,
     spacecraft="primary"):
@@ -2519,11 +2554,14 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             check_goesR_data(startdate,enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
         
-    if (experiment == "GOES_RT") and flux_type == "integral":
+    if (experiment == "GOES-RT"):
         filenames1, filenames2, filenames_orien, date =\
             check_goes_RTdata(startdate,enddate, experiment, flux_type, spacecraft=spacecraft)
         return filenames1, filenames2, filenames_orien
-        
+
+    if (experiment == "GOES-SWPC"):
+        filenames1 = check_goes_swpc_data(flux_type, spacecraft=spacecraft)
+        return filenames1, filenames2, filenames_orien
 
     if experiment == "EPHIN":
         filenames1 = check_ephin_data(startdate, enddate, experiment, flux_type)
@@ -2563,6 +2601,10 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
             enddate, experiment, flux_type)
         return filenames1, filenames2, filenames_orien
 
+    if experiment in valid_nm:
+        filenames1 = check_neutron_monitor_data(startdate,
+            enddate, experiment, flux_type)
+        return filenames1, filenames2, filenames_orien
 
     return filenames1, filenames2, filenames_orien
 
@@ -3220,7 +3262,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         user time period of interest.
         
     """
-    ndiff_chan = 13 #5
+    ndiff_chan = 10 #5
     conversion = 1000. #keV/MeV
     
     NFILES = len(filenames1)
@@ -3274,11 +3316,8 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 
                 #Extract the 13 differential channels
                 for k in range(ndiff_chan):
-                    ###TEMP###
-                    #kk = k + 8
-                    #[288 time step, 2 +/-X, 13 energy chan]
-                    
-                    flux = data.variables["AvgDiffProtonFlux"][j][idx][k]
+                    kk = k + 3 #skip first three channels
+                    flux = data.variables["AvgDiffProtonFlux"][j][idx][kk]
                     if flux < 0:
                         flux = cfg.badval
                     fluxes[k][j] = flux*conversion
@@ -3343,7 +3382,7 @@ def zulu_to_time(zt):
 
 
 def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
-    """ Read in GOES_RT real time data from your computer.
+    """ Read in GOES-RT real time data from your computer.
         Read in the NOAA SWPC real time integral flux files from
         the 1 day json files for the primary GOES spacecraft.
         These files are archived on the CCMC website.
@@ -3393,7 +3432,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
     df = read_data_manager()
     
     df_data = pd.DataFrame()
-    cols_to_drop = [7,8,9,12,13] #Not proton fluxes
+    cols_to_drop = [1,7,8,9,12,13] #>1 MeV and Not proton fluxes
     #Read in fluxes from files
     for i in range(NFILES):
         file_dates = []
@@ -3405,7 +3444,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
             df_in = pd.read_csv(fullpath, header=None)
         except:
             #Sometimes files may be empty if there is a data gap > 1 day
-            print(f"read_in_GOES_RT: Could not open {fullpath}. Skipping.")
+            print(f"read_in_GOES-RT: Could not open {fullpath}. Skipping.")
             continue
 
         df_in[0] = df_in[0].str.replace('T',' ')
@@ -3439,57 +3478,98 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
 
 
 
-def read_in_goes_RT_differential():
-    """ Read in differential-protons-7-day.json """
-    fname = os.path.join(cfg.datapath,"GOES_RT", "differential-protons-7-day.json")
-    
-    fluxes_dict = {"P1": [],
-              "P2A": [],
-              "P2B": [],
-              "P3": [],
-              "P4": [],
-              "P5": [],
-              "P6": [],
-              "P7": [],
-              "P8A": [],
-              "P8B": [],
-              "P8C": [],
-              "P9": [],
-              "P10": []
-            }
+def read_in_goes_swpc(flux_type, spacecraft):
+    """ Read in SWPC 7-day jsons for GOES protons """
+
+    fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
+    fname = os.path.join(cfg.datapath,"GOES-SWPC", fname1)
+
     all_dates = []
-    
-    with open(fname, 'r') as f:
-        # Load the JSON data from the file object
-        data = json.load(f)
-        
-        for entry in data:
-#            {
-#                "time_tag": "2025-11-04T17:40:00Z",
-#                "satellite": 18,
-#                "flux": 0.0010243832366541,
-#                "energy": "1020-1860 keV",
-#                "yaw_flip": 0,
-#                "channel": "P1"
-#            }
-    
-            date = zulu_to_time(entry["time_tag"])
-            flux = float(entry["flux"])*1000.
-            channel = entry["channel"]
+
+    if flux_type == "integral":
+        fluxes_dict = {"\u003E=1 MeV": [],
+                  "\u003E=5 MeV": [],
+                  "\u003E=10 MeV": [],
+                  "\u003E=30 MeV": [],
+                  "\u003E=50 MeV": [],
+                  "\u003E=60 MeV": [],
+                  "\u003E=100 MeV": [],
+                  "\u003E=500 MeV": []
+                }
+        with open(fname, 'r') as f:
+            # Load the JSON data from the file object
+            data = json.load(f)
             
-            if date not in all_dates:
-                all_dates.append(date)
-            fluxes_dict[channel].append(flux)
+            for entry in data:
+                #{
+                #    "time_tag": "2026-01-27T13:50:00Z",
+                #    "satellite": 18,
+                #    "flux": 0.123296454548836,
+                #    "energy": "\u003E=100 MeV"
+                #  },
+        
+                date = zulu_to_time(entry["time_tag"])
+                if date not in all_dates:
+                    all_dates.append(date)
+
+                flux = float(entry["flux"])
+                col_name = entry["energy"]
+                fluxes_dict[col_name].append(flux)
+
+        df = pd.DataFrame(fluxes_dict)
+        #Remove lower energy columns
+        cols_to_drop = ["\u003E=1 MeV"]
+        for col in cols_to_drop:
+            df = df.drop(col, axis=1)
 
 
-    df = pd.DataFrame(fluxes_dict)
-    cols_to_drop = ["P1","P2A","P2B","P3"]
-    for col in cols_to_drop:
-        df = df.drop(col, axis=1)
+    if flux_type == "differential":
+        fluxes_dict = {"P1": [],
+                  "P2A": [],
+                  "P2B": [],
+                  "P3": [],
+                  "P4": [],
+                  "P5": [],
+                  "P6": [],
+                  "P7": [],
+                  "P8A": [],
+                  "P8B": [],
+                  "P8C": [],
+                  "P9": [],
+                  "P10": []
+                }
+
+    
+        with open(fname, 'r') as f:
+            # Load the JSON data from the file object
+            data = json.load(f)
+            
+            for entry in data:
+                #{
+                #    "time_tag": "2025-11-04T17:40:00Z",
+                #    "satellite": 18,
+                #    "flux": 0.0010243832366541,
+                #    "energy": "1020-1860 keV",
+                #    "yaw_flip": 0,
+                #    "channel": "P1"
+                #}
+        
+                date = zulu_to_time(entry["time_tag"])
+                if date not in all_dates:
+                    all_dates.append(date)
+
+                flux = float(entry["flux"])*1000.
+                col_name = entry["channel"]
+                fluxes_dict[col_name].append(flux)
+
+        df = pd.DataFrame(fluxes_dict)
+        #Remove lower energy columns
+        cols_to_drop = ["P1","P2A","P2B"]
+        for col in cols_to_drop:
+            df = df.drop(col, axis=1)
         
     all_fluxes = df.values.T
 
-    print(f"len(dates) = {len(all_dates)}, len(fluxes) = {len(all_fluxes)}, len(fluxes[0]) = {len(all_fluxes[0])}")
     return all_dates, all_fluxes
 
 
@@ -3569,7 +3649,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
             all_dates, all_fluxes, west_detector =\
                 read_in_goesR(detector[i],flux_type, [filenames1[i]])
             
-        elif (detector[i] == "GOES_RT" or detector[i] in goes_R) and flux_type == "integral":
+        elif (detector[i] == "GOES-RT" or detector[i] in goes_R) and flux_type == "integral":
             all_dates, all_fluxes, west_detector =\
                 read_in_goes_RT(detector[i],flux_type, [filenames1[i]], spacecraft=spacecraft)
 
@@ -3622,7 +3702,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
             end = endtimes[j]
             det = goes[j]
             if det in goes_R and flux_type == "integral":
-                det = "GOES_RT"
+                det = "GOES-RT"
             if start in sc_starttimes: continue
             if det != detector[i]: continue
             sub = df_flux.loc[(df_flux['Dates'] >= start) & (df_flux['Dates'] < end)]
@@ -3967,6 +4047,9 @@ def read_in_erne(experiment, flux_type, filenames1):
     fluxcols = [x for x in range(4,14)] #cols 4 - 13 for HED, LED
     fluxcols.extend(fluxcols) #2x for LED and HED
     ncol= len(fluxcols) #HED and LED each has 10 channels
+
+    all_dates = []
+    all_fluxes = []
 
     for i in range(NFILES):
         print('Reading in file ' + LEDfiles[i])
@@ -4574,6 +4657,66 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
+def read_in_neutron_monitor(experiment, flux_type, filenames1):
+    """ Read in data downloaded from nmdb.eu """
+
+    n_chan = 1
+
+    NFILES = len(filenames1)
+    all_dates = []
+    all_fluxes = []
+
+    #Read in file that identified data files as complete
+    df = read_data_manager()
+    
+    #Read in fluxes from files
+    for i in range(NFILES):
+        file_dates = []
+        if filenames1[i] == None:
+            continue
+
+        if not os.path.isfile(filenames1[i]):
+            print(f"read_in_neutron_monitor: Cannot read {filenames1[i]}. Skipping.")
+            continue
+        with open(filenames1[i], 'r') as file:
+            print(f"read_in_neutron_monitor: Reading {filenames1[i]}.")
+            found_data = False
+            for line in file:
+                line = line.strip()
+                if 'QUERY RESULTS SUMMARY' in line:
+                    found_data = True
+                    continue
+
+                if not found_data: continue
+                if "<" in line: continue
+                if "#" in line: continue
+                if "start_date_time" in line: continue
+                if line == '': continue
+
+                line = line.split(";")
+
+                #Date
+                date = datetime.datetime.strptime(line[0], "%Y-%m-%d %H:%M:%S")
+                file_dates.append(date)
+                all_dates.append(date)
+                flx_val = float(line[1])
+                if flx_val < 0: flx_val = cfg.badval
+                flx = [flx_val]
+            
+                all_fluxes.append(flx)
+                
+
+        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+
+    print(f"{datetime.datetime.now()} read_in_neutron_monitor: Finished reading {experiment} data.")
+    write_data_manager(df)
+    
+    all_fluxes = np.array(all_fluxes).T
+
+    return all_dates, all_fluxes
+
+    
+
 
 def read_in_files(experiment, flux_type, filenames1, filenames2,
                 filenames_orien, options, detector=[], spacecraft=""):
@@ -4656,12 +4799,12 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         all_dates, all_fluxes, west_detector =\
             read_in_goesR(experiment,flux_type, filenames1)
         
-    elif (experiment == "GOES_RT") and flux_type == "integral":
+    elif (experiment == "GOES-RT") and flux_type == "integral":
         all_dates, all_fluxes, west_detector =\
             read_in_goes_RT(experiment,flux_type, filenames1, spacecraft=spacecraft)
 
-    elif (experiment == "GOES_RT") and flux_type == "differential":
-        all_dates, all_fluxes = read_in_goes_RT_differential()
+    elif (experiment == "GOES-SWPC"):
+        all_dates, all_fluxes = read_in_goes_swpc(flux_type, spacecraft)
 
     elif experiment == "EPHIN":
         all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)
@@ -4689,6 +4832,9 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         
     elif experiment == "IMP8_CPME":
         all_dates, all_fluxes = read_in_imp8_cpme(experiment, flux_type, filenames1)
+
+    elif experiment in valid_nm:
+        all_dates, all_fluxes = read_in_neutron_monitor(experiment, flux_type, filenames1)
 
     return all_dates, all_fluxes, west_detector
 
@@ -4780,6 +4926,8 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     nhead = nhead + 1
                 elif line[0] == "#" or line[0] == '\"':
                     nhead = nhead + 1
+                elif 'date' in line or 'Date' in line or 'time' in line or 'Time' in line:
+                    nhead = nhead + 1
                 else:
                     break
             #number of lines containing data
@@ -4793,35 +4941,42 @@ def read_in_user_files(filenames1, is_unixtime=False):
             for k in range(nhead):
                 csvfile.readline()  # Skip header rows.
 
-            user_col_mod = []
-            for j in range(len(cfg.user_col)):
-                if (cfg.user_delim == " " or cfg.user_delim == "") and not is_unixtime:
-                    #date takes two columns if separated by whitespace
-                    #adjust the user input columns to account for this
-                    user_col_mod.append(cfg.user_col[j] + 1)
-                else:
-                    user_col_mod.append(cfg.user_col[j])
+            user_col_mod = cfg.user_col #Flux columns in user file
 
             count = 0
             for line in csvfile:
                 if line == " " or line == "":
                     continue
-                if not is_unixtime:
-                    if cfg.user_delim == " " or cfg.user_delim == "":
-                        row = line.split()
-                        str_date = row[0][0:10] + ' ' + row[1][0:8]
-                    if cfg.user_delim != " " and cfg.user_delim != "":
-                        row = line.split(cfg.user_delim)
-                        str_date = row[0][0:19]
-                    date = datetime.datetime.strptime(str_date,
-                                "%Y-%m-%d %H:%M:%S")
-                
+
+                #Date specified in unixtime
                 if is_unixtime:
                     if cfg.user_delim == " " or cfg.user_delim == "":
                         row = line.split()
                     else: row = line.split(cfg.user_delim)
                     utime = int(row[0])
                     date = datetime.datetime.utcfromtimestamp(utime)
+
+                #Dates specified in:
+                #YYYY-MM-DD HH:MM:SS, YYYY-MM-DDTHH:MM:SS, YYYY-MM-DDTHH:MM:SSZ
+                else:
+                    #A delimeter other than whitespace
+                    if cfg.user_delim != " " and cfg.user_delim != "":
+                        row = line.split(cfg.user_delim)
+                        str_date = row[0]
+ 
+                    #White space as a delimeter
+                    if cfg.user_delim == " " or cfg.user_delim == "":
+                        row = line.split()
+                        if 'T' in row[0]:
+                            str_date = row[0]
+                        else:
+                            str_date = row[0][0:10] + ' ' + row[1][0:8]
+                            #Shift flux columns in user file by 1 b/c date in first two cols
+                            #and user was told to consider the date as a single column
+                            user_col_mod = [ix+1 for ix in cfg.user_col]
+
+                    date = dh.str_to_datetime(str_date)
+                
                     
                 #apply a time shift to user data with the variable
                 #set in config.py
@@ -4833,19 +4988,16 @@ def read_in_user_files(filenames1, is_unixtime=False):
                 dates.append(date)
                 
                 for j in range(len(user_col_mod)):
-                    #print("Read in flux for column " + str(cfg.user_col[j]) + ': '\
-                    #    + str(date)) #+ ' ' + row[cfg.user_col[j]])
-                    #print(row)
                     if user_col_mod[j] >= len(row):
                         sys.exit("read_datasets: read_in_user_files: "
-                            "Something is wrong with reading in the "
-                            "user files (mismatch in number of "
-                            "columns). Did you set the correct "
-                            "information in config.py, "
+                            "Something is wrong with reading in the user files (mismatch in number of "
+                            "columns). Did you set the correct information in config.py, "
                             "including the delimeter?")
                     row[user_col_mod[j]] = row[user_col_mod[j]].rstrip()
-                    if row[user_col_mod[j]] == 'n/a': #REleASE
-                        flux = None
+                    if row[user_col_mod[j]] in cfg.all_badval: #commonly assigned bad data values
+                        flux = cfg.badval
+                    elif row[user_col_mod[j]] == '':
+                        flux = cfg.badval
                     else:
                         flux = float(row[user_col_mod[j]])
                         if flux < 0:
@@ -5168,28 +5320,6 @@ def which_erne(startdate, enddate):
                 + str(date_f40) + " to present")
 
 
-def calculate_geometric_means(energy_bins):
-    """ Define the bin centers as the geometric means:
-        center = sqrt(Elow*Ehigh)
-        
-        This approach is typically used to define the bin center of 
-        proton experiments if not better known.
-        
-        This should only be applied to differential channels. 
-        If a channel is an integral channel, will return the bottom
-        energy of the channel.
-        
-    """
-    centers = []
-    for bin in energy_bins:
-        if bin[1] == -1:
-            centers.append(bin[0])
-        else:
-            centers.append(math.sqrt(bin[0]*bin[1]))
-        
-    return centers
-
-
 def define_energy_bins(experiment, flux_type, west_detector, options,
     spacecraft="primary", user_bins=[]):
     """ Define the energy bins for the selected spacecraft or data set.
@@ -5208,7 +5338,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
             detector is facing westward for each time point
         :options: (string array) possible options to apply to data
             (GOES)
-            :spacecraft: (string) primary or secondary if experiment is GOES_RT
+            :spacecraft: (string) primary or secondary if experiment is GOES-RT
         
         OUTPUTS:
         
@@ -5219,178 +5349,27 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
     energy_bins = None
     energy_bin_centers = []
     
-    #use corrected proton flux for GOES eps or epead; include hepad
-    #-1 indicates infinity ([700, -1] means all particles above 700 MeV)
-    if experiment == "SEPEM":
-        energy_bins = [[5.00,7.23],[7.23,10.46],[10.46,15.12],[15.12,21.87],
-                       [21.87,31.62],[31.62,45.73],[45.73,66.13],
-                       [66.13,95.64],[95.64,138.3],[138.3,200.0],
-                       [200.0,289.2]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
 
-    if experiment == "SEPEMv3":
-        energy_bins = [[5.00,7.23],[7.23,10.46],[10.46,15.12],[15.12,21.87],
-                       [21.87,31.62],[31.62,45.73],[45.73,66.13],
-                       [66.13,95.64],[95.64,138.3],[138.3,200.0],
-                       [200.0,289.2],[289.2,418.3],[418.3,604.9],
-                       [604.9,874.7]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
+    if experiment == "user":
+        #modify to match your energy bins or integral channels
+        #use -1 in the second edge of the bin for integral channel (infinity)
+        if user_bins:
+            energy_bins = user_bins #input into subroutine
+        else:
+            energy_bins = cfg.user_energy_bins #global from cfg
+        energy_bin_centers = expts.calculate_geometric_means(energy_bins)
 
-    if experiment == "CalGOES":
-        energy_bins = [[10.0,10.0],[15.8,15.8],[25.1,25.1],[39.8,39.8],
-                        [65.1,65.1],[100.0,100.0],[158.5,158.5],[251.2,251.2],
-                        [398.1,398.1],[630.9,630.9],[1000.0,1000.0]]
-        energy_bin_centers = [10.0, 15.8, 25.1, 39.8, 65.1, 100.0, 158.5, 251.2,
-                        398.1,630.9,1000.0]
-   
-    if experiment == "ERNEf10":
-        #The highest energy 3 channels tend to saturate and show incorrect
-        #values during high intensity SEP events. For this reason, only the
-        #>10 MeV integral fluxes should be used from ERNE data during the
-        #most intense part of intense SEP events.
-        #f10 format, from 2 December 1996
-        #f10     2 Dec 1995     Original launch format
-        energy_bins = [[1.5,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0,22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[41.0,51.0],
-                       [51.0,67.0],[54.0,79.0],[79.0,114.0],[111.0,140.]]
-        energy_bin_centers = [1.6, 2.0, 2.4, 3.0, 3.7, 4.6, 5.8, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.0, 36.4, 45.6, 54.1, 67.5, 95.0, 116]
-
-    if experiment == "ERNEf40":
-        #f40 format, from 19 May 2000
-        #f40    19 Apr 2000     Major update of the on-board program
-        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
-                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
-                       
-    if experiment == "ERNEf40brk":
-        #f40brk format, from 21 Nov 2000
-        #f40brk 21 Nov 2000     HED S1X H2 E-amplifier breakdown at 00:15:44.833
-        #NOTE: all the f40brk HED data are left out from this data set. The
-        #corresponding files are provided but are empty.
-        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
-                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
- 
-    if experiment == "ERNEf50":
-        #f50 format, from 3 Jul 2001
-        #f50     3 Jul 2001     On-board SW updated to (partially) fix the HED S1X
-        #               E-amplifier breakdown.
-        energy_bins = [[1.6,1.8],[1.8,2.2],[2.2,2.7],[2.7,3.3],[3.3,4.1],
-                       [4.1,5.1],[5.1,6.4],[6.4,8.1],[8.1,10],
-                       [10.0,13.0],[14.0,17.0],[17.0, 22.0],[21.0,28.0],
-                       [26.0,32.0],[32.0,40.0],[40.0,51.0],[51.0,67.0],
-                       [64.0,80.0],[80.0,101.0],[101.0,131.0]]
-        energy_bin_centers = [1.7, 2.0, 2.4, 3.0, 3.7, 4.7, 5.7, 7.2, 9.1, 11,
-                        15.4, 18.9, 23.3, 29.1, 36.4, 45.6, 57.4, 72.0, 90.5, 108]
-                       
-    if experiment == "EPHIN":
-        #http://ulysses.physik.uni-kiel.de/costep/level3/l3i/
-        #DOCUMENTATION-COSTEP-EPHIN-L3-20181002.pdf
-        energy_bins = [[4.3,7.8],[7.8,25],[25,40.9],[40.9,53]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "EPHIN_HESPERIA":
-        #This data may be downloaded by hand through a web interface at:
-        #https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool
-        energy_bins = [[4.0,9.0],[9.0,15.8],[15.8,39.6],[20.0,35.5]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "EPHIN_REleASE":
-        #This data may be downloaded by hand through a web interface at:
-        #https://zenodo.org/records/14191918
-        energy_bins = [[3.98, 4.47],[4.47, 5.01],[5.01, 5.62],[5.62, 6.31],
-                    [6.31, 7.08], [7.08, 7.94], [7.94, 8.91], [8.91, 10.00], [10.00, 11.22],
-                    [11.22, 12.59], [12.59, 14.13], [14.13, 15.85], [15.85, 17.78],
-                    [17.78, 19.95], [19.95, 22.39], [22.39, 25.12], [25.12, 28.18],
-                    [28.18, 31.62], [31.62, 35.48], [35.48, 39.81], [39.81, 44.67],
-                    [44.67, 50.12] ]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
+    else:
+        exp_info = expts.experiment_info(experiment)
+        energy_bins = exp_info[flux_type]['energy_bins']
+        energy_bin_centers = exp_info[flux_type]['energy_bin_centers']
 
 
-    ##### GOES SPACECRAFT ########
-    #### GOES DOCUMENTATION USES THE GEOMETRIC MEAN AS THE BIN CENTER####
-    #GOES-05 EPS starts in 1984-01-01 (magneto only previously)
-    #Available files do not contain integral fluxes
-    if experiment == "GOES-05":
-        if flux_type == "differential":
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
-                           [39.0,82.0],[84.0,200.0],[110.0,500.0]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-            if "S14" in options:
-                    energy_bins = [[5.0,7.6],[8.7,13.1],[14.2,20.7],
-                               [40.1,56.5],[96.3,133.0],[177.0,247.0],
-                               [350.0,420.0],[420.0,510.0],[510.0,700.0],
-                               [700.0,-1]]
-                    energy_bin_centers = [6.3, 11.1, 17.9, 48.7, 114.0, 218.0,
-                                math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
-                                math.sqrt(510.0*700.0), 700]
-        if (flux_type == "integral"):
-             energy_bins = []
-             energy_bin_centers = []
-
-
-
-
-    if experiment == "GOES-06":
-        #The highest energy bin is >685 MeV. For the
-        #purposes of this code, it will be labeled as
-        #>700 MeV and treated as consistent with the
-        #other GOES spacecraft that specify >700 MeV
-        print("define_energy_bins: Note that GOES-06 highest energy channel "
-            "is >685 MeV. Setting to >700 MeV here to enable combining with other "
-            "GOES spacecraft if selecting --Experiment GOES option.")
-        if flux_type == "differential":
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
-                           [39.0,82.0],[84.0,200.0],[110.0,500.0],
-                           [375, 375],[465,465],[605,605], [700,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1], [700,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
-    if experiment == "GOES-07":
-        print("define_energy_bins: Note that no HEPAD data is available at NCEI "
-            "for GOES-07.")
-        if flux_type == "differential":
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,44.0],
-                           [39.0,82.0],[84.0,200.0],[110.0,500.0]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-            if "S14" in options:
-                    energy_bins = [[4.4,8.2],[7.8,14.6],[18.0,24.2],
-                               [41.0,57.3],[89.5,139.0],[166.0,299.0]]
-                    energy_bin_centers = [6.6, 11.2, 21.1, 50.5, 114.0, 243.0]
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
+    ####APPLY CALIBRATED ENERGY BINS FROM LITERATURE
     if (experiment == "GOES-08" or experiment == "GOES-09"
         or experiment == "GOES-10" or experiment == "GOES-11"
         or experiment == "GOES-12"):
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "differential"):
-            #files named e.g. g08_eps_5m_yyyymmdd_yyyymmdd.csv
-            energy_bins = [[4.0,9.0],[9.0,15.0],[15.0,44.0],
-                           [40.0,80.0],[80.0,165.0],[165.0,500.0],
-                           [350.0,420.0],[420.0,510.0],[510.0,700.0],
-                           [700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
             if "S14" in options:
                 if experiment == "GOES-08":
                     energy_bins = [[4.0,7.9],[7.4,15.0],[13.3,21.3],
@@ -5411,16 +5390,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
 
     if (experiment == "GOES-13" or experiment == "GOES-14" or
         experiment == "GOES-15"):
-        if (flux_type == "integral"):
-            energy_bins = [[5.0,-1],[10.0,-1],[30.0,-1],
-                            [50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
         if (flux_type == "differential"):
-            energy_bins = [[4.2,8.7],[8.7,14.5],[15.0,40.0],
-                            [38.0,82.0],[84.0,200.0],[110.0,900.0],
-                            [330.0,420.0],[420.0,510.0],[510.0,700.0],
-                            [700.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
             if "S14" in options:
                 #S14 is not specifically calibrated to these GOES, but
                 #apply the GOES-11 EPS energy bins for P2 - P7
@@ -5505,75 +5475,5 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     energy_bin_centers[8] = 516.0
                     energy_bins[9] = [878.6,1230.0] #P11
                     energy_bin_centers[9] = 1094.7
-
-
-    if experiment in goes_R:
-        if flux_type == "differential":
-            energy_bins = [[1.02,1.86],[1.9,2.3],[2.31,3.34],
-                           [3.4,6.48],[5.84,11.0],[11.64,23.27],
-                           [24.9,38.1],[40.3,73.4],[83.7,98.5],
-                           [99.9,118.0],[115.0,143.0],[160.0,242.0],
-                           [276.0,404.0],[500.0,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-        if flux_type == "integral":
-            energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                            [60,-1],[500,-1]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
-    if experiment == "GOES_RT":
-        if flux_type == "integral":
-            if spacecraft == "primary":
-                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                                [60,-1],[500,-1]]
-            if spacecraft == "secondary":
-                energy_bins = [[1,-1],[5,-1],[10,-1],[30,-1],[50,-1],[100,-1],
-                                [60,-1],[500,-1]]
-                 #GOES_RT when spacecraft is prior to GOES-R will have upper
-                 #energy bins of >700 MeV!!!!!
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-
-        if flux_type == "differential":
-            # "P4" "P5" "P6" "P7" "P8A" "P8B" "P8C" "P9" "P10"
-            energy_bins = [[5.84,11.00],[11.64,23.27],[24.90, 38.10],[40.30,73.40],
-                           [83.70,98.50],[99.9,118.0],[115.0,143.0],[160.0,242.0],
-                           [276.0,404.0]]
-            energy_bin_centers = calculate_geometric_means(energy_bins)
-    
-    if experiment == "STEREO-A" or experiment == "STEREO-B":
-        #Uses the SUMMED LET bins with the HET bins
-        energy_bins = [[1.8,3.6],[4.0,6.0],[6.0,10.0],[13.6,15.1],
-                        [14.9,17.1],[17.0,19.3],[20.8,23.8],
-                        [23.8,26.4],[26.3,29.7],[29.5,33.4],[33.4,35.8],
-                        [35.5,40.5],[40.0,60.0],[60.0,100.0]]
-
-
-    if experiment == "ACE_SIS":
-        #https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
-        energy_bins = [[30,-1],[60,-1]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "ACE_EPAM_electrons":
-        #https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
-        energy_bins = [[0.175,0.315]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-    if experiment == "IMP8_CPME":
-        #http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/
-        energy_bins = [[4.60, 15.0], [15.0, 25.0], [25.0, 48.0], [48.0, 96.0],
-                        [96.0, 145.0], [145.0, 440.0]]
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
-    if experiment == "user":
-        #modify to match your energy bins or integral channels
-        #use -1 in the second edge of the bin for integral channel (infinity)
-        if user_bins:
-            energy_bins = user_bins #input into subroutine
-        else:
-            energy_bins = cfg.user_energy_bins #global from cfg
-        energy_bin_centers = calculate_geometric_means(energy_bins)
-
-
 
     return energy_bins, energy_bin_centers

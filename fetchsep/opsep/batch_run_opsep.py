@@ -13,32 +13,10 @@ import logging
 import sys
 import os
 
-__version__ = "0.7"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-#Changes in 0.2: Modified so that output list files will indicate
-#   when an observation or flux did not exceed a certain threshold
-#   for a given SEP event. Added a column specifying SEP date to
-#    sep_list
-#2021-01-14, Changes in 0.3: Made consistent with operational_sep_quantities.py
-#   v2.3 which includes background subtraction and various energy bin options.
-#   Added more fields to list file to allow better specification of each data
-#   set.
-#2021-02-24, Changes in 0.4: Read in json files produced by
-#   operational_sep_quantities.py and then write certain quantities to list.
-#2021-04-05, Changes in 0.4.1: Reads pathnames from config.py.
-#   Added checking for listpath. Code will check for listpath and create.
-#2021-05-17, changes in 0.5: Discovered differences in CCMC's json files.
-#   Making changes here to be consistent with their format. CCMC defines
-#   "fluences" and "event_lengths" as arrays.
-#2021-08-17, changes in 0.6: Making modifications to reflect changes in
-#   operational_sep_quantities.py v3.0 w.r.t. inputs and outputs.
-#   run_multi_sep.py now works with keys.py and ccmc_json_handler.py to
-#   read in values from the json file and write out to list.
-#2021-09-16, changes in 0.7: Add support for the JSONType (json_type)
-#   variable added in operational_sep_quantities.py v3.2.
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('opsep')
@@ -97,7 +75,6 @@ def check_list_path():
         os.mkdir(os.path.join(cfg.listpath,'opsep'));
 
 
-
 def read_sep_dates(sep_filename):
     ''' Reads in a csv list file of SEP events. List must have the format:
         
@@ -151,7 +128,7 @@ def read_sep_dates(sep_filename):
     bgstartdate = [] #row 8
     bgenddate = [] #row 9
     json_types = [] #row 10 (if user experiment)
-    spacecrafts = [] #row 11, primary or secondary for GOES_RT
+    spacecrafts = [] #row 11, primary or secondary for GOES-RT
     idsep_paths = [] #row 12, use background found by idsep for subtraction and threshold
     locations = [] #earth, mars, etc CCMC json
     particles = [] #proton, electron, etc CCMC json
@@ -482,9 +459,47 @@ def write_sep_lists(jsonfname, combos):
     return True
 
 
-def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=True,
-    showplot=False, saveplot=True, associations=False, detect_prev_event=False,
-    two_peaks=False):
+def clean_non_event_df(df):
+    """ Remove columns that are not populated in non-event dataframe """
+    #Columns with these strings will never be populated or aren't relevant in non-event periods
+    #SEP quantity-related columns
+    nonevent_exlude_columns = ['SEP Start Time', 'SEP End Time', 'Fluence', 'Rise Time', 'Duration']
+    
+    #Remove columns related to SEP quantities
+    columns = df.columns.to_list()
+    for col in columns:
+        #If exclusion string in the column, drop the column
+        for val in nonevent_exlude_columns:
+            if val in col:
+                df = df.drop(col, axis=1)
+
+    #Some columns are all empty strings
+    #Replace with None so will be dropped
+    columns = df.columns.to_list()
+    for col in columns:
+        #We want to keep the Quality Flags fields
+        if 'Quality' not in col:
+            df[col].replace('', None, inplace=True)
+ 
+    
+    #Associations columns will be empty.
+    #Remove any remaining columns that are completely null.
+    df = df.dropna(axis=1, how='all')
+    
+    return df
+
+
+def run_all_events(sep_filename, threshold,
+    statusfname='batch_run_status.csv',
+    color_scheme=1, no_goes_colors=False,
+    umasep=False, dointerp=False,
+    showplot=False, saveplot=True,
+    associations=False,
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None,
+    opsep_nsigma=None):
     """ Run all of the time periods and experiments in the list
         file. Extract the values of interest and compile them
         in event lists, one list per energy channel and threshold
@@ -494,7 +509,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
 
         :sep_filename: (string) file containing list of events
             and experiments to run
-        :outfname: (string) name of a file that will report any
+        :statusfname: (string) name of a file that will report any
             errors encountered when running each event in the list
         :threshold: (string) any additional thresholds to run
             beyond >10 MeV, 10 pfu and >100 MeV, 1 pfu. Specify
@@ -505,6 +520,15 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
             with time
         :associations: (bool) set to true to find flare, CME, radio associated
             with each SEP event
+        :path_to_data: (string) path where satellite data should be downloaded. Will default to 
+            datapath listed in fetchsep.cfg if a value is not specified.
+        :path_to_output: (string) path where output files should be saved. Will default to 
+            outpath listed in fetchsep.cfg if a value is not specified.
+        :path_to_plots: (string) path where plots should be saved. Will default to
+            plotpath listed in fetchsep.cfg if a value is not specified.
+        :path_to_lists: (string) path where lists should be saved. Will default to
+            listpath listed in fetchsep.cfg if a value is not specified.
+
 
         OUTPUTS:
 
@@ -515,6 +539,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                 channel and threshold combination
 
     """
+    cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+        path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+
     check_list_path()
 
     #READ IN SEP DATES AND experiments
@@ -523,7 +550,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         idsep_paths, locations, particles = read_sep_dates(sep_filename)
 
     #Prepare output file listing events and flags
-    fout = open(os.path.join(cfg.listpath,"opsep",outfname),"w+")
+    fout = open(os.path.join(cfg.listpath,"opsep",statusfname),"w+")
     fout.write('#Experiment,SEP Date,Exception\n')
 
     #---RUN ALL SEP EVENTS---
@@ -548,6 +575,9 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         idsep_path = idsep_paths[i]
         location = locations[i]
         species = particles[i]
+        
+        detect_prev_event=False
+        two_peaks=False
 
         spase_id = ''
 
@@ -556,8 +586,6 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         OPSEPEnhancement = False
         doBGSubIDSEP = False
         IDSEPEnhancement = False
-        nointerp = True #if true, will not do interpolation in time
-        if dointerp: nointerp = False
         
         if "DetectPreviousEvent" in flag:
             detect_prev_event = True
@@ -575,17 +603,22 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_all(start_date,
-                end_date, experiment, flux_type, user_name=user_name, user_file=user_file,
+            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_opsep(start_date,
+                end_date, experiment, flux_type=flux_type,
+                color_scheme=color_scheme, no_goes_colors=no_goes_colors,
+                user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
-                two_peaks=two_peaks, umasep=umasep, user_thresholds=threshold,
+                two_peaks=two_peaks, user_thresholds=threshold,
                 options=option, doBGSubOPSEP=doBGSubOPSEP,
                 OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
-                bgenddate=bgenddate, nointerp=nointerp, spacecraft=spacecraft,
+                bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,
                 doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
                 idsep_path=idsep_path, location=location, species=species,
-                associations=associations)
+                associations=associations,
+                path_to_data=path_to_data, path_to_output=path_to_output,
+                path_to_plots=path_to_plots, path_to_lists=path_to_lists,
+                opsep_nsigma=opsep_nsigma)
 
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')
@@ -609,12 +642,12 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                     dict_all_pkl[key].append(event_dict_pkl[key])
 
             plt.close('all')
+            print(f"ANALYSIS SUCCEEDED: {experiment} {user_name} {start_date}")
             reload(opsep)
 
         except SystemExit as e:
             # this log will include traceback
             logger.exception('opsep failed with exception')
-            # this log will just include content in sys.exit
             logger.error(str(e))
             if experiment == 'user' and user_name != '':
                 fout.write(user_name + ',')
@@ -622,6 +655,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
                 fout.write(experiment + ',')
             fout.write(str(start_date) +',' + '\"' + str(e) + '\"' )
             fout.write('\n')
+            print(f"ANALYSIS FAILED: {experiment} {user_name} {start_date} due to {e}")
             reload(opsep)
             continue
 
@@ -645,6 +679,7 @@ def run_all_events(sep_filename, outfname, threshold, umasep=False, dointerp=Tru
     quiet_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_non_events.csv"
     quiet_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, quiet_fname_csv)
     print(f"batch_run_opsep: Writing non-event periods to csv file {quiet_fname_csv}")
+    df_quiet_csv = clean_non_event_df(df_quiet_csv)
     df_quiet_csv.to_csv(quiet_fname_csv, index=False)
 
 #    df_all_pkl = pd.DataFrame(dict_all_pkl)

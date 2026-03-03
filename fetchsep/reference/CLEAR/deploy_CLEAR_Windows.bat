@@ -43,22 +43,26 @@ REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
 
 REM COMMAND LINE ARGUMENTS
 REM ----------------------
-REM In the command line, the argument LISTS may be added to skip the calculation of
+REM In the command line, the argument BATCH may be added to skip the calculation of
 REM the mean background with IDSEP IF IT WAS ALREADY DONE PREVIOUSLY.
 REM The background calculation is extremely time consuming and it needn't be repeated.
-REM If the user only wants to regenerate the SEP lists,
-REM the argument LISTS will skip to that part of the script.
 
-REM When run without an argument, will default to startpoint ALL and the script will:
+REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat
+REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat ALL
+REM .\fetchsep\reference\CLEAR\deploy_CLEAR_Windows.bat BATCH
+
+REM ALL or no argument (default), the script will:
 REM     - Set up environment
 REM     - Download data and calculate mean background and sigma with IDSEP (12+ hours)
 REM     - Copy CLEAR curated batch files
 REM     - Generate SEP lists (2+ hours)
+REM     - Compile into single list of SEP events taken from the primary GOES
 
-REM When run with the argument LISTS, the script will:
+REM BATCH, the script will:
 REM     - Set up environment
 REM     - Copy CLEAR curated batch files
 REM     - Generate SEP lists (2+ hours)
+REM     - Compile into single list of SEP events taken from the primary GOES
 
 
 SET "startpoint=ALL"
@@ -75,8 +79,18 @@ REM #####################################################################
 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 echo "Setting up environment"
 $env:PYTHONPATH = "$env:PYTHONPATH;$PWD"
-copy .\fetchsep\reference\CLEAR\fetchsep_CLEAR.cfg .\fetchsep.cfg
-python .\fetchsep\utils\config.py
+
+SET "outpath=.\CLEAR\output"
+SET "plotpath=.\CLEAR\plots"
+SET "listpath=.\CLEAR\lists"
+
+python fetchsep/utils/config.py --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%"
+
+SET "idsep_nsigma=3"
+SET "init_win=150"
+SET "sliding_win=5"
+SET "percent_points=0.4"
+SET "opsep_nsigma=3"
 
 
 set start_date.GOES-06=1986-01-01
@@ -111,7 +125,9 @@ if "%startpoint%" == "ALL" (
 		  python .\bin\idsep ^
 			 --StartDate "!start_date.GOES-%%G!" --EndDate "!end_date.GOES-%%G!" ^
 			 --Experiment GOES-%%G --FluxType integral --RemoveAbove 10 --saveplot ^
-			 > .\CLEAR\output\GOES-%%G_integral_idsep.log
+             --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%" --idsep_nsigma %idsep_nsigma% ^
+             --init_win %init_win% --sliding_win %sliding_win% --percent_points %percent_points% ^
+			 > "%outpath%"\GOES-%%G_integral_idsep.log
 
 		  echo
 	   ) else (
@@ -121,7 +137,9 @@ if "%startpoint%" == "ALL" (
 			 python .\bin\idsep ^
 				--StartDate "!start_date.GOES-%%G.%%T!" --EndDate "!end_date.GOES-%%G.%%T!" ^
 				--Experiment GOES_%%G --Spacecraft %%T --FluxType integral --RemoveAbove 10 --saveplot ^
-				> .\CLEAR\output\GOES_%%G_integral_%%T_idsep.log
+                --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%" --idsep_nsigma %idsep_nsigma% ^
+                --init_win %init_win% --sliding_win %sliding_win% --percent_points %percent_points% ^
+				> "%outpath%"\GOES_%%G_integral_%%T_idsep.log
 
 			 echo
 		  )
@@ -136,7 +154,9 @@ if "%startpoint%" == "ALL" (
 		 --StartDate "!start_date.GOES-%%G!" --EndDate "!end_date.GOES-%%G!" ^
 		 --Experiment GOES-%%G --FluxType differential --RemoveAbove 10 --saveplot ^
 		 --options "S14;Bruno2017;uncorrected" ^
-		 > .\CLEAR\output\GOES-%%G_differential_uncor_S14_B17_idsep.log
+		 --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%" --idsep_nsigma %idsep_nsigma% ^
+		 --init_win %init_win% --sliding_win %sliding_win% --percent_points %percent_points% ^
+		 > "%outpath%"\GOES-%%G_differential_uncor_S14_B17_idsep.log
 
 	  echo
 
@@ -147,39 +167,43 @@ REM #####################################################################
 REM ############# BATCH OPSEP USING CURATED CLEAR LISTS #################
 REM #####################################################################
 REM MAKE SURE TO INCLUDE --StartPoint BATCH or the batch file will be
-REM overwritten by a new run of idsep within fetchsep_prepare_obs
+REM overwritten by a new run of idsep within fetchsep_automated_pipeline
 
 for %%G in (06 07 08 10 11 13 15 RT) do (
    if not "%%G" == "RT" (
       Get-Date -Format "yyyy-MM-dd HH:mm:ss"
       echo "[GOES-%%G] Copy curated batch files"
       copy .\fetchsep\reference\CLEAR\batch_event_list_GOES-%%G_integral_enhance_idsep_CLEAR.txt ^
-         .\CLEAR\output\idsep\GOES-%%G_integral\
+			"%outpath%"\idsep\GOES-%%G_integral\
 
       Get-Date -Format "yyyy-MM-dd HH:mm:ss"
       echo "[GOES-%%G] Batch opsep using curated CLEAR lists"
-      python .\bin\fetchsep_prepare_obs ^
+      python .\bin\fetchsep_automated_pipeline ^
          --StartDate "!start_date.GOES-%%G!" --EndDate "!end_date.GOES-%%G!" ^
          --Experiment GOES-%%G --FluxType integral --Threshold "30,1;50,1" ^
          --BatchFile batch_event_list_GOES-%%G_integral_enhance_idsep_CLEAR.txt ^
          --IDSEPEnhancement --Associations --StartPoint BATCH ^
-         > .\CLEAR\output\GOES-%%G_integral_batch.log
+		 --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%" ^
+		 --opsep_nsigma %opsep_nsigma% ^
+         > "%outpath%"\GOES-%%G_integral_batch.log
       echo
    ) else (
       for %%T in (primary secondary) do (
 		 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
          echo "[GOES-%%G/%%T] Copy curated batch files"
-         copy .\fetchsep\reference\CLEAR\batch_event_list_GOES_RT_integral_%%T_enhance_idsep_CLEAR.txt ^
-            .\CLEAR\output\idsep\GOES_RT_integral_%%T\
+         copy .\fetchsep\reference\CLEAR\batch_event_list_GOES-RT_integral_%%T_enhance_idsep_CLEAR.txt ^
+			"%outpath%"\idsep\GOES-RT_integral_%%T\
 
 	     Get-Date -Format "yyyy-MM-dd HH:mm:ss"
          echo "[GOES-%%G/%%T] Batch opsep using curated CLEAR lists"
-         python .\bin\fetchsep_prepare_obs ^
+         python .\bin\fetchsep_automated_pipeline ^
             --StartDate "!start_date.GOES-%%G.%%T!" --EndDate "!end_date.GOES-%%G.%%T!" ^
             --Experiment GOES_%%G --Spacecraft %%T --FluxType integral --Threshold "30,1;50,1" ^
             --BatchFile batch_event_list_GOES_%%G_integral_%%T_enhance_idsep_CLEAR.txt ^
             --IDSEPEnhancement --Associations --StartPoint BATCH ^
-            > .\CLEAR\output\GOES_%%G_integral_%%T_batch.log
+		    --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%" ^
+		    --opsep_nsigma %opsep_nsigma% ^
+            > "%outpath%"\GOES_%%G_integral_%%T_batch.log
          echo
       )
    )
@@ -190,16 +214,18 @@ for %%G in (13 15) do (
   Get-Date -Format "yyyy-MM-dd HH:mm:ss"
   echo "[GOES-%%G/uncor_S14_B17 Copy curated batch files"
   copy .\fetchsep\reference\CLEAR\batch_event_list_GOES-%%G_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt ^
-	 .\CLEAR\output\idsep\GOES-%%G_differential_uncor_S14_B17\
+		"%outpath%"\idsep\GOES-%%G_differential_uncor_S14_B17\
 
   Get-Date -Format "yyyy-MM-dd HH:mm:ss"
   echo "[GOES-%%G/uncor_S14_B17] Batch opsep using curated CLEAR lists"
-  python .\bin\fetchsep_prepare_obs ^
+  python .\bin\fetchsep_automated_pipeline ^
 	 --StartDate "!start_date.GOES-%%G!" --EndDate "!end_date.GOES-%%G!" ^
 	 --Experiment GOES-%%G --FluxType differential --Threshold "30,1;50,1" ^
 	 --BatchFile batch_event_list_GOES-%%G_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt ^
 	 --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH --options "S14;Bruno2017;uncorrected" ^
-	 > .\CLEAR\output\GOES-%%G_differential_uncor_S14_B17_bgsub_batch.log
+	 --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%" ^
+	 --opsep_nsigma %opsep_nsigma% ^
+	 > "%outpath%"\GOES-%%G_differential_uncor_S14_B17_bgsub_batch.log
   echo
 
 )
@@ -208,22 +234,16 @@ for %%G in (13 15) do (
 REM Create a single SEP list by extracting SEP events for the primary GOES satellite at the time
 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 echo "[GOES PRIMARY list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
-Get-ChildItem -Path .\CLEAR\output\opsep\ -Filter "*_integral_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt
+Get-ChildItem -Path "%outpath%"\opsep\ -Filter "*_integral_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_integral --Filename CLEARlists.txt --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%"
 del CLEARlists.txt
 
 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 echo "[GOES PRIMARY energy bin calibrated list] Creating single list of SEP events selecting the primary GOES spacecraft at the time"
 Get-ChildItem -Path .\CLEAR\output\opsep\ -Filter "*_differential_*_sep_events.csv" -Recurse | Select-Object -Expand FullName | Out-File -FilePath CLEARlists.txt
-python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt
+python bin/make_primary_goes_list --Prefix GOES_differential_energy_bin_calibrated --Filename CLEARlists.txt --outpath "%outpath%" --plotpath "%plotpath%" --listpath "%listpath%"
 del CLEARlists.txt
 
 
-REM Remove CLEAR config file so that running FetchSEP will not overwrite files in the
-REM CLEAR/ directory. Return to FetchSEP defaults.
-
-echo "Returning config file to FetchSEP defaults."
-del fetchsep.cfg
-python .\fetchsep\utils\config.py
 Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 echo "Completed"

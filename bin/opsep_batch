@@ -18,16 +18,41 @@ two_peaks_default = False #Set to true if get ShortEvent flag
 ############## END DEFAULTS #################
 
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: Batch run OPSEP to analyze individual SEP event or non-event time periods. Produce csv files containing an SEP event list and a non-event list for all time periods analyzed.")
+)
 
 parser.add_argument("--Filename", type=str, default='tmp.csv', \
-        help=("Name of csv file containing list of SEP start dates and files."
-        "Default is tmp.csv."))
+        help=("Name of csv file containing list of SEP start dates and files. Expected columns: "
+            "#Start Time,End Time,Experiment,Flux Type,Flags,User Experiment Name,User Filename,Options,BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,Location,Species. "
+            "Default is tmp.csv."))
 
-parser.add_argument("--OutFilename", type=str, default='out.csv', \
+parser.add_argument("--StatusFilename", type=str, default='batch_run_status.csv', \
         help=("Name of csv file containing list of SEP dates with "
-            "flags indicating status after run with "
-            "operational_sep_quantities.py. Default is lists/out.csv."))
+            "flags indicating status of opsep run. Default is batch_run_status.csv."))
+
+parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
+        help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
+            "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
+            "Other energy channels are plotted with colors that are different from these GOES colors. "
+            "Multiple color schemes are offered:\n"
+            "1 - Tab 10-like bright, exciting, cosmic;\n "
+            "2 - Tab 20-like exciting, dark, and soft space exploration palette;\n "
+            "3 - Set 1-like inspired by Mars;\n "
+            "4 - Set 1-like inspired by nebulae and supernovae;\n "
+            "5 - Set 1-like inspired by Ring Nebula and Orion Nebula;\n "
+            "6 - Tab 20-like very bright color scheme;\n "
+            "7 - Standard Python Tab 10;\n "
+            "8 - Standard Python Set1 with red replaced with coral;\n "
+            "9 - Standard Python Tab20 with red replaced with coral;\n "
+            "10 - Tab 20-like muted blues, olives, purples colors to browns;\n "
+            "11 - Tab 20-like autumn colors;\n "
+            "12 - Tab 20-like bold, dark autumn colors;\n "
+            "13 - Tab 20-like bright, soft rainbow;"))
+
+parser.add_argument("--NoGOESColors",
+        help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
+            "Set to True not to use these colors."), action="store_true")
 
 parser.add_argument("--Threshold", type=str, default="",
         help=("An additional energy and flux thresholds (written as 100,1 "
@@ -44,6 +69,27 @@ parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
 
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
 #parser.add_argument("--UMASEP",
 #        help=("Flag to calculate flux values and thresholds specific to "
 #            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
@@ -52,15 +98,29 @@ parser.add_argument("--DoInterp",
 
 args = parser.parse_args()
 sep_filename = args.Filename
-outfname = args.OutFilename
+statusfname = args.StatusFilename
+color_scheme = args.ColorScheme
+no_goes_colors = args.NoGOESColors
 threshold = args.Threshold
 associations = args.Associations
 dointerp=args.DoInterp
 umasep = False #args.UMASEP
 
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+
+opsep_nsigma = args.opsep_nsigma
+
 logger = logging.getLogger('opsep')
 
-batch.run_all_events(sep_filename, outfname, threshold, umasep=umasep,
+batch.run_all_events(sep_filename, threshold, statusfname=statusfname,
+    color_scheme=color_scheme, no_goes_colors=no_goes_colors,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
-    associations=associations, detect_prev_event=detect_prev_event_default,
-    two_peaks=two_peaks_default)
+    associations=associations,
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists,
+    opsep_nsigma=opsep_nsigma)

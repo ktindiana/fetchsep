@@ -1,4 +1,5 @@
 from ..utils import config as cfg
+from . import experiments as expts
 import datetime
 import os
 import sys
@@ -56,7 +57,7 @@ def error_check_options(experiment, flux_type, options, subroutine=None,
 
 
 def error_check_inputs(startdate, enddate, experiment, flux_type,
-    json_type=None, is_diff_thresh=[], subroutine=None):
+    json_type=None, json_mode='', is_diff_thresh=[], subroutine=None):
     """ Check that all of the user inputs make sense and fall within bounds.
         
         INPUTS:
@@ -66,6 +67,8 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         :experiment: (string) - name of experiment specifed by user
         :flux_type: (string) - integral or differential
         :json_type: (string) - model or observations, only needed if "user" experiment
+        :json_mode: (string) - measurement (for observations), or values like forecast,
+            historical, simulated_realtime_forecast for model
         :is_diff_thresh: (bool 1xn array) - where n indicates the number of
             thresholds input by the user, e.g. "30,1;50,1" n=2
             Indicates if the user-input thresholds apply to integral or
@@ -91,54 +94,31 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
                 'trimming results to requested time frame at the end. Continuing.')
  
  
-    if flux_type == "":
-        sys.exit('User must indicate whether input flux is integral or '
-                'differential. Exiting.')
+    if experiment != "user":
+        exp_info = expts.experiment_info(experiment)
+        if len(exp_info['flux_type']) > 1 and flux_type == "":
+            sys.exit(f"User must indicate whether input flux is {exp_info['flux_type']}. Exiting.")
 
-    goes_R = ["GOES-16", "GOES-17", "GOES-18", "GOES-19"]
+        if flux_type != "" and flux_type not in exp_info['flux_type']:
+             sys.exit(f"User must specify flux type for {experiment} from the choices: {exp_info['flux_type']}. Exiting.")
 
-    if ("SEPEM" in experiment and flux_type == "integral"):
-        sys.exit('The SEPEM data sets only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
+        if exp_info['last_date'] != None:
+            date = exp_info['last_date']+datetime.timedelta(hours=24)
+            exclusive_end_date = datetime.datetime(date.year, date.month, date.day)
+            if startdate < exp_info['first_date'] or enddate > exclusive_end_date:
+                sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
+        else:
+            if startdate < exp_info['first_date']:
+                sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to present. Please change your requested dates. Exiting.")
 
-    if (("EPHIN" in experiment) and flux_type == "integral"):
-        sys.exit('The SOHO/EPHIN data set only provides differential fluxes.'
-            ' Please change your FluxType to differential. Exiting.')
-
-
-    if experiment == "GOES_RT" and flux_type == "integral":
+    if experiment == "GOES-RT" and flux_type == "integral":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '
             'and archived by CCMC. Available starting 2010-04-14.')
 
-    if experiment == "GOES_RT" and flux_type == "differential":
+    if experiment == "GOES-RT" and flux_type == "differential":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 7-day jsons.')
 
-#    if experiment == "user" and (json_type != "model" and json_type != "observations"):
-#        sys.exit('User experiments must specify a JSONType of \"model\" or '
-#            '\"observations\". Please specify your JSONType. Exiting.')
-
-#    for diff_thresh in is_diff_thresh:
-#        if diff_thresh and flux_type == "integral":
-#            sys.exit('The input flux type is specified as integral, but you '
-#                    'have requested a threshold in a differential energy bin. '
-#                    'Flux must be differential to impelement a threshold on a '
-#                    'differential energy bin. Exiting.')
-
-    sepem_end_date = datetime.datetime(2015,12,31,23,55,00)
-    if(experiment == "SEPEM" and (startdate > sepem_end_date or
-                   enddate > sepem_end_date + datetime.timedelta(days=1))):
-        sys.exit('The SEPEM (RSDv2) data set only extends to '
-                  + str(sepem_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-    sepemv3_end_date = datetime.datetime(2017,12,31,23,55,00)
-    if(experiment == "SEPEMv3" and (startdate > sepemv3_end_date or
-                   enddate > sepemv3_end_date + datetime.timedelta(days=1))):
-        sys.exit('The SEPEM (RSDv3) data set only extends to '
-                  + str(sepemv3_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-    
+    goes_R = expts.goes_R()
     goes16_integral_stdate = datetime.datetime(2020,3,8)
     if(experiment in goes_R) and startdate < goes16_integral_stdate:
         if startdate >= datetime.datetime(2017,9,1) and \
@@ -147,21 +127,14 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         else:
             sys.exit('The GOES-R real time integral fluxes are only available '
                     + 'starting on '+ str(goes16_integral_stdate) +
-                '. Please change your requested dates and use GOES_RT for the experiment. Exiting.')
+                '. Please change your requested dates and use GOES-RT for the experiment. Exiting.')
     elif (experiment in goes_R) and flux_type == "integral":
         #UNTIL NOAA PROVIDES A SUPPORTED INTEGRAL PRODUCT
-        sys.exit('Note: The GOES-R integral fluxes are only available as real time fluxes '
-            'for the primary GOES spacecraft served by NOAA and archived at CCMC (as of 2024-09-06). '
-            'When NOAA\'s official L2 fluxes, become available, they will be included in FetchSEP. '
-            'Please specify GOES_RT for --Experiment to use GOES-R integral fluxes.')
+        sys.exit('Note: The GOES-R integral fluxes are real-time fluxes archived at CCMC. '
+            'When NOAA\'s official L2 integral fluxes become available, they will be included in FetchSEP. '
+            'Please specify GOES-RT for --Experiment to use GOES-R integral fluxes.')
   
   
-    stereoB_end_date = datetime.datetime(2014,9,27,16,26,00)
-    if(experiment == "STEREO-B" and (startdate > stereoB_end_date or
-                   enddate > stereoB_end_date + datetime.timedelta(days=1))):
-        sys.exit('The STEREO-B data set only extends to '
-                  + str(stereoB_end_date) +
-            '. Please change your requested dates. Exiting.')
 
 
 def error_check_background(experiment, flux_type, doBGSubOPSEP, doBGSubIDSEP,

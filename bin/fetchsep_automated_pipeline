@@ -6,6 +6,7 @@ import fetchsep.opsep as opsep
 import fetchsep.opsep.batch_run_opsep as batch
 import fetchsep.utils.config as cfg
 import fetchsep.utils.tools as tools
+import fetchsep.utils.experiments as expts
 import argparse
 import matplotlib.pyplot as plt
 import datetime
@@ -19,7 +20,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('opsep')
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 
-
+valid_experiments = expts.valid_experiments()
 
 #Helper
 def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
@@ -33,7 +34,7 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
         :experiment: (string) name of experiment
         :flux_type: (string) integral or differential
         :options: (string array)
-        :energy_bins: (1x2 float array) [low edge,high edge]
+        :energy_bin: (1x2 float array) [low edge,high edge]
             If the bin is >10 MeV, [10,-1]
         
     """
@@ -71,26 +72,49 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
 #increases above background and output a preliminary list of
 #SEP events.
 ##################################
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: This automated pipeline uses the full capabilities of FetchSEP to create a rough SEP event list from scratch for any timeframe and any experiment. Specify start and end times and this routine will identify all SEP events in the time series and analyze each one individually. It is expected that the automatically created batch_run file will have to be edited by the user to appropriately capture each SEP event and then rerun starting at BATCH to create a clean set of SEP event and non-event time periods. WORKFLOW: This routine calls IDSEP to calculate the mean background and identify enhancements due to SEPs. The SEP start and end times are formatted into a batch run file for OPSEP that is split into non-event and single SEP event time periods. OPSEP analyzes each time period, extracting SEP event characteristics if event definition thresholds (e.g. >10 MeV, 10 pfu) are crossed.")
+)
+
+
 parser.add_argument("--StartDate", type=str, default='',
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\" with quotes"))
 
 parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\" with quotes"))
 
-parser.add_argument("--Experiment", type=str,
-        choices=['GOES', 'GOES-05', 'GOES-06', 'GOES-07', 'GOES-08', 'GOES-10',
-                'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
-                'GOES-16','GOES-17','GOES-18','GOES_RT', 'SEPEM', 'SEPEMv3',
-                'EPHIN', 'EPHIN_REleASE', 'CalGOES', 'ACE_SIS',
-                'ACE_EPAM_electrons', 'IMP8_CPME', 'user'],
+parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help="Enter name of spacecraft or dataset")
 
-parser.add_argument("--FluxType", type=str, choices=['integral', 'differential'],
-        default='', help=("Are these integral or differential fluxes?"))
+parser.add_argument("--FluxType", type=str, choices=['integral',
+        'differential'], default='',
+        help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary', 'secondary'],
-        default='', help=("If GOES_RT is selected, choose the primary or secondary spacecraft."))
+        default='', help=("If GOES-RT is selected, choose the primary or secondary spacecraft."))
+
+parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
+        help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
+            "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
+            "Other energy channels are plotted with colors that are different from these GOES colors. "
+            "Multiple color schemes are offered:\n"
+            "1 - Tab 10-like bright, exciting, cosmic;\n "
+            "2 - Tab 20-like exciting, dark, and soft space exploration palette;\n "
+            "3 - Set 1-like inspired by Mars;\n "
+            "4 - Set 1-like inspired by nebulae and supernovae;\n "
+            "5 - Set 1-like inspired by Ring Nebula and Orion Nebula;\n "
+            "6 - Tab 20-like very bright color scheme;\n "
+            "7 - Standard Python Tab 10;\n "
+            "8 - Standard Python Set1 with red replaced with coral;\n "
+            "9 - Standard Python Tab20 with red replaced with coral;\n "
+            "10 - Tab 20-like muted blues, olives, purples colors to browns;\n "
+            "11 - Tab 20-like autumn colors;\n "
+            "12 - Tab 20-like bold, dark autumn colors;\n "
+            "13 - Tab 20-like bright, soft rainbow;"))
+
+parser.add_argument("--NoGOESColors",
+        help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
+            "Set to True not to use these colors."), action="store_true")
 
 parser.add_argument("--ExperimentName", type=str, default='',
         help=("If you chose user for experiment, specify the  name of the "
@@ -141,6 +165,54 @@ parser.add_argument("--PlotTimeSeriesOnly",
 parser.add_argument("--showplot",
         help="Flag to display plots in IDSEP.", action="store_true")
 
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
+
+###### IDSEP Arguments #######
+parser.add_argument("--kurtosis_cut", type=float, default=None,
+        help=("Set IDSEP kurtosis_cut quality reqirement. Data distributions with kurtosis > kurtosis_cut "
+            "will be excluded from calculating mean background. Some native experiments have a "
+            "predefined kurtosis_cut value in experiments.py. Set a value here to override. "
+            "Will default to values in experiments.py or fetchsep.cfg."))
+
+parser.add_argument("--idsep_nsigma", type=float, default=None,
+        help=("Set idsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + idsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
+parser.add_argument("--init_win", type=float, default=None,
+        help=("Set IDSEP init_win to indicate the length of the averaging window used "
+            "in the first rough calculation of the mean background. Recommend >=30 days. "
+            "Often use 150 days. Will default to value in fetchsep.cfg."))
+
+parser.add_argument("--sliding_win", type=float, default=None,
+        help=("Set IDSEP sliding_win to indicate the length of the averaging window used "
+            "to calculate the refined daily mean background. A backward-smoothing window "
+            "of 5 up to 27 days works well. Will default to value in fetchsep.cfg."))
+            
+parser.add_argument("--percent_points", type=float, default=None,
+        help=("Set IDSEP percent_points from 0 to 1.0 to determine the number of points "
+            "that must be considered background in the sliding window in order to calculate "
+            "the mean background, intended to avoid mean and sigma calculation from too few "
+            "points. It may be desireable to change the percent of points required in the "
+            "background window depending on window length. "
+            "percent_points = 0.4 works well for a 5-day sliding_win. "
+            "Will default to value in fetchsep.cfg."))
+
 
 ####### OpSEP Arguments #####
 parser.add_argument("--Threshold", type=str, default="",
@@ -154,6 +226,12 @@ parser.add_argument("--Threshold", type=str, default="",
 parser.add_argument("--Associations",
         help=("Set flag to associate flare, CME, radio, etc information "
             "if an SEP event is found in the data. "), action="store_true")
+
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
 
 #parser.add_argument("--UMASEP",
 #        help=("Set flag to calculate flux values and thresholds "
@@ -172,7 +250,7 @@ parser.add_argument("--Location", type=str, default='earth',
             "earth, mars, psp, stereoa, stereob, dawn, juno, L1, L2, L4, L5. You may "
             "enter another location if needed. Default = earth."))
 
-parser.add_argument("--Species", type=str, default='protons',
+parser.add_argument("--Species", type=str, default='proton',
         help=("Location of time profile. CCMC json files recognize: electron, proton, "
               " helium, helium3, helium4, oxygen, iron, ion. You may "
               "enter another location if needed. Default = proton"))
@@ -193,12 +271,12 @@ parser.add_argument("--IDSEPSubtractBG",
 #Batch file is a csv, but saved as a txt to avoid opening with excel
 #which will mess up the date format if the user is not careful.
 parser.add_argument("--BatchFile", type=str, default='batch_event_list.csv',
-        help=("Specify the name of the batch file. Will create a new"
+        help=("Specify the name of the batch file. Will create a new (or overwrite existing) "
                 "batch file with this name if StartPoint set to IDSEP or MAKEFILE."
                 "Will look for an existing batch file if StartPoint is BATCH."
                 "Default is batch_event_list.txt."))
 
-parser.add_argument("--ReferenceEnergyBin", type=str, default="10,-1",
+parser.add_argument("--ReferenceEnergyBin", type=str, default=None,
         help=("Specify an energy bin array to use to create the batch file. "
             "The energy bin must exactly match an energy bin in the dataset. "
             "The SEP event list for this energy bin created by IDSEP will "
@@ -227,6 +305,8 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+color_scheme = args.ColorScheme
+no_goes_colors = args.NoGOESColors
 location = args.Location
 species = args.Species
 exp_name = args.ExperimentName
@@ -239,6 +319,22 @@ dointerp = args.DoInterp
 remove_above = args.RemoveAbove
 for_inclusive = args.ForInclusive
 plot_timeseries_only = args.PlotTimeSeriesOnly
+
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+    path_to_plots=path_to_plots, path_to_lists=path_to_lists)
+
+
+kurtosis_cut=args.kurtosis_cut
+idsep_nsigma=args.idsep_nsigma
+init_win=args.init_win
+sliding_win=args.sliding_win
+percent_points=args.percent_points
+
+opsep_nsigma = args.opsep_nsigma
 
 doBGSubIDSEP = args.IDSEPSubtractBG
 IDSEPEnhancement = args.IDSEPEnhancement
@@ -259,22 +355,44 @@ associations = args.Associations
 umasep = False #args.UMASEP
 json_type = args.JSONType
 
-energy_bin = args.ReferenceEnergyBin
-energy_bin = energy_bin.strip().split(",")
-energy_bin[0] = float(energy_bin[0])
-if energy_bin[1] != -1: energy_bin[1] = float(energy_bin[1])
 batchfile = args.BatchFile
 startpoint = args.StartPoint
+
+ref_energy_bin = args.ReferenceEnergyBin
+if ref_energy_bin == None and startpoint != "BATCH":
+    sys.exit("Enter a reference energy bin with exact bin edges indicating which energy "
+            "channel should be used to create SEP lists and batch files for OPSEP. --ReferenceEnergyBin")
+if ref_energy_bin != None:
+    ref_energy_bin = ref_energy_bin.strip().split(",")
+    ref_energy_bin[0] = float(ref_energy_bin[0])
+    if ref_energy_bin[1] != -1: ref_energy_bin[1] = float(ref_energy_bin[1])
+
+
+if flux_type == '':
+    flux_type = expts.get_flux_type(experiment)
 
 #IDSEP PATH
 idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
 if startpoint == "IDSEP":
-    fetchsep.idsep.run_all(str_startdate, str_enddate,
-        experiment, flux_type, exp_name, user_file, is_unixtime,
-        options, dointerp, remove_above, for_inclusive,
-        plot_timeseries_only, showplot, saveplot, spacecraft=spacecraft)
+    fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
+        flux_type=flux_type, spacecraft=spacecraft,
+        exp_name=exp_name, user_file=user_file,
+        is_unixtime=is_unixtime,
+        options=options, dointerp=dointerp,
+        remove_above=remove_above, for_inclusive=for_inclusive,
+        plot_timeseries_only=plot_timeseries_only,
+        showplot=showplot, saveplot=saveplot,
+        path_to_data=path_to_data,
+        path_to_output=path_to_output,
+        path_to_plots=path_to_plots,
+        path_to_lists=path_to_lists,
+        kurtosis_cut=kurtosis_cut,
+        idsep_nsigma=idsep_nsigma,
+        init_win=init_win,
+        sliding_win=sliding_win,
+        percent_points=percent_points)
 
     if plot_timeseries_only:
         sys.exit("User selected to only plot the timeseries. Exiting.")
@@ -295,13 +413,14 @@ if experiment == "GOES":
 ################################
 
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    septimes_file = septimes_fname(experiment, flux_type, exp_name, options, energy_bin, spacecraft=spacecraft)
+    septimes_file = septimes_fname(experiment, flux_type, exp_name, options, ref_energy_bin, spacecraft=spacecraft)
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
-        septimes_file, detector_list,experiment, flux_type,options, json_type,
+        septimes_file, detector_list,experiment, flux_type, options, json_type,
         batchfile, revise, flags=flags, spacecraft=spacecraft,
-        location=location, species=species, add_path=idsep_name)
+        location=location, species=species, add_path=idsep_name,
+        path_to_output=path_to_output)
 
 
 #THIRD #########################
@@ -316,12 +435,18 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
 ############## SET DEFAULTS ##################
 showplot = False
 saveplot = True
-detect_prev_event_default = False #Set to true if get FirstStart flag
-two_peaks_default = False #Set to true if get ShortEvent flag
 ############## END DEFAULTS #################
 sep_filename = os.path.join(cfg.outpath, "idsep", idsep_name, batchfile)
 statusfname = 'batch_run_status.csv'
 
-batch.run_all_events(sep_filename, statusfname, threshold, umasep=umasep,
-    dointerp=dointerp, showplot=showplot, saveplot=saveplot, associations=associations,
-    detect_prev_event=detect_prev_event_default, two_peaks=two_peaks_default)
+batch.run_all_events(sep_filename, threshold,
+    statusfname=statusfname,
+    color_scheme=color_scheme, no_goes_colors=no_goes_colors,
+    umasep=umasep,
+    dointerp=dointerp, showplot=showplot, saveplot=saveplot,
+    associations=associations,
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists,
+    opsep_nsigma=opsep_nsigma)

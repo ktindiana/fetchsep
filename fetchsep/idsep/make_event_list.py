@@ -1,11 +1,10 @@
 from ..utils import config as cfg
+from ..utils import date_handler as dh
 import datetime
 import argparse
 import os
 import sys
 
-
-__version__ = "0.1"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
@@ -143,7 +142,8 @@ def get_detector(date, detector_dates, detector):
 def make_event_list(str_startdate, str_enddate, septimes_file,
             detector_list, experiment, flux_type, options, json_type,
             outfile, revise=False, spacecraft="",
-            location='earth', species='proton', add_path='', flags=''):
+            location='earth', species='proton', add_path='', flags='',
+            path_to_output=None):
     """ Read in SEP times and detector list, if applicable,
         and create a file in the appropriate format to run
         operational_sep_quantities.py in batch mode.
@@ -161,17 +161,16 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
         Set revise = True to adjust the SEP start and end times
         to include some padding at the front of the event. This is
         useful if submitting times to OpSEP for processing.
+
+        :path_to_output: (string) path where output files should be saved. Will default to 
+            outpath listed in fetchsep.cfg if a value is not specified.
         
     """
-    try:
-        startdate = datetime.datetime.strptime(str_startdate, "%Y-%m-%d %H:%M:%S")
-    except:
-        startdate = datetime.datetime.strptime(str_startdate, "%Y-%m-%d")
-    try:
-        enddate = datetime.datetime.strptime(str_enddate, "%Y-%m-%d %H:%M:%S")
-    except:
-        enddate = datetime.datetime.strptime(str_enddate, "%Y-%m-%d")
 
+    startdate = dh.str_to_datetime(str_startdate)
+    enddate = dh.str_to_datetime(str_enddate)
+
+    cfg.set_config_paths(path_to_output=path_to_output)
 
     header = "#Start Time,End Time,Experiment,Flux Type,Flags," \
             + "User Experiment Name,User Filename,Options,"\

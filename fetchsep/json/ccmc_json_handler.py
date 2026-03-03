@@ -1,109 +1,24 @@
 from ..utils import config as cfg
+from ..utils import date_handler as dh
 from . import keys
 import json
 import calendar
 import datetime
 from datetime import timedelta
 import copy
-import zulu
 from astropy import units as u
 import os
 import sys
 import pandas as pd
+import numpy as np
 #import git #GitPython package
 #import process
 #import re
 
-__version__ = "2.0"
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
-
-#2021-01-12 changes in v0.2: Added fluence to json file. Added threshold
-#   crossing entry for end of event.
-#2021-02-11 changes in 0.3: Changed logic so that if integral flux was
-#   derived from differential flux, and the flux did not cross the
-#   threshold applied to the integral channel, then all_clear_boolean = True.
-#   Previously, the code checked if the energy bin existed and set
-#   all_clear_boolean to None if not. This produced the wrong value in the
-#   case where differential channels were converted to integral.
-#2021-02-24, changes in v0.4: Added subroutines to read in json file and
-#   convert zulu time to datetime.
-#   Modified fill_json to account for change in threshold fluences array in
-#   v2.5 of operational_sep_quantities.py.
-#2021-05-18, changes in 0.5: Realized that there were some differences
-#   between the json files produced here and the CCMC format. CCMC defines
-#   the fluences field as an array allowing multiple fluences, so the fluences
-#   field was changed to an array here.
-#   CCMC also has "event_lengths" as an array that allows the specification
-#   of multiple start and end times. Changed the field name from "event_length"
-#   to "event_lengths" and made it an array. Only one entry to
-#   "event_lengths" is created by this program.
-#2021-07-20, changes in 1.0: Went up an integer in version number because
-#   making major changes to exactly match CCMC JSON format for the SEP
-#   Scoreboard. Version 1.0 of this file works with v3.0 of
-#   operational_sep_quantities.py, which has been modified for the same
-#   purpose.
-#   Removing contacts field from json due to NASA privacy rules.
-#   Changed zulu time to keep seconds.
-#   If multiple thresholds applied to a single energy channel,
-#   values will be saved in one energy channel block as array
-#   entries (previously writing separate blocks for unique
-#   energy-threshold combinations.
-#   Removing any attempt to differentiate between values not
-#   filled out because they are not supported by the model
-#   or values not filled out because there was no forecast.
-#   Will have to apply that kind of information downstream.
-#   JSON fields that have not been filled in are removed
-#   from the final output json file.
-#2021-08-18, changes in 1.1: Added subroutines from
-#   validation_json_handler.py in the validation project
-#   to access entries in the json file in a variety of ways.
-#   This code, coupled with keys.py, will allow users
-#   to access any values in the json files produced by
-#   operational_sep_quantities.py
-#2021-08-30, changes in 1.2: fixed bug in identifying energy
-#   bins in fill_json. In clean_json, will remove the block for
-#   an energy channel if the max flux is stored as a negative
-#   value.
-#2021-09-16, changes in 1.3: support for json_type, introduced
-#   in operational_sep_quantities.py v3.2. Allows user to indicate
-#   if a user input file should be written to observation or model
-#   json file in fill_json and clean_json.
-#2021-09-20, changes in 1.4: Added threshold units to the all clear
-#   fields in fill_json (I had previously forgotten them and the
-#   fields were being left as empty strings).
-#2022-06-07, changed in 1.5: Don't try to guess Spase ID. If the
-#   user doesn't specify an ID and the field is empty, leave it as
-#   an empty string.
-#2022-11-10, changes in 1.6: The all_clear logic was changed in fill_json.
-#   The code no longer checks the peak flux values to determine 
-#   all_clear if a threshold isn't crossed. Specific energy channel
-#   and threshold crossing combinations are now strictly enforced
-#   for all_clear statues (>10 MeV, 10 pfu; >100 MeV, 1 pfu)
-#   All other energy channels are allowed
-#   to use any threshold crossing to determine all_clear status.
-#2023-04-18, changes in 1.7: Fixed bug in fill_json that assigned
-#   the wrong units to the fluence spectrum if the energy block
-#   for an integral channel, but the input data consisted of
-#   differential fluxes. Was wrongly assigning fluence units of
-#   e.g. 1/cm^2 when should have been 1/(MeV*cm^2).
-#   In the get_value_by_* subroutines, added code to extract some of the
-#   trigger information.
-#   Added set_json_value_by_index() which allows the user to change a value in
-#   the json. In the context of this code, may be most useful to add
-#   the trigger information and change the issue time.
-#2023-7-06, changes in 1.8: cast max flux as float in fill_json
-#   because found that models with 0 flux resulted in an error
-#   when dumping json.
-#2023-10-01, changes in 1.9: Added subroutines to transform
-#   threshold and energy channels to string keys.
-#2024-04-24, changes in 2.0: Made changes to accomodate new fields
-#   from CCMC. "model": {"flux_type": } --> "source_info": {"native_flux_type":}
-#   Modified clean_json to remove the options field if nothing added.
-#   Changed event_lengths threshold field to threshold_start and added
-#   threshold_end.
 
 def about_ccmc_json_handler():
     """ ABOUT ccmc_json_handler.py
@@ -172,71 +87,6 @@ def about_ccmc_json_handler():
              
         
     """
-
-def make_ccmc_zulu_time(dt):
-    """ Make a datetime string in the format YYYY-MM-DDTHH:MM:SSZ
-        
-        INPUTS:
-        
-        :dt: (datetime)
-        
-        OUTPUTS:
-        
-        :zuludate: (string) in the format YYYY-MM-DDTHH:MM:SSZ
-    
-    """
-    if dt == '':
-        return ''
-    if dt == None:
-        return None
-    if dt is pd.NaT:
-        return pd.NaT
-    if dt == 0:
-        return 0
-
-    if isinstance(dt,str):
-        if ("T" in dt) and ("Z" in dt):
-            return dt
-
-    zdt = zulu.create(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
-    stzdt = str(zdt)
-    stzdt = stzdt.split('+00:00')
-    zuludate = stzdt[0] + "Z"
-    return zuludate
- 
- 
-def zulu_to_time(zt):
-    """ Convert Zulu time to datetime
-    
-        INPUTS:
-        
-        :zt: (string) - date in the format "YYYY-MM-DDTHH:MM:SSZ"
-        
-        OUTPUTS:
-        
-        :dt: (datetime)
-        
-    """
-    #Time e.g. 2014-01-08T05:05:00Z or 2012-07-12T22:25Z
-    if zt == '':
-        return ''
-    if zt == None:
-        return None
-    if zt is pd.NaT:
-        return pd.NaT
-    if zt == 0:
-        return 0
-  
-    strzt = zt.split('T')
-    strzt[1] = strzt[1].strip('Z')
-    n = strzt[1].split(':')
-    stdt = strzt[0] + ' ' + strzt[1]
-
-    if len(n) == 2:
-        dt = datetime.datetime.strptime(stdt, '%Y-%m-%d %H:%M')
-    if len(n) == 3:
-        dt = datetime.datetime.strptime(stdt, '%Y-%m-%d %H:%M:%S')
-    return dt
 
 
 def find_energy_bin(lowedge, energy_bins):
@@ -334,24 +184,169 @@ def forecast_json():
        "source_info": {"native_flux_type": ""},
        "options": "",
        "issue_time": "",
-       "mode": "historical",
+       "mode": "forecast",
        "forecasts": []
         }}
-    print("ccmc_json_handler: forecast_json: Initilizing forecast json.")
+    print("ccmc_json_handler: forecast_json: Initializing forecast json.")
     return template
 
 
 def observation_json():
     """ header for observation json """
     
-    template = {"sep_observation_submission": {"notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],"observatory": { "short_name": "", "spase_id": ""}, "source_info": {"native_flux_type": ""},"options": "","issue_time": "","mode": "measurement","observations": [] }}
-    print("ccmc_json_handler: observation_json: Initilizing observation json.")
+    template = {"sep_observation_submission": {"notes": [ { "note": "produced by https://github.com/ktindiana/fetchsep"} ],
+        "observatory": { "short_name": "", "spase_id": ""},
+        "source_info": {"native_flux_type": ""},
+        "options": "",
+        "issue_time": "",
+        "mode": "measurement",
+        "observations": [] }}
+    print("ccmc_json_handler: observation_json: Initializing observation json.")
+    return template
+
+## NOT IN CCMC JSON SCHEMA
+def active_region_block():
+    ar = { 'noaa_region': np.nan,
+            'lat': np.nan,
+            'lon': np.nan,
+            'catalog': '',
+        }
+    return ar
+
+def ccmc_cme_block():
+    cme = { 'start_time': pd.NaT,
+            'liftoff_time': pd.NaT,
+            'lat': np.nan,
+            'lon': np.nan,
+            'pa': np.nan,
+            'half_width': np.nan,
+            'speed': np.nan,
+            'acceleration': np.nan,
+            'height': np.nan,
+            'time_at_height': {'time': pd.NaT, 'height': np.nan},
+            'coordinates': '',
+            'catalog': '',
+            'catalog_id': '',
+            'urls': [],
+            'derivation_technique': {'process': '','method': '', 'measurement_type': ''}
+        }
+    return cme
+
+
+def ccmc_flare_block():
+    flare = {'last_data_time': pd.NaT,
+             'start_time': pd.NaT,
+             'peak_time': pd.NaT,
+             'end_time': pd.NaT,
+             'location': '',
+             'intensity': np.nan,
+             'integrated_intensity': np.nan,
+             'noaa_region': np.nan,
+             'peak_ratio': np.nan,
+             'catalog': '',
+             'catalog_id': '',
+             'urls': []
+        }
+    return flare
+
+
+def clean_trigger_block(trigger_dict):
+    """ Delete null or empty fields from a single CCMC trigger block """
+    #If already empty, return
+    if not trigger_dict:
+        return trigger_dict
+        
+    keys = trigger_dict.keys()
+
+    bad_keys = []
+    for key in keys:
+        if isinstance(trigger_dict[key], list):
+            arr = trigger_dict[key]
+            for ii in range(len(arr)-1,-1,-1):
+                if pd.isnull(arr[ii]) or arr[ii] == '':
+                    arr.pop(ii)
+            if len(arr) == 0:
+                bad_keys.append(key)
+
+        elif isinstance(trigger_dict[key], dict):
+            if not trigger_dict[key]:
+                bad_keys.append(key)
+            #Check if values in the dictionary are null
+            else:
+                check_dict = trigger_dict[key]
+                keys2 = check_dict.keys()
+                bad_keys2 = []
+                for k2 in keys2:
+                    if pd.isnull(check_dict[k2]):
+                        bad_keys2.append(k2)
+                    elif check_dict[k2] == '':
+                        bad_keys2.append(k2)
+                #Delete null fields and update main trigger block
+                for bk in bad_keys2:
+                    del check_dict[bk]
+                if not check_dict:
+                    bad_keys.append(key)
+                else:
+                    trigger_dict[key].update(check_dict)
+
+        elif pd.isnull(trigger_dict[key]):
+            bad_keys.append(key)
+            
+        elif trigger_dict[key] == '':
+            bad_keys.append(key)
+
+    for key in bad_keys:
+        del(trigger_dict[key])
+
+    return trigger_dict
+
+
+##FETCHSEP FIELD NOT IN CCMC JSON
+def add_farside_trigger(template, json_type, farside_bool):
+    """ Add a trigger field that indicates if event is farside True or False """
+    key, type_key, win_key, exp_key = set_keys(json_type)
+    
+    try:
+        check = template[key]['triggers']
+    except:
+        template[key].update({'triggers':[]})
+        
+    if not pd.isnull(farside_bool):
+        template[key]['triggers'].append({"farside":farside_bool})
     return template
 
 
-def fill_cme_trigger(template, json_type, cme_dict):
+##FETCHSEP FIELD NOT IN CCMC JSON
+def add_active_region(template, json_type, ar_dict):
+    """ Add active region location to triggers 
+        
+    
+    """
+    if not ar_dict:
+        return template
+
+    key, type_key, win_key, exp_key = set_keys(json_type)
+
+    ar_dict = clean_trigger_block(ar_dict)
+
+    #If empty block
+    if not ar_dict:
+        return template
+
+    try:
+        check = template[key]['triggers']
+    except:
+        template[key].update({'triggers':[]})
+        
+    template[key]['triggers'].append({"active_region":ar_dict})
+
+    return template
+    
+
+def add_cme_trigger(template, json_type, cme_dict):
     """ Provided a dictionary with the right fields of the CME trigger
-        block in the CCMC format, create and/or add to trigger block.
+        block in the CCMC format, create and/or add to trigger block to
+        the full json template.
     
     """
     
@@ -359,10 +354,12 @@ def fill_cme_trigger(template, json_type, cme_dict):
         return template
 
     if 'start_time' in cme_dict.keys():
-        cme_dict['start_time'] = make_ccmc_zulu_time(cme_dict['start_time'])
+        cme_dict['start_time'] = dh.time_to_zulu(cme_dict['start_time'])
     if 'liftoff_time' in cme_dict.keys():
-        cme_dict['liftoff_time'] = make_ccmc_zulu_time(cme_dict['liftoff_time'])
-    
+        cme_dict['liftoff_time'] = dh.time_to_zulu(cme_dict['liftoff_time'])
+
+    cme_dict = clean_trigger_block(cme_dict)
+
     key, type_key, win_key, exp_key = set_keys(json_type)
     
     try:
@@ -374,23 +371,26 @@ def fill_cme_trigger(template, json_type, cme_dict):
     return template
 
 
-def fill_flare_trigger(template, json_type, flare_dict):
-    """ Provided a dictionary with the right fields of the CME trigger
-        block in the CCMC format, create and/or add to trigger block.
+def add_flare_trigger(template, json_type, flare_dict):
+    """ Provided a dictionary with the right fields of the flare trigger
+        block in the CCMC format, create and/or add to trigger block to the
+        full json template.
     
     """
     if not flare_dict:
         return template
         
     if 'start_time' in flare_dict.keys():
-        flare_dict['start_time'] = make_ccmc_zulu_time(flare_dict['start_time'])
+        flare_dict['start_time'] = dh.time_to_zulu(flare_dict['start_time'])
     if 'peak_time' in flare_dict.keys():
-        flare_dict['peak_time'] = make_ccmc_zulu_time(flare_dict['peak_time'])
+        flare_dict['peak_time'] = dh.time_to_zulu(flare_dict['peak_time'])
     if 'end_time' in flare_dict.keys():
-        flare_dict['end_time'] = make_ccmc_zulu_time(flare_dict['end_time'])
+        flare_dict['end_time'] = dh.time_to_zulu(flare_dict['end_time'])
     if 'last_data_time' in flare_dict.keys():
-        flare_dict['last_data_time'] = make_ccmc_zulu_time(flare_dict['last_data_time'])
+        flare_dict['last_data_time'] = dh.time_to_zulu(flare_dict['last_data_time'])
 
+    #Check for null fields and delete
+    flare_dict = clean_trigger_block(flare_dict)
 
     key, type_key, win_key, exp_key = set_keys(json_type)
     
@@ -404,22 +404,22 @@ def fill_flare_trigger(template, json_type, flare_dict):
 
 
 def fill_json_header(json_type, issue_time, experiment,
-    flux_type, options, spase_id, user_name=None, mode=None,
+    flux_type, options, spase_id, user_name=None, json_mode='',
     spacecraft=None):
     """ Fill in top level header information in json """
     
-    zissue = make_ccmc_zulu_time(issue_time)
+    zissue = dh.time_to_zulu(issue_time)
     
     short_name = experiment
     if user_name:
         short_name = user_name
     
     #If mode not specified, guess
-    if not mode or mode == '':
+    if not json_mode or json_mode == '':
         if json_type == "observations":
-            mode = 'measurement'
+            json_mode = 'measurement'
         else:
-            mode = 'historical'
+            json_mode = 'forecast'
 
     template = {}
     if json_type == "observations":
@@ -435,7 +435,7 @@ def fill_json_header(json_type, issue_time, experiment,
     template[key]['source_info']['native_flux_type'] = flux_type
     if spase_id and spase_id != "":
         template[key][exp_key]['spase_id'] = spase_id
-    template[key]['mode'] = mode
+    template[key]['mode'] = json_mode
 
     template[key]['options'] = options
     template[key]['issue_time'] = zissue
@@ -502,17 +502,17 @@ def fill_json_block(template, json_type, energy_channel, threshold_dict, startda
     key, type_key, win_key, exp_key = set_keys(json_type)
 
     #Process times into the correct format
-    zst = make_ccmc_zulu_time(startdate)
+    zst = dh.time_to_zulu(startdate)
     if pd.isnull(zst): zst = ""
-    zend = make_ccmc_zulu_time(enddate)
+    zend = dh.time_to_zulu(enddate)
     if pd.isnull(zend): zend = ""
-    zodate = make_ccmc_zulu_time(onset_peak_time)
+    zodate = dh.time_to_zulu(onset_peak_time)
     if pd.isnull(zodate): zodate = ""
-    zpdate = make_ccmc_zulu_time(max_flux_time)
+    zpdate = dh.time_to_zulu(max_flux_time)
     if pd.isnull(zpdate): zpdate = ""
-    zct = make_ccmc_zulu_time(sep_start_time)
+    zct = dh.time_to_zulu(sep_start_time)
     if pd.isnull(zct): zct = ""
-    zeet = make_ccmc_zulu_time(sep_end_time)
+    zeet = dh.time_to_zulu(sep_end_time)
     if pd.isnull(zeet): zeet = ""
 
     ######## Evaluate All Clear ##########
@@ -1020,7 +1020,7 @@ def return_json_value_by_energy(injson, value, energy_channel={}, index=0):
             for key in key_chain:
                 if isinstance(key,int): continue
                 if 'time' in key:
-                    sub = zulu_to_time(sub)
+                    sub = dh.zulu_to_time(sub)
         
         return sub #extracted down to a final value
     
@@ -1078,7 +1078,7 @@ def return_json_value_by_energy(injson, value, energy_channel={}, index=0):
         for key in key_chain:
             if isinstance(key,int): continue
             if 'time' in key:
-                sub = zulu_to_time(sub)
+                sub = dh.zulu_to_time(sub)
     
     return sub #extracted down to a final value
                     
@@ -1198,7 +1198,7 @@ def return_json_value_by_index(injson, value, channel_index=0, index=0):
             for key in key_chain:
                 if isinstance(key,int): continue
                 if 'time' in key:
-                    sub = zulu_to_time(sub)
+                    sub = dh.zulu_to_time(sub)
         
         return sub #extracted down to a final value
     
@@ -1246,7 +1246,7 @@ def return_json_value_by_index(injson, value, channel_index=0, index=0):
         for key in key_chain:
             if isinstance(key,int): continue
             if 'time' in key:
-                sub = zulu_to_time(sub)
+                sub = dh.zulu_to_time(sub)
     
     return sub #extracted down to a final value
 
@@ -1381,7 +1381,7 @@ def return_json_value_by_threshold(injson, value, energy_channel={}, threshold=0
             for key in key_chain:
                 if isinstance(key,int): continue
                 if 'time' in key:
-                    sub = zulu_to_time(sub)
+                    sub = dh.zulu_to_time(sub)
         
         return sub #extracted down to a final value
     
@@ -1478,7 +1478,7 @@ def return_json_value_by_threshold(injson, value, energy_channel={}, threshold=0
         for key in key_chain:
             if isinstance(key,int): continue
             if 'time' in key:
-                sub = zulu_to_time(sub)
+                sub = dh.zulu_to_time(sub)
     
     return sub #extracted down to a final value
 
@@ -1511,7 +1511,38 @@ def add_trigger_array(trigger_array, injson):
     main_key = return_main_key(injson)
     injson[main_key].update({"triggers": trigger_array})
     return injson
+ 
+ 
+def append_trigger_array(trigger_array, injson):
+    """ Append triggers to an existing trigger block in the json or
+        create a trigger block if one doesn't exist.
+        
+        INPUTS:
+        
+        :trigger_array: (array of dictionaries) each element of the array is a
+            dictionary for a specific trigger. See CCMC's json schema for
+            allowed triggers.
+            
+        :injson: (json) file intended for output containing all SEP
+            information.
+            
+        OUTPUTS:
+        
+        :injson: (json) file with trigger information added
+        
+    """
+    clean_array = []
+    for trig in trigger_array:
+        for key in trig.keys(): #should only be one key: 'cme', 'flare', etc
+            ctrig = clean_trigger_block(trig[key])
+            clean_array.append({key: ctrig})
     
+    main_key = return_main_key(injson)
+    if "triggers" in injson[main_key].keys():
+        injson[main_key]["triggers"] =  injson[main_key]["triggers"] + clean_array
+    else:
+        injson[main_key].update({"triggers": clean_array})
+    return injson
     
 
 def set_json_value_by_index(value, injson, key_id, channel_index=0, index=0):

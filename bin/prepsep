@@ -2,9 +2,15 @@
 
 import fetchsep.utils.prepsep as prepsep
 import argparse
+import fetchsep.utils.experiments as expts
+import numpy as np
 
+valid_experiments = expts.valid_experiments()
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    description=("DESCRIPTION: For incrementally analyzing new time periods with OPSEP, e.g. automatically with a chron job. Run OPSEP for a time period and move output files to a target directory. This is done automatically if no SEP event was present. If an SEP event occurred, the SEP must be in the approved SEP event list before PREPSEP will move the files to the target directory. This is to ensure that the event has been analyzed appropriately.")
+)
+
 parser.add_argument("--TargetDir", type=str, default='',
         help=("Target directory to move files and plots "
             "produced by OpSEP."))
@@ -34,26 +40,16 @@ parser.add_argument("--EndDate", type=str, default='',
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
 
-parser.add_argument("--Experiment", type=str, choices=['GOES-05',
-        'GOES-06', 'GOES-07', 'GOES-08',
-        'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
-        'GOES-16', 'GOES-17','GOES-18','GOES_RT', 'GOES',
-        'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE',
-        'ERNE', 'CalGOES', 'STEREO-A', 'STEREO-B', 'ACE_SIS',
-        'ACE_EPAM_electrons', 'IMP8_CPME', 'user'],
+parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help="Enter name of spacecraft or dataset")
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
         'differential'], default='',
-        help=("Do you want to use integral or differential fluxes?"))
+        help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
-        help=("If GOES_RT is selected, choose the primary or secondary spacecraft."))
-
-parser.add_argument("--Associations",
-        help=("Set flag to associate flare, CME, radio, etc information "
-            "if an SEP event is found in the data. "), action="store_true")
+        help=("If GOES-RT is selected, choose the primary or secondary spacecraft."))
 
 parser.add_argument("--Threshold", type=str, default="",
         help=("Additional energy and flux threshold which will be used to "
@@ -67,16 +63,83 @@ parser.add_argument("--Threshold", type=str, default="",
                 "semi-colon with no spaces and surrounded by quotes, "
                 "e.g. \"30,1;50,1;25-40.9,0.001\""))
 
-parser.add_argument("--NoInterp",
-        help=("Do not fill in negative or missing fluxes via "
-                "linear interpolation in time. Set as None values "
-                "instead."), action="store_true")
+parser.add_argument("--DoInterp",
+        help=("Fill in negative or missing fluxes via "
+                "linear interpolation in time. Default it to set as nan."),
+                action="store_true")
 
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
                 "before increasing again to the true peak of the event."),
                 action="store_true")
+
+parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
+        help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
+            "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
+            "Other energy channels are plotted with colors that are different from these GOES colors. "
+            "Multiple color schemes are offered:\n"
+            "1 - Tab 10-like bright, exciting, cosmic;\n "
+            "2 - Tab 20-like exciting, dark, and soft space exploration palette;\n "
+            "3 - Set 1-like inspired by Mars;\n "
+            "4 - Set 1-like inspired by nebulae and supernovae;\n "
+            "5 - Set 1-like inspired by Ring Nebula and Orion Nebula;\n "
+            "6 - Tab 20-like very bright color scheme;\n "
+            "7 - Standard Python Tab 10;\n "
+            "8 - Standard Python Set1 with red replaced with coral;\n "
+            "9 - Standard Python Tab20 with red replaced with coral;\n "
+            "10 - Tab 20-like muted blues, olives, purples colors to browns;\n "
+            "11 - Tab 20-like autumn colors;\n "
+            "12 - Tab 20-like bold, dark autumn colors;\n "
+            "13 - Tab 20-like bright, soft rainbow;"))
+
+parser.add_argument("--NoGOESColors",
+        help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
+            "Set to True not to use these colors."), action="store_true")
+
+#Adding Flare, CME, Location associated information
+parser.add_argument("--Associations",
+        help=("Set flag to associate flare, CME, radio, etc information "
+            "derived from the SRAG, IGR, and user-maintained historical event lists."), action="store_true")
+            
+parser.add_argument("--SaveAssociations",
+        help=("Set flag to write flare, CME, location associations input by the user for the analyzed SEP event to the user-maintained associations list: fetchsep/reference/user_associations.csv. "), action="store_true")
+
+parser.add_argument("--AutoFlareTime", type=str, default='',
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a flare in the NOAA NCEI science archives. "
+            "Time should be equal to or between the flare start and end time, "
+            "with the peak as the preferable time."))
+
+parser.add_argument("--AutoCMETime", type=str, default='',
+        help=("Specify time as \"YYYY-MM-DD HH:MM:SS\" or zulu time "
+            "to identify a CME in DONKI. Use the CME start time, which is "
+            "generally the LASCO C2 first look time."))
+
+parser.add_argument("--Source-latitude", type=float, default=np.nan,
+                    help="Latitude of eruption source (deg), if not specified in flare location.")
+
+parser.add_argument("--Source-longitude", type=float, default=np.nan,
+                    help="Longitude of eruption source (deg), if not specified in flare location.")
+
+parser.add_argument("--NOAA-region", type=int, default=np.nan,
+                    help="NOAA active region number, if not specified for flare.")
+
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
 
 
 args = parser.parse_args()
@@ -90,18 +153,55 @@ end_date = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
-associations = args.Associations
 threshold = args.Threshold
-nointerp = args.NoInterp
+dointerp = args.DoInterp
 two_peaks = args.TwoPeaks
 subdir = ''
+
+color_scheme = args.ColorScheme
+no_goes_colors = args.NoGOESColors
+
+associations = args.Associations
+save_associations = args.SaveAssociations
+auto_flare_time = args.AutoFlareTime
+auto_cme_time = args.AutoCMETime
+source_lat = args.Source_latitude
+source_lon = args.Source_longitude
+noaa_region = args.NOAA_region
+
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
+
+
+if flux_type == '':
+    flux_type = expts.get_flux_type(experiment)
 
 if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment, flux_type, threshold, nointerp=nointerp, two_peaks=two_peaks, spacecraft=spacecraft,
-        associations=associations)
+    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment,
+        flux_type=flux_type,
+        spacecraft=spacecraft,
+        user_thresholds=threshold,
+        dointerp=dointerp,
+        two_peaks=two_peaks,
+        color_scheme=color_scheme,
+        no_goes_colors=no_goes_colors,
+        associations=associations,
+        save_associations=save_associations,
+        auto_flare_time=auto_flare_time,
+        auto_cme_time=auto_cme_time,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        noaa_region=noaa_region,
+        path_to_data=path_to_data,
+        path_to_output=path_to_output,
+        path_to_plots=path_to_plots,
+        path_to_lists=path_to_lists)
+    
     prepsep.move_output(target_dir, subdir=subdir, enforce_new=enforce_new,
         enforce_sep_stop=enforce_sep_stop)
 
