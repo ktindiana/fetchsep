@@ -321,7 +321,7 @@ def add_flare_columns_to_list(df):
     """ Add columns for NOAA science flare values """
     for col in flare_columns:
         if col not in df.columns:
-            df.insert(column=col, value=[None]*len(df))
+            df.insert(loc=len(df.columns)-1, column=col, value=[None]*len(df))
 
     return df
 
@@ -453,7 +453,7 @@ def flare_info_to_associations(flare_info, associations={}):
 
 #Read times from a DEPRECATED column in a dataframe list, identify flares
 #from NOAA science data, and fill flare columns in the dataframe list
-def update_all_flares_in_list(df, add_ref_col=None):
+def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
     """ If an SEP event list contains the original X-ray fluxes made available
         by SWPC in their various products and archived data, add new science-quality
         flare information in additional columns. If flare not found in NOAA archive,
@@ -484,6 +484,8 @@ def update_all_flares_in_list(df, add_ref_col=None):
             :df: (pandas dataframe) SEP associations list
             :add_ref_col: (string) column name to use as reference time for 
                 identifying flares
+            :window_minutes: (float) minutes to search before and after reference 
+                time to identify flares
             
         OUTPUTS:
         
@@ -550,10 +552,11 @@ def update_all_flares_in_list(df, add_ref_col=None):
                 #flare. Use the deprecated peak value provided to compare with the identified flare.
                 if not pd.isnull(flare_info['intensity']):
                     dep_peak = row['Flare Magnitude Deprecated']
+                    if request_date < goes_r_primary_date:
+                        dep_peak = dep_peak/0.7 #remove SWPC correction for comparison
                     sci_peak = flare_info['intensity']
-                    ratio = (dep_peak/0.7)/sci_peak
-                    #Check if found flare has value within +-10% of expected value after
-                    #removing SWPC correction factor
+                    ratio = dep_peak/sci_peak
+                    #Check if found flare has value within +-% of expected value after
                     if (ratio >= 0.85) and (ratio <= 1.15):
                         pass
                     else:
@@ -638,7 +641,7 @@ def add_donki_cme_columns(df):
     """ Add columns for DONKI CME values """
     for col in donki_cme_columns:
         if col not in df.columns:
-            df.insert(column=col, value=[None]*len(df))
+            df.insert(loc=len(df.columns), column=col, value=[None]*len(df))
 
     return df
 
@@ -839,6 +842,58 @@ def update_all_donki_cmes_in_list(df, minimum_speed=450, minimum_halfAngle=15,
         df.loc[index,'DONKI CME Feature'] = cme_info['DONKI CME Feature']
         df.loc[index,'DONKI CME Measurement Technique'] = cme_info['DONKI CME Measurement Technique']
         df.loc[index,'DONKI CME Catalog ID'] = cme_info['DONKI CME Catalog ID']
+
+    return df
+
+
+
+#Add columns for DONKI CMEs
+def add_cdaw_cme_columns(df):
+    """ Add columns for CDAW CME values """
+    for col in cdaw_cme_columns:
+        if col not in df.columns:
+            df.insert(loc=len(df.columns), column=col, value=[None]*len(df))
+
+    return df
+
+
+#Given a set of CME start times, identify DONKI CMEs and populated CME columns in a list
+def update_all_cdaw_cmes_in_list(df, time_col, window_minutes=100, speed_col=None):
+    """ Given a list with reference times (e.g. flare peak times)
+            
+        Find corresponding CDAW CMEs from:
+        https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL/text_ver/univ_all.txt
+        
+    """
+
+    req_cols = [time_col, speed_col]
+    for col in req_cols:
+        if pd.isnull(col): continue
+        if col not in df.columns:
+            print(f"update_all_cdaw_cmes_in_list: {col} column must exist and be populated. Returning.")
+            return df
+
+    #Add CDAW CME columns if not present
+    df = add_cdaw_cme_columns(df)
+
+
+    for index, row in df.iterrows():
+        starttime = row[time_col]
+        if pd.isnull(starttime):
+            continue
+        
+        if not pd.isnull(row[speed_col]):
+            speed = row[speed_col]
+        else:
+            speed = np.nan
+        
+        cme_info = fetch_cme.get_cdaw_cme(starttime, window_minutes=window_minutes, speed_filter=speed)
+        
+        if cme_info.empty:
+            continue
+
+        for col in cdaw_cme_columns:
+            df.loc[index,col] = cme_info[col].iloc[0]
 
     return df
 
@@ -1406,18 +1461,19 @@ class SRAGList:
 
 
 ###########################################################################
-####################### IAN RICHARDSON'S SEP LIST #########################
+#################### IAN RICHARDSON'S SOHO/STEREO LIST ####################
 ###########################################################################
 class IGRList():
     def __init__(self):
-        """ A list of flare and CME associations for SEP events not in Steve's list.
-            This list is a subset of one compiled by Ian G. Richardson (University
-            of Maryland, NASA GSFC). Ian's timing column is a mix of flare
-            times and proton enhancement times.
+        """ A list of flare and CME associations compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). 
+            https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ
+            
+            Version of list in FetchSEP has been modified for formatting and clarity.
             
         """
         self.id = "IGR List"
-        self.filename = 'IGR_list.csv'
+        self.filename = 'SEPlist3_IGR_Dataverse.csv'
         self.reference_columns = ["SEP Reference Time"]
 
         self.time_columns = ['SEP Reference Time', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time']

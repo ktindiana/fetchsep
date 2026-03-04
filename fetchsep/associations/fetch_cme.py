@@ -9,6 +9,7 @@ import requests
 import pandas as pd
 import inspect
 import numpy as np
+from io import StringIO
 
 def convert_to_time(tzulu):
     """ Zulu string to datetime """
@@ -495,6 +496,101 @@ def cdaw_cme_to_ccmc_json(list_cme):
             pass
 
     return cme
+
+
+
+def get_cdaw_cme_info(target_time, window_minutes=60, speed_filter=np.nan):
+    """
+    Queries the SOHO LASCO CDAW CME catalog and extracts event information.
+    
+    Args:
+        target_time (datetime): The approximate date and time of the event.
+        window_minutes (int): Time range (+/-) to search around the target_time.
+        speed_filter (int): Optional speed in km/s to help identify a specific event.
+        
+    Returns:
+        pd.DataFrame: Matching CME events with parameters.
+    """
+    # URL for the comprehensive text-only universal catalog
+    catalog_url = "https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL/text_ver/univ_all.txt"
+    
+    print(f"Fetching catalog from CDAW...")
+    response = requests.get(catalog_url)
+    if response.status_code != 200:
+        return "Error: Could not access the catalog."
+
+    # Define the standard columns for the CDAW text format
+    columns = ["CDAW CME First Look Time", "CDAW CME Mean Position Angle", "CDAW CME Width", "CDAW CME Speed"]#, "Halo"]
+    catalog = {}
+    for col in columns:
+        catalog.update({col: []})
+
+    # The file has a descriptive header; we only want lines starting with a date (e.g., 2023/09/01)
+    lines = response.text.split('\n')
+    for i, line in enumerate(lines):
+        if i < 4: continue #first 4 lines are headers
+        line = line.strip().split()
+        if len(line) == 0: continue
+        
+        catalog["CDAW CME First Look Time"].append(f"{line[0]} {line[1]}")
+        
+        catalog["CDAW CME Mean Position Angle"].append(line[2]) #numerical or Halo
+#        if line[2] == "Halo" or line[2] == "halo":
+#            catalog["Halo"].append(line[2])
+#            catalog["CDAW CME Mean Position Angle"].append(np.nan)
+#        else:
+#            catalog["Halo"].append(np.nan)
+#            catalog["CDAW CME Mean Position Angle"].append(float(line[2]))
+
+        catalog["CDAW CME Width"] = float(line[3])
+        if "--" in line[4]:
+            catalog["CDAW CME Speed"].append(np.nan)
+        else:
+            catalog["CDAW CME Speed"].append(float(line[4]))
+
+    
+    # Load into DataFrame (CDAW txt uses variable whitespace delimiters)
+    df = pd.DataFrame(catalog)
+    df["CDAW CME First Look Time"] = pd.to_datetime(df["CDAW CME First Look Time"])
+    
+    # Search within the specified time window; assume provided flare time (and sometimes CME time)
+    start_search = target_time  - datetime.timedelta(minutes=15)
+    end_search = target_time + datetime.timedelta(minutes=window_minutes)
+    
+    matches = df.loc[(df["CDAW CME First Look Time"] >= start_search) & (df["CDAW CME First Look Time"] <= end_search)]
+
+    # Apply optional speed filter (allowing +/- 50 km/s margin)
+    #If multiple matches, choose the entry with the speed closest to the reference speed
+    if len(matches) > 1:
+        if not pd.isnull(speed_filter) and not matches.empty:
+            diff = matches["CDAW CME Speed"] - speed_filter
+            ix = diff.idxmin()
+            best_speed = matches["CDAW CME Speed"].loc[ix]
+            if (best_speed >= speed_filter - 50) and (best_speed <= speed_filter + 50):
+                matches = matches.loc[matches["CDAW CME Speed"]==best_speed]
+            else:
+                matches = pd.DataFrame()
+
+    return matches
+
+
+
+def get_cdaw_cme(request_date, window_minutes=100, speed_filter=None):
+    # --- Example Usage ---
+    # Search for the CME on 2023-09-01 with a speed of approximately 1339 km/s
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
+    #dataframe format
+    cme_data = get_cdaw_cme_info(request_date, window_minutes=window_minutes, speed_filter=speed_filter)
+
+    if cme_data.empty:
+        print(f"get_cdaw_cme: Did not find CME in the CDAW catalog for {request_date}.")
+    else:
+        print(f"get_cdaw_cme: Found CME in the CDAW catalog for {request_date}.")
+    
+    return cme_data
+
 
 
 ##########################################################

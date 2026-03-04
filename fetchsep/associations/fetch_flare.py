@@ -580,7 +580,8 @@ def flare_info_dict():
 
 
 
-def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_flare_id=None):
+def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_flare_id=None,
+    window_minutes=15):
     """ Extract information for a specific flare on a specific datetime.
         Enter a date within 15 minutes of flare start or end of for any time
         between the flare start and end. The flare peak time is the best reference.
@@ -646,7 +647,7 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
     #Get unique flare_ids
     flare_ids = get_unique(data.variables["flare_id"][:])
     print(f"All flare IDs for {request_date.year}-{request_date.month}-{request_date.day}: {flare_ids}")
-    td = datetime.timedelta(minutes=15) #request_date within 15 minutes of flare
+    td = datetime.timedelta(minutes=window_minutes) #request_date within 15 minutes of flare
     select_idx = []
     
     if req_flare_id != None:
@@ -825,7 +826,7 @@ def flare_info_to_ccmc_json(flare_info):
     return ccmc_flare
 
 
-def get_noaa_flare(request_time, experiment=None, format='dict'):
+def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes=15):
     """ Pull flare data from NOAA using the peak time to specify
         the flare. The peak is the most robust time to use, but
         can input any time between the start and end time of
@@ -887,7 +888,7 @@ def get_noaa_flare(request_time, experiment=None, format='dict'):
         return flare_info
 
     #Extract flare info for specified flare time from one day
-    flare_info = extract_flare_from_noaa_flsum(experiment, request_time)
+    flare_info = extract_flare_from_noaa_flsum(experiment, request_time, window_minutes=window_minutes)
 
     #If found the flare in the flare summary files, but it might span files on two days
     if not pd.isnull(flare_info['catalog_id']):
