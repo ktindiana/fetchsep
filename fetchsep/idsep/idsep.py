@@ -35,16 +35,15 @@ for path in (cfg.outpath, cfg.plotpath):
         print("Making directory:", path)
         os.mkdir(path)
 
-nsigma = cfg.idsep_nsigma #threshold mean + nsigma*sigma
-init_win = cfg.init_win
-sliding_win = cfg.sliding_win
+
 #Values below derived in identify_sep()
+#Define them here as global variables so that they can be filled
+#in the routines in a different module
 nconsec = 0 #number of consecutive points that must be nonzero
 allow_miss = 0 #number of points that can be zero when checking
                     #for SEP start
 dwell_pts = 0 #number of points that can be missed after SEP starts
                 #Dwell time
-
 
 
 """ About idsep.py
@@ -243,12 +242,12 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
         outfile.write(f"#Selected options: {options}\n")
         outfile.write(f"#Searched date range: {str_stdate} to {str_enddate}\n")
         outfile.write("#User applied an initial cut of " + str(remove_above)
-                + ", initial averaging window of " + str(init_win) + " days"
+                + ", initial averaging window of " + str(cfg.init_win) + " days"
                 + ", final threshold with a sliding window of "
-                + str(sliding_win) + " days\n")
+                + str(cfg.sliding_win) + " days\n")
         outfile.write("#The percentage of points in the sliding window that must be "
                 "background was " + str(cfg.percent_points) + "\n")
-        outfile.write("#Threshold defined as mean background + " + str(nsigma)
+        outfile.write("#Threshold defined as mean background + " + str(cfg.idsep_nsigma)
                 + " x sigma\n")
         outfile.write("#SEPs were identified when " + str(nconsec) + " points "
                 + " exceeded threshold, allowing up to " + str(allow_miss)
@@ -325,16 +324,16 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
         outfile.write(f"#Selected options: {options}\n")
         outfile.write(f"#Searched date range: {str_stdate} to {str_enddate}\n")
         outfile.write("#User applied an initial cut of " + str(remove_above)
-                + ", initial averaging window of " + str(init_win) + " days"
+                + ", initial averaging window of " + str(cfg.init_win) + " days"
                 + ", final threshold with a sliding window of "
-                + str(sliding_win) + " days\n")
+                + str(cfg.sliding_win) + " days\n")
         outfile.write("#The percentage of points in the sliding window that must be "
                 "background was " + str(cfg.percent_points) + "\n")
-        outfile.write("#Threshold defined as mean background + " + str(nsigma)
+        outfile.write("#Threshold defined as mean background + " + str(cfg.idsep_nsigma)
                 + " x sigma\n")
         outfile.write("#High flux points were identified when flux values "
                     "exceeded mean background flux + 3*sigma "
-                    "by applying a " + str(sliding_win) + " days "
+                    "by applying a " + str(cfg.sliding_win) + " days "
                     "backward sliding window to estimate the background levels.\n")
         outfile.write("#Start Time    End Time\n")
         
@@ -364,7 +363,7 @@ def separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding):
 
 
 
-def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experiment,
+def rough_cut(dates, fluxes, remove_above, energy_bins, experiment,
         flux_type, exp_name, options, doBGSub, showplot, saveplot, spacecraft="",
         add_path=''):
     """ Remove fluxes above remove_above.
@@ -376,12 +375,8 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
         
         INPUTS:
         
-            :init_win: (float) number of days in the initial window used to
-                calculate the first rough cut of the background. e.g. 150 days.
             :dates: (1xn datetime array)
             :fluxes: (mxn float array) fluxes for m energy bins, n dates
-            :nsigma: (float) number of sigma above the mean background to set the
-                threshold that separates background from enhanced flux
             :remove_above: (float) and initial cut on flux applied to all
                 energy bins. Flux > remove_above is considered an enhancement.
         
@@ -392,25 +387,25 @@ def rough_cut(init_win, dates, fluxes, nsigma, remove_above, energy_bins, experi
             
     """
     print("Preforming an initial rough cut between the background and enhanced fluxes.")
-    print(f"Init win: {init_win}, Nsigma: {nsigma}, Remove above: {remove_above}")
+    print(f"Init win: {cfg.init_win}, Nsigma: {cfg.idsep_nsigma}, Remove above: {remove_above}")
     ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
-                defbg.ndays_average_optimized(init_win, dates, fluxes, energy_bins,
-                nsigma, remove_above, add_path=add_path)
+                defbg.ndays_average_optimized(cfg.init_win, dates, fluxes, energy_bins,
+                cfg.idsep_nsigma, remove_above, add_path=add_path)
     
     #INITIAL SEPARATION OF BG AND HIGHER THAN BG
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
     
     if showplot or saveplot:
-        plt_tools.idsep_make_plots(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, doBGSub, showplot, saveplot, spacecraft=spacecraft)
+        plt_tools.idsep_make_plots(str(cfg.init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, doBGSub, showplot, saveplot, spacecraft=spacecraft)
         
-        plt_tools.idsep_make_bg_sep_plot(str(init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins, doBGSub,
+        plt_tools.idsep_make_bg_sep_plot(str(cfg.init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins, doBGSub,
             showplot, saveplot, spacecraft=spacecraft)
 
     
     return fluxes_bg, fluxes_high
 
 
-def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, nsigma,
+def apply_sliding_window(dates, fluxes_bg_in, fluxes, energy_bins,
     iteration=0, is_final=False, add_path=''):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
@@ -421,13 +416,10 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, 
         
         INPUTS:
         
-            :sliding_win: (float) number of days for sliding window
             :dates: (1xn datetime array)
             :fluxes_bg_in: (mxn float array) background fluxes for m energy bins,
                 n dates
             :fluxes: (mxn float array) all fluxes for m energy bins, n dates
-            :nsigma: (float) global number of sigma above background to define an
-                enhancement
                 
         OUTPUTS:
         
@@ -436,8 +428,8 @@ def apply_sliding_window(sliding_win, dates, fluxes_bg_in, fluxes, energy_bins, 
     
     """
     ave_background, ave_sigma, threshold =\
-            defbg.backward_window_background_optimized(sliding_win, dates, fluxes_bg_in,
-            energy_bins, nsigma, iteration, is_final=is_final, add_path=add_path)
+            defbg.backward_window_background_optimized(cfg.sliding_win, dates, fluxes_bg_in,
+            energy_bins, cfg.idsep_nsigma, iteration, is_final=is_final, add_path=add_path)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -608,16 +600,10 @@ def run_idsep(str_startdate, str_enddate, experiment,
     #of interest because the background solution for the first dates of the
     #timeseries are not accurate
     if not plot_timeseries_only:
-        #Extend timeseries to have a buffer in beginning
-        #Initially included, but hard to control starting date with this
-        #added to the code
-#        ndays = max(27*2,sliding_win*2)
- #       eff_startdate = startdate - datetime.timedelta(days=ndays)
-
         #Extend timeseries to cover init_win
         diff = (enddate - startdate).days
-        if diff < init_win*2:
-            eff_startdate = enddate - datetime.timedelta(days=init_win*2)
+        if diff < cfg.init_win*2:
+            eff_startdate = enddate - datetime.timedelta(days=cfg.init_win*2)
         
     
     error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
@@ -644,7 +630,7 @@ def run_idsep(str_startdate, str_enddate, experiment,
     
     #ITERATION 1: DEFINE AN INITIAL "MOVING" THRESHOLD W/DATE
     print("TIMESTAMP: Creating rough cut first guess at threshold at time " + str(datetime.datetime.now()))
-    fluxes_bg_init, fluxes_high_init = rough_cut(init_win, dates, fluxes, nsigma,
+    fluxes_bg_init, fluxes_high_init = rough_cut(dates, fluxes,
         remove_above, energy_bins, experiment, flux_type, exp_name, options, doBGSub,
         False, saveplot, spacecraft=spacecraft, add_path=idsep_name)
     
@@ -675,22 +661,22 @@ def run_idsep(str_startdate, str_enddate, experiment,
         #The mean background is sensitive to the background selection in fluxes_bg_init
         print(f"TIMESTAMP: Starting sliding window background calculation, {datetime.datetime.now()}")
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
-            apply_sliding_window(sliding_win, dates, fluxes_bg_init, fluxes, energy_bins, nsigma,
+            apply_sliding_window(dates, fluxes_bg_init, fluxes, energy_bins,
             iteration=iter, is_final=is_final, add_path=idsep_name)
         print(f"TIMESTAMP: Completed sliding window background calculation, {datetime.datetime.now()}")
 
 
         if showplot or saveplot:
-            plt_tools.idsep_make_plots(str(sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, doBGSub, False, saveplot,
+            plt_tools.idsep_make_plots(str(cfg.sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, doBGSub, False, saveplot,
                 spacecraft=spacecraft, close_plot=close_plot)
             
-            plt_tools.idsep_make_plots(str(sliding_win)+"window_nosigma" + post,
+            plt_tools.idsep_make_plots(str(cfg.sliding_win)+"window_nosigma" + post,
                 experiment, flux_type,
                 exp_name, options, dates, fluxes_bg_init, energy_bins, dates,
                 ave_background, ave_sigma, dates, threshold, doBGSub, showplot,
                 saveplot, True, spacecraft=spacecraft, close_plot=close_plot) #disable_sigma
             
-            plt_tools.idsep_make_bg_sep_plot(str(sliding_win)+"window" + post, experiment,
+            plt_tools.idsep_make_bg_sep_plot(str(cfg.sliding_win)+"window" + post, experiment,
                 flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins,
                 doBGSub, showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot)
 

@@ -1597,7 +1597,8 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
             continue
         ax[iax].plot(dates,maskfluxes_bg,'.-', markersize=3, label=(f"Background"))
         maskfluxes_sep = np.ma.masked_less_equal(fluxes_sep[i], 0)
-        ax[iax].plot(dates,maskfluxes_sep,'.-', markersize=3, label=(f"Enhanced"), zorder=100)
+        if not np.isnan(maskfluxes_sep).all():
+            ax[iax].plot(dates,maskfluxes_sep,'.-', markersize=3, label=(f"Enhanced"), zorder=100)
 
         if iax == 0:
             ax[iax].legend(bbox_to_anchor=(0., 1.02, 1., .102), loc='lower left',
@@ -1615,7 +1616,12 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
     
         #Set clean y-axis ranges
         ymin = 10 ** np.floor(np.log10(np.nanmin(maskfluxes_bg)))
-        ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes_sep)))
+        
+        if not pd.isnull(np.ceil(np.log10(np.nanmax(fluxes_sep[i])))):
+            ymax = 10 ** np.ceil(np.log10(np.nanmax(fluxes_sep[i])))
+        if pd.isnull(ymax) or ymax==0:
+            ymax = 10 ** np.ceil(np.log10(np.nanmax(maskfluxes_bg)))
+
         if 'counts' in flux_units:
             ymin = np.floor(np.nanmin(maskfluxes_bg))
             ymax = np.ceil(np.nanmax(maskfluxes_sep))
