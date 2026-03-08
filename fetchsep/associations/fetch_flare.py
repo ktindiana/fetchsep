@@ -578,15 +578,32 @@ def flare_info_dict():
     return flare_info
 
 
+def is_intensity_match(request_intensity, measured_intensity):
+    """ Check if requested flare intensity sufficiently matches NOAA flare intensity """
+    if pd.isnull(request_intensity) or pd.isnull(measured_intensity):
+        return None
+
+    ratio = request_intensity/measured_intensity
+    if (ratio >= 0.85) and (ratio <= 1.15):
+        return True
+    else:
+        return False
 
 
 def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_flare_id=None,
-    window_minutes=15):
+    window_minutes_minus=15, window_minutes_plus=15, flare_intensity=None, dep_flare_intensity=None):
     """ Extract information for a specific flare on a specific datetime.
         Enter a date within 15 minutes of flare start or end of for any time
         between the flare start and end. The flare peak time is the best reference.
         
-        request_date is taken to be the flare peak time as it is the least subjective.
+        If a flare peak value is provided, will identify the flare closest in intensity
+        within the observed flare start - window_minutes and observed flare end + window_minutes.
+        A GOES-R or science intensity is entered via flare_intensity. 
+        A GOES-15 and previous historical intensity with SWPC calibration is entered via
+        dep_flare_intensity. (deprecated flare intensity).
+        Only enter one flare intensity value. If both are non-null, will use flare_intensity.
+        
+        flare_intensity and dep_flare_intensity not used if req_flare_id is specified.
         
         INPUTS:
         
@@ -594,6 +611,13 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
             :request_date: (datetime) timestamp for a date related to a specific flare,
                 can be similar to flare start, peak, end. Will look compare date to
                 15 minutes from the flare start and end.
+            :window_minutes_plus/_minus: (int) searches for flare matches within observed flare start and
+                end +- window_minutes
+            :flare_intensity: (float) approximate intensity of flare that want to find in catalog
+                for GOES-R or that has already had the SWPC calibration removed.
+            :dep_flare_intensity: (float) approximate intensity of deprecated flare value prior 
+                to GOES-R and that has the SWPC calibration factor applied (historical
+                GOES-08 to GOES-15 values).
                 
         OUTPUTS:
         
@@ -614,6 +638,8 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
         print(f"extract_flare_from_noaa_flsum: {experiment} X-ray science data is not yet available from NOAA. Returning.")
         return flare_info
 
+    if pd.isnull(flare_intensity) and not pd.isnull(dep_flare_intensity):
+        flare_intensity = dep_flare_intensity/0.7 #remove SWPC calibration
 
     year = request_date.year
     month = request_date.month
@@ -647,7 +673,8 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
     #Get unique flare_ids
     flare_ids = get_unique(data.variables["flare_id"][:])
     print(f"All flare IDs for {request_date.year}-{request_date.month}-{request_date.day}: {flare_ids}")
-    td = datetime.timedelta(minutes=window_minutes) #request_date within 15 minutes of flare
+    tdp = datetime.timedelta(minutes=window_minutes_plus) #request_date within window_minutes of flare
+    tdm = datetime.timedelta(minutes=window_minutes_minus) #request_date within window_minutes of flare
     select_idx = []
     
     if req_flare_id != None:
@@ -680,20 +707,39 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
             flst = None
             flpk = None
             flend = None
+            flint = None
             for ix in idx:
                 if data.variables["status"][ix] == "EVENT_START":
                     flst = flare_dates[ix]
                 if data.variables["status"][ix] == "EVENT_PEAK" or data.variables["status"][ix] == "EVENT_PEAK_SATURATED":
                     flpk = flare_dates[ix]
+                    flint = data.variables["xrsb_flux"][ix]
                 if data.variables["status"][ix] == "EVENT_END":
                     flend = flare_dates[ix]
 
+                
+            #Continue if current flare is the wrong intensity
+            if not pd.isnull(flare_intensity) and not pd.isnull(flint):
+                is_match = is_intensity_match(flare_intensity, flint) #None, True, False
+                #Continue if current flare is the wrong intensity
+                if not is_match:
+                    continue
+            
 
             #Cycle through all flares and find the one that minimizes the time
             #difference between the request_date and the found flare peak
             #-->If flare occurred in one day
             ################################
             if flst != None and flend != None:
+                #If the flare start prior to the requested date, use window_minutes_minus
+                if flst < request_date:
+                    compare_min = flst
+                    compare_max = flend + tdm
+                #if the flare starts after the requested date, use window_minutes_plus
+                else:
+                    compare_min = flst - tdp
+                    compare_max = flend
+
                 #-->PRECEDENCE. Just in case there are two flares close together, give precedence
                 #to the one containing requested date
                 #####################################################################
@@ -704,12 +750,12 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
                         select_idx = idx
                         print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
                 #slightly looser requirements in case request_date was a bit off
-                elif (request_date >= flst-td) and (request_date <= flend+td):
+                elif (request_date >= compare_min) and (request_date <= compare_max):
                     ptd = abs(flpk - request_date)
                     if ptd < peak_td:
                         peak_td = ptd
                         select_idx = idx
-                        print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst} to {flend} for requested date {request_date}")
+                        print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst} to {flend} between broadened search times {compare_min} to {compare_max} for requested date {request_date}")
 
 
 
@@ -717,31 +763,44 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
             #or the last flare in the file is the desired one and goes on to the next day
             ######################################################################################
             if flst != None and flend == None:
-                #Case of last flare in file and requested time is between the flare start and
-                #the end of the day
-                if index == len(flare_ids)-1:
-                    dayend = datetime.datetime(year,month,day,23,59,59)
-                    if (request_date >= flst-td) and (request_date <= dayend):
-                        select_idx = idx
-                        print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst} to {dayend} for requested date {request_date}")
-                        break
-                #If the flare is not the last flare and there is a peak time
-                elif flpk != None:
-                    #look for the requested time within flare start and peak
-                    if (request_date >= flst) and (request_date <= flpk+td):
-                        ptd = abs(flpk - request_date)
-                        if ptd < peak_td:
-                            peak_td = ptd
-                            select_idx = idx
-                            print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst} to {flpk+td} for requested date {request_date}")
-                    #Slightly looser timing requirements in case the request date was a bit off
-                    elif (request_date >= flst-td) and (request_date <= flpk+td):
-                        ptd = abs(flpk - request_date)
-                        if ptd < peak_td:
-                            peak_td = ptd
-                            select_idx = idx
-                            print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst} to {flpk+td} for requested date {request_date}")
+#                if flst < request_date:
+#                    compare_min = flst
+#                #if the flare starts after the requested date, use window_minutes_plus
+#                else:
+#                    compare_min = flst - tdp
+#                #Case of last flare in file and requested time is between the flare start and
+#                #the end of the day
+#                if index == len(flare_ids)-1:
+#                    dayend = datetime.datetime(year,month,day,23,59,59)
+#                    if (request_date >= compare_min) and (request_date <= dayend):
+#                        select_idx = idx
+#                        print(f"extract_flare_from_noaa_flsum: Found {experiment} flare at end of day with start time {flst} using search dates {compare_min} to {dayend} for requested date {request_date}")
+#                        break
 
+                #If the flare is not the last flare and there is a peak time
+                if flpk != None:
+                    if flst < request_date:
+                        compare_min = flst
+                        compare_max = flpk + tdm
+                    #if the flare starts after the requested date, use window_minutes_plus
+                    else:
+                        compare_min = flst - tdp
+                        compare_max = flpk
+
+                    #look for the requested time within flare start and peak
+                    if (request_date >= compare_min) and (request_date <= compare_max):
+                        ptd = abs(flpk - request_date)
+                        if ptd < peak_td:
+                            peak_td = ptd
+                            select_idx = idx
+                            print(f"extract_flare_from_noaa_flsum: Found {experiment} flare with start {flst} and peak {flpk} using search dates {compare_min} to {compare_max} for requested date {request_date}")
+#                    #Slightly looser timing requirements in case the request date was a bit off
+#                    elif (request_date >= flst-tdm) and (request_date <= flpk+tdp):
+#                        ptd = abs(flpk - request_date)
+#                        if ptd < peak_td:
+#                            peak_td = ptd
+#                            select_idx = idx
+#                            print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {flst-tdm} to {flpk+tdp} for requested date {request_date}")
 
 
             #-->Check if the first flare in the file is the desired one and starts on the previous day
@@ -750,24 +809,25 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
                 if index == 0:
                     #If requested date is between the start of the day and the flare end
                     dayst = datetime.datetime(year,month,day,0,0,0)
-                    if (request_date >= dayst) and (request_date <= flend):
-                        select_idx = idx
-                        print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {dayst} to {flend} for requested date {request_date}")
-                        break
+#                    if (request_date >= dayst) and (request_date <= flend):
+#                        select_idx = idx
+#                        print(f"extract_flare_from_noaa_flsum: Found {experiment} flare at the beginning of the day with end time {flend} using search dates {dayst} to {flend} for requested date {request_date}")
+#                        break
                     #Slightly looser timing requirements in case the request date was a bit off
-                    elif flpk != None:
-                        if (request_date >= dayst) and (request_date <= flend+td):
+                    #The only case that could occur is if request_date is after flend
+                    if flpk != None:
+                        if (request_date >= dayst) and (request_date <= flend+tdm):
                             ptd = abs(flpk - request_date)
                             if ptd < peak_td:
                                 peak_td = ptd
                                 select_idx = idx
-                                print(f"extract_flare_from_noaa_flsum: Found {experiment} flare {dayst} to {flend+td} for requested date {request_date}")
+                                print(f"extract_flare_from_noaa_flsum: Found {experiment} flare at the beginning of the day with start {flst} and peak {flpk} using search dates {dayst} to {flend+tdm} for requested date {request_date}")
  
  
 
     #If no flare found
     if len(select_idx) == 0:
-        print(f"extract_flare_from_noaa_flsum: {experiment} flare information (start, peak, or end) not found for requested date {request_date}.")
+        print(f"extract_flare_from_noaa_flsum: {experiment} flare information not found for requested date {request_date}.")
         return flare_info
 
     #flare_id, status, xrsb_flux, flare_class, time, integrated_flux, flare_class
@@ -826,7 +886,8 @@ def flare_info_to_ccmc_json(flare_info):
     return ccmc_flare
 
 
-def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes=15):
+def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes_minus=15,
+    window_minutes_plus=15, flare_intensity=None, dep_flare_intensity=None, request_flare_id=None):
     """ Pull flare data from NOAA using the peak time to specify
         the flare. The peak is the most robust time to use, but
         can input any time between the start and end time of
@@ -842,6 +903,11 @@ def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes=
             :experiment: (string) GOES-18, GOES-08, etc
             :format: (string) "dict" for flare_info format used by the lists (default); 
                 "json" to return CCMC SEP Scoreboard trigger block
+            :flare_intensity: (float) approximate intensity of flare that want to find in catalog
+                for GOES-R or that has already had the SWPC calibration removed.
+            :dep_flare_intensity: (float) approximate intensity of deprecated flare value prior 
+                to GOES-R and that has the SWPC calibration factor applied (historical
+                GOES-08 to GOES-15 values).
         
     """
     flare_info = flare_info_dict()
@@ -887,23 +953,55 @@ def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes=
         print(f"get_noaa_flare: Could not find a satellite that covers your requested date.")
         return flare_info
 
+    #Time parameters for later
+    next_day = request_time+datetime.timedelta(hours=24)
+    previous_day = request_time-datetime.timedelta(hours=24)
+    tdm = datetime.timedelta(minutes=window_minutes_minus)
+    tdp = datetime.timedelta(minutes=window_minutes_plus)
+
     #Extract flare info for specified flare time from one day
-    flare_info = extract_flare_from_noaa_flsum(experiment, request_time, window_minutes=window_minutes)
+    print(f"get_noaa_flare: Searching for {experiment} flare at requested date {request_time} using search timeframe {request_time-tdm} to {request_time+tdp}")
+    flare_info = extract_flare_from_noaa_flsum(experiment, request_time, window_minutes_minus=window_minutes_minus,
+        window_minutes_plus=window_minutes_plus, flare_intensity=flare_intensity, dep_flare_intensity=dep_flare_intensity, req_flare_id=request_flare_id)
+    
+    #If no flare found, but the flare might actually be in the beginning of the next due
+    #due to uncertainty in approximate times provided.
+    if pd.isnull(flare_info['catalog_id']):
+        past_midnight = datetime.datetime(next_day.year, next_day.month, next_day.day) #Next day
+        before_midnight = datetime.datetime(previous_day.year, previous_day.month, previous_day.day) #Previous day
+        #Flare possibly early next day
+        if request_time + datetime.timedelta(minutes=window_minutes_plus) >= past_midnight:
+            print("get_noaa_flare: Looking for flare early on the next day.")
+            flare_info = extract_flare_from_noaa_flsum(experiment, past_midnight,
+                window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                flare_intensity=flare_intensity, dep_flare_intensity=dep_flare_intensity)
+        #Flare possibly late previous day
+        if request_time - datetime.timedelta(minutes=window_minutes_minus) < before_midnight:
+            print("get_noaa_flare: Looking for flare late on the previous day.")
+            flare_info = extract_flare_from_noaa_flsum(experiment, before_midnight,
+                window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                flare_intensity=flare_intensity, dep_flare_intensity=dep_flare_intensity)
+        
 
     #If found the flare in the flare summary files, but it might span files on two days
     if not pd.isnull(flare_info['catalog_id']):
+        cat_id = str(flare_info['catalog_id'])
+        year = int(cat_id[0:4])
+        month = int(cat_id[4:6])
+        day = int(cat_id[6:8])
+        flare_date = datetime.datetime(year, month, day)
+        next_flare_date = flare_date + datetime.timedelta(hours=24)
         if not pd.isnull(flare_info['start_time']) and pd.isnull(flare_info['end_time']):
-            next_day = request_time+datetime.timedelta(hours=24)
-            print("get_noaa_flare: No flare end time. Checking for additional flare information for the next day {next_day}. "
+            
+            print(f"get_noaa_flare: No flare end time. Checking for additional flare information for the next day {next_flare_date}. "
                 "Note that flares may not have end times if another flare began before the flare ended.")
             #Look for the flare end in the file for the next day
-            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], next_day, flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], next_flare_date, flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
 
         if pd.isnull(flare_info['start_time']) and not pd.isnull(flare_info['end_time']):
-            previous_day = request_time-datetime.timedelta(hours=24)
-            print("get_noaa_flare: No flare start time. Checking for additional flare information for the previous day {previous_day}.")
+            print(f"get_noaa_flare: No flare start time. Checking for additional flare information for the previous day {flare_date}.")
             #Look for the flare start in the file for the previous day
-            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], previous_day, flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
+            flare_info = extract_flare_from_noaa_flsum(flare_info['instrument'], flare_date, flare_info=flare_info, req_flare_id=flare_info['catalog_id'])
 
 
     if format == 'json':

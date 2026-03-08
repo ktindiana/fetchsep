@@ -453,7 +453,7 @@ def flare_info_to_associations(flare_info, associations={}):
 
 #Read times from a DEPRECATED column in a dataframe list, identify flares
 #from NOAA science data, and fill flare columns in the dataframe list
-def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
+def update_all_flares_in_list(df, add_ref_col=None, window_minutes_minus=15, window_minutes_plus=15):
     """ If an SEP event list contains the original X-ray fluxes made available
         by SWPC in their various products and archived data, add new science-quality
         flare information in additional columns. If flare not found in NOAA archive,
@@ -484,7 +484,7 @@ def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
             :df: (pandas dataframe) SEP associations list
             :add_ref_col: (string) column name to use as reference time for 
                 identifying flares
-            :window_minutes: (float) minutes to search before and after reference 
+            :window_minutes_minus/_plus: (float) minutes to search before and after reference 
                 time to identify flares
             
         OUTPUTS:
@@ -522,7 +522,7 @@ def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
         if pd.isnull(row['Flare Magnitude Deprecated']):
             continue
 
-        flare_info = {}
+        flare_info = fetch_flare.flare_info_dict()
 
         experiment = None
         if 'GOES Xray Satellite' in df.columns:
@@ -535,7 +535,7 @@ def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
 
         #Experiment not specified
         ##########################
-        #Find a GOES satellite for the requested date, e.g. Ian's list
+        #Find a GOES satellite for the requested date
         if experiment == None:
             request_date = pd.NaT
             for ref_col in ref_time_columns:
@@ -546,27 +546,19 @@ def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
                 
             print(f"Flare without GOES satellite specified {request_date}")
             #-->Don't know which satellite was used, will default to primary satellite
-            flare_info = fetch_flare.get_noaa_flare(request_date)
-            if not pd.isnull(flare_info['catalog_id']):
-                #The times provided in the IGR list aren't always accurate enough to find the correct
-                #flare. Use the deprecated peak value provided to compare with the identified flare.
-                if not pd.isnull(flare_info['intensity']):
-                    dep_peak = row['Flare Magnitude Deprecated']
-                    if request_date < goes_r_primary_date:
-                        dep_peak = dep_peak/0.7 #remove SWPC correction for comparison
-                    sci_peak = flare_info['intensity']
-                    ratio = dep_peak/sci_peak
-                    #Check if found flare has value within +-% of expected value after
-                    if (ratio >= 0.85) and (ratio <= 1.15):
-                        pass
-                    else:
-                        flare_info = {}
+            request_intensity = row['Flare Magnitude Deprecated']
+            if request_date < goes_r_primary_date:
+                flare_info = fetch_flare.get_noaa_flare(request_date,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    dep_flare_intensity = request_intensity)
             else:
-                flare_info = {} #so will manually apply calibration
+                flare_info = fetch_flare.get_noaa_flare(request_date,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    flare_intensity = request_intensity)
 
             #-->If didn't find a measurement in the science data, then apply calibration manually
             #After goes_r_primary_date, SWPC provided already calibrated GOES-R X-ray fluxes
-            if not flare_info:
+            if pd.isnull(flare_info['catalog_id']):
                 remove_swpc = False
                 if request_date < goes_r_primary_date:
                     #DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
@@ -595,8 +587,21 @@ def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
                 continue
 
             print(f"update_all_flares_in_list: Flare {request_date} requested for {experiment}.")
-            flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment)
-            
+ 
+            request_intensity = row['Flare Magnitude Deprecated']
+            if pd.isnull(request_intensity):
+                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,)
+            elif request_date < goes_r_primary_date:
+                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    dep_flare_intensity = request_intensity)
+            else:
+                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    flare_intensity = request_intensity)
+ 
+ 
             #-->If didn't find a measurement in the science data, then apply calibration manually
             if pd.isnull(flare_info['catalog_id']):
                 remove_swpc = False
@@ -609,9 +614,6 @@ def update_all_flares_in_list(df, add_ref_col=None, window_minutes=15):
 
         #Check for missing/no results
         #############################
-        #Didn't find any flare information for any experiments
-        if not flare_info: continue
-
         #If experiment covered date range, but didn't have requested flare info
         if pd.isnull(flare_info['intensity']): continue
 
@@ -800,38 +802,38 @@ def cme_ccmc_json_to_associations(cme_json, associations={}, catalog='DONKI'):
 
 
 #Given a set of CME start times, identify DONKI CMEs and populated CME columns in a list
-def update_all_donki_cmes_in_list(df, minimum_speed=450, minimum_halfAngle=15,
-            feature='LE'):
+def update_all_donki_cmes_in_list(df, minimum_speed=None, minimum_halfAngle=None,
+            feature='LE', window_minutes=60, ref_col='CDAW CME First Look Time'):
     """ Given a list with CDAW LASCO CME first look times stored in a column:
             'CDAW CME First Look Time'
             
-        Find corresponding DONKI CMEs with preferred selections:
+        Find corresponding DONKI CMEs. Suggested preferred selections for larger SEP events:
             minimum speed: default > 450 km/s
             minimum half angle: default > 15 km/s
             feature: Default leading edge (LE) measurements preferred over shock (SH)
-        
+            
+            :window_minutes: (int) find CME within window_minutes from requested time
+            :ref_col: (string) name of column with reference CME start time; default is
+                    'CDAW CME First Look Time'
+                    
     """
 
-    req_cols = ['CDAW CME First Look Time']
-    for col in req_cols:
-        if col not in df.columns:
-            print(f"update_all_donki_cmes_in_list: {col} column must exist and be populated. Returning.")
-            return df
+    if ref_col not in df.columns:
+        print(f"update_all_donki_cmes_in_list: {ref_col} column must exist and be populated. Returning.")
+        return df
 
     #Add DONKI CME columns if not present
     df = add_donki_cme_columns(df)
 
 
     for index, row in df.iterrows():
-        starttime = row['CDAW CME First Look Time']
+        starttime = row[ref_col]
         if pd.isnull(starttime):
             continue
         
         cme_info = fetch_cme.get_donki_cme(starttime, minimum_speed=minimum_speed,
-            minimum_halfAngle=minimum_halfAngle, feature=feature, format='dict')
-        
-        if not cme_info:
-            continue
+            minimum_halfAngle=minimum_halfAngle, feature=feature, format='dict',
+            window_minutes=window_minutes)
 
         df.loc[index,'DONKI CME Start Time'] = cme_info['DONKI CME Start Time']
         df.loc[index,'DONKI CME Speed'] = cme_info['DONKI CME Speed']
@@ -858,7 +860,7 @@ def add_cdaw_cme_columns(df):
 
 
 #Given a set of CME start times, identify DONKI CMEs and populated CME columns in a list
-def update_all_cdaw_cmes_in_list(df, time_col, window_minutes=100, speed_col=None):
+def update_all_cdaw_cmes_in_list(df, time_col, window_minutes_minus=60, window_minutes_plus=60, speed_col=None):
     """ Given a list with reference times (e.g. flare peak times)
             
         Find corresponding CDAW CMEs from:
@@ -876,24 +878,20 @@ def update_all_cdaw_cmes_in_list(df, time_col, window_minutes=100, speed_col=Non
     #Add CDAW CME columns if not present
     df = add_cdaw_cme_columns(df)
 
-
     for index, row in df.iterrows():
         starttime = row[time_col]
         if pd.isnull(starttime):
-            continue
-        
-        if not pd.isnull(row[speed_col]):
-            speed = row[speed_col]
+            cme_info = fetch_cme.null_cdaw_cme(type='dict')
         else:
-            speed = np.nan
-        
-        cme_info = fetch_cme.get_cdaw_cme(starttime, window_minutes=window_minutes, speed_filter=speed)
-        
-        if cme_info.empty:
-            continue
+            if not pd.isnull(row[speed_col]):
+                speed = row[speed_col]
+            else:
+                speed = np.nan
+            
+            cme_info = fetch_cme.get_cdaw_cme(starttime, window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus, speed_filter=speed)
 
         for col in cdaw_cme_columns:
-            df.loc[index,col] = cme_info[col].iloc[0]
+            df.loc[index,col] = cme_info[col]
 
     return df
 
