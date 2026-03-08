@@ -571,6 +571,9 @@ def get_cdaw_cme_info(target_time, window_minutes_minus=60, window_minutes_plus=
 
     # The file has a descriptive header; we only want lines starting with a date (e.g., 2023/09/01)
     lines = response.text.split('\n')
+#    infile = open('../CDAW_CME_list.txt','r')
+#    content = infile.read()
+#    lines = content.split('\n')
     for i, line in enumerate(lines):
         if i < 4: continue #first 4 lines are headers
         line = line.strip().split()
@@ -578,19 +581,14 @@ def get_cdaw_cme_info(target_time, window_minutes_minus=60, window_minutes_plus=
         catalog["CDAW CME First Look Time"].append(f"{line[0]} {line[1]}")
         
         catalog["CDAW CME Mean Position Angle"].append(line[2]) #numerical or Halo
-#        if line[2] == "Halo" or line[2] == "halo":
-#            catalog["Halo"].append(line[2])
-#            catalog["CDAW CME Mean Position Angle"].append(np.nan)
-#        else:
-#            catalog["Halo"].append(np.nan)
-#            catalog["CDAW CME Mean Position Angle"].append(float(line[2]))
-
+        
         catalog["CDAW CME Width"].append(float(line[3]))
         if "--" in line[4]:
             catalog["CDAW CME Speed"].append(np.nan)
         else:
             catalog["CDAW CME Speed"].append(float(line[4]))
 
+#    infile.close()
     
     # Load into DataFrame (CDAW txt uses variable whitespace delimiters)
     df = pd.DataFrame(catalog)
