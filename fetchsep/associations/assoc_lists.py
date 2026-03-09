@@ -943,6 +943,9 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
                 for >10 MeV or proton energies ~10 MeV or threshold crossing time
             :list_name: (string) list to pull from for associated flares, CMEs, etc
                 "srag" is SRAG_SEP_List.csv
+                "igr_25" is IGR_25MeV_SEP_List.csv
+                "cane" is Cane_SEP_List.csv
+                "igr_soho" is IGR_SEPlist3_20260306.csv 
                 "user" is the list the user maintains in fetchsep/reference/user_associations.csv
                 
         OUTPUT:
@@ -957,12 +960,15 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         return null_assoc
 
     if list_name == 'srag':
-        assoc_list = SRAGList()
-    elif list_name == 'IGR':
-        #assoc_list = IGRList()
-        return null_assoc #return for now until a better version of Ian's list is implemented
+        assoc_list = SRAG_List()
+    elif list_name == 'igr_25':
+        assoc_list = IGR_25MeV_List()
+    elif list_name == 'igr_soho':
+        assoc_list = IGR_SOHO_List()
+    elif list_name == 'cane':
+        assoc_list = Cane_list()
     elif list_name == 'user':
-        assoc_list = UserList()
+        assoc_list = User_List()
     else:
         sys.exit(f"Specific list {list_name} does not exist. Exiting.")
         
@@ -1220,7 +1226,7 @@ def associations_to_ccmc_flare(associations):
 ###########################################################################
 ################### STEVE JOHNSON'S SRAG SEP LIST #########################
 ###########################################################################
-class SRAGList:
+class SRAG_List:
     def __init__(self):
         """ Steve Johnson's SEP list curated for the Space Radiation Analysis Group (SRAG)
             at NASA Johnson Space Center.
@@ -1461,7 +1467,7 @@ class SRAGList:
 ###########################################################################
 #################### IAN RICHARDSON'S SOHO/STEREO LIST ####################
 ###########################################################################
-class IGRList():
+class IGR_SOHO_List():
     def __init__(self):
         """ A list of flare and CME associations compiled by Ian G. Richardson (University
             of Maryland, NASA GSFC). 
@@ -1469,19 +1475,21 @@ class IGRList():
             
             Version of list in FetchSEP has been modified for formatting and clarity.
             
+            Covers dates from Dec 2006 - Jan 2024
+            
         """
-        self.id = "IGR List"
-        self.filename = 'SEPlist3_IGR_Dataverse.csv'
-        self.reference_columns = ["SEP Reference Time"]
+        self.id = "IGR SOHO/STEREO List"
+        self.filename = 'IGR_SEPlist3_20260306.csv'
+        self.list = pd.DataFrame()
+        self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
-        self.time_columns = ['SEP Reference Time', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time']
+        self.time_columns = ['Solar Event Date (UT)', 'SEP Event Onset Date (UT)', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'SEP Reference Start', 'SEP Reference End']
 
-        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed']
+        self.float_columns = ['Solar Event-B (deg)', 'I(B)', 'Solar Event-Earth (deg)', 'I(Earth)', 'Solar Event-A (deg)', 'I(A)', 'CME dA (deg)', 'CME V (km/s)', 'Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', ]
 
+        self.int_columns = ['Radio TyIII_Imp', 'Radio TyII Imp', 'Flare Catalog ID', 'GOES Xray Satellite']
 
-        self.int_columns = ['Flare Catalog ID', 'GOES Xray Satellite']
-
-        self.string_columns =  ['Flare Class', 'Event Source Reference', 'Comments']
+        self.string_columns =  ['Flare Class Deprecated','Flare Class', 'CDAW CME Mean Position Angle', 'DONKI CME Feature', 'DONKI CME Measurement Technique', 'Comments']
 
         return
 
@@ -1536,56 +1544,9 @@ class IGRList():
         return df
 
 
-    def sep_reference_times(self, df):
-        """ Populate SEP list dataframe with the first time and last time 
-            that should be used to  find SEP events in list. The idea is to 
-            give the biggest range of times for which the SEP was observed. 
-            
-            For the SRAG list, we use the very first SEP start time and the
-            very last SEP end time across energy channels.
-            
-            Steve provides timing that should completely capture SEP start
-            and peak. The provided end times may not extend as long as those
-            calculated by OpSEP.
-            
-        """
-        sep_time_columns = ['SEP Reference Time']
-        
-        if assoc_reference_columns[0] not in df.columns:
-            idx = df.columns.get_loc('SEP Reference Time')
-            df.insert(loc=idx+1,column=assoc_reference_columns[0], value=[None]*len(df))
-        if assoc_reference_columns[1] not in df.columns:
-            idx = df.columns.get_loc(assoc_reference_columns[0])
-            df.insert(loc=idx+1, column=assoc_reference_columns[1], value=[None]*len(df))
-
-        for index, row in self.df.itterows():
-            first_time = pd.NaT
-            last_time = pd.NaT
- 
-            #Estimate a start time period that is associated with the flare
-            #or possibly a proton rise from background. It is unclear what
-            #the reference time is, but try to guess with the available info.
-            
-            #Likely a flare time
-            if not pd.isnull('Flare Magnitude'):
-                first_time = row['SEP Reference Time']
-                last_time = first_time + datetime.timedelta(hours=36)
-            #Likely a CME first look time
-            elif not pd.isnull(row['CDAW CME Speed']):
-                first_time = row['SEP Reference Time']
-                last_time = first_time + datetime.timedelta(hours=36)
-            else: 
-                continue #FIX STARTING HERE
-
-            df[assoc_reference_columns[0]].iloc[index] = first_time
-            df[assoc_reference_columns[1]].iloc[index] = last_time
-        
-        return df
-
-
     def read_list(self):
-        """ Read in the SRAG list provided by Steve Johnson (SRAG) 
-            converted from excel into text format and cleaned.
+        """ Read in the 25 MeV SOHO/STEREO list provided by Ian Richardson
+            and on Harvard Dataverse converted in machine-readable format.
             
         """
         igr_list = os.path.join('fetchsep','reference',self.filename)
@@ -1596,6 +1557,8 @@ class IGRList():
 
         #Cast time columns
         df = self.cast_time_columns(df)
+        
+        self.list = df
         
         return df
 
@@ -1611,24 +1574,224 @@ class IGRList():
         print(f"write_list: Wrote updated SEP list to {outfname}")
 
 
-    def update_flares(self):
-        """ Update IGR SEP event list with flare X-ray science data. 
-        
-            INPUTS:
-                
-                None
-                
-            OUTPUTS:
+###########################################################################
+############################ HILARY CANE'S  LIST ##########################
+###########################################################################
+class Cane_List():
+    def __init__(self):
+        """ A list of flare and CME associations compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). 
+            https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ
             
-                :df: (pandas DataFrame) updated dataframe of IGR list
-                Write out IGR list file to fetchsep/references/
-        
+            Version of list in FetchSEP has been modified for formatting and clarity.
+            
+            Covers dates from Dec 2006 - Jan 2024
+            
         """
-        df = self.read_list()
+        self.id = "Cane et al. (2010) List"
+        self.filename = 'Cane_SEP_List.csv'
+        self.list = pd.DataFrame()
+        self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
-        df = update_all_flares_in_list(df, add_ref_col='SEP Reference Time')
+        self.time_columns = ['Date', 'CME First Look Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio Type III Start Time', 'Radio Type III End Time', 'CDAW CME First Look Time', 'SEP Reference Start', 'SEP Reference End']
 
-        self.write_list(df, filename='IGR_list_UPDATED.csv')
+        self.float_columns = ['SEP Start Hour', 'Maximum Proton Energy', 'Proton Intensity', 'CME Width', 'CME Speed', 'Flare Magnitude Deprecated', 'Flare Time to Peak Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width']
+
+        self.int_columns = ['Group', 'Radio TyII Imp', 'Flare Catalog ID', 'GOES Xray Satellite']
+
+        self.string_columns =  ['Type III Time', 'Flare Start Hour', 'H-alpha Location', 'CME First Appearance Hour', 'Flare Class Deprecated','Flare Class', 'CDAW CME Mean Position Angle', 'Comments']
+
+        return
+
+
+    def is_time_column(self,col):
+        if col in self.time_columns:
+            return True
+        else:
+            return False
+
+
+    def is_float_column(self,col):
+        if col in self.float_columns:
+            return True
+        else:
+            return False
+
+
+    def is_int_column(self,col):
+        if col in self.int_columns:
+            return True
+        else:
+            return False
+
+
+    def is_str_column(self,col):
+        if col in self.string_columns:
+            return True
+        else:
+            return False
+        
+
+    def cast_time_columns(self,df):
+        for col in self.time_columns:
+            df[col] = pd.to_datetime(df[col])
+            
+        return df
+        
+
+    def cast_string_columns(self,df):
+        for col in self.string_columns:
+            df[col] = df[col].fillna('').astype(str)
+            df[col] = df[col].astype(str)
+            
+        return df
+
+
+    def cast_float_columns(self,df):
+        for col in self.float_columns:
+            df[col] = df[col].astype(float)
+            
+        return df
+
+
+    def read_list(self):
+        """ Read in the Cane et al 2010 SEP list 
+            converted from excel into text format and cleaned.
+            
+        """
+        igr_list = os.path.join('fetchsep','reference',self.filename)
+        df = pd.read_csv(igr_list)
+        
+        #Cast string columns
+        df = self.cast_string_columns(df)
+
+        #Cast time columns
+        df = self.cast_time_columns(df)
+        
+        self.list = df
+        
+        return df
+
+
+    def write_list(self, df, filename=None):
+        """ Write IGR List to file """
+
+        if filename == None:
+            filename = self.filename
+
+        outfname = os.path.join('fetchsep','reference',filename)
+        df.to_csv(outfname, index=False)
+        print(f"write_list: Wrote updated SEP list to {outfname}")
+
+
+###########################################################################
+#################### IAN RICHARDSON'S OLDER 25 MeV LIST ####################
+###########################################################################
+class IGR_25MeV_List():
+    def __init__(self):
+        """ A list of flare and CME associations compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). 
+            https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ
+            
+            Version of list in FetchSEP has been modified for formatting and clarity.
+            
+            Covers dates from Dec 2006 - Jan 2024
+            
+        """
+        self.id = "IGR 25 MeV List"
+        self.filename = 'IGR_25MeV_SEP_List.csv'
+        self.list = pd.DataFrame()
+        self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
+
+        self.time_columns = ['SEP Reference Start', 'SEP Reference End', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'CDAW CME First Look Time']
+
+        self.float_columns = ['25 MEV Proton Intensity (MeV s cm^2 sr)^-1', 'GOES >10 MeV (pfu)', 'CME speed (km/s)', 'Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width']
+
+        self.int_columns = ['GLE Event Number', 'Flare Catalog ID', 'GOES Xray Satellite']
+
+        self.string_columns =  ['Flare Class Deprecated', 'Flare Class', 'CDAW CME Mean Position Angle']
+
+        return
+
+
+    def is_time_column(self,col):
+        if col in self.time_columns:
+            return True
+        else:
+            return False
+
+
+    def is_float_column(self,col):
+        if col in self.float_columns:
+            return True
+        else:
+            return False
+
+
+    def is_int_column(self,col):
+        if col in self.int_columns:
+            return True
+        else:
+            return False
+
+
+    def is_str_column(self,col):
+        if col in self.string_columns:
+            return True
+        else:
+            return False
+        
+
+    def cast_time_columns(self,df):
+        for col in self.time_columns:
+            df[col] = pd.to_datetime(df[col])
+            
+        return df
+        
+
+    def cast_string_columns(self,df):
+        for col in self.string_columns:
+            df[col] = df[col].fillna('').astype(str)
+            df[col] = df[col].astype(str)
+            
+        return df
+
+
+    def cast_float_columns(self,df):
+        for col in self.float_columns:
+            df[col] = df[col].astype(float)
+            
+        return df
+
+
+    def read_list(self):
+        """ Read in the 25 MeV list provided by Ian Richardson from 1967 to 1997 
+            converted machine-readable format and cleaned.
+            
+        """
+        igr_list = os.path.join('fetchsep','reference',self.filename)
+        df = pd.read_csv(igr_list)
+        
+        #Cast string columns
+        df = self.cast_string_columns(df)
+
+        #Cast time columns
+        df = self.cast_time_columns(df)
+        
+        self.list = df
+        
+        return df
+
+
+    def write_list(self, df, filename=None):
+        """ Write IGR List to file """
+
+        if filename == None:
+            filename = self.filename
+
+        outfname = os.path.join('fetchsep','reference',filename)
+        df.to_csv(outfname, index=False)
+        print(f"write_list: Wrote updated SEP list to {outfname}")
 
 
 
@@ -1636,7 +1799,7 @@ class IGRList():
 ################### USER-MAINTAINED ASSOCIATION LIST ######################
 ###########################################################################
 
-class UserList:
+class User_List:
     def __init__(self, type="minimal"):
         """ A list of SEP events with their flare, CME, and other associations.
             The user maintains this list, which can be used in place of, 
@@ -1727,7 +1890,7 @@ class UserList:
             
         """
         if not os.path.exists(self.filename):
-            print(f"UserList.read_list: {self.filename} does not exist. Run create_list().")
+            print(f"User_List.read_list: {self.filename} does not exist. Run create_list().")
             return pd.DataFrame()
             
         df = pd.read_csv(self.filename)
