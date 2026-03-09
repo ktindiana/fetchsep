@@ -978,8 +978,13 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         sep_end=dh.str_to_datetime(sep_end)
 
 
-    #Check if SEP start time falls within know SEP start and end
-    index = df.loc[(df[assoc_reference_columns[0]] <= sep_start) & (sep_start < df[assoc_reference_columns[1]])].index
+    #Check if SEP falls within known SEP start and end
+    #It could be that already enhanced events may have start/end times chosen a little
+    #differently than in the associations list, causing an offset in overlap.
+    #Check both start and end time and select the SEP event in the associations list that
+    #has the most overlap.
+    #Select events in associations list that contain either the sep start or sep end
+    index = df.loc[((df[assoc_reference_columns[0]] <= sep_start) & (sep_start < df[assoc_reference_columns[1]])) | ((df[assoc_reference_columns[0]] < sep_end) | (sep_end <= df[assoc_reference_columns[1]]))].index
     event_index = -1
     
     ####UNIQUELY FOUND SEP BETWEEN REFERENCE FIRST AND LAST TIMES

@@ -1,7 +1,6 @@
 #Start Time,End Time,Experiment,Flux Type,Flags,User Experiment Name,User Filename,Options,BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,Location,Species
 1986-01-01 00:00:00,1986-02-03 07:05:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
-1986-02-03 07:05:00,1986-02-04 23:10:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
-1986-02-04 23:10:00,1986-02-06 07:05:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
+1986-02-03 07:05:00,1986-02-06 07:05:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
 1986-02-06 07:05:00,1986-02-07 12:45:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
 1986-02-07 12:45:00,1986-02-10 14:05:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
 1986-02-10 14:05:00,1986-02-12 10:40:00,GOES-06,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-06_integral/csv,earth,protons
