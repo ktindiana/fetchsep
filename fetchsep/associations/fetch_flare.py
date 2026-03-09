@@ -591,7 +591,7 @@ def is_intensity_match(request_intensity, measured_intensity):
 
 
 def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_flare_id=None,
-    window_minutes_minus=15, window_minutes_plus=15, flare_intensity=None, dep_flare_intensity=None):
+    window_minutes_minus=15, window_minutes_plus=15, flare_intensity=None, remove_swpc_cal=True):
     """ Extract information for a specific flare on a specific datetime.
         Enter a date within 15 minutes of flare start or end of for any time
         between the flare start and end. The flare peak time is the best reference.
@@ -603,7 +603,7 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
         dep_flare_intensity. (deprecated flare intensity).
         Only enter one flare intensity value. If both are non-null, will use flare_intensity.
         
-        flare_intensity and dep_flare_intensity not used if req_flare_id is specified.
+        flare_intensity not used if req_flare_id is specified.
         
         INPUTS:
         
@@ -613,9 +613,9 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
                 15 minutes from the flare start and end.
             :window_minutes_plus/_minus: (int) searches for flare matches within observed flare start and
                 end +- window_minutes
-            :flare_intensity: (float) approximate intensity of flare that want to find in catalog
+            :flare_intensity: (float, optional) approximate intensity of flare that want to find in catalog
                 for GOES-R or that has already had the SWPC calibration removed.
-            :dep_flare_intensity: (float) approximate intensity of deprecated flare value prior 
+            :remove_swpc_cal: (bool) adjust approximate intensity of deprecated flare value prior 
                 to GOES-R and that has the SWPC calibration factor applied (historical
                 GOES-08 to GOES-15 values).
                 
@@ -626,6 +626,7 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
         
     """
     sat_info = goes_xray_satellite_info()
+    goes_r_primary_date = datetime.datetime(2017,2,7) #GOES-R+ primary XRS from this date forward
 
     #Define flare info
     if not flare_info:
@@ -638,8 +639,9 @@ def extract_flare_from_noaa_flsum(experiment, request_date, flare_info={}, req_f
         print(f"extract_flare_from_noaa_flsum: {experiment} X-ray science data is not yet available from NOAA. Returning.")
         return flare_info
 
-    if pd.isnull(flare_intensity) and not pd.isnull(dep_flare_intensity):
-        flare_intensity = dep_flare_intensity/0.7 #remove SWPC calibration
+    if remove_swpc_cal and request_date < goes_r_primary_date:
+        if not pd.isnull(flare_intensity):
+            flare_intensity = flare_intensity/0.7 #remove SWPC calibration
 
     year = request_date.year
     month = request_date.month
@@ -887,7 +889,7 @@ def flare_info_to_ccmc_json(flare_info):
 
 
 def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes_minus=15,
-    window_minutes_plus=15, flare_intensity=None, dep_flare_intensity=None, request_flare_id=None):
+    window_minutes_plus=15, flare_intensity=None, remove_swpc_cal=True, request_flare_id=None):
     """ Pull flare data from NOAA using the peak time to specify
         the flare. The peak is the most robust time to use, but
         can input any time between the start and end time of
@@ -905,9 +907,9 @@ def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes_
                 "json" to return CCMC SEP Scoreboard trigger block
             :flare_intensity: (float) approximate intensity of flare that want to find in catalog
                 for GOES-R or that has already had the SWPC calibration removed.
-            :dep_flare_intensity: (float) approximate intensity of deprecated flare value prior 
-                to GOES-R and that has the SWPC calibration factor applied (historical
-                GOES-08 to GOES-15 values).
+            :remove_swpc_cal: (bool) if set to True, remove the SWPC calibration factor 
+                (applied in historical GOES-08 to GOES-15 values) from a deprecated flare 
+                value prior to GOES-R.
         
     """
     flare_info = flare_info_dict()
@@ -962,7 +964,7 @@ def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes_
     #Extract flare info for specified flare time from one day
     print(f"get_noaa_flare: Searching for {experiment} flare at requested date {request_time} using search timeframe {request_time-tdm} to {request_time+tdp}")
     flare_info = extract_flare_from_noaa_flsum(experiment, request_time, window_minutes_minus=window_minutes_minus,
-        window_minutes_plus=window_minutes_plus, flare_intensity=flare_intensity, dep_flare_intensity=dep_flare_intensity, req_flare_id=request_flare_id)
+        window_minutes_plus=window_minutes_plus, flare_intensity=flare_intensity, remove_swpc_cal=remove_swpc_cal, req_flare_id=request_flare_id)
     
     #If no flare found, but the flare might actually be in the beginning of the next due
     #due to uncertainty in approximate times provided.
@@ -974,13 +976,13 @@ def get_noaa_flare(request_time, experiment=None, format='dict', window_minutes_
             print("get_noaa_flare: Looking for flare early on the next day.")
             flare_info = extract_flare_from_noaa_flsum(experiment, past_midnight,
                 window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
-                flare_intensity=flare_intensity, dep_flare_intensity=dep_flare_intensity)
+                flare_intensity=flare_intensity, remove_swpc_cal=remove_swpc_cal)
         #Flare possibly late previous day
         if request_time - datetime.timedelta(minutes=window_minutes_minus) < before_midnight:
             print("get_noaa_flare: Looking for flare late on the previous day.")
             flare_info = extract_flare_from_noaa_flsum(experiment, before_midnight,
                 window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
-                flare_intensity=flare_intensity, dep_flare_intensity=dep_flare_intensity)
+                flare_intensity=flare_intensity, remove_swpc_cal=remove_swpc_cal)
         
 
     #If found the flare in the flare summary files, but it might span files on two days

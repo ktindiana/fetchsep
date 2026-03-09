@@ -451,12 +451,14 @@ def null_cdaw_cme(type='df'):
     """
     if type == 'dict':
         null_cdaw_cme = {"CDAW CME First Look Time": pd.NaT,
+                        "CDAW CME Central Position Angle": None,
                         "CDAW CME Mean Position Angle": np.nan,
                         "CDAW CME Width": np.nan,
                         "CDAW CME Speed": np.nan
                         }
     if type == 'df':
         null_cdaw_cme = {"CDAW CME First Look Time": [pd.NaT],
+                        "CDAW CME Central Position Angle": [None],
                         "CDAW CME Mean Position Angle": [np.nan],
                         "CDAW CME Width": [np.nan],
                         "CDAW CME Speed": [np.nan]
@@ -516,16 +518,19 @@ def cdaw_cme_to_ccmc_json(list_cme):
         if pd.isnull(width):
             del cme['half_width']
         else:
-            if width == '':
-                width = np.nan
-            elif 'Halo' in width:
-                width = 360.
-            elif '>' in width:
-                width = width.strip().split('>')
-                width = float(width[1])
-            else:
-                width = float(width)
-            cme['half_width'] = width/2.
+            if isinstance(width, float):
+                cme['half_width'] = width/2.
+            elif isinstance(width, str):
+                if width == '':
+                    width = np.nan
+                elif 'Halo' in width:
+                    width = 360.
+                elif '>' in width:
+                    width = width.strip().split('>')
+                    width = float(width[1])
+                else:
+                    width = float(width)
+                cme['half_width'] = width/2.
 
         #Remove unused columns
         del cme['liftoff_time']
@@ -564,7 +569,7 @@ def get_cdaw_cme_info(target_time, window_minutes_minus=60, window_minutes_plus=
         return "Error: Could not access the catalog."
 
     # Define the standard columns for the CDAW text format
-    columns = ["CDAW CME First Look Time", "CDAW CME Mean Position Angle", "CDAW CME Width", "CDAW CME Speed"]#, "Halo"]
+    columns = ["CDAW CME First Look Time", "CDAW CME Central Position Angle", "CDAW CME Mean Position Angle", "CDAW CME Width", "CDAW CME Speed"]
     catalog = {}
     for col in columns:
         catalog.update({col: []})
@@ -580,13 +585,15 @@ def get_cdaw_cme_info(target_time, window_minutes_minus=60, window_minutes_plus=
         if len(line) == 0: continue
         catalog["CDAW CME First Look Time"].append(f"{line[0]} {line[1]}")
         
-        catalog["CDAW CME Mean Position Angle"].append(line[2]) #numerical or Halo
+        catalog["CDAW CME Central Position Angle"].append(line[2]) #numerical or Halo
         
         catalog["CDAW CME Width"].append(float(line[3]))
         if "--" in line[4]:
             catalog["CDAW CME Speed"].append(np.nan)
         else:
             catalog["CDAW CME Speed"].append(float(line[4]))
+
+        catalog["CDAW CME Mean Position Angle"].append(float(line[11]))
 
 #    infile.close()
     
