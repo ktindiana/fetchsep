@@ -1490,11 +1490,11 @@ class IGR_SOHO_List():
 
         self.time_columns = ['Solar Event Date (UT)', 'SEP Event Onset Date (UT)', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'SEP Reference Start', 'SEP Reference End']
 
-        self.float_columns = ['Solar Event-B (deg)', 'I(B)', 'Solar Event-Earth (deg)', 'I(Earth)', 'Solar Event-A (deg)', 'I(A)', 'CME dA (deg)', 'CME V (km/s)', 'Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', ]
+        self.float_columns = ['Solar Event-B (deg)', 'I(B)', 'Solar Event-Earth (deg)', 'I(Earth)', 'Solar Event-A (deg)', 'I(A)', 'CME dA (deg)', 'CME V (km/s)', 'Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon']
 
         self.int_columns = ['Radio TyIII_Imp', 'Radio TyII Imp', 'Flare Catalog ID', 'GOES Xray Satellite']
 
-        self.string_columns =  ['Flare Class Deprecated','Flare Class', 'CDAW CME Central Position Angle', 'DONKI CME Feature', 'DONKI CME Measurement Technique', 'Comments']
+        self.string_columns =  ['GOES X-Ray', 'Flare Class Deprecated', 'Flare Class', 'CDAW CME Central Position Angle', 'DONKI CME Feature', 'DONKI CME Measurement Technique',  'DONKI CME Catalog ID', 'Case', 'Comments']
 
         return
 
