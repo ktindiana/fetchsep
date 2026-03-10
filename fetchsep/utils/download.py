@@ -26,15 +26,6 @@ __email__ = "kathryn.whitman@nasa.gov"
 """
 
 
-# Prepare directories
-cfg.prepare_dirs()
-for subdir in [cfg.outpath, cfg.plotpath]:
-    path = os.path.join(subdir, 'download')
-    if not os.path.isdir(path):
-        print("Making directory:", path)
-        os.mkdir(path)
-
-
 def read_in_flux_files(experiment, flux_type, startdate,
         enddate, options, dointerp, write_fluxes=False,
         spacecraft="", user_file="", exp_name=""):
@@ -155,9 +146,13 @@ def fluxes_to_df(dates, fluxes, energy_bins):
 
 
 def get_data(str_startdate, str_enddate, experiment,
-        flux_type, options, dointerp, showplot, saveplot,
-        write_fluxes=True, spacecraft="", path_to_data='',
-        format='dict'):
+    flux_type, options, dointerp, showplot, saveplot,
+    write_fluxes=True, spacecraft="",
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None,
+    format='dict'):
     """ Download data. Create an output file of all fluxes in the
         specified date range.
     
@@ -183,8 +178,17 @@ def get_data(str_startdate, str_enddate, experiment,
     
     """
 
-    cfg.set_config_paths(path_to_data=path_to_data)
+    cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+        path_to_plots=path_to_plots, path_to_lists=path_to_lists)
     cfg.print_configured_values()
+
+    # Prepare download directories
+    for subdir in [cfg.outpath, cfg.plotpath]:
+        path = os.path.join(subdir, 'download')
+        if not os.path.isdir(path):
+            print("Making directory:", path)
+            os.mkdir(path)
+
 
     startdate = dh.str_to_datetime(str_startdate)
     enddate = dh.str_to_datetime(str_enddate)

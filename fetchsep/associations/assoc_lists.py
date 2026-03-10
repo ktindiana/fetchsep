@@ -1007,8 +1007,8 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         sep_end=dh.str_to_datetime(sep_end)
 
     #Time flexibility to search for SEP events in association lists
-    exact = datetime.timedelta(hours=0)
-    tolerance = datetime.timedelta(hours=6) #search horizon
+    exact = datetime.timedelta(hours=1) #search horizon to consider two events close together in lists
+    tolerance = datetime.timedelta(hours=6) #search horizon to capture inaccurate SEP times in lists
 
     #Check if SEP falls within known SEP start and end (or general reference times)
     #It could be that already enhanced events may have start/end times chosen a little
