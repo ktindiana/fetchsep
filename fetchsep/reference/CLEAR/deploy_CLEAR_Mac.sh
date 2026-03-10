@@ -176,31 +176,31 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "BATCH" ]]; then
     #overwritten by a new run of idsep within fetchsep_automated_pipeline
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-06] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 1 --NoGOESColors > "${outpath}"/GOES-06_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-06_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-07] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 1987-03-01 --EndDate 1996-09-01 --Experiment GOES-07 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-07_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 2 --NoGOESColors > "${outpath}"/GOES-07_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 1987-03-01 --EndDate 1996-09-01 --Experiment GOES-07 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-07_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-07_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-08] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 1995-01-01 --EndDate 2003-06-18 --Experiment GOES-08 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-08_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 3 --NoGOESColors > "${outpath}"/GOES-08_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 1995-01-01 --EndDate 2003-06-18 --Experiment GOES-08 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-08_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-08_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-10] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 1998-07-09 --EndDate 2004-07-01 --Experiment GOES-10 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-10_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 4 --NoGOESColors > "${outpath}"/GOES-10_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 1998-07-09 --EndDate 2004-07-01 --Experiment GOES-10 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-10_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-10_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-11] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 2003-06-01 --EndDate 2011-03-01 --Experiment GOES-11 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-11_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 5 --NoGOESColors > "${outpath}"/GOES-11_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 2003-06-01 --EndDate 2011-03-01 --Experiment GOES-11 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-11_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-11_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-13] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 9 --NoGOESColors > "${outpath}"/GOES-13_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-13_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-15] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 10 --NoGOESColors > "${outpath}"/GOES-15_integral_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType integral  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-15_integral_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-RT/primary] Generating SEP events lists with opsep"
@@ -212,11 +212,11 @@ if [[ "${startpoint}" = "ALL" ]] || [[ "${startpoint}" = "BATCH" ]]; then
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-13 energy bin calibrated] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType differential --options "S14;Bruno2017;uncorrected" --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH  --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 1 > "${outpath}"/GOES-13_differential_uncor_S14_B17_bgsub_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType differential --options "S14;Bruno2017;uncorrected" --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH  --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-13_differential_uncor_S14_B17_bgsub_batch.log
 
     date '+%Y-%m-%d %H:%M:%S'
     echo "[GOES-15 energy bin calibrated] Generating SEP events lists with opsep"
-    python bin/fetchsep_automated_pipeline --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType differential --options "S14;Bruno2017;uncorrected"  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  --ColorScheme 2 > "${outpath}"/GOES-15_differential_S14_B17_uncor_bgsub_batch.log
+    python bin/fetchsep_automated_pipeline --StartDate 2011-01-01 --EndDate 2020-03-05 --Experiment GOES-15 --FluxType differential --options "S14;Bruno2017;uncorrected"  --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-15_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-15_differential_S14_B17_uncor_bgsub_batch.log
 
 fi
 

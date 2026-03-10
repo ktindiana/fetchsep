@@ -978,7 +978,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         sep_end=dh.str_to_datetime(sep_end)
 
 
-    #Check if SEP falls within known SEP start and end
+    #Check if SEP falls within known SEP start and end (or general reference times)
     #It could be that already enhanced events may have start/end times chosen a little
     #differently than in the associations list, causing an offset in overlap.
     #Check both start and end time and select the SEP event in the associations list that
@@ -996,6 +996,8 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
     #OPTIMIZE ON START TIME
     else:
         tolerance = datetime.timedelta(hours=6) #search horizon
+        if list_name == 'srag': #known better than the other lists
+            tolerance = datetime.timedelta(hours=1) #search horizon
 
         #Check if sep start falls within know SEP start and end within a certain
         #tolerated time difference; e.g. sep start - 6 hrs < date < sep end + 6 hours
@@ -1601,13 +1603,13 @@ class Cane_List():
         self.list = pd.DataFrame()
         self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
-        self.time_columns = ['Date', 'CME First Look Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio Type III Start Time', 'Radio Type III End Time', 'CDAW CME First Look Time', 'SEP Reference Start', 'SEP Reference End']
+        self.time_columns = ['Date', 'Cane CME First Appearance Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio Type III Start Time', 'Radio Type III End Time', 'CDAW CME First Look Time', 'SEP Reference Start', 'SEP Reference End']
 
-        self.float_columns = ['SEP Start Hour', 'Maximum Proton Energy', 'Proton Intensity', 'CME Width', 'CME Speed', 'Flare Magnitude Deprecated', 'Flare Time to Peak Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width']
+        self.float_columns = ['SEP Start Hour', 'Maximum Proton Energy', 'Proton Intensity', 'Cane CME Width', 'Cane CME Speed', 'Flare Magnitude Deprecated', 'Flare Time to Peak Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width']
 
         self.int_columns = ['Group', 'Radio TyII Imp', 'Flare Catalog ID', 'GOES Xray Satellite']
 
-        self.string_columns =  ['Type III Time', 'Flare Start Hour', 'H-alpha Location', 'CME First Appearance Hour', 'Flare Class Deprecated','Flare Class', 'CDAW CME Central Position Angle', 'Comments']
+        self.string_columns =  ['Type III Time', 'Flare Start Hour', 'H-alpha Location', 'CME First Appearance Hour', 'Flare Class Deprecated','Flare Class', 'CDAW CME Central Position Angle', 'Case', 'Comments']
 
         return
 
@@ -1720,7 +1722,7 @@ class IGR_25MeV_List():
 
         self.int_columns = ['GLE Event Number', 'Flare Catalog ID', 'GOES Xray Satellite']
 
-        self.string_columns =  ['Flare Class Deprecated', 'Flare Class', 'CDAW CME Central Position Angle']
+        self.string_columns =  ['Flare Class Deprecated', 'Flare Class', 'CDAW CME Central Position Angle', 'Case', 'Comments']
 
         return
 
