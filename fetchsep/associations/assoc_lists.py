@@ -919,6 +919,35 @@ def fill_associations(df, index, list=None):
     return associations
 
 
+def extract_matches(sep_start, sep_end, df, assoc_reference_columns, tolerance):
+    """ Find matches within an associations list """
+    
+    sub = df.loc[((df[assoc_reference_columns[0]]-tolerance <= sep_start) & (sep_start < df[assoc_reference_columns[1]]+tolerance)) | ((df[assoc_reference_columns[0]]-tolerance < sep_end) & (sep_end <= df[assoc_reference_columns[1]]+tolerance))]
+    if not sub.empty: print(sub)
+
+    flare_col = 'Flare Xray Start Time'
+#    cme_cols = ['CDAW CME First Look Time', 'DONKI CME Start Time']
+
+    index = sub.index
+    for ix in sub.index:
+        #If the SEP start is before the associated flare time, remove
+        if flare_col in sub.columns:
+            if not pd.isnull(sub[flare_col].loc[ix]):
+                if sep_start < sub[flare_col].loc[ix]:
+                    index = index.drop(ix)
+                
+#        for col in cme_cols:
+#            if col in sub.columns:
+#                #If the SEP start is before the associated flare time, remove
+#                if not pd.isnull(sub[col].loc[ix]):
+#                    if sep_start < sub[col].loc[ix]:
+#                        if ix in index:
+#                            index = index.drop(ix)
+
+    return index
+
+
+
 #Given an SEP time from OpSEP, find the same SEP event in the associations list
 def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
     """ Given a SEP date, identify an event in the associations list associated
@@ -977,6 +1006,9 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
     if isinstance(sep_end, str):
         sep_end=dh.str_to_datetime(sep_end)
 
+    #Time flexibility to search for SEP events in association lists
+    exact = datetime.timedelta(hours=0)
+    tolerance = datetime.timedelta(hours=6) #search horizon
 
     #Check if SEP falls within known SEP start and end (or general reference times)
     #It could be that already enhanced events may have start/end times chosen a little
@@ -984,7 +1016,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
     #Check both start and end time and select the SEP event in the associations list that
     #has the most overlap.
     #Select events in associations list that contain either the sep start or sep end
-    index = df.loc[((df[assoc_reference_columns[0]] <= sep_start) & (sep_start < df[assoc_reference_columns[1]])) | ((df[assoc_reference_columns[0]] < sep_end) | (sep_end <= df[assoc_reference_columns[1]]))].index
+    index = extract_matches(sep_start, sep_end, df, assoc_reference_columns, exact)
     event_index = -1
     
     ####UNIQUELY FOUND SEP BETWEEN REFERENCE FIRST AND LAST TIMES
@@ -994,18 +1026,13 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
 
     ####CONTINUE TO SEARCH ALLOWING FOR SOME FLEXIBILITY IN TIMES
     #OPTIMIZE ON START TIME
-    else:
-        tolerance = datetime.timedelta(hours=6) #search horizon
-        if list_name == 'srag': #known better than the other lists
-            tolerance = datetime.timedelta(hours=1) #search horizon
-
+    elif len(index) == 0:
         #Check if sep start falls within know SEP start and end within a certain
         #tolerated time difference; e.g. sep start - 6 hrs < date < sep end + 6 hours
         #For events that are close together, check that the SEP end time isn't before
         #the start time of the known SEP events in the list
-        index = df.loc[((df[assoc_reference_columns[0]]-tolerance) <= sep_start) & (sep_start < (df[assoc_reference_columns[1]]+tolerance)) & (sep_end > df[assoc_reference_columns[0]])].index
+        index = extract_matches(sep_start, sep_end, df, assoc_reference_columns, tolerance)
 
-        print(index)
         ###NO SEP FOUND WITHIN TOLERANCE
         if len(index) == 0:
             event_index = -1
@@ -1013,18 +1040,19 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         ####UNIQUELY FOUND SEP IN EXPANDED DATE RANGE
         elif len(index) == 1:
             event_index = index[0]
-            
-        ####ELSE MULTIPLE MATCHES
-        #OPTIMIZE BY CHOOSING CLOSEST START TIME TO sep_start
-        elif len(index) > 1:
-            col = assoc_reference_columns[0]
-            min_diff = tolerance
-            for ix in index:
-                diff = df[col].iloc[ix] - sep_start
-                diff = abs(diff)
-                if diff <= min_diff:
-                    min_diff = diff
-                    event_index = ix
+
+
+    ####MULTIPLE MATCHES
+    #OPTIMIZE BY CHOOSING CLOSEST START TIME TO sep_start
+    if len(index) > 1:
+        col = assoc_reference_columns[0]
+        min_diff = datetime.timedelta(hours=24) #tolerance
+        for ix in index:
+            diff = df[col].loc[ix] - sep_start
+            diff = abs(diff)
+            if diff <= min_diff:
+                min_diff = diff
+                event_index = ix
  
     if event_index == -1:
         print(f"identify_associations_in_list: No match was found in {assoc_list.id} for {sep_start}.")
@@ -1034,7 +1062,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         output_col = list_output_columns
         associations = fill_associations(df, event_index, list=assoc_list.id)
         proton_info = df[assoc_reference_columns].iloc[event_index]
-        print(f"identify_associations_in_list: Analyzed {assoc_reference_columns[0]} {proton_info[0]} to {assoc_reference_columns[1]} {proton_info[1]} found in {assoc_list.id} {sep_start} to {sep_end}.")
+        print(f"identify_associations_in_list: Requested SEP event {sep_start} to {sep_end} was associated with time period {assoc_reference_columns[0]} {proton_info[0]} to {assoc_reference_columns[1]} {proton_info[1]} found in {assoc_list.id}.")
         #Cast types in associations to avoid Int64, etc
         for key in associations.keys():
             associations[key] = cast_value(key, associations[key])
