@@ -9,6 +9,7 @@ import requests
 import pandas as pd
 import inspect
 import numpy as np
+from io import StringIO
 
 def convert_to_time(tzulu):
     """ Zulu string to datetime """
@@ -28,6 +29,24 @@ def convert_to_float(val):
 ##########################################################
 #################### DONKI CMEs ##########################
 ##########################################################
+def null_donki_cme():
+    null_donki_cme = {"DONKI CME Start Time": pd.NaT,
+                  "DONKI CME Speed": np.nan,
+                  "DONKI CME Half Width": np.nan,
+                  "DONKI CME Lat": np.nan,
+                  "DONKI CME Lon": np.nan,
+                  "DONKI CME Time at 21.5": pd.NaT,
+                  "DONKI CME Catalog ID": None,
+                  "DONKI CME Submission Time": pd.NaT,
+                  "DONKI CME Feature": None,
+                  "DONKI CME Note": None,
+                  "DONKI CME Linked Events": None,
+                  "DONKI CME Link": None,
+                  "DONKI CME Measurement Technique": None
+                  }
+    return null_donki_cme
+
+
 #Original DONKI scraping code provided by Luke Stegeman
 def reject_entry(data_dict, filters):
 
@@ -256,7 +275,7 @@ def donki_cme_to_ccmc_json(list_cme):
 
 
 def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
-    minimum_halfAngle=None):
+    minimum_halfAngle=None, window_minutes=60):
     """ Get a specific DONKI CME identified by start time (first look time).
         
         INPUTS:
@@ -268,6 +287,7 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
                 associations lists; "json" returns a CCMC JSON trigger block
             :feature: (string) LE or SH, will preferably select leading edge or
                 shock measurement if choice is available. Default LE.
+            :window_minutes: (int) find CME within certain number of minutes from requested time
                 
         OUTPUTS:
         
@@ -275,12 +295,16 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
     
     """
     
+    cme_info = null_donki_cme()
+    
     if isinstance(starttime, str):
         starttime=dh.str_to_datetime(starttime)
     
     if pd.isnull(starttime):
         print(f"get_donki_cme: Improper time format {starttime}. Use e.g. YYYY-MM-DD HH:MM:SS or YYYY-MM-DDTHH:MM:SSZ or datetime.")
-        return {}
+        if format == 'json':
+            cme_info = donki_cme_to_ccmc_json(cme_info)
+        return cme_info
     
     startdate = starttime - datetime.timedelta(hours=6)
     enddate = starttime + datetime.timedelta(hours=6)
@@ -311,32 +335,32 @@ def get_donki_cme(starttime, format='dict', feature='LE', minimum_speed=None,
     cme_links = get_donki_cme_header_info(cmes, 'link')
 
     #Find requested CME
-    td = datetime.timedelta(hours=2, minutes=30) #At least within 2.5 hours
+    td = datetime.timedelta(minutes=window_minutes) #At least within window_minutes
     ix = -1
     for i, time in enumerate(cme_start_times):
         diff = abs(time - starttime)
-        if diff < td:
+        if diff <= td:
             td = diff
             ix = i
     
     if ix == -1:
         print(f"get_donki_cme: No DONKI CME found for {starttime}.")
-        return {}
 
-    cme_info = {"DONKI CME Start Time": cme_start_times[ix],
-                  "DONKI CME Speed": convert_to_float(cme_speeds[ix]),
-                  "DONKI CME Half Width": convert_to_float(cme_half_angles[ix]),
-                  "DONKI CME Lat": convert_to_float(cme_latitudes[ix]),
-                  "DONKI CME Lon": convert_to_float(cme_longitudes[ix]),
-                  "DONKI CME Time at 21.5": convert_to_time(cme_21_5[ix]),
-                  "DONKI CME Catalog ID": cme_ids[ix],
-                  "DONKI CME Submission Time": convert_to_time(cme_submission_times[ix]),
-                  "DONKI CME Feature": cme_feature[ix],
-                  "DONKI CME Note": cme_notes[ix],
-                  "DONKI CME Linked Events": cme_linked_events[ix],
-                  "DONKI CME Link": cme_links[ix],
-                  "DONKI CME Measurement Technique": cme_techniques[ix]
-                  }
+    else:
+        cme_info = {"DONKI CME Start Time": cme_start_times[ix],
+                      "DONKI CME Speed": convert_to_float(cme_speeds[ix]),
+                      "DONKI CME Half Width": convert_to_float(cme_half_angles[ix]),
+                      "DONKI CME Lat": convert_to_float(cme_latitudes[ix]),
+                      "DONKI CME Lon": convert_to_float(cme_longitudes[ix]),
+                      "DONKI CME Time at 21.5": convert_to_time(cme_21_5[ix]),
+                      "DONKI CME Catalog ID": cme_ids[ix],
+                      "DONKI CME Submission Time": convert_to_time(cme_submission_times[ix]),
+                      "DONKI CME Feature": cme_feature[ix],
+                      "DONKI CME Note": cme_notes[ix],
+                      "DONKI CME Linked Events": cme_linked_events[ix],
+                      "DONKI CME Link": cme_links[ix],
+                      "DONKI CME Measurement Technique": cme_techniques[ix]
+                      }
 
     if format == 'json':
         cme_info = donki_cme_to_ccmc_json(cme_info)
@@ -421,6 +445,29 @@ def get_donki_cme_range(start_date, end_date, minimum_speed=None, minimum_halfAn
 ##########################################################
 ##################### CDAW CMEs ##########################
 ##########################################################
+def null_cdaw_cme(type='df'):
+    """ Null dictionary for CDAW CME values 
+        type = dict, df (dataframe)
+    """
+    if type == 'dict':
+        null_cdaw_cme = {"CDAW CME First Look Time": pd.NaT,
+                        "CDAW CME Central Position Angle": None,
+                        "CDAW CME Mean Position Angle": np.nan,
+                        "CDAW CME Width": np.nan,
+                        "CDAW CME Speed": np.nan
+                        }
+    if type == 'df':
+        null_cdaw_cme = {"CDAW CME First Look Time": [pd.NaT],
+                        "CDAW CME Central Position Angle": [None],
+                        "CDAW CME Mean Position Angle": [np.nan],
+                        "CDAW CME Width": [np.nan],
+                        "CDAW CME Speed": [np.nan]
+                        }
+        null_cdaw_cme = pd.DataFrame(null_cdaw_cme)
+
+    return null_cdaw_cme
+
+
 def cdaw_cme_to_ccmc_json(list_cme):
     """ Put CDAW CME information into the CCMC SEP Scoreboard json
         trigger block format.
@@ -471,16 +518,19 @@ def cdaw_cme_to_ccmc_json(list_cme):
         if pd.isnull(width):
             del cme['half_width']
         else:
-            if width == '':
-                width = np.nan
-            elif 'Halo' in width:
-                width = 360.
-            elif '>' in width:
-                width = width.strip().split('>')
-                width = float(width[1])
-            else:
-                width = float(width)
-            cme['half_width'] = width/2.
+            if isinstance(width, float):
+                cme['half_width'] = width/2.
+            elif isinstance(width, str):
+                if width == '':
+                    width = np.nan
+                elif 'Halo' in width:
+                    width = 360.
+                elif '>' in width:
+                    width = width.strip().split('>')
+                    width = float(width[1])
+                else:
+                    width = float(width)
+                cme['half_width'] = width/2.
 
         #Remove unused columns
         del cme['liftoff_time']
@@ -495,6 +545,105 @@ def cdaw_cme_to_ccmc_json(list_cme):
             pass
 
     return cme
+
+
+
+def get_cdaw_cme_info(target_time, window_minutes_minus=60, window_minutes_plus=60, speed_filter=np.nan):
+    """
+    Queries the SOHO LASCO CDAW CME catalog and extracts event information.
+    
+    Args:
+        target_time (datetime): The approximate date and time of the event.
+        window_minutes_plus/_minus (int): Time range (+/-) to search around the target_time.
+        speed_filter (int): Optional speed in km/s to help identify a specific event.
+        
+    Returns:
+        pd.DataFrame: Matching CME events with parameters.
+    """
+    # URL for the comprehensive text-only universal catalog
+    catalog_url = "https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL/text_ver/univ_all.txt"
+    
+    print(f"Fetching catalog from CDAW...")
+    response = requests.get(catalog_url)
+    if response.status_code != 200:
+        return "Error: Could not access the catalog."
+
+    # Define the standard columns for the CDAW text format
+    columns = ["CDAW CME First Look Time", "CDAW CME Central Position Angle", "CDAW CME Mean Position Angle", "CDAW CME Width", "CDAW CME Speed"]
+    catalog = {}
+    for col in columns:
+        catalog.update({col: []})
+
+    # The file has a descriptive header; we only want lines starting with a date (e.g., 2023/09/01)
+    lines = response.text.split('\n')
+#    infile = open('../CDAW_CME_list.txt','r')
+#    content = infile.read()
+#    lines = content.split('\n')
+    for i, line in enumerate(lines):
+        if i < 4: continue #first 4 lines are headers
+        line = line.strip().split()
+        if len(line) == 0: continue
+        catalog["CDAW CME First Look Time"].append(f"{line[0]} {line[1]}")
+        
+        catalog["CDAW CME Central Position Angle"].append(line[2]) #numerical or Halo
+        
+        catalog["CDAW CME Width"].append(float(line[3]))
+        if "--" in line[4]:
+            catalog["CDAW CME Speed"].append(np.nan)
+        else:
+            catalog["CDAW CME Speed"].append(float(line[4]))
+
+        catalog["CDAW CME Mean Position Angle"].append(float(line[11]))
+
+#    infile.close()
+    
+    # Load into DataFrame (CDAW txt uses variable whitespace delimiters)
+    df = pd.DataFrame(catalog)
+    df["CDAW CME First Look Time"] = pd.to_datetime(df["CDAW CME First Look Time"])
+    
+    # Search within the specified time window; assume provided flare time (and sometimes CME time)
+    start_search = target_time  - datetime.timedelta(minutes=window_minutes_minus)
+    end_search = target_time + datetime.timedelta(minutes=window_minutes_plus)
+    print(f"Searching for CDAW CMEs between {start_search} and {end_search}")
+    matches = df.loc[(df["CDAW CME First Look Time"] >= start_search) & (df["CDAW CME First Look Time"] <= end_search)]
+
+    if matches.empty:
+        matches = null_cdaw_cme(type='df')
+
+    # Apply optional speed filter (allowing +/- 50 km/s margin)
+    #If multiple matches, choose the entry with the speed closest to the reference speed
+    if len(matches) > 1:
+        if not pd.isnull(speed_filter) and not matches.empty:
+            diff = abs(matches["CDAW CME Speed"] - speed_filter)
+            ix = diff.idxmin()
+            best_speed = matches["CDAW CME Speed"].loc[ix]
+            if (best_speed >= speed_filter - 50) and (best_speed <= speed_filter + 50):
+                matches = matches.loc[matches["CDAW CME Speed"]==best_speed]
+            else:
+                matches = null_cdaw_cme(type='df')
+
+    matches = matches.iloc[0].to_dict()
+
+    return matches
+
+
+
+def get_cdaw_cme(request_date, window_minutes_minus=60, window_minutes_plus=60, speed_filter=None):
+    # --- Example Usage ---
+    # Search for the CME on 2023-09-01 with a speed of approximately 1339 km/s
+    if isinstance(request_date, str):
+        request_date=dh.str_to_datetime(request_date)
+
+    #dataframe format
+    cme_data = get_cdaw_cme_info(request_date, window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus, speed_filter=speed_filter)
+
+    if pd.isnull(cme_data['CDAW CME First Look Time']):
+        print(f"get_cdaw_cme: Did not find CME in the CDAW catalog for {request_date}.")
+    else:
+        print(f"get_cdaw_cme: Found CME in the CDAW catalog for {request_date}.")
+    
+    return cme_data
+
 
 
 ##########################################################

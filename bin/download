@@ -56,10 +56,27 @@ parser.add_argument("--showplot",
 parser.add_argument("--saveplot",
         help="Flag to save plots to file", action="store_true")
 
-parser.add_argument("--datapath", type=str, default='',
+parser.add_argument("--datapath", type=str, default=None,
         help=("Specify path where satellite data should be downloaded. Will default to "
             "datapath listed in fetchsep.cfg if a value is not specified."))
 
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+            
 parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
               "the current working directory and exit.  Used to prepare a "
@@ -83,12 +100,19 @@ dointerp = args.DoInterp
 
 showplot = args.showplot
 saveplot = args.saveplot
+
 path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
 
 if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
 
 fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
     flux_type, options, dointerp, showplot, saveplot, spacecraft=spacecraft,
-    path_to_data=path_to_data)
+    path_to_data=path_to_data,
+    path_to_output=path_to_output,
+    path_to_plots=path_to_plots,
+    path_to_lists=path_to_lists,)
 

@@ -113,16 +113,15 @@ def numerical_location(location):
 ###########################################################################
 #Columns output in final SEP list, e.g. for the CLEAR SEP Benchmark Dataset
 #All possible association information
-list_output_columns = ['Solar Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Reference', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Event Source Reference 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'ESP CDAW CME First Look Time', 'ESP CDAW CME LASCO Speed', 'ACE CME Passage Time', 'ACE Bz', 'Sudden Impulse Time', 'Sudden Impulse Amplitude', 'GLE Event Number', 'PRF', 'Comments']
+list_output_columns = ['Solar Cycle', 'EventType', 'Case', 'Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Class Deprecated', 'Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Flare Class', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Flare Catalog ID', 'GOES Xray Satellite', 'Flare Opt', 'Active Region', 'AR Area', 'AR Spot Class', 'AR Mag Class', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Reference', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Event Source Reference 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio Type III Start Time', 'Radio Type III End Time', 'Radio TyIII_Imp', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio Station', 'Radio DH Start Time', 'Radio DH End Time', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio DH Note', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'CDAW CME Central Position Angle', 'DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'DONKI CME Time at 21.5', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'ESP CDAW CME First Look Time', 'ESP CDAW CME LASCO Speed', 'Shock Passage Speed', 'ACE CME Passage Time', 'ACE Bz', 'Sudden Impulse Time', 'Sudden Impulse Amplitude', 'GLE Event Number', 'PRF', 'Associations List', 'Comments']
 
-list_time_columns = ['Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
+list_time_columns = ['Flare Xray Start Time Deprecated', 'Flare Xray Peak Time Deprecated', 'Flare Xray End Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio m_TyII Start Time', 'Radio m_TyII End Time', 'Radio DH Start Time', 'Radio DH End Time', 'Radio TyIV Start Time', 'Radio TyIV End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'ESP Flare Xray Start Time Deprecated', 'ESP Flare Xray Peak Time Deprecated', 'ESP Flare Xray End Time Deprecated', 'ESP Radio m_TyII Start Time', 'ESP Radio m_TyII End Time', 'Radio Type III Start Time', 'Radio Type III End Time', 'ESP CDAW CME First Look Time', 'ACE CME Passage Time', 'Sudden Impulse Time']
 
-list_float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'AR Area', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
-    #'CDAW CME Width' contains text
+list_float_columns = ['Flare Magnitude Deprecated', 'Flare Integrated Flux Deprecated', 'Flare Duration Deprecated', 'Flare Time To Peak Deprecated','Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'AR Area', 'AR Carrington', 'Event Source Location From Center', 'Event Source Latitude', 'Event Source Longitude', 'Event Source Location from Center 2', 'Event Source Latitude 2', 'Event Source Longitude 2', 'Radio Rbr245Max', 'Radio Rbr2695Max', 'Radio Rbr8800', 'Radio TyIII_Imp', 'Radio TyII Imp', 'Radio TyII Speed', 'Radio m_TyII Start Frequency', 'Radio m_TyII End Frequency', 'Radio DH Start Frequency', 'Radio DH End Frequency', 'Radio TyIV Imp', 'Radio TyIV Duration', 'CDAW CME Speed', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon', 'ESP CDAW CME LASCO Speed', 'Shock Passage Speed', 'ACE Bz', 'Sudden Impulse Amplitude']
 
 list_int_columns = ['Flare Catalog ID', 'Solar Cycle', 'Active Region', 'GOES Xray Satellite']
 
-list_string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Source Reference', 'Event Source Reference 2', 'Radio Station', 'Radio DH Note', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF','Comments']
+list_string_columns =  ['EventType', 'Case', 'Flare Class Deprecated', 'Flare Class', 'Flare Opt', 'AR Spot Class', 'AR Mag Class', 'Event Source Reference', 'Event Source Reference 2', 'Radio Station', 'Radio DH Note', 'CDAW CME Width', 'CDAW CME Central Position Angle', 'DONKI CME Feature', 'DONKI CME Catalog ID', 'DONKI CME Measurement Technique', 'ESP_CME', 'GLE Event Number', 'PRF', 'List', 'Comments']
 
 
 flare_columns = ['Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time',
@@ -134,12 +133,10 @@ donki_cme_columns = ['DONKI CME Start Time', 'DONKI CME Speed', 'DONKI CME Half 
     'DONKI CME Measurement Technique', 'DONKI CME Catalog ID']
 
 cdaw_cme_columns = ['CDAW CME First Look Time', 'CDAW CME Speed', 'CDAW CME Width',
-    'CDAW CME Mean Position Angle']
+    'CDAW CME Central Position Angle', 'CDAW CME Mean Position Angle']
 
 source_loc_columns = ['Event Source Location From Center', 'Event Source Latitude',
     'Event Source Longitude', 'Event Source Reference']
-
-assoc_reference_columns = ['First SEP Start Time', 'Last SEP End Time']
 
 
 def is_time_column(col):
@@ -321,7 +318,7 @@ def add_flare_columns_to_list(df):
     """ Add columns for NOAA science flare values """
     for col in flare_columns:
         if col not in df.columns:
-            df.insert(column=col, value=[None]*len(df))
+            df.insert(loc=len(df.columns)-1, column=col, value=[None]*len(df))
 
     return df
 
@@ -453,7 +450,7 @@ def flare_info_to_associations(flare_info, associations={}):
 
 #Read times from a DEPRECATED column in a dataframe list, identify flares
 #from NOAA science data, and fill flare columns in the dataframe list
-def update_all_flares_in_list(df, add_ref_col=None):
+def update_all_flares_in_list(df, window_minutes_minus=15, window_minutes_plus=15, remove_swpc_cal=True):
     """ If an SEP event list contains the original X-ray fluxes made available
         by SWPC in their various products and archived data, add new science-quality
         flare information in additional columns. If flare not found in NOAA archive,
@@ -482,9 +479,11 @@ def update_all_flares_in_list(df, add_ref_col=None):
         INPUTS:
         
             :df: (pandas dataframe) SEP associations list
-            :add_ref_col: (string) column name to use as reference time for 
-                identifying flares
-            
+            :window_minutes_minus/_plus: (float) minutes to search before and after reference 
+                time to identify flares
+            :remove_swpc_cal: (bool) Set to False to use reference flare magnitude without
+                removing the SWPC calibration (e.g. flare already science value)
+                
         OUTPUTS:
         
             :df: (pandas dataframe) updated with new flare information
@@ -494,8 +493,10 @@ def update_all_flares_in_list(df, add_ref_col=None):
     xray_sat = ['GOES-16', 'GOES-18', 'GOES-17', 'GOES-19', 'GOES-08', 'GOES-09',
                 'GOES-10', 'GOES-12', 'GOES-15', 'GOES-14', 'GOES-11']
 
-    req_cols = ['Flare Magnitude Deprecated']
-    if add_ref_col != None: req_cols.append(add_ref_col)
+    magnitude_col = 'Flare Magnitude Deprecated'
+
+    req_cols = [magnitude_col]
+#    if time_col != None: req_cols.append(time_col)
     for col in req_cols:
         if col not in df.columns:
             print(f"update_all_flares_in_list: {col} column must exist and be populated. Returning.")
@@ -503,24 +504,21 @@ def update_all_flares_in_list(df, add_ref_col=None):
 
     #Look for times in these columns to identify a flare listed in order of preference
     ref_time_columns = ['Flare Xray Peak Time Deprecated', 'Flare Xray Start Time Deprecated']
-    if add_ref_col != None and add_ref_col not in ref_time_columns:
-        ref_time_columns = [add_ref_col] + ref_time_columns
         
     #Check if the possible reference time columns are present in the list
     for i in range(len(ref_time_columns)-1,-1,-1):
         col = ref_time_columns[i]
         if col not in df.columns:
             ref_time_columns.pop(i)
-            
 
     #If columns for the flare science data aren't present, add them
     df = add_flare_columns_to_list(df)
     for index, row in df.iterrows():
         #Check if a flare was provided in the list
-        if pd.isnull(row['Flare Magnitude Deprecated']):
+        if pd.isnull(row[magnitude_col]):
             continue
 
-        flare_info = {}
+        flare_info = fetch_flare.flare_info_dict()
 
         experiment = None
         if 'GOES Xray Satellite' in df.columns:
@@ -533,7 +531,7 @@ def update_all_flares_in_list(df, add_ref_col=None):
 
         #Experiment not specified
         ##########################
-        #Find a GOES satellite for the requested date, e.g. Ian's list
+        #Find a GOES satellite for the requested date
         if experiment == None:
             request_date = pd.NaT
             for ref_col in ref_time_columns:
@@ -544,30 +542,23 @@ def update_all_flares_in_list(df, add_ref_col=None):
                 
             print(f"Flare without GOES satellite specified {request_date}")
             #-->Don't know which satellite was used, will default to primary satellite
-            flare_info = fetch_flare.get_noaa_flare(request_date)
-            if not pd.isnull(flare_info['catalog_id']):
-                #The times provided in the IGR list aren't always accurate enough to find the correct
-                #flare. Use the deprecated peak value provided to compare with the identified flare.
-                if not pd.isnull(flare_info['intensity']):
-                    dep_peak = row['Flare Magnitude Deprecated']
-                    sci_peak = flare_info['intensity']
-                    ratio = (dep_peak/0.7)/sci_peak
-                    #Check if found flare has value within +-10% of expected value after
-                    #removing SWPC correction factor
-                    if (ratio >= 0.85) and (ratio <= 1.15):
-                        pass
-                    else:
-                        flare_info = {}
+            request_intensity = row[magnitude_col]
+            if request_date < goes_r_primary_date:
+                flare_info = fetch_flare.get_noaa_flare(request_date,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    flare_intensity = request_intensity, remove_swpc_cal=remove_swpc_cal)
             else:
-                flare_info = {} #so will manually apply calibration
+                flare_info = fetch_flare.get_noaa_flare(request_date,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    flare_intensity = request_intensity, remove_swpc_cal=False)
 
             #-->If didn't find a measurement in the science data, then apply calibration manually
             #After goes_r_primary_date, SWPC provided already calibrated GOES-R X-ray fluxes
-            if not flare_info:
+            if pd.isnull(flare_info['catalog_id']):
                 remove_swpc = False
                 if request_date < goes_r_primary_date:
                     #DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
-                    remove_swpc = True
+                    remove_swpc = True and remove_swpc_cal
                     print(f"update_all_flares_in_list: Manually removing SWPC calibration factor from value provided in list for flare {request_date}.")
                 flare_info = manual_flare_calibration(df, index, remove_swpc=remove_swpc)
             
@@ -578,7 +569,7 @@ def update_all_flares_in_list(df, add_ref_col=None):
         elif experiment in old_goes_sc:
             #NEED TO DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES UNTIL NOAA RELEASES SCIENCE DATA
             print(f"update_all_flares_in_list: {experiment} X-ray science data is not yet available from NOAA for {request_date}. Manually removing SWPC calibration factor per NOAA guidance.")
-            flare_info = manual_flare_calibration(df, index, remove_swpc=True)
+            flare_info = manual_flare_calibration(df, index, remove_swpc=remove_swpc_cal)
             
         #Experiment and other flare info specified
         ##########################################
@@ -592,23 +583,30 @@ def update_all_flares_in_list(df, add_ref_col=None):
                 continue
 
             print(f"update_all_flares_in_list: Flare {request_date} requested for {experiment}.")
-            flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment)
-            
+ 
+            request_intensity = row[magnitude_col]
+            if request_date < goes_r_primary_date:
+                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    flare_intensity = request_intensity, remove_swpc_cal=remove_swpc_cal)
+            else:
+                flare_info = fetch_flare.get_noaa_flare(request_date, experiment=experiment,
+                    window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus,
+                    flare_intensity = request_intensity, remove_swpc_cal=False)
+ 
+ 
             #-->If didn't find a measurement in the science data, then apply calibration manually
             if pd.isnull(flare_info['catalog_id']):
                 remove_swpc = False
                 if request_date < goes_r_primary_date:
                     #DIVIDE XRS-B FLUXES BY 0.7 TO APPROXIMATE SCIENCE VALUES
-                    remove_swpc = True
+                    remove_swpc = True and remove_swpc_cal
                     print(f"update_all_flares_in_list: Could not find flare {request_date}. Manually removing SWPC calibration factor from values provided.")
                 flare_info = manual_flare_calibration(df, index, remove_swpc=remove_swpc)
 
 
         #Check for missing/no results
         #############################
-        #Didn't find any flare information for any experiments
-        if not flare_info: continue
-
         #If experiment covered date range, but didn't have requested flare info
         if pd.isnull(flare_info['intensity']): continue
 
@@ -638,7 +636,7 @@ def add_donki_cme_columns(df):
     """ Add columns for DONKI CME values """
     for col in donki_cme_columns:
         if col not in df.columns:
-            df.insert(column=col, value=[None]*len(df))
+            df.insert(loc=len(df.columns), column=col, value=[None]*len(df))
 
     return df
 
@@ -797,38 +795,38 @@ def cme_ccmc_json_to_associations(cme_json, associations={}, catalog='DONKI'):
 
 
 #Given a set of CME start times, identify DONKI CMEs and populated CME columns in a list
-def update_all_donki_cmes_in_list(df, minimum_speed=450, minimum_halfAngle=15,
-            feature='LE'):
+def update_all_donki_cmes_in_list(df, minimum_speed=None, minimum_halfAngle=None,
+            feature='LE', window_minutes=60, ref_col='CDAW CME First Look Time'):
     """ Given a list with CDAW LASCO CME first look times stored in a column:
             'CDAW CME First Look Time'
             
-        Find corresponding DONKI CMEs with preferred selections:
+        Find corresponding DONKI CMEs. Suggested preferred selections for larger SEP events:
             minimum speed: default > 450 km/s
             minimum half angle: default > 15 km/s
             feature: Default leading edge (LE) measurements preferred over shock (SH)
-        
+            
+            :window_minutes: (int) find CME within window_minutes from requested time
+            :ref_col: (string) name of column with reference CME start time; default is
+                    'CDAW CME First Look Time'
+                    
     """
 
-    req_cols = ['CDAW CME First Look Time']
-    for col in req_cols:
-        if col not in df.columns:
-            print(f"update_all_donki_cmes_in_list: {col} column must exist and be populated. Returning.")
-            return df
+    if ref_col not in df.columns:
+        print(f"update_all_donki_cmes_in_list: {ref_col} column must exist and be populated. Returning.")
+        return df
 
     #Add DONKI CME columns if not present
     df = add_donki_cme_columns(df)
 
 
     for index, row in df.iterrows():
-        starttime = row['CDAW CME First Look Time']
+        starttime = row[ref_col]
         if pd.isnull(starttime):
             continue
         
         cme_info = fetch_cme.get_donki_cme(starttime, minimum_speed=minimum_speed,
-            minimum_halfAngle=minimum_halfAngle, feature=feature, format='dict')
-        
-        if not cme_info:
-            continue
+            minimum_halfAngle=minimum_halfAngle, feature=feature, format='dict',
+            window_minutes=window_minutes)
 
         df.loc[index,'DONKI CME Start Time'] = cme_info['DONKI CME Start Time']
         df.loc[index,'DONKI CME Speed'] = cme_info['DONKI CME Speed']
@@ -843,8 +841,56 @@ def update_all_donki_cmes_in_list(df, minimum_speed=450, minimum_halfAngle=15,
     return df
 
 
+
+#Add columns for DONKI CMEs
+def add_cdaw_cme_columns(df):
+    """ Add columns for CDAW CME values """
+    for col in cdaw_cme_columns:
+        if col not in df.columns:
+            df.insert(loc=len(df.columns), column=col, value=[None]*len(df))
+
+    return df
+
+
+#Given a set of CME start times, identify DONKI CMEs and populated CME columns in a list
+def update_all_cdaw_cmes_in_list(df, time_col, window_minutes_minus=60, window_minutes_plus=60, speed_col=None):
+    """ Given a list with reference times (e.g. flare peak times)
+            
+        Find corresponding CDAW CMEs from:
+        https://cdaw.gsfc.nasa.gov/CME_list/UNIVERSAL/text_ver/univ_all.txt
+        
+    """
+
+    req_cols = [time_col, speed_col]
+    for col in req_cols:
+        if pd.isnull(col): continue
+        if col not in df.columns:
+            print(f"update_all_cdaw_cmes_in_list: {col} column must exist and be populated. Returning.")
+            return df
+
+    #Add CDAW CME columns if not present
+    df = add_cdaw_cme_columns(df)
+
+    for index, row in df.iterrows():
+        starttime = row[time_col]
+        if pd.isnull(starttime):
+            cme_info = fetch_cme.null_cdaw_cme(type='dict')
+        else:
+            if not pd.isnull(row[speed_col]):
+                speed = row[speed_col]
+            else:
+                speed = np.nan
+            
+            cme_info = fetch_cme.get_cdaw_cme(starttime, window_minutes_minus=window_minutes_minus, window_minutes_plus=window_minutes_plus, speed_filter=speed)
+
+        for col in cdaw_cme_columns:
+            df.loc[index,col] = cme_info[col]
+
+    return df
+
+
 #Fill an associations dictionary with information extracted from a list dataframe
-def fill_associations(df, index):
+def fill_associations(df, index, list=None):
     """ Extract information from SRAG, IGR, user list and put into an associations 
         dictionary. The associations dictionary contains all possible output 
         columns in list_output_col.
@@ -856,6 +902,7 @@ def fill_associations(df, index):
         
             :df: (pandas DataFrame) of an associations list (SRAG, IGR, user)
             :index: (int) index of relevant associations
+            :list: (string) list ID
             
         OUTPUT:
         
@@ -863,12 +910,42 @@ def fill_associations(df, index):
     
     """
     associations = empty_associations_dict()
+    associations['Associations List'] = list
     for col in df.columns:
         if col in associations.keys():
             val = df[col].iloc[index]
             associations[col] = df[col].iloc[index]
 
     return associations
+
+
+def extract_matches(sep_start, sep_end, df, assoc_reference_columns, tolerance):
+    """ Find matches within an associations list """
+    
+    sub = df.loc[((df[assoc_reference_columns[0]]-tolerance <= sep_start) & (sep_start < df[assoc_reference_columns[1]]+tolerance)) | ((df[assoc_reference_columns[0]]-tolerance < sep_end) & (sep_end <= df[assoc_reference_columns[1]]+tolerance))]
+    if not sub.empty: print(sub)
+
+    flare_col = 'Flare Xray Start Time'
+#    cme_cols = ['CDAW CME First Look Time', 'DONKI CME Start Time']
+
+    index = sub.index
+    for ix in sub.index:
+        #If the SEP start is before the associated flare time, remove
+        if flare_col in sub.columns:
+            if not pd.isnull(sub[flare_col].loc[ix]):
+                if sep_start < sub[flare_col].loc[ix]:
+                    index = index.drop(ix)
+                
+#        for col in cme_cols:
+#            if col in sub.columns:
+#                #If the SEP start is before the associated flare time, remove
+#                if not pd.isnull(sub[col].loc[ix]):
+#                    if sep_start < sub[col].loc[ix]:
+#                        if ix in index:
+#                            index = index.drop(ix)
+
+    return index
+
 
 
 #Given an SEP time from OpSEP, find the same SEP event in the associations list
@@ -888,8 +965,11 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
             :sep_end: (datetime) end time of SEP event that want to
                 find in list; try time of enhancement above background
                 for >10 MeV or proton energies ~10 MeV or threshold crossing time
-            :list_name: (string) list to pull from for associated flares, CMEs, etc
+            :list_name: (string) list from which to identify associations.
                 "srag" is SRAG_SEP_List.csv
+                "igr_25" is IGR_25MeV_SEP_List.csv
+                "cane" is Cane_SEP_List.csv
+                "igr_soho" is IGR_SEPlist3_20260306.csv 
                 "user" is the list the user maintains in fetchsep/reference/user_associations.csv
                 
         OUTPUT:
@@ -899,32 +979,45 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         
     """
     null_assoc = empty_associations_dict()
+    ref_proton_times = []
 
     if pd.isnull(sep_start) or pd.isnull(sep_end):
-        return null_assoc
+        return null_assoc, ref_proton_times
 
     if list_name == 'srag':
-        assoc_list = SRAGList()
-    elif list_name == 'IGR':
-        #assoc_list = IGRList()
-        return null_assoc #return for now until a better version of Ian's list is implemented
+        assoc_list = SRAG_List()
+    elif list_name == 'igr_25':
+        assoc_list = IGR_25MeV_List()
+    elif list_name == 'igr_soho':
+        assoc_list = IGR_SOHO_List()
+    elif list_name == 'cane':
+        assoc_list = Cane_List()
     elif list_name == 'user':
-        assoc_list = UserList()
+        assoc_list = User_List()
     else:
         sys.exit(f"Specific list {list_name} does not exist. Exiting.")
         
 
     df = assoc_list.read_list()
     df = assoc_list.calculate_sep_reference_times(df)
+    assoc_reference_columns = assoc_list.reference_columns
 
     if isinstance(sep_start, str):
         sep_start=dh.str_to_datetime(sep_start)
     if isinstance(sep_end, str):
         sep_end=dh.str_to_datetime(sep_end)
 
+    #Time flexibility to search for SEP events in association lists
+    exact = datetime.timedelta(hours=1) #search horizon to consider two events close together in lists
+    tolerance = datetime.timedelta(hours=6) #search horizon to capture inaccurate SEP times in lists
 
-    #Check if SEP start time falls within know SEP start and end
-    index = df.loc[(df[assoc_reference_columns[0]] <= sep_start) & (sep_start < df[assoc_reference_columns[1]])].index
+    #Check if SEP falls within known SEP start and end (or general reference times)
+    #It could be that already enhanced events may have start/end times chosen a little
+    #differently than in the associations list, causing an offset in overlap.
+    #Check both start and end time and select the SEP event in the associations list that
+    #has the most overlap.
+    #Select events in associations list that contain either the sep start or sep end
+    index = extract_matches(sep_start, sep_end, df, assoc_reference_columns, exact)
     event_index = -1
     
     ####UNIQUELY FOUND SEP BETWEEN REFERENCE FIRST AND LAST TIMES
@@ -934,16 +1027,13 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
 
     ####CONTINUE TO SEARCH ALLOWING FOR SOME FLEXIBILITY IN TIMES
     #OPTIMIZE ON START TIME
-    else:
-        tolerance = datetime.timedelta(hours=6) #search horizon
-
+    elif len(index) == 0:
         #Check if sep start falls within know SEP start and end within a certain
         #tolerated time difference; e.g. sep start - 6 hrs < date < sep end + 6 hours
         #For events that are close together, check that the SEP end time isn't before
         #the start time of the known SEP events in the list
-        index = df.loc[((df[assoc_reference_columns[0]]-tolerance) <= sep_start) & (sep_start < (df[assoc_reference_columns[1]]+tolerance)) & (sep_end > df[assoc_reference_columns[0]])].index
+        index = extract_matches(sep_start, sep_end, df, assoc_reference_columns, tolerance)
 
-        print(index)
         ###NO SEP FOUND WITHIN TOLERANCE
         if len(index) == 0:
             event_index = -1
@@ -951,36 +1041,81 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         ####UNIQUELY FOUND SEP IN EXPANDED DATE RANGE
         elif len(index) == 1:
             event_index = index[0]
-            
-        ####ELSE MULTIPLE MATCHES
-        #OPTIMIZE BY CHOOSING CLOSEST START TIME TO sep_start
-        elif len(index) > 1:
-            col = assoc_reference_columns[0]
-            min_diff = tolerance
-            for ix in index:
-                diff = df[col].iloc[ix] - sep_start
-                diff = abs(diff)
-                if diff <= min_diff:
-                    min_diff = diff
-                    event_index = ix
+
+
+    ####MULTIPLE MATCHES
+    #OPTIMIZE BY CHOOSING CLOSEST START TIME TO sep_start
+    if len(index) > 1:
+        col = assoc_reference_columns[0]
+        min_diff = datetime.timedelta(hours=24) #tolerance
+        for ix in index:
+            diff = df[col].loc[ix] - sep_start
+            diff = abs(diff)
+            if diff <= min_diff:
+                min_diff = diff
+                event_index = ix
  
     if event_index == -1:
         print(f"identify_associations_in_list: No match was found in {assoc_list.id} for {sep_start}.")
         #Return series with columns with appropriate null values
-        return null_assoc
+        return null_assoc, ref_proton_times
     else:
         output_col = list_output_columns
-        associations = fill_associations(df, event_index)
-        proton_info = df[assoc_reference_columns].iloc[event_index]
-        print(f"identify_associations_in_list: Analyzed {assoc_reference_columns[0]} {proton_info[0]} to {assoc_reference_columns[1]} {proton_info[1]} found in {assoc_list.id} {sep_start} to {sep_end}.")
+        associations = fill_associations(df, event_index, list=assoc_list.id)
+        ref_proton_times = df[assoc_reference_columns].iloc[event_index]
+        print(f"identify_associations_in_list: Requested SEP event {sep_start} to {sep_end} was associated with time period {assoc_reference_columns[0]} {ref_proton_times[0]} to {assoc_reference_columns[1]} {ref_proton_times[1]} found in {assoc_list.id}.")
         #Cast types in associations to avoid Int64, etc
         for key in associations.keys():
             associations[key] = cast_value(key, associations[key])
  
-        return associations
+        return associations, ref_proton_times
 
-    return null_assoc
+    return null_assoc, ref_proton_times
 
+
+def identify_associations(sep_start, sep_end):
+    """ Find best association out of all reference SEP lists. 
+        Reference lists are curated to contain unique entries.
+        
+    """
+    if isinstance(sep_start, str):
+        sep_start=dh.str_to_datetime(sep_start)
+    if isinstance(sep_end, str):
+        sep_end=dh.str_to_datetime(sep_end)
+
+   
+    lists = ['srag', 'user', 'igr_soho', 'cane', 'igr_25']
+    associations = []
+    ref_proton_times = []
+    for list_name in lists:
+        assoc, ref_times = identify_associations_in_list(sep_start, sep_end, list_name=list_name)
+        if assoc == empty_associations_dict():
+            continue
+        associations.append(assoc)
+        ref_proton_times.append(ref_times)
+        
+    if len(associations) == 0:
+        return empty_associations_dict()
+        
+    elif len(associations) == 1:
+        return associations[0]
+        
+    else:
+        print("identify_associations: Found matches in multiple lists. Identifying best associations.")
+        #If multiple matches, choose the one with the start time
+        #closest in time to sep_start
+        min_diff = datetime.timedelta(hours=24) #tolerance
+        best_index = -1
+        for ix in range(len(associations)):
+            ref_start = ref_proton_times[ix][0]
+            diff = abs(ref_start - sep_start)
+            if diff <= min_diff:
+                min_diff = diff
+                best_index = ix
+
+        return associations[best_index]
+        
+    return empty_associations_dict()
 
 
 #Convert associations dictionary to CCMC SEP Scoreboard CME trigger JSON format
@@ -1167,7 +1302,7 @@ def associations_to_ccmc_flare(associations):
 ###########################################################################
 ################### STEVE JOHNSON'S SRAG SEP LIST #########################
 ###########################################################################
-class SRAGList:
+class SRAG_List:
     def __init__(self):
         """ Steve Johnson's SEP list curated for the Space Radiation Analysis Group (SRAG)
             at NASA Johnson Space Center.
@@ -1275,6 +1410,8 @@ class SRAGList:
             
         """
         sep_time_columns = ['SEP Reference Time', 'P10_FluxStart', 'P100_FluxStart', 'P50_FluxStart', 'P10_EndDT', 'P50_EndDT', 'P100_EndDT', 'P10_PeakDT']
+        
+        assoc_reference_columns = self.reference_columns
         
         if assoc_reference_columns[0] not in df.columns:
             idx = df.columns.get_loc('SEP Reference Time')
@@ -1406,28 +1543,31 @@ class SRAGList:
 
 
 ###########################################################################
-####################### IAN RICHARDSON'S SEP LIST #########################
+#################### IAN RICHARDSON'S SOHO/STEREO LIST ####################
 ###########################################################################
-class IGRList():
+class IGR_SOHO_List():
     def __init__(self):
-        """ A list of flare and CME associations for SEP events not in Steve's list.
-            This list is a subset of one compiled by Ian G. Richardson (University
-            of Maryland, NASA GSFC). Ian's timing column is a mix of flare
-            times and proton enhancement times.
+        """ A list of flare and CME associations compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). 
+            https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ
+            
+            Version of list in FetchSEP has been modified for formatting and clarity.
+            
+            Covers dates from Dec 2006 - Jan 2024
             
         """
-        self.id = "IGR List"
-        self.filename = 'IGR_list.csv'
-        self.reference_columns = ["SEP Reference Time"]
+        self.id = "IGR SOHO/STEREO SEP List"
+        self.filename = 'IGR_SEPlist3_20260306_unique.csv'
+        self.list = pd.DataFrame()
+        self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
-        self.time_columns = ['SEP Reference Time', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time']
+        self.time_columns = ['Solar Event Date (UT)', 'SEP Event Onset Date (UT)', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'CDAW CME First Look Time', 'DONKI CME Start Time', 'DONKI CME Time at 21.5', 'SEP Reference Start', 'SEP Reference End']
 
-        self.float_columns = ['Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed']
+        self.float_columns = ['Solar Event-B (deg)', 'I(B)', 'Solar Event-Earth (deg)', 'I(Earth)', 'Solar Event-A (deg)', 'I(A)', 'CME dA (deg)', 'CME V (km/s)', 'Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width', 'CDAW CME Mean Position Angle', 'DONKI CME Speed', 'DONKI CME Half Width', 'DONKI CME Lat', 'DONKI CME Lon']
 
+        self.int_columns = ['Radio TyIII_Imp', 'Radio TyII Imp', 'Flare Catalog ID', 'GOES Xray Satellite']
 
-        self.int_columns = ['Flare Catalog ID', 'GOES Xray Satellite']
-
-        self.string_columns =  ['Flare Class', 'Event Source Reference', 'Comments']
+        self.string_columns =  ['GOES X-Ray', 'Flare Class Deprecated', 'Flare Class', 'CDAW CME Central Position Angle', 'DONKI CME Feature', 'DONKI CME Measurement Technique',  'DONKI CME Catalog ID', 'Case', 'Comments']
 
         return
 
@@ -1482,56 +1622,14 @@ class IGRList():
         return df
 
 
-    def sep_reference_times(self, df):
-        """ Populate SEP list dataframe with the first time and last time 
-            that should be used to  find SEP events in list. The idea is to 
-            give the biggest range of times for which the SEP was observed. 
-            
-            For the SRAG list, we use the very first SEP start time and the
-            very last SEP end time across energy channels.
-            
-            Steve provides timing that should completely capture SEP start
-            and peak. The provided end times may not extend as long as those
-            calculated by OpSEP.
-            
-        """
-        sep_time_columns = ['SEP Reference Time']
-        
-        if assoc_reference_columns[0] not in df.columns:
-            idx = df.columns.get_loc('SEP Reference Time')
-            df.insert(loc=idx+1,column=assoc_reference_columns[0], value=[None]*len(df))
-        if assoc_reference_columns[1] not in df.columns:
-            idx = df.columns.get_loc(assoc_reference_columns[0])
-            df.insert(loc=idx+1, column=assoc_reference_columns[1], value=[None]*len(df))
-
-        for index, row in self.df.itterows():
-            first_time = pd.NaT
-            last_time = pd.NaT
- 
-            #Estimate a start time period that is associated with the flare
-            #or possibly a proton rise from background. It is unclear what
-            #the reference time is, but try to guess with the available info.
-            
-            #Likely a flare time
-            if not pd.isnull('Flare Magnitude'):
-                first_time = row['SEP Reference Time']
-                last_time = first_time + datetime.timedelta(hours=36)
-            #Likely a CME first look time
-            elif not pd.isnull(row['CDAW CME Speed']):
-                first_time = row['SEP Reference Time']
-                last_time = first_time + datetime.timedelta(hours=36)
-            else: 
-                continue #FIX STARTING HERE
-
-            df[assoc_reference_columns[0]].iloc[index] = first_time
-            df[assoc_reference_columns[1]].iloc[index] = last_time
-        
+    def calculate_sep_reference_times(self,df):
+        """ Does nothing because already set up with the right information """
         return df
 
 
     def read_list(self):
-        """ Read in the SRAG list provided by Steve Johnson (SRAG) 
-            converted from excel into text format and cleaned.
+        """ Read in the 25 MeV SOHO/STEREO list provided by Ian Richardson
+            and on Harvard Dataverse converted in machine-readable format.
             
         """
         igr_list = os.path.join('fetchsep','reference',self.filename)
@@ -1542,6 +1640,8 @@ class IGRList():
 
         #Cast time columns
         df = self.cast_time_columns(df)
+        
+        self.list = df
         
         return df
 
@@ -1557,24 +1657,230 @@ class IGRList():
         print(f"write_list: Wrote updated SEP list to {outfname}")
 
 
-    def update_flares(self):
-        """ Update IGR SEP event list with flare X-ray science data. 
-        
-            INPUTS:
-                
-                None
-                
-            OUTPUTS:
+###########################################################################
+############################ HILARY CANE'S  LIST ##########################
+###########################################################################
+class Cane_List():
+    def __init__(self):
+        """ A list of flare and CME associations compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). 
+            https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ
             
-                :df: (pandas DataFrame) updated dataframe of IGR list
-                Write out IGR list file to fetchsep/references/
-        
+            Version of list in FetchSEP has been modified for formatting and clarity.
+            
+            Covers dates from Dec 2006 - Jan 2024
+            
         """
-        df = self.read_list()
+        self.id = "Cane et al. (2010) SEP List"
+        self.filename = 'Cane_SEP_List_unique.csv'
+        self.list = pd.DataFrame()
+        self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
-        df = update_all_flares_in_list(df, add_ref_col='SEP Reference Time')
+        self.time_columns = ['Date', 'Cane CME First Appearance Time', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'Radio Type III Start Time', 'Radio Type III End Time', 'CDAW CME First Look Time', 'SEP Reference Start', 'SEP Reference End']
 
-        self.write_list(df, filename='IGR_list_UPDATED.csv')
+        self.float_columns = ['SEP Start Hour', 'Maximum Proton Energy', 'Proton Intensity', 'Cane CME Width', 'Cane CME Speed', 'Flare Magnitude Deprecated', 'Flare Time to Peak Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width']
+
+        self.int_columns = ['Group', 'Radio TyII Imp', 'Flare Catalog ID', 'GOES Xray Satellite']
+
+        self.string_columns =  ['Type III Time', 'Flare Start Hour', 'H-alpha Location', 'CME First Appearance Hour', 'Flare Class Deprecated','Flare Class', 'CDAW CME Central Position Angle', 'Case', 'Comments']
+
+        return
+
+
+    def is_time_column(self,col):
+        if col in self.time_columns:
+            return True
+        else:
+            return False
+
+
+    def is_float_column(self,col):
+        if col in self.float_columns:
+            return True
+        else:
+            return False
+
+
+    def is_int_column(self,col):
+        if col in self.int_columns:
+            return True
+        else:
+            return False
+
+
+    def is_str_column(self,col):
+        if col in self.string_columns:
+            return True
+        else:
+            return False
+        
+
+    def cast_time_columns(self,df):
+        for col in self.time_columns:
+            df[col] = pd.to_datetime(df[col])
+            
+        return df
+        
+
+    def cast_string_columns(self,df):
+        for col in self.string_columns:
+            df[col] = df[col].fillna('').astype(str)
+            df[col] = df[col].astype(str)
+            
+        return df
+
+
+    def cast_float_columns(self,df):
+        for col in self.float_columns:
+            df[col] = df[col].astype(float)
+            
+        return df
+
+    def calculate_sep_reference_times(self,df):
+        """ Does nothing because already set up with the right information """
+        return df
+
+    def read_list(self):
+        """ Read in the Cane et al 2010 SEP list 
+            converted from excel into text format and cleaned.
+            
+        """
+        igr_list = os.path.join('fetchsep','reference',self.filename)
+        df = pd.read_csv(igr_list)
+        
+        #Cast string columns
+        df = self.cast_string_columns(df)
+
+        #Cast time columns
+        df = self.cast_time_columns(df)
+        
+        self.list = df
+        
+        return df
+
+
+    def write_list(self, df, filename=None):
+        """ Write IGR List to file """
+
+        if filename == None:
+            filename = self.filename
+
+        outfname = os.path.join('fetchsep','reference',filename)
+        df.to_csv(outfname, index=False)
+        print(f"write_list: Wrote updated SEP list to {outfname}")
+
+
+###########################################################################
+#################### IAN RICHARDSON'S OLDER 25 MeV LIST ####################
+###########################################################################
+class IGR_25MeV_List():
+    def __init__(self):
+        """ A list of flare and CME associations compiled by Ian G. Richardson (University
+            of Maryland, NASA GSFC). 
+            https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ
+            
+            Version of list in FetchSEP has been modified for formatting and clarity.
+            
+            Covers dates from Dec 2006 - Jan 2024
+            
+        """
+        self.id = "IGR 25 MeV SEP List"
+        self.filename = 'IGR_25MeV_SEP_List_unique.csv'
+        self.list = pd.DataFrame()
+        self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
+
+        self.time_columns = ['SEP Reference Start', 'SEP Reference End', 'Flare Xray Start Time Deprecated', 'Flare Xray Start Time', 'Flare Xray Peak Time', 'Flare Xray End Time', 'CDAW CME First Look Time']
+
+        self.float_columns = ['25 MEV Proton Intensity (MeV s cm^2 sr)^-1', 'GOES >10 MeV (pfu)', 'CME speed (km/s)', 'Flare Magnitude Deprecated', 'Flare Magnitude', 'Flare Integrated Flux', 'Flare Duration', 'Flare Time To Peak', 'Event Source Latitude', 'Event Source Longitude', 'CDAW CME Speed', 'CDAW CME Width']
+
+        self.int_columns = ['GLE Event Number', 'Flare Catalog ID', 'GOES Xray Satellite']
+
+        self.string_columns =  ['Flare Class Deprecated', 'Flare Class', 'CDAW CME Central Position Angle', 'Case', 'Comments']
+
+        return
+
+
+    def is_time_column(self,col):
+        if col in self.time_columns:
+            return True
+        else:
+            return False
+
+
+    def is_float_column(self,col):
+        if col in self.float_columns:
+            return True
+        else:
+            return False
+
+
+    def is_int_column(self,col):
+        if col in self.int_columns:
+            return True
+        else:
+            return False
+
+
+    def is_str_column(self,col):
+        if col in self.string_columns:
+            return True
+        else:
+            return False
+        
+
+    def cast_time_columns(self,df):
+        for col in self.time_columns:
+            df[col] = pd.to_datetime(df[col])
+            
+        return df
+        
+
+    def cast_string_columns(self,df):
+        for col in self.string_columns:
+            df[col] = df[col].fillna('').astype(str)
+            df[col] = df[col].astype(str)
+            
+        return df
+
+
+    def cast_float_columns(self,df):
+        for col in self.float_columns:
+            df[col] = df[col].astype(float)
+            
+        return df
+
+
+    def read_list(self):
+        """ Read in the 25 MeV list provided by Ian Richardson from 1967 to 1997 
+            converted machine-readable format and cleaned.
+            
+        """
+        igr_list = os.path.join('fetchsep','reference',self.filename)
+        df = pd.read_csv(igr_list)
+        
+        #Cast string columns
+        df = self.cast_string_columns(df)
+
+        #Cast time columns
+        df = self.cast_time_columns(df)
+        
+        self.list = df
+        
+        return df
+
+    def calculate_sep_reference_times(self,df):
+        """ Does nothing because already set up with the right information """
+        return df
+
+    def write_list(self, df, filename=None):
+        """ Write IGR List to file """
+
+        if filename == None:
+            filename = self.filename
+
+        outfname = os.path.join('fetchsep','reference',filename)
+        df.to_csv(outfname, index=False)
+        print(f"write_list: Wrote updated SEP list to {outfname}")
 
 
 
@@ -1582,7 +1888,7 @@ class IGRList():
 ################### USER-MAINTAINED ASSOCIATION LIST ######################
 ###########################################################################
 
-class UserList:
+class User_List:
     def __init__(self, type="minimal"):
         """ A list of SEP events with their flare, CME, and other associations.
             The user maintains this list, which can be used in place of, 
@@ -1673,7 +1979,7 @@ class UserList:
             
         """
         if not os.path.exists(self.filename):
-            print(f"UserList.read_list: {self.filename} does not exist. Run create_list().")
+            print(f"User_List.read_list: {self.filename} does not exist. Run create_list().")
             return pd.DataFrame()
             
         df = pd.read_csv(self.filename)

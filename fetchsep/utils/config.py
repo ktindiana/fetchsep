@@ -215,4 +215,3 @@ if __name__ == '__main__':
     export_config()
     set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
-#    prepare_dirs()
