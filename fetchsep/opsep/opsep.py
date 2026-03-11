@@ -2644,16 +2644,7 @@ class Output:
         enddate = self.data.results[best_ix].sep_end_time
         print(f"Selected SEP start time {startdate} and end time {enddate} to search for associations.")
         #Search lists in order of preference SRAG, User, IGR SOHO/STEREO, Cane et al. 2010, IGR 25MeV
-        associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='srag')
-        if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='user')
-        if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='igr_soho')
-        if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='cane')
-        if associations == assoc_lists.empty_associations_dict():
-            associations = assoc_lists.identify_associations_in_list(startdate, enddate, list_name='igr_25')
-
+        associations = assoc_lists.identify_associations(startdate, enddate)
         self.associations = associations
 
         cme = assoc_lists.associations_to_ccmc_cme(associations) #list of CCMC CME trigger blocks

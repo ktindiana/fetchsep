@@ -965,7 +965,7 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
             :sep_end: (datetime) end time of SEP event that want to
                 find in list; try time of enhancement above background
                 for >10 MeV or proton energies ~10 MeV or threshold crossing time
-            :list_name: (string) list to pull from for associated flares, CMEs, etc
+            :list_name: (string) list from which to identify associations.
                 "srag" is SRAG_SEP_List.csv
                 "igr_25" is IGR_25MeV_SEP_List.csv
                 "cane" is Cane_SEP_List.csv
@@ -979,9 +979,10 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
         
     """
     null_assoc = empty_associations_dict()
+    ref_proton_times = []
 
     if pd.isnull(sep_start) or pd.isnull(sep_end):
-        return null_assoc
+        return null_assoc, ref_proton_times
 
     if list_name == 'srag':
         assoc_list = SRAG_List()
@@ -1057,20 +1058,64 @@ def identify_associations_in_list(sep_start, sep_end, list_name='srag'):
     if event_index == -1:
         print(f"identify_associations_in_list: No match was found in {assoc_list.id} for {sep_start}.")
         #Return series with columns with appropriate null values
-        return null_assoc
+        return null_assoc, ref_proton_times
     else:
         output_col = list_output_columns
         associations = fill_associations(df, event_index, list=assoc_list.id)
-        proton_info = df[assoc_reference_columns].iloc[event_index]
-        print(f"identify_associations_in_list: Requested SEP event {sep_start} to {sep_end} was associated with time period {assoc_reference_columns[0]} {proton_info[0]} to {assoc_reference_columns[1]} {proton_info[1]} found in {assoc_list.id}.")
+        ref_proton_times = df[assoc_reference_columns].iloc[event_index]
+        print(f"identify_associations_in_list: Requested SEP event {sep_start} to {sep_end} was associated with time period {assoc_reference_columns[0]} {ref_proton_times[0]} to {assoc_reference_columns[1]} {ref_proton_times[1]} found in {assoc_list.id}.")
         #Cast types in associations to avoid Int64, etc
         for key in associations.keys():
             associations[key] = cast_value(key, associations[key])
  
-        return associations
+        return associations, ref_proton_times
 
-    return null_assoc
+    return null_assoc, ref_proton_times
 
+
+def identify_associations(sep_start, sep_end):
+    """ Find best association out of all reference SEP lists. 
+        Reference lists are curated to contain unique entries.
+        
+    """
+    if isinstance(sep_start, str):
+        sep_start=dh.str_to_datetime(sep_start)
+    if isinstance(sep_end, str):
+        sep_end=dh.str_to_datetime(sep_end)
+
+   
+    lists = ['srag', 'user', 'igr_soho', 'cane', 'igr_25']
+    associations = []
+    ref_proton_times = []
+    for list_name in lists:
+        assoc, ref_times = identify_associations_in_list(sep_start, sep_end, list_name=list_name)
+        if assoc == empty_associations_dict():
+            continue
+        associations.append(assoc)
+        ref_proton_times.append(ref_times)
+        
+    if len(associations) == 0:
+        return empty_associations_dict()
+        
+    elif len(associations) == 1:
+        return associations[0]
+        
+    else:
+        print("identify_associations: Found matches in multiple lists. Identifying best associations.")
+        #If multiple matches, choose the one with the start time
+        #closest in time to sep_start
+        min_diff = datetime.timedelta(hours=24) #tolerance
+        best_index = -1
+        for ix in range(len(associations)):
+            ref_start = ref_proton_times[ix][0]
+            diff = abs(ref_start - sep_start)
+            if diff <= min_diff:
+                min_diff = diff
+                best_index = ix
+
+        return associations[best_index]
+        
+    return empty_associations_dict()
 
 
 #Convert associations dictionary to CCMC SEP Scoreboard CME trigger JSON format
