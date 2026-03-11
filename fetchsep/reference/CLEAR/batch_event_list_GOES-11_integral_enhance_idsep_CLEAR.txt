@@ -3,8 +3,7 @@
 2003-06-25 00:00:00,2003-10-21 14:45:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2003-10-21 14:45:00,2003-10-23 06:30:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2003-10-23 06:30:00,2003-10-26 01:00:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
-2003-10-26 01:00:00,2003-10-28 00:10:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
-2003-10-28 00:10:00,2003-10-28 11:15:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
+2003-10-26 01:00:00,2003-10-28 11:15:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2003-10-28 11:15:00,2003-10-29 20:55:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2003-10-29 20:55:00,2003-11-02 17:25:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2003-11-02 17:25:00,2003-11-04 21:00:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
@@ -22,8 +21,7 @@
 2004-07-25 16:45:00,2004-07-29 23:15:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2004-07-29 23:15:00,2004-08-03 15:55:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2004-08-03 15:55:00,2004-09-12 00:00:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
-2004-09-12 00:00:00,2004-09-13 19:45:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
-2004-09-13 19:45:00,2004-09-19 17:30:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
+2004-09-12 00:00:00,2004-09-19 17:30:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2004-09-19 17:30:00,2004-09-24 00:00:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2004-09-24 00:00:00,2004-10-29 07:55:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons
 2004-10-29 07:55:00,2004-11-01 06:00:00,GOES-11,integral,IDSEPEnhancement,,,,,,observations,,./CLEAR/output/idsep/GOES-11_integral/csv,earth,protons

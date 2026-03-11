@@ -1557,7 +1557,7 @@ class IGR_SOHO_List():
             
         """
         self.id = "IGR SOHO/STEREO SEP List"
-        self.filename = 'IGR_SEPlist3_20260306.csv'
+        self.filename = 'IGR_SEPlist3_20260306_unique.csv'
         self.list = pd.DataFrame()
         self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
@@ -1672,7 +1672,7 @@ class Cane_List():
             
         """
         self.id = "Cane et al. (2010) SEP List"
-        self.filename = 'Cane_SEP_List.csv'
+        self.filename = 'Cane_SEP_List_unique.csv'
         self.list = pd.DataFrame()
         self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
@@ -1785,7 +1785,7 @@ class IGR_25MeV_List():
             
         """
         self.id = "IGR 25 MeV SEP List"
-        self.filename = 'IGR_25MeV_SEP_List.csv'
+        self.filename = 'IGR_25MeV_SEP_List_unique.csv'
         self.list = pd.DataFrame()
         self.reference_columns = ["SEP Reference Start", "SEP Reference End"]
 
