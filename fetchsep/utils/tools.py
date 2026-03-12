@@ -355,15 +355,6 @@ def create_primary_goes_sep_list(lists, prefix='GOES', path_to_data=None,
         df_in['Analyzed Period Start'] = pd.to_datetime(df_in['Analyzed Period Start'])
         df_in['Analyzed Period End'] = pd.to_datetime(df_in['Analyzed Period End'])
         
-        #Add relative paths
-        path_cols = ["All Fluxes Time Series", "JSON", "Flux Time Series"]
-        cols = df_in.columns.to_list()
-        for col1 in cols:
-            for col2 in path_cols:
-                if col2 in col1:
-                    for index, row in df_in.iterrows():
-                        df_in.loc[index,col1] = os.path.join(fpath, row[col1])
-        
         df = pd.concat([df, df_in], ignore_index=True)
         
     #Sort by time

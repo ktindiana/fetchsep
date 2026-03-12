@@ -3020,7 +3020,7 @@ class Output:
                 "Background Subtraction": bgsub,
                 "Analyzed Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Analyzed Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
-                "All Fluxes Time Series": self.data.fluxes_filename,
+                "All Fluxes Time Series": os.path.join(cfg.outpath,'opsep', self.subdir,self.data.fluxes_filename),
                 "JSON": os.path.join(cfg.outpath,'opsep', self.subdir, self.json_filename)
                 }
         
@@ -3062,7 +3062,7 @@ class Output:
                 "Background Subtraction": bgsub,
                 "Analyzed Period Start": self.data.startdate,
                 "Analyzed Period End": self.data.enddate,
-                "All Fluxes Time Series": self.data.fluxes_filename,
+                "All Fluxes Time Series": os.path.join(cfg.outpath,'opsep', self.subdir, self.data.fluxes_filename),
                 "JSON": os.path.join(cfg.outpath,'opsep', self.subdir, self.json_filename)
                 }
         

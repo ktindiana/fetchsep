@@ -658,7 +658,7 @@ def experiment_info(experiment):
                         [40.0,80.0],[80.0,165.0],[165.0,500.0], [350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
-                    'kurtosis_cut': 65,
+                    'kurtosis_cut': 50,
                 },
                 'integral':{
                     'flux_units': 'pfu',
@@ -724,7 +724,7 @@ def experiment_info(experiment):
                         [40.0,80.0],[80.0,165.0],[165.0,500.0],[350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
-                    'kurtosis_cut': 65,
+                    'kurtosis_cut': 50,
                 },
                 'integral':{
                     'flux_units': 'pfu',
@@ -757,7 +757,7 @@ def experiment_info(experiment):
                         [40.0,80.0],[80.0,165.0],[165.0,500.0],[350.0,420.0],
                         [420.0,510.0],[510.0,700.0],[700.0,-1]]),
                     'url': 'https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/',
-                    'kurtosis_cut': 65,
+                    'kurtosis_cut': 50,
                 },
                 'integral':{
                     'flux_units': 'pfu',
