@@ -1,0 +1,374 @@
+Documentation for the CLEAR SEP Benchmark Dataset Version 2.0
+2026-03-11
+
+Author: Kathryn Whitman (KBR, NASA JSC Space Radiation Analysis Group)
+
+
+BENCHMARK DATASET PROVENANCE
+============================
+The CLEAR SEP Benchmark Dataset was created with the FetchSEP python package. FetchSEP is developed by Kathryn Whitman and available in the public repository: 
+https://github.com/ktindiana/fetchsep
+The repository is tagged with the version that created the CLEAR Benchmark Dataset Version 2.0 with the release: 
+https://github.com/ktindiana/fetchsep/releases/tag/CLEAR_Benchmark_v2.0
+
+The CLEAR SEP Benchmark Dataset is hosted by NASA CCMC and available online at: 
+https://ccmc.gsfc.nasa.gov/swxcoe/clear/
+https://ccmc.gsfc.nasa.gov/swxcoe/clear/benchmark.php
+
+
+Consistent and Reproducible Analysis with FetchSEP
+--------------------------------------------------
+FetchSEP automatically analyzes SEP enhancements, ensuring consistent and reproducible SEP event definitions with time and across experiments. FetchSEP is composed of three major packages: idsep, opsep, and associations.
+
+Idsep works in an iterative manner to cleanly identify the particle background and enhancements above background that are most likely due to SEP events, using a set of selection criteria. Idsep outputs the mean background value for every point in time for the full GOES datasets and the expected level of variation within the background (sigma). Idsep also provides rough start and end times of SEP events above background (hence the name ID-SEP). Those products were used as a starting point to create the hand-curated "batch_event_list" files for CLEAR.
+
+Opsep calculates SEP event parameters by applying specific SEP event definitions. For the Benchmark dataset, these event definitions include threshold crossings by specific energy channels (e.g., >10 MeV, 10 pfu) AND the identification of SEP events when they increase above the background levels. The mean background and sigma calculated by idsep are used to identify enhancements above background. Opsep always applies SRAG's operational event definitions of >10 MeV exceeds 10 pfu and >100 MeV exceeds 1 pfu when possible (hence the name Op-SEP). Event definitions applied in the CLEAR SEP Benchmark Dataset are:
+- >10 MeV exceeds 10 pfu
+- >10 MeV exceeds background
+- >100 MeV exceeds 1 pfu
+- >100 MeV exceeds background
+- >30 MeV exceeds 1 pfu
+- >30 MeV exceeds background
+- > 50 MeV exceeds 1 pfu
+- >50 MeV exceeds background
+
+Associations contains modules to extract flare, CME, and solar cycle information from various online catalogs and reference SEP lists stored in the fetchsep repository. These packages are currently able to extract information from NOAA Science X-ray flare summary files, SOHO LASCO CDAW CME catalog, DONKI CME catalog, and solar cycle definitions using the Badhwar-O'Neill (BON) GCR model definitions of solar minimum. 
+
+
+SEP Lists Used for Flare, CME, etc Associations
+-----------------------------------------------
+Four SEP lists that were published in the literature or provided via personal communication were used to provide the associated contextual information for the source eruptions (flare, CME, radio, location) and solar wind (shock passages) for each SEP event identified by FetchSEP. The lists were converted to machine-readable formats and then supplemented, whenever possible, with NOAA science X-ray flare values, CDAW CME parameters, and DONKI CME parameters. When needed, SEP Reference Start and End columns were added to give an approximate frame during which the SEP event was likely to be observed in the proton flux as historical lists often provided times that were not specific or not specific to a single satellite. The reference SEP lists were pruned such that each SEP event was represented only once across the lists (filenames contain _unique). 
+
+SRAG SEP list curated by A. Steve Johnson (Leidos, SRAG) which spans Solar Cycle 22 to the present. The list is most complete for larger events that exceed SRAG's operational thresholds, but includes many smaller events that do not. Steve compiled many types of contextual information with exact flare, CME, radio, and SEP values and timing. This list was used as the primary source of associations in the Benchmark dataset. Because this list contains detailed SEP proton information, it is a good standalone SEP list in its own right. 
+Machine-readable version:  fetchsep/reference/SRAG_SEP_List.csv
+
+25 MeV SEP list compiled by Ian Richardson from 1967 to the present. The SEPs from 1986 - 1997 were used for the CLEAR dataset. This list was derived from proton measurements by the IMP and SOHO satellites, which have much lower backgrounds compared to GOES, and therefore contains many more small events than the SRAG SEP list. This list contains approximate timing, flare magnitudes, source eruption location information, and CME speeds.  
+Machine-readable versions: fetchsep/reference/IGR_25MeV_SEP_List_Full.csv, fetchsep/reference/IGR_25MeV_SEP_List_unique.csv
+
+Cane et al. (2010) list (JOURNAL OF GEOPHYSICAL RESEARCH, VOL. 115, A08101, doi:10.1029/2009JA014848, 2010) spans 1997 to 2006 and contains flare, CME, and Type III radio information along with approximate times of the source eruption and the following proton event and some additional features captured in the comments.
+Machine-readable versions: fetchsep/reference/Cane_SEP_List_Full.csv, fetchsep/reference/Cane_SEP_List_unique.csv
+
+Ian Richardson's (2025) SOHO/STEREO list published online at https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ. The version used in this work was provided directly by Ian and is consistent with https://link.springer.com/article/10.1007/s11207-026-02614-4. This list contains flare, CME, and radio information and particle intensities at SOHO, STEREO-A, and STEREO-B. 
+Machine-readable versions: fetchsep/reference/IGR_SEPlist3_20260306_Full.csv, fetchsep/reference/IGR_SEPlist3_20260306_unique.csv
+
+
+Transparency and User Deployment
+--------------------------------
+The CLEAR dataset may be created by any user from scratch using the above version of FetchSEP and using the scripts: 
+fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh
+fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh
+fetchsep/reference/CLEAR/deploy_CLEAR_Windows.bat
+
+The scripts refer to the hand-curated time periods in the lists:
+fetchsep/reference/CLEAR/batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt, etc
+
+Additional files:
+fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg: global config parameters. This file is no longer needed as the config values are set in the deploy scripts via command line.
+fetchsep/reference/CLEAR/info.txt: Time periods excluded when curating the batch files because of obvious bad data or large data gaps that would make SEP event parameters unreliable.
+
+The _Mac version of the deploy scripts explicitly shows every step of the process as an individual command. It is a good resource to understand the FetchSEP workflow or to run a single spacecraft individually.
+
+Running the deploy script from scratch will:
+- download all GOES data from GOES-06 to present in its original format into a data/ folder
+- store the original GOES fluxes in simple csv files, always taking the West-facing detector (if there are two)
+- calculate the mean background and other products for each complete GOES time series with idsep
+- copy batch files from the fetchsep/reference/CLEAR directory
+- analyze each SEP event and non-event period independently with opsep
+
+The full process will take 20+ hours, requires a good internet connection, and will result 30 GB+ of data on your computer including the original downloaded GOES files. 
+
+The mean background calculation requires the most time. You may also download the Benchmark Dataset v2.0 from CCMC and use the already-calculated mean backgrounds. To process the individual SEP and non-event periods only, you may run the scripts as:
+./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh BATCH
+
+
+Adding New Event Definitions
+-----------------------------
+You may apply new event definitions (energy channel + threshold) and regenerate your own version of the Benchmark Dataset by modifying the _deploy scripts. You must have the mean backgrounds in the CLEAR/output/idsep folder. To add or change the thresholds, modify the --Threshold tag in:
+
+python bin/fetchsep_automated_pipeline --StartDate 1986-01-01 --EndDate 1994-12-01 --Experiment GOES-06 --FluxType integral --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt  --IDSEPEnhancement --Associations --StartPoint BATCH --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-06_integral_batch.log
+ 
+
+To add a different threshold for an integral channel, for example >10 MeV exceeds 100 pfu:
+
+--Threshold "30,1;50,1;10,100"
+
+
+To apply a threshold to a differential channel:
+
+python bin/fetchsep_automated_pipeline --StartDate 2010-05-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType differential --options "S14;Bruno2017;uncorrected" --Threshold "30,1;50,1" --BatchFile batch_event_list_GOES-13_differential_uncor_S14_B17_bgsub_enhance_idsep_CLEAR.txt --IDSEPEnhancement --IDSEPSubtractBG --Associations --StartPoint BATCH  --outpath "${outpath}" --plotpath "${plotpath}" --listpath "${listpath}" --opsep_nsigma "${opsep_nsigma}"  > "${outpath}"/GOES-13_differential_uncor_S14_B17_bgsub_batch.log
+
+
+Add a threshold of 0..01 to the energy bin 32.5-56.4 MeV:
+
+--Threshold "30,1;50,1;32.5-56.4,0.01"
+
+
+Once you have modified the deploy script with your event definition, you may reprocess the SEP parameters and plots by running:
+./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh BATCH
+
+
+If you are not interested in enhancements above background, you do not need the idsep files. You must modify the batch_event_list_* files to set IDSEPEnhancement and IDSEPSubtractBG to empty strings. Remove the --ISEPEnhancement and --IDSEPSubtractBG flags from the bin/fetchsep_automated_pipeline calls. Run the script as normal and only the event definitions with static thresholds will be applied.
+
+
+
+BENCHMARK DATASET PRODUCTS
+==========================
+
+THE CLEAR Benchmark SEP Event Lists
+-----------------------------------
+GOES_integral_PRIMARY.1986-02-03.2025-09-10_sep_events.csv: Operational SEP event list
+GOES_differential_energy_bin_calibrated_PRIMARY.2010-08-02.2017-09-20_sep_events.csv: Energy-bin calibrated SEP event list
+
+For the Operational list, the integral fluxes provided by NOAA were used as-is, retaining the original flux values but setting fluxes identified as background to zero. The Operational list is best used for statistical analysis, development and validation of models with the goal of predicting operational values, and as a historical record of operational values.
+
+For the Energy-bin calibrated list, the uncorrected differential fluxes provided by NOAA were used. The background was subtracted using the idsep mean backgrounds. Calibrated energy channels from the literature (Sandberg et al. 2014, Bruno 2017) were applied and the integral energy channels (>10, >30, >50, >100 MeV) were estimated. The Energy-bin calibrated list is best used for scientific studies, model development and validation for scientific purposes, and dosimetry calculations. The fluence spectra in this list are in calibrated differential energy bins.
+
+
+See BENCHMARK DATASET PARAMETERS below for a description of each column.
+
+
+IDSEP GOES Flux Time Series and Mean Background Products
+--------------------------------------------------------
+Using GOES-06 files as an example. All other folders contain the same set of files.
+CLEAR/output/idsep/*
+batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt: hand-curated list of SEP event and non-event periods used by opsep to analyze each time period individually
+
+CLEAR/output/idsep/GOES-06_integral/
+fluxes_GOES-06_integral_19860101_19941130.csv: 	Original GOES-06 integral fluxes from 1986-01-01 to 1994-11-30, the entire time history of GOES-06
+HighPoints_GOES-06_integral_5.0_to_-1.txt: 	Time of every point above the mean background + 3 sigma for >5 MeV (likewise for the other similarly named files)
+SEPTimes_GOES-06_integral_5.0_to_-1.txt: 	Start and end times of enhancements automatically identified by idsep.
+
+CLEAR/output/idsep/GOES-06_integral/csv/
+background_mean_fluxes_FINAL.csv: 		Mean background for every 5-minutes time step, calculated on a per-day basis; USED WITH OPSEP
+background_sigma_FINAL.csv: 			Expected level of variation in the background (sigma) for every time step; USED WITH OPSEP
+background_threshold_FINAL.csv: 		Mean + 3*sigma for every time point, used to identify high points and SEP enhancements above background
+kurtosis_FINAL.csv: 				A kurtosis value for the distribution generated from each background period analyzed for mean and sigma; used to exclude data with strange distributions (like lots of values set to a floor) from the background calculation. Time periods with kurtosis values above 65 (above 50 for GOES-07) were excluded. 
+EP_fluxes_background-subtracted_FINAL.csv: 	Time series of SEP fluxes with the mean background subtracted away and time periods identified as background set to zero (time series with only the background-subtracted SEP enhancements)
+SEP_fluxes_FINAL.csv: 				Original SEP fluxes with background time periods set to zero (time series with only the SEP enhancements)
+
+CLEAR/plots/idsep/*
+CLEAR/plots/idsep/GOES-06_integral/
+GOES-06_integral_FluxWithThreshold_150.0days_2.png: Initial attempt at identifying background and enhancements using a very wide 150 day period. 
+GOES-06_integral_SEP_BG_150.0days_2.png: 	All high points (orange) and background (blue)
+GOES-06_integral_FluxWithThreshold_5.0window_iter0_2.png: iter0, iter1, iter2 (FINAL) mean background and sigma (orange), with mean + 3*sigma threshold (green) plotted on background fluxes (blue)
+GOES-06_integral_FluxWithThreshold_5.0window_nosigma_iter0_2.png: iter0, iter1, iter2 (FINAL) mean background only (orange), with mean + 3*sigma threshold (green) plotted on background fluxes (blue)
+GOES-06_integral_SEP_BG_5.0window_iter0_2.png: 	iter0, iter1, iter2 (FINAL) all high points above threshold (orange) with background fluxes (blue) using a backwards 5-day sliding window
+GOES-06_integral_SEP_BG_OnlySEP_iter0_2.png: 	iter0, iter1 all enhancements identified as SEP events (orange), other fluxes (blue)
+GOES-06_integral_SEP_BG_FINALSEP_2.png: 	FINAL set of SEP enhancements identified in the last iteration with SEP events (orange) and other fluxes (blue)
+
+
+OPSEP SEP and Non-Event Products
+--------------------------------
+Using GOES-06 files as an example. All other folders contain the same set of files.
+CLEAR/output/opsep/*
+CLEAR/output/opsep/GOES-06_integral_enhance_idsep/
+GOES-06_integral_enhance_idsep.1986-01-01.1994-11-30_non_events.csv: 	All non-event periods analyzed by opsep for GOES-06 between 1986-01-01 and 1994-11-30.
+GOES-06_integral_enhance_idsep.1986-01-01.1994-11-30_sep_events.csv: 	All SEP event periods analyzed by opsep between 1986-01-01 and 1994-11-30. The events from this list were exported into the final Benchmark SEP List for the SEP events the occurred when GOES-06 was the primary satellite.
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z_fluxes_all_bins.csv: 	The flux time series for all native energy bins (will be differential bin if the input fluxes were differential, e.g. in the energy-bin calibrated dataset) for the analyzed SEP event or non-event period start on 1986-01-01.
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z.10.0.MeV.txt:		 The flux time series for the >10 MeV channel only for the individual analyzed time period starting on 1986-01-01. Background values are set to zero. The txt files are produced only for the energy channels for which an event definition is applied and they accompany the json file. 
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z.30.0.MeV.txt: 	The flux time series for the >30 MeV channel for the individual analyzed time period starting on 1986-01-01. Background values are set to zero.
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z.50.0.MeV.txt: 	The flux time series for the >50 MeV channel for the individual analyzed time period starting on 1986-01-01. Background values are set to zero.
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z.100.0.MeV.txt: 	The flux time series for the >100 MeV channel for the individual analyzed time period starting on 1986-01-01. Background values are set to zero.
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z.csv: 			SEP event or non-event parameters with associations in csv format. This is essentially a single row in the Benchmark SEP List. These .csv files are combined to create the _sep_events.csv and non_events.csv lists.
+GOES-06_integral_enhance_idsep.1986-01-01T000000Z.json: 		A JSON file that mimics the format of the CCMC SEP Scoreboard json format. The "sep_profile" fields within reference the flux time series .txt files. The JSON file, along with the accompanying .txt files, are in the correct format to be used by SPHINX to validate SEP models.
+
+CLEAR/plots/opsep/*
+CLEAR/plots/opsep/GOES-06_integral_enhance_idsep/
+1986-02-03T070500Z_GOES-06_integral_enhance_idsep_All_Bins_Background_Fluxes.png: Using the idsep mean background and sigma, the fluxes that were identified as background fluxes for the time period analyzed by opsep starting on 1986-02-03.
+C1986-02-03T070500Z_GOES-06_integral_enhance_idsep_All_Bins_SEP_Fluxes.png: 	Using the idsep mean background and sigma, the fluxes that were identified as enhanced fluxes above background.
+1986-02-03T070500Z_GOES-06_integral_enhance_idsep_All_Bins_Total_Fluxes.png: 	All fluxes in the time period analyzed by opsep. Flipping between this plot and two previous plots clearly shows the background and enhanced fluxes identification.
+1986-02-03T070500Z_GOES-06_integral_enhance_idsep_All_Bins_tprofile.png: 	A simple and clean plot of all enhanced fluxes above background.
+1986-02-03T070500Z_GOES-06_integral_enhance_idsep_All_Bins.png: 		All enhanced fluxes above background with vertical lines indicating SEP event start and stop times for all event definitions (if an SEP event occurred during the period).
+C1986-02-03T070500Z_GOES-06_integral_enhance_idsep_Event_Def.png: 		A multi-panel plot showing SEP start and end times, onset peak, and max flux with one panel per event definition.
+1986-02-03T070500Z_GOES-06_integral_enhance_idsep_Fluence.png:			 SEP event-integrated fluence spectra calculated between the start and end times for each event definition. (Only present if an SEP event.)
+1986-02-04T084500Z_GOES-06_integral_enhance_idsep_Weibull_profile_fit_10.0MeV.png: A Weibull function fit to the first 18 hours of the SEP event profile with the location of the automatically-identified onset peak (brown triangle). This plot and an onset peak value will only be present if the Weibull fit satisfies a number of quality criteria specified within opsep to try to ensure only high-quality fits and onset peak values are reported.
+
+
+
+BENCHMARK DATASET PARAMETERS
+============================
+Experiment: 					GOES satellite
+Native Flux Type: 				integral (Operational list); differential (Energy-bin calibrated list)
+Options: 					none (Operational list); S14 indicates Sandberg et al. (2014) calibrated energy bins, Bruno2017 indicates Bruno (2017) calibrated energy bins, uncorrected indicates that the uncorrected differential fluxes provided by NOAA were used (Energy-bin calibrated list)
+Background Subtraction: 			none (Operational list); IDSEP indicates that the mean background calculated by idsep was subtracted (Energy-bin calibrated list)
+Analyzed Period Start: 				Start of the time period analyzed by opsep to identify SEP events
+Analyzed Period End: 				End of the time period analyzed by opsep to identify SEP events
+All Fluxes Time Series: 			Relative path and filename of file containing flux time series for all energy bins between Analyzed Period Start and Analyzed Period End
+JSON: 						Relative path and filename of JSON file in SEP Scoreboard format. Contains all parameters for all event definitions and flare and CME triggers.
+>10.0 MeV 10.0 pfu Flux Time Series:		Relative path and filename of flux time series for only >10 MeV
+>10.0 MeV 10.0 pfu SEP Start Time:		Time at which >10 MeV flux crossed the 10 pfu threshold, requiring 3 points in a row above threshold.
+>10.0 MeV 10.0 pfu SEP End Time: 		Last time at which >10 MeV flux dropped below the 10 pfu or the end of the analyzed period if another event began before this one ended.
+>10.0 MeV 10.0 pfu SEP Duration (hours): 	SEP End Time - SEP Start Time
+>10.0 MeV 10.0 pfu Onset Peak (pfu): 		Automatically identified onset peak (experimental) intended to be the initial peak after the first SEP rise; only present if fitting routine produced a high enough quality fit. 
+>10.0 MeV 10.0 pfu Onset Peak Time: 		Time of the onset peak.
+>10.0 MeV 10.0 pfu Rise Time to Onset (minutes): Onset Peak Time - SEP Start Time
+>10.0 MeV 10.0 pfu Max Flux (pfu): 		Maximum flux between SEP Start Time and SEP End Time if there was an SEP event; Maximum flux between Analyzed Period Start and Analyzed Period End if there was no event. This field always has a value, even if no SEP event occurred and may represent the highest background point.
+>10.0 MeV 10.0 pfu Max Flux Time: 		Time of the maximum flux value.
+>10.0 MeV 10.0 pfu Rise Time to Max (minutes): 	Maximum Flux Time - SEP Start Time
+>10.0 MeV 10.0 pfu Fluence (cm^-2): 		Event-integrated fluence between SEP Start Time and SEP End Time for >10 MeV channel
+>10.0 MeV 10.0 pfu Fluence Spectrum (cm^-2): 	Event-integrated fluence spectrum for all energy bins between SEP Start Time and SEP End Time
+>10.0 MeV 10.0 pfu Fluence Spectrum Energy Bins (MeV): Energy bins that correspond to the Fluence Spectrum values
+>10.0 MeV 10.0 pfu Fluence Spectrum Energy Bin Centers (MeV): Energy bin centers that correspond to the Fluence Spectrum values (used for plotting)
+>10.0 MeV 10.0 pfu Quality Flags: I, G, T, E, S (described below); Quality flags are automatically identified and are intended to indicate to the user that they may want to look more closely at the analyzed time period and derived parameters as they may be affected by a quality issue.
+>10.0 MeV above background Flux Time Series: 	Relative path and filename of flux time series for only >10 MeV
+>10.0 MeV above background SEP Start Time: 	Start time of SEP event when it rises above background; the time at which the flux consistently rises above mean + 3*sigma threshold.
+>10.0 MeV above background SEP End Time: 	End time of SEP event when it returns to background or the end of the analyzed period if another event began before this one ended.
+>10.0 MeV above background SEP Duration (hours): SEP End Time - SEP Start Time
+>10.0 MeV above background Onset Peak (pfu): 	Automatically identified onset peak (experimental) intended to be the initial peak after the first SEP rise; only present if fitting routine produced a high enough quality fit. 
+>10.0 MeV above background Onset Peak Time: 	Time of the onset peak.
+>10.0 MeV above background Rise Time to Onset (minutes): Onset Peak Time - SEP Start Time
+>10.0 MeV above background Max Flux (pfu): 	Maximum flux between SEP Start Time and SEP End Time if there was an SEP event; Maximum flux between Analyzed Period Start and Analyzed Period End if there was no event. This field always has a value, even if no SEP event occurred and may represent the highest background point.
+>10.0 MeV 10.0 pfu Max Flux Time: 		Time of the maximum flux value.
+>10.0 MeV above background Max Flux Time: 	Time of the maximum flux value.
+>10.0 MeV above background Rise Time to Max (minutes): Maximum Flux Time - SEP Start Time
+>10.0 MeV above background Fluence (cm^-2): 	Event-integrated fluence between SEP Start Time and SEP End Time for >10 MeV channel
+>10.0 MeV above background Fluence Spectrum (cm^-2): Event-integrated fluence spectrum for all energy bins between SEP Start Time and SEP End Time
+>10.0 MeV above background Fluence Spectrum Energy Bins (MeV): Energy bins that correspond to the Fluence Spectrum values
+>10.0 MeV above background Fluence Spectrum Energy Bin Centers (MeV): Energy bin centers that correspond to the Fluence Spectrum values (used for plotting)
+>10.0 MeV above background Quality Flags: 	I, G, T, E, S (described below); Quality flags are automatically identified and are intended to indicate to the user that they may want to look more closely at the analyzed time period and derived parameters as they may be affected by a quality issue.
+>100 MeV 1 pfu *: 				Parameters for >100 MeV exceeds 1 pfu
+>100 MeV above background *: 			Parameters for >100 rises above background
+>30 MeV 1 pfu *: 				Parameters for >30 MeV exceeds 1 pfu
+>30 MeV above background *: 			Parameters >30 MeV rises above background
+>50 MeV 1 pfu *: 				Parameters for >50 MeV exceeds 1 pfu
+>50 MeV above background *: 			Parameters >50 MeV rises above background
+Solar Cycle: 					Solar cycle 21 to 25
+EventType: 					ESPE indicates >100 MeV, 1 pfu crossed; SPE indicates >10 MeV, 10 pfu crossed but >100 MeV, 1 pfu not crossed; SubEvent indicates there was an SEP event but that the >10 MeV,10 pfu and >100 MeV, 1 pfu thresholds were not crossed; NonEvent indicates no enhancements above background. 
+Case: 						Contextual information about the event (see more information below)
+Flare Xray Start Time Deprecated: 		Historical flare start time provided in associations lists; may be approximate and generally refers to historical SWPC products that included the SWPC calibration for GOES-15 and previous.  
+Flare Xray Peak Time Deprecated: 		Historical flare peak time; may be approximate
+Flare Xray End Time Deprecated: 		Historical flare end time; may be approximate
+Flare Class Deprecated: 			SWPC B, C, M, X flare class that included the SWPC calibration for GOES-15 and previous.
+Flare Magnitude Deprecated: 			Flare intensity that included the SWPC calibration for GOES-15 and previous.
+Flare Integrated Flux Deprecated: 		Flare time-integrated flux (e.g. fluence) that included the SWPC calibration for GOES-15 and previous.
+Flare Xray Start Time: 				Flare start time from the NOAA GOES science X-ray flare summary files for GOES-08 to GOES-19, if the deprecated flare could be found in the science data. If the flare could not be found in the science data, the value in the deprecated column is carried over.
+Flare Xray Peak Time: 				Flare peak time from the NOAA GOES science X-ray flare summary files for GOES-08 to GOES-19, if the deprecated flare could be found in the science data. If the flare could not be found in the science data, the value in the deprecated column is carried over.
+Flare Xray End Time: 				Flare end time from the NOAA GOES science X-ray flare summary files for GOES-08 to GOES-19, if the deprecated flare could be found in the science data. If the flare could not be found in the science data, the value in the deprecated column is carried over.
+Flare Class: 					The SWPC B, C, M, X flare class from the NOAA GOES science X-ray flare summary files, if the deprecated flare could be found in the science data. If the flare could not be found in the science data, the value in the Flare Class in the deprecated column is converted by dividing the flare magnitude by 0.7 to remove the SWPC calibration.
+Flare Magnitude: 				Flare magnitude from the NOAA GOES science X-ray flare summary files, if the deprecated flare could be found in the science data. If the flare could not be found in the science data, the value is carried over from the deprecated column and is divided by 0.7 to remove the SWPC calibration.
+Flare Integrated Flux: 				Flare integrated flux from the NOAA GOES science X-ray flare summary files, if the deprecated flare could be found in the science data. If the flare could not be found in the science data, the value is carried over from the deprecated column and is divided by 0.7 to remove the SWPC calibration.
+Flare Duration: 				Flare Xray End Time - Flare Xray Start Time
+Flare Time To Peak: 				Flare Xray Peak Time - Flare Xray Start Time
+Flare Catalog ID: 				Catalog ID from the NOAA science X-ray flare summary files. If a value is present in this column, then the flare was found in the science data. If the value is null, the flare was not found in the science data and the flare values were calculated by manually removing the SWPC calibration factor.
+GOES Xray Satellite: 				GOES satellite that took the X-ray measurements.
+Flare Opt: 					Xray flare optical class
+Active Region: 					NOAA active region number associated with the SEP source eruption (SWPC: Daily events list (EL), Weekly report (PRF))
+AR Area: 					Active region size at the start of day (SWPC: Weekly report (PRF))
+AR Spot Class: 					Mount Wilson class at start of day (SWPC: Weekly report (PRF))
+AR Mag Class: 					Modified Zurich class at start of day (SWPC: Weekly report (PRF))
+AR Carrington: 					Carrington longitude at start of day (SWPC: Weekly report (PRF))
+Event Source Location From Center: 		Calculated in the SRAG list
+Event Source Latitude: 				Latitude of the SEP source eruption (see more information below)
+Event Source Longitude: 			Longitude of the SEP source eruption (see more information below)
+Event Source Reference: 			Reference to the document or station that provided the source location (see more information below)
+Event Source Location from Center 2: 		Calculated in the SRAG list
+Event Source Latitude 2: 			Latitude from as second catalog 
+Event Source Longitude 2: 			Longitude from a second catalog 
+Event Source Reference 2: 			Reference to the document or station that provided the second source location
+Radio Rbr245Max: Peak of radio burst at 245 MHz Radio burst data from SWPC Edited Solar Events product (ftp://ftp.swpc.noaa.gov/pub/warehouse, https://www.swpc.noaa.gov/products/solar-and-geophysical-event-reports) 
+Radio Rbr2695Max: 				Peak of Ten flare (2695 MHz) radio burst from SWPC Edited Solar Events product (ftp://ftp.swpc.noaa.gov/pub/warehouse, https://www.swpc.noaa.gov/products/solar-and-geophysical-event-reports)
+Radio Rbr8800: 					Peak of 8800 MHz radio burst (8800 MHz radio burst data from radio burst achive https://www.ngdc.noaa.gov/stp/space-weather/solar-data/solar-features/solar-radio/radio-bursts/reports/spectral-listings/) 
+Radio Type III Start Time: 			Start time of type III burst (at 14 MHz) to the nearest 5 min. (Wind/WAVES)
+Radio Type III End Time: 			End time of type III burst (at 14 MHz) to the nearest 5 min. (Wind/WAVES) 
+Radio TyIII_Imp: 				Type III Importance (1 - 3) from NOAA SWPC (SWPC: Daily events list (EL))
+Radio m_TyII Start Time: 			Metric Type II burst start time (SWPC: Daily events list (EL)) 
+Radio m_TyII End Time: 				Metric Type II burst end frequency (SWPC: Daily events list (EL))
+Radio TyII Imp: 				Type II Importance (1 - 3, 0 if no Type II) (SWPC: Solar Geophysical Data (SGD))
+Radio TyII Speed: 				Shock speed of metric Type II burst 
+Radio m_TyII Start Frequency: 			Metric Type II burst start frequency
+Radio m_TyII End Frequency: 			Metric Type II burst end frequency
+Radio Station: 					Reporting station
+Radio DH Start Time: 				Deca-metric (DH) Type II Start time (https://solar-radio.gsfc.nasa.gov/wind/bursts_2000.html, https://cdaw.gsfc.nasa.gov/CME_list/radio/waves_type2.html. Data may come from either. Usually Wind was first choice.)
+Radio DH End Time: 				Deca-metric (DH) Type II End time 
+Radio DH Start Frequency:			Deca-metric (DH) Type II Start frequency 
+Radio DH End Frequency: 			Deca-metric (DH) Type II End frequency 
+Radio DH Note: 					Event note from web page 
+Radio TyIV Start Time: 				Type IV radio burst start time (SWPC: Daily events list (EL))
+Radio TyIV End Time: 				Type IV radio burst end time (SWPC: Daily events list (EL))
+Radio TyIV Imp: 				Type IV Importance (1 - 3) from NOAA SWPC (SWPC: Daily events list (EL))
+Radio TyIV Duration: 				Radio TyIV End Time - Radio TyIV Start Time
+CDAW CME First Look Time: 			First appearance on LASCO L2 (SOHO LASCO CDAW CME catalog: https://cdaw.gsfc.nasa.gov/CME_list/index.html)
+CDAW CME Speed: 				Plane-of-sky speed (SOHO LASCO CDAW CME catalog)
+CDAW CME Width: 				Plane-of-sky full width (SOHO LASCO CDAW CME catalog)
+CDAW CME Mean Position Angle: 			(SOHO LASCO CDAW CME catalog)
+CDAW CME Central Position Angle: 		(SOHO LASCO CDAW CME catalog)
+DONKI CME Start Time: 				CME start time in the NASA CCMC DONKI Catalog (https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Speed: 				3-dimensional CME speed derived by fitting with SWPC_CAT or similar tool (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Half Width: 				Half width from 3-dimensional CME fit (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Lat: 					Solar source latitude derived from CME fit (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Lon: 					Solar source longitude derived from CME fit (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Time at 21.5: 			Time that CME crosses 21.5 Rsun, e.g. the ENLIL inner boundary (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Feature: 				LE for fit of Leading Edge, SH for fit of shock (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Catalog ID: 				Unique ID of CME in DONKI (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+DONKI CME Measurement Technique: 		SWPC_Cat or STEREOCat, if specified (CCMC DONKI Catalog https://kauai.ccmc.gsfc.nasa.gov/DONKI/)
+ESP_CME: 					Is the CME that results in an Energetic Storm Particle event (ESP) as it passes Earth the same CME that caused initial event? - RELAT or UNRELAT
+ESP CDAW CME First Look Time: 			First appearance on LASCO L2 for CME responsible for ESP (SOHO LASCO CDAW CME catalog)
+ESP CDAW CME LASCO Speed: 			Plane-of-sky speed for CME responsible for ESP (SOHO LASCO CDAW CME catalog)
+Shock Passage Speed: 				Speed of shock as it passes Earth from Cane et al. list
+ACE CME Passage Time: 				Time of passing shock measured at ACE from SRAG list (see more information below)
+ACE Bz: 					Lowest Bz magnitude at shock passage at ACE (maximum southward Bz) (SWPC: Weekly Report)
+Sudden Impulse Time: 				CME Shock passage time at Earth 
+Sudden Impulse Amplitude: 			Magnitude of shock passage at Earth
+GLE Event Number: 				GLE number
+PRF: 						SWPC Weekly report (PRF) number
+Associations List: 				List used to provide association information - SRAG SEP List, Cane et al. List, Richardson SOHO/STEREO List, IGR 25 MeV List 
+Comments: 					Comments provided in associations lists about SEP events 
+
+
+Quality Flags
+-------------
+Quality flags to indicate that the user may want to take a closer look:
+I: Time period ended while SEP was still enhanced (interrupted)
+G: A large data gap is present 
+T: A data gap likely affects the start or end time of an SEP event 
+E: The particle environment was already enhanced at the start of the time period
+S: The max flux is likely an erroneous spike in the data
+
+
+Case
+----
+Descriptor of event source.
+This information is taken primarily from the SRAG SEP list and may not be consistently indicated for all SEP events, with the exception of ESP and Farside. 
+The ESP status is indicated in the SRAG list and in some places in the Cane et al. (2010), IGR SOHO/STEREO, and IGR 25 MeV lists. May not be fully complete, but is more complete than in Benchmark Dataset v1.0.
+Farside is applied automatically by FetchSEP if event source longitude or DONKI CME longitude is available. All longitudes beyond +/-90 degrees are assigned Farside.
+
+AR: solar eruption source; only included if helps to interpret another case, e.g. AR/ESP.
+ESP: peak in lower energies the result of a CME passage or enhancement only due to shock passage 
+Farside: solar source beyond the limb
+FE: the result of a filament eruption
+PrevEv: Previous event ongoing at this event start
+Unknown: unknown event source
+Pending: source/analysis still to be determined
+
+
+Flare Location
+--------------
+For the SRAG list, Event Source location generally refers to the flare location, in order of preference:
+- Optical location from SWPC Edited Solar Events product (https://www.swpc.noaa.gov/products/solar-and-geophysical-event-reports) 
+- From weekly SWPC Preliminary Report and Forecast of Solar Geophysical Data (PRF) (https://www.swpc.noaa.gov/products/report-and-forecast-solar-and-geophysical-activity) 
+- GOES SXI in event list if no optical (During G12)
+LMSAL Solar Soft (after Oct 2002) https://www.lmsal.com/solarsoft/latest_events_archive.html 
+- If no optical a prorated position calculated from last PRF longitude
+- Farside is estimated using solar rotation to highly likely candidate
+- No location if no likely candidate stands out
+- Pure ESP events no location since enhancement is due to shock not AR
+
+For the Cane et al. list:
+- SWPC: H alpha location was obtained by SWPC: Solar Geophysical Data (SGD)
+
+
+Event Source Location Reference
+-------------------------------
+Event location reference:
+Observing station. e.g. HOL, LEA
+EST: indicates a calculated location for farside active regions
+BEL: if beyond East Limb
+BWL: if beyond West Limb
+
+
+Time of Shock Passage at ACE
+----------------------------
+- SWPC: Weekly Report
+- CDAW SEP List Notes (https://cdaw.gsfc.nasa.gov/CME_list/sepe/)
+- ACE Lists of Disturbances and Transients (http://www.ssg.sr.unh.edu/mag/ace/ACElists/obs_list.html#2014)
+- Near-Earth Interplanetary Coronal Mass Ejections Since January 1996 (http://www.srl.caltech.edu/ACE/ASC/DATA/level3/icmetable2.htm)
