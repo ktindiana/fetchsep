@@ -33,7 +33,7 @@ FetchSEP analyzes particle fluxes (tested mainly with protons) for solar energet
 
 The mean background and sigma calculated for each day in `idsep` may be used by `opsep` for background subtraction and identification of enhancements above background when processing individual SEP events.
 
-FetchSEP can run `idsep` followed by `opsep` to identify and analyze all SEP events in a time series. The results of this automated process will not be perfect as some identified enhanced periods may consist of multiple SEP events in succession. A small amount of human intervention to appropriately split those time periods can lead to an automatically generated high-quality list of SEP events and their characteristics. More guidance provided in the fetchsep_prepare_obs section.
+FetchSEP can run `idsep` followed by `opsep` to identify and analyze all SEP events in a time series. The results of this automated process will not be perfect as some identified enhanced periods may consist of multiple SEP events in succession. A small amount of human intervention to appropriately split those time periods can lead to an automatically generated high-quality list of SEP events and their characteristics. More guidance provided in the fetchsep_automated_pipeline section.
 
 FetchSEP may be used to download particle data for supported spacecraft and output the fluxes into a simple, easy-to-read csv file.
 
@@ -100,7 +100,7 @@ Users might like to download original data and convert to csv files without any 
 
 The example downloads the daily netcdf files for GOES-18 differential flux, reads them in, plots them, and exports a single csv file of the full time series. A folder
 
-    | output/idsep/GOES_differential
+    | output/download/GOES_differential
 
 is created containing the time series file
 
@@ -279,7 +279,7 @@ The batch file is built from a list from one of the energy channels, from the fi
 
 The example below will create a rough SEP event list for a year of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics:
 
-    | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1"
+    | python bin/fetchsep_automated_pipeline --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1"
 
 will first run `idsep` on a specified data set and identify all increases above background. Note that the first days of the dataset may not have a good background solution. Output files are created that are then used to automatically run `opsep` in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
 
@@ -287,31 +287,43 @@ Note that manual intervention is required to get a truly good event list. The au
 
 There will be time periods that contain multiple events. The user may edit the batch_event_list_* file which contains each individual time period and rerun the SEP analysis:
  
-     | python bin/fetchsep_prepare_obs --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1" --StartPoint BATCH
+     | python bin/fetchsep_automated_pipeline --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1" --StartPoint BATCH
 
 
 The CLEAR Space Weather Center of Excellence Benchmark Dataset
 ==============================================================
 A set of curated files and scripts have been created to allow any user to run FetchSEP and generate the CLEAR Benchmark SEP dataset. The dataset spans 1986-01-01 to 2025-09-10. When run, the scripts will download all GOES data between those time frames and process each spacecraft to calculate the mean background and SEP enhancements. The `idsep` output and plots folders will contain the mean background and sigma and the `opsep` output and plots folders will contain analysis of each individual SEP event and quite time periods.
 
-The Benchmark dataset can be produced in its entirety using the deploy_* scripts in fetchsep/references/CLEAR.
+The CLEAR Benchmark Dataset may be created by any user from scratch with the CLEAR Benchmark Dataset Version 2.0 release of FetchSEP and the scripts:
+* fetchsep/reference/CLEAR/deploy CLEAR Mac.sh
+* fetchsep/reference/CLEAR/deploy CLEAR Linux.sh
+* fetchsep/reference/CLEAR/deploy CLEAR Windows.bat
 
 **---> Generating the Benchmark dataset from scratch requires about 15 - 20 hours of processing time, at least 25 GB of free space, and a reliable internet connection. <---**
 
+The scripts refer to the hand-curated time periods to be anazlyed by opsep stored in batch run files: **fetchsep/reference/CLEAR/batch_event_list_GOES-06_integral_enhance_idsep_CLEAR.txt**, etc
+
+Additional files:
+**fetchsep/reference/CLEAR/fetchsep_CLEAR.cfg**: global config parameters. This file is no longer needed as the config values are set in the deploy scripts via command line.
+**fetchsep/reference/CLEAR/info.txt**: Time periods excluded when curating the batch files because of obvious bad data or large data gaps that would make SEP event parameters unreliable.
+
+**Note:** The Mac version of the deploy scripts explicitly shows every step of the process as an individual command. It is a good resource to understand the FetchSEP workflow or to run a single spacecraft individually.
+
 The deploy scripts will perform the following steps:
 
-* Configure your environment to use the default settings in fetchsep/reference/fetchsep_CLEAR.cfg
-* Set up the CLEAR/ folder to hold the Benchmark dataset results
-* Download all GOES-06 to present data from NOAA and CCMC iSWA to your data/ folder
-* Calculate the mean background and level of variation (sigma) for the full time series of each GOES spacecraft (most time consuming step of 15+ hours and produces about 20 GB of data)
-* Generates "batch" lists used to analyze quiet time periods and individual SEP events
-* Processes each time period and calculates values for each quiet period or SEP event, generating an SEP event list for each GOES spacecraft (3 - 4 hours 3 GB of data)
-* Combines the SEP parameters from only the primary GOES spacecraft at the time to create a single SEP event list from 1986-01-01 to 2025-09-10 (The CLEAR Benchmark List)
+1. Create a CLEAR/ folder with CLEAR/output/, CLEAR/plots/, CLEAR/lists/
+2. Download all GOES data from GOES-06 to present in its original format into a data/ folder in the top level of the fetchsep repository
+3. Store the original GOES fluxes in simple csv files, always taking the West-facing detector (if there are two)
+4. Calculate the mean background and other products for each complete GOES time series with idsep
+5. Copy batch files from the fetchsep/reference/CLEAR directory
+6. Analyze each SEP event and non-event period independently with opsep
+7. Create SEP event and non-event lists for each GOES satellite in the output/opsep directories
+8. Compile SEP events for the primary GOES satellite at the time of the event into a single list from January 1986 to September 2025
 
 **Two Benchmark lists and supporting data are produced at the end:**
 
-* **Operational list** - GOES integral fluxes as-is (1.7 MB)
-* **Energy Bin Calibrated List** - GOES uncorrected differential fluxes with background subtracted and Sandberg et al. (2014) and Bruno 2017 effective energy bins applied (423 KB)
+* **Operational list** - derived from GOES integral fluxes as-is
+* **Energy Bin Calibrated List** - derived from GOES uncorrected differential fluxes with background subtracted and Sandberg et al. (2014) and Bruno 2017 effective energy bins applied
 
 Create the full Benchmark dataset from scratch by running the scripts from the base fetchsep directory:
 
@@ -328,24 +340,39 @@ Windows:
 
     | .\\fetchsep\\reference\\CLEAR\\deploy_CLEAR_Windows.bat
 
-If you have already created the dataset once and you have the mean background solutions (everything in the output/idsep and plots/idsep folders), you can reprocess the SEP event analysis without having to rerun everything. Say you want to add a new event definition to your analysis (e.g. >10 MeV exceeds 100 pfu), you can modify the appropriate deploy script and rerun only the SEP analysis using the LISTS flag to skip the background calculation.
+If you have already created the dataset once or you downloaded the dataset from the CCMC webpage (https://ccmc.gsfc.nasa.gov/swxcoe/clear/benchmark.php) and you have the mean background solutions (everything in the output/idsep and plots/idsep folders), you can reprocess the SEP event analysis without having to rerun everything. Say you want to add a new event definition to your analysis (e.g. >10 MeV exceeds 100 pfu), you can modify the appropriate deploy script and rerun only the SEP analysis using the LISTS flag to skip the background calculation.
 
 Mac:
 
-    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh LISTS
+    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Mac.sh BATCH
 
 Linux:
 
-    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh LISTS
+    | ./fetchsep/reference/CLEAR/deploy_CLEAR_Linux.sh BATCH
 
 
 Windows:
 
-    | .\\fetchsep\\reference\\CLEAR\\deploy_CLEAR_Windows.bat LISTS
+    | .\\fetchsep\\reference\\CLEAR\\deploy_CLEAR_Windows.bat BATCH
 
-**Note:** The deploy_CLEAR_Mac.sh script shows each command step-by-step. This is a good primer on how to use FetchSEP. You can use these commands as an example and modify them to run other experiments, e.g. to produce a similar dataset for STEREO or SOHO, including applying thresholds to differential energy channels.
+**Note:** As stated above, the deploy_CLEAR_Mac.sh script shows each command step-by-step. This is a good primer on how to use FetchSEP. You can use these commands as an example and modify them to run other experiments, e.g. to produce a similar dataset for STEREO or SOHO, including applying thresholds to differential energy channels.
 
-**Note:** The CLEAR batch_event_list_* files were curated by hand to ensure that each time period to be analyzed contained on a quiet period or a single SEP event. If a user would like to follow this procedue to create their own list, the bin/fetchsep_prepare_obs command described above will perform the full workflow for an experiment and make a rough draft of the batch_event_list file in the process. That batch file can be curated by the user and bin/fetchsep_prepare_obs can be run with the --StartPoint BATCH flag to reanalyze the individual quiet and SEP time periods without recalculating the mean backgrounds.
+**Note:** The CLEAR batch_event_list_* files were curated by hand to ensure that each time period to be analyzed contained on a quiet period or a single SEP event. If a user would like to follow this procedue to create their own list (e.g. for STEREO which will have SEPs at different times than GOES), the bin/fetchsep_automated_pipeline command described above will perform the full workflow for an experiment and make a rough draft of the batch_event_list file in the process. That batch file can be curated by the user and bin/fetchsep_automated_pipeline can be run with the --StartPoint BATCH flag to reanalyze the individual quiet and SEP time periods without recalculating the mean backgrounds.
+
+
+Associations Lists
+==================
+Four SEP lists that were published in the literature or provided via personal communication were used to provide the associated contextual information for source eruptions (flare, CME, radio, location) and solar wind (shock passages) for SEP events at Earth. The lists were converted to machine-readable formats and then supplemented, whenever possible, with NOAA science X-ray flare values, CDAW CME parameters, and DONKI CME parameters.
+
+These lists are located in the fetchsep repository in fetchsep/reference/. The SRAG lists plus the _unique lists contain a comprehensive set of SEP events from 1967 to 2026 in which each SEP event is represented only once.
+
+**SRAG SEP list**: Curated by A. Steve Johnson (Leidos, SRAG) and spans Solar Cycle 22 to the present. The list is most complete for larger events that exceed SRAG’s operational thresholds, but includes many smaller events that do not. Steve compiled many types of contextual information with exact flare, CME, radio, and SEP values and timing. This list was used as the primary source of associations in the Benchmark dataset. Because this list contains detailed SEP proton information, it is a good standalone SEP list in its own right. Machine-readable version: fetchsep/reference/SRAG_SEP_List.csv
+
+**25 MeV SEP list**: Compiled by Ian Richardson from 1967 to the present, however only the SEPs from 1986 - 1997 were used for the CLEAR dataset. This list was derived from proton measurements by the IMP and SOHO satellites, which have much lower backgrounds compared to GOES, and therefore contains many more small events than the SRAG SEP list. This list contains approximate timing, flare magnitudes, source eruption location information, and CME speeds. Machine-readable versions: fetchsep/reference/IGR_25MeV_SEP_List_Full.csv, fetchsep/reference/IGR_25MeV_SEP_List_unique.csv
+
+**Cane et al. (2010) list**: Spans 1997 to 2006 and contains flare, CME, and Type III radio information along with approximate times of the source eruption and the following proton event and some additional features captured in the comments (JOURNAL OF GEOPHYSICAL RESEARCH, VOL. 115, A08101, doi:10.1029/2009JA014848, 2010). Machine-readable versions: fetchsep/reference/Cane_SEP_List_Full.csv, fetchsep/reference/Cane_SEP_List_unique.csv
+
+**Ian Richardson’s (2025) SOHO/STEREO list**: Published online at https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/GQPCXZ. The version used in this work was provided directly by Ian and is consistent with https://link.springer.com/article/10.1007/s11207-026-02614-4. This list contains flare, CME, and radio information and particle intensities at SOHO, STEREO-A, and STEREO-B. Machine-readable versions: fetchsep/reference/IGR_SEPlist3_20260306_Full.csv, fetchsep/reference/IGR_SEPlist3_20260306_unique.csv
 
 
 Support
