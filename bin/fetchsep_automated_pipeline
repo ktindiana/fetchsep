@@ -282,8 +282,8 @@ parser.add_argument("--ReferenceEnergyBin", type=str, default=None,
             "The SEP event list for this energy bin created by IDSEP will "
             "be used to determine the time periods to batch run OpSEP. "
             "Use quote marks and specify the low edge, high edge. Use -1 "
-            "as the high edge for an integral energy channel."
-            "Default = \"10,-1\""))
+            "as the high edge for an integral energy channel. "
+            "For example, \"10,-1\""))
 
 #WHERE TO START IN THE WORKFLOW
 parser.add_argument("--StartPoint", type=str, default="IDSEP",

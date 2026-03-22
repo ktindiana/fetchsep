@@ -173,7 +173,7 @@ You may add additional event definitions with the --Threshold flag.
 
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --Threshold "30,1;50,1" --showplot
 
-You may search for associated flare, CME, radio, etc information by including the --Associations flag. If the SEP event is in in fetchsep/reference/SRAG_SEP_List_R11_CLEARversion.csv, the flare, etc, information will be saved to the output json and csv files.
+You may include associated flare, CME, radio, etc information by including the --Associations flag. If the SEP event is present in the reference SEP lists located in fetchsep/reference (see the Associations Lists section below), the flare, etc, information will be saved to the output json and csv files.
 
     | python bin/opsep --StartDate 2012-05-16 --EndDate 2012-05-22 --Experiment GOES-13 --FluxType integral --Threshold "30,1;50,1" --Associations --showplot
 
@@ -273,13 +273,13 @@ The process described here will take a long time series, generate rough SEP even
 
 The batch file is built from a list from one of the energy channels, from the files named like SEPTimes_GOES-13_integral_10.0_to_-1.txt. The user may choose the energy channel by setting a variable in fetchsep.cfg. The energy bin must exactly match one of the energy bins in the input data. For example:
 
-    | ref_energy_bin = [10.0,-1] #integral
-    | ref_energy_bin = [11.64,23.27] #differential GOES-18
+    | ref_energy_bin = [10.0,-1] #integral; NOW SET VIA COMMAND LINE ARGUMENT
+    | ref_energy_bin = [11.64,23.27] #differential GOES-18; NOW SET VIA COMMAND LINE ARGUMENT
     
 
 The example below will create a rough SEP event list for a year of GOES-13 with `idsep` then process each enhanced period and each quiet period individually with `opsep` to extract characteristics:
 
-    | python bin/fetchsep_automated_pipeline --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1"
+    | python bin/fetchsep_automated_pipeline --StartDate 2017-01-01 --EndDate 2018-01-01 --Experiment GOES-13 --FluxType integral --RemoveAbove 10 --IDSEPEnhancement --Threshold "30,1;50,1" --ReferenceEnergyBin "10,-1"
 
 will first run `idsep` on a specified data set and identify all increases above background. Note that the first days of the dataset may not have a good background solution. Output files are created that are then used to automatically run `opsep` in batch mode to analyze each quiet and elevated period. This creates a set of json another other supporting files for each SEP event and quiet time period in the time series.
 
@@ -295,6 +295,7 @@ The CLEAR Space Weather Center of Excellence Benchmark Dataset
 A set of curated files and scripts have been created to allow any user to run FetchSEP and generate the CLEAR Benchmark SEP dataset. The dataset spans 1986-01-01 to 2025-09-10. When run, the scripts will download all GOES data between those time frames and process each spacecraft to calculate the mean background and SEP enhancements. The `idsep` output and plots folders will contain the mean background and sigma and the `opsep` output and plots folders will contain analysis of each individual SEP event and quite time periods.
 
 The CLEAR Benchmark Dataset may be created by any user from scratch with the CLEAR Benchmark Dataset Version 2.0 release of FetchSEP and the scripts:
+
 * fetchsep/reference/CLEAR/deploy CLEAR Mac.sh
 * fetchsep/reference/CLEAR/deploy CLEAR Linux.sh
 * fetchsep/reference/CLEAR/deploy CLEAR Windows.bat
