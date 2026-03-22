@@ -119,7 +119,7 @@ By assigning a set of criteria, enhancements that are most likely due to SEP eve
 
 The code also outputs a file containing every single high flux point above the mean + 3sigma threshold.
 
-Note that in fetchsep.cfg, number of sigma, the initial window used to estimate background levels, and the final sliding window used to estimate background levels can be adjusted.
+Note that in fetchsep.cfg, number of sigma, the initial window used to estimate background levels, and the final sliding window used to estimate background levels can be adjusted. These values may also be passed as command line arguments when calling `idsep`.
 
     | idsep_nsigma = 3
     | init_win = 150 #days to average initial estimate of threshold
