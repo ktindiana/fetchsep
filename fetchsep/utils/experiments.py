@@ -509,6 +509,35 @@ def experiment_info(experiment):
                 }
             },
 
+            'GOES':{
+                'first_date': datetime.datetime(1984,1,1),#1984-01-01 GOES-05
+                'last_date': datetime.datetime(2020,3,4), #2020-03-04, GOES-15
+                'flux_type': ['integral'],
+                'spacecraft': ['primary', 'secondary'],
+                'json_type': 'observations',
+                'json_mode': 'measurement',
+                'species': 'proton',
+                'location': 'earth',
+                'cadence': 'various',
+                'resolution': datetime.timedelta(minutes=5),
+                'energy_units': 'MeV',
+                'differential': {
+                    'flux_units': 'MeV^-1*cm^-2*s^-1*sr^-1',
+                    'fluence_units': 'MeV^-1*cm^-2',
+                    'url': 'various',
+                    'kurtosis_cut': 50,
+                },
+                'integral': {
+                    'flux_units': 'pfu',
+                    'fluence_units': 'cm^-2',
+                    'energy_bins':[[5.0,-1],[10.0,-1],[30.0,-1],[50.0,-1],[60.0,-1],[100.0,-1],[700.0,-1]],
+                    'energy_bin_centers': [5.0,10.0,30.0,50.0,60.0,100.0,700.0],
+                    'url': 'various',
+                    'kurtosis_cut': 65,
+                }
+            },
+
+
             #GOES-05 has very irregular coverage of particle measurements
             'GOES-05':{
                 'first_date': datetime.datetime(1984,1,1),#1984-01-01
