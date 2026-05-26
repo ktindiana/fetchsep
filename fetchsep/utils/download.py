@@ -4,6 +4,7 @@ from ..utils import date_handler as dh
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
 from ..utils import tools
+from ..utils import experiments as expts
 import datetime
 import os
 import numpy as np
@@ -124,10 +125,9 @@ def read_in_flux_files(experiment, flux_type, startdate,
         sys.exit("The specified start and end dates were not present in the "
                 "specified input file. Exiting.")
 
+    subdir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
     if write_fluxes:
-        dir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-
-        path = os.path.join(cfg.outpath, 'download', dir)
+        path = os.path.join(cfg.outpath, 'download', subdir)
         if not os.path.isdir(path):
             print("Making directory:", path)
             os.mkdir(path)
@@ -135,7 +135,7 @@ def read_in_flux_files(experiment, flux_type, startdate,
         tools.write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
             "download", spacecraft=spacecraft)
 
-    return dates, fluxes, energy_bins
+    return dates, fluxes, energy_bins, subdir
 
 
 def fluxes_to_df(dates, fluxes, energy_bins):
@@ -146,7 +146,8 @@ def fluxes_to_df(dates, fluxes, energy_bins):
 
 
 def get_data(str_startdate, str_enddate, experiment,
-    flux_type, options, dointerp, showplot, saveplot,
+    flux_type=None, options='', dointerp=False,
+    showplot=False, saveplot=False,
     write_fluxes=True, spacecraft="",
     path_to_data=None,
     path_to_output=None,
@@ -190,6 +191,13 @@ def get_data(str_startdate, str_enddate, experiment,
             os.mkdir(path)
 
 
+    #### SET UP EXPERIMENT VALUES #####
+    #If user specifies a spacecraft but isn't relevant to experiment,
+    #overrides and sets spacecraft to ''
+    spacecraft = expts.get_spacecraft(experiment, spacecraft)
+    if flux_type == '' or flux_type == None:
+        flux_type = expts.get_flux_type(experiment)
+
     startdate = dh.str_to_datetime(str_startdate)
     enddate = dh.str_to_datetime(str_enddate)
     
@@ -201,13 +209,12 @@ def get_data(str_startdate, str_enddate, experiment,
 
 
     #READ IN FLUXES
-    dates, fluxes, energy_bins = read_in_flux_files(experiment, flux_type,
+    dates, fluxes, energy_bins, outsubdir = read_in_flux_files(experiment, flux_type,
         startdate, enddate, options, dointerp, write_fluxes=write_fluxes, spacecraft=spacecraft)
             
     if showplot or saveplot:
-        exp_name='' #only for user-provided files, not relevant to download.py
-        dir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-        path = os.path.join(cfg.plotpath, 'download', dir)
+        exp_name = '' #Not relevant to download
+        path = os.path.join(cfg.plotpath, 'download', subdir)
         if not os.path.isdir(path):
             print("Making directory:", path)
             os.mkdir(path)
@@ -219,3 +226,4 @@ def get_data(str_startdate, str_enddate, experiment,
         if showplot:
             plt.show()
     
+    return outsubdir

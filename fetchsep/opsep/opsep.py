@@ -491,6 +491,7 @@ class Data:
         self.location = location
         self.species = species
         self.set_options(options)
+        self.idsep_path = idsep_path
         self.set_opsep_background_info(doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate)
         self.set_idsep_background_info(doBGSubIDSEP, idsep_path, IDSEPEnhancement)
 

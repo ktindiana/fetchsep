@@ -102,14 +102,9 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         if flux_type != "" and flux_type not in exp_info['flux_type']:
              sys.exit(f"User must specify flux type for {experiment} from the choices: {exp_info['flux_type']}. Exiting.")
 
-        if exp_info['last_date'] != None:
-            date = exp_info['last_date']+datetime.timedelta(hours=24)
-            exclusive_end_date = datetime.datetime(date.year, date.month, date.day)
-            if startdate < exp_info['first_date'] or enddate > exclusive_end_date:
-                sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
-        else:
-            if startdate < exp_info['first_date']:
-                sys.exit(f"The {experiment} data is available from {exp_info['first_date']} to present. Please change your requested dates. Exiting.")
+        available, msg = expts.dates_available(experiment, startdate, enddate)
+        if not available:
+            sys.exit(msg)
 
     if experiment == "GOES-RT" and flux_type == "integral":
         print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '

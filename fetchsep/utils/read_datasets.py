@@ -1024,19 +1024,19 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
     if td.seconds > 0: NFILES = NFILES + 1
 
     if experiment == "GOES-16":
-        prefix = 'sci_sgps-l2-avg5m_g16_'
+        prefix = 'sci_sgps-l2-avg5m_g16_' #'sci_sgps-l2-avg1m_g16_'
         satellite = 'goes16'
 
     if experiment == "GOES-17":
-        prefix = 'sci_sgps-l2-avg5m_g17_'
+        prefix = 'sci_sgps-l2-avg5m_g17_' #'sci_sgps-l2-avg1m_g17_'
         satellite = 'goes17'
         
     if experiment == "GOES-18": #2022-09-13 forward
-        prefix = 'sci_sgps-l2-avg5m_g18_'
+        prefix = 'sci_sgps-l2-avg5m_g18_' #'sci_sgps-l2-avg1m_g18_'
         satellite = 'goes18'
 
     if experiment == "GOES-19": #2022-09-13 forward
-        prefix = 'sci_sgps-l2-avg5m_g19_'
+        prefix = 'sci_sgps-l2-avg5m_g19_' #'sci_sgps-l2-avg1m_g19_'
         satellite = 'goes19'
 
     #for every day that data is required, check if file is present or
@@ -3612,14 +3612,18 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
     for i in range(len(filenames1)):
         print(f"{detector[i]} {filenames1[i]}")
     
+    if flux_type != 'integral':
+        sys.exit('read_in_all_goes only works for GOES integral energy channels for now. Exiting.')
+        
     #Choose to align the fluxes with the goes_energy_bins
 #    if flux_type == "integral":
 #        nbins = 7
 #    if flux_type == "differential":
 #        nbins = 10 #all GOES differential have up to 10 channels
     
-    #Get the energy bins for the first detector in the list
-    ref_energy_bins = []
+    #Use the energy bins defined in experiments.py for 'GOES'
+    goes = expts.experiment_info(experiment)
+    ref_energy_bins = goes[flux_type]['energy_bins']
     
     all_dates_out = []
     all_fluxes_out = []
@@ -3629,6 +3633,12 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
     sc_starttimes = []
     sc_endtimes = []
     sc_detector = []
+
+    if len(ref_energy_bins) != 0:
+        nbins = len(ref_energy_bins)
+        #Target energy bins will be those in goes_energy_bins
+        for k in range(nbins):
+            all_fluxes_out.append([])
 
     #Read in each file one at a time because they may be different
     #detectors for each file
@@ -3660,8 +3670,6 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
         all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes,
                         energy_bins, energy_bin_centers)
 
-        #Use the energy bins from the first spacecraft to define the energy
-        #bins for the whole time series.
         #If the fluxes are integral, then all GOES-06+ will have the same
         #integral channels.
         #If the fluxes are differential, different spacecraft don't have the
@@ -3669,6 +3677,8 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
         #spacecraft to define the energy bins. This will affect estimated
         #>10 MeV, etc, fluxes. Better to create estimated integral channels
         #from each spacecraft, then string together, if that is the desired product.
+        #Use the energy bins from the first spacecraft to define the energy
+        #bins for the whole time series if ref_energy_bins not previously defined.
         if len(ref_energy_bins) == 0:
             ref_energy_bins = energy_bins
             nbins = len(ref_energy_bins)
@@ -3721,8 +3731,12 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
         #Extend the date and flux arrays to combine the different spacecraft
         all_dates_out.extend(sc_dates)
         for k in range(len(ref_energy_bins)):
+            check_bin = ref_energy_bins[k]
+            #GOES-06 is the only GOES with >685 MeV bin; treat as >700 MeV for this purpose
+            if det == 'GOES-06' and check_bin == [700.0,-1]:
+                check_bin = [685.0,-1]
             try:
-                idx = energy_bins.index(ref_energy_bins[k])
+                idx = energy_bins.index(check_bin)
                 all_fluxes_out[k].extend(sc_fluxes[idx])
             except:
                 all_fluxes_out[k].extend([cfg.badval]*len(sc_dates))

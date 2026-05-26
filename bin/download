@@ -110,7 +110,12 @@ if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
 
 fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
-    flux_type, options, dointerp, showplot, saveplot, spacecraft=spacecraft,
+    flux_type=flux_type,
+    options=options,
+    dointerp=dointerp,
+    showplot=showplot,
+    saveplot=saveplot,
+    spacecraft=spacecraft,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,
