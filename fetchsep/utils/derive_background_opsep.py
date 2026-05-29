@@ -400,7 +400,7 @@ def iterate_background(fluxes, energy_bins):
             #First iteration: Use all fluxes in the background time period to
             #estimate mean and sigma.
             mean, sigma = create_histogram(strip_flux, energy_bins[i],it)
-            #mean, sigma = calc_mean_sigma(strip_flux)
+            mean, sigma = calc_mean_sigma(strip_flux)
             #print("mean: " + str(mean) + ", sigma: "+ str(sigma))
             #exclude values above mean + 3sigma
             highval = mean + 3*sigma
@@ -426,7 +426,7 @@ def iterate_background(fluxes, energy_bins):
 
 def derive_background(experiment, flux_type, options,
     bgstartdate, bgenddate, dates, fluxes, energy_bins,
-    showplot, saveplot, nsigma=cfg.opsep_nsigma, doBGSub=True):
+    showplot, saveplot, nsigma=cfg.opsep_nsigma, doBGSub=False):
     """ Derive the background using fluxes in the time period between
         background start and end dates specified by the user. Derive the
         mean background value along with an expected level of variation (sigma)
@@ -466,40 +466,9 @@ def derive_background(experiment, flux_type, options,
         
     """
 
-    sepem_end_date = datetime.datetime(2015,12,31,23,55,00)
-    if(experiment == "SEPEM" and (enddate > sepem_end_date)):
-        sys.exit('The SEPEM (RSDv2) data set only extends to '
-                  + str(sepem_end_date) +
-            '. Please change your requested dates. Exiting.')
-
-#    if experiment[0:4] == "GOES" and flux_type == "integral":
-#        sys.exit("Do not perform background subtraction on GOES integral "
-#                "fluxes. Integral fluxes have already been derived by "
-#                "applying corrections for cross-contamination and removing "
-#                "the instrument background levels.")
-#
-#    if experiment[0:4] == "GOES" and "uncorrected" not in options:
-#        print("Warning: GOES corrected fluxes have already been derived by "
-#                "applying corrections for cross-contamination and removing "
-#                "the instrument and GCR background levels up to channel P6. "
-#                "Please be sure it makes sense to perform a background "
-#                "subtraction of this data (e.g. for HEPAD energies). "
-#                "Otherwise, please add --options uncorrected to perform "
-#                "background subtracion on GOES uncorrected fluxes. Continuing.")
-#
-#    if experiment[0:4] == "GOES" and "uncorrected" in options:
-#        print("Note: Background-subtraction of uncorrected GOES fluxes "
-#                "does not remove the effects of spurious increases in the low "
-#                "energy channels due to cross-talk from the high energy "
-#                "channels, particularly at the onset of well-connected, "
-#                "intense SEP events. It also does not remove any contamination "
-#                "due to particles entering the GOES detectors from the sides.")
-
-
     #Pull out the fluxes in the time period to be used for calculating
     #background
-    bg_dates, bg_fluxes = datasets.extract_date_range(bgstartdate,
-            bgenddate, dates, fluxes)
+    bg_dates, bg_fluxes = datasets.extract_date_range(bgstartdate, bgenddate, dates, fluxes)
     print(f"Calculating background with data from {bgstartdate} to {bgenddate}.")
 
     means, sigmas = iterate_background(bg_fluxes, energy_bins)

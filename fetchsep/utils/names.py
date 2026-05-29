@@ -106,7 +106,7 @@ def energy_bin_key(bin):
     return f"{bin[0]}-{bin[1]}"
 
 
-def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=''):
+def idsep_naming_scheme(experiment, flux_type, exp_name, modifier=''):
     """ Create naming scheme for subfolders in output/idsep 
     
         Used in:
@@ -116,7 +116,6 @@ def idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft='')
         
     """
 
-    modifier, title_mod = setup_modifiers(options, spacecraft=spacecraft)
     name = (f"{experiment}_{flux_type}{modifier}")
     if experiment == 'user' and exp_name != '':
         name = (f"{exp_name}_{flux_type}{modifier}")

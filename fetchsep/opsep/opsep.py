@@ -746,7 +746,7 @@ class Data:
         enddate = self.enddate
         #If want to do background subtraction with a specified date range,
         #make sure to read in data for the full date range required
-        if self.doBGSubOPSEP:
+        if self.doBGSubOPSEP or self.OPSEPEnhancement:
             if not pd.isnull(self.bgstartdate) and not pd.isnull(self.bgenddate):
                 startdate = min(self.startdate,self.bgstartdate)
                 enddate = max(self.enddate, self.bgenddate)
@@ -1723,16 +1723,13 @@ class Analyze:
         #PLOT
         if data.saveplot or data.showplot:
             plt_tools.plot_weibull_fit(energy_bin, threshold, data.experiment,
-                data.flux_type, data.user_name, data.options,
+                data.flux_type, data.user_name,
                 self.sep_start_time, trim_times, trim_fluxes, best_pars, best_fit, max_time,
                 max_val, max_meas_time, max_meas, max_curve_model_time, max_curve_model_peak,
                 max_curve_meas_time, max_curve_meas_peak,
-                data.saveplot, data.showplot, spacecraft=data.spacecraft,
-                doBGSubOPSEP=data.doBGSubOPSEP, doBGSubIDSEP=data.doBGSubIDSEP,
-                OPSEPEnhancement=data.OPSEPEnhancement,
-                IDSEPEnhancement=data.IDSEPEnhancement)
+                saveplot=data.saveplot, showplot=data.showplot, modifier=data.modifier,
+                title_mod=data.title_modifier, savepath=data.plotpath)
 
-        
         return onset_peak, onset_peak_time
 
 

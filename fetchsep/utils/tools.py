@@ -89,8 +89,7 @@ def write_fluxes(experiment, flux_type, exp_name, energy_bins, dates, fluxes,
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
     if module == 'idsep' or module == 'download':
-        name = idsep_naming_scheme(experiment, flux_type, exp_name, options,
-                    spacecraft=spacecraft)
+        name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
         fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
         fname = os.path.join(savepath, fname)
     elif module == 'opsep':

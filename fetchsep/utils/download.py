@@ -29,8 +29,7 @@ __email__ = "kathryn.whitman@nasa.gov"
 """
 
 
-def read_in_flux_files(experiment, flux_type, startdate,
-        enddate, options, dointerp, write_fluxes=False,
+def read_in_flux_files(experiment, flux_type, startdate, enddate, options, dointerp,
         spacecraft="", user_file="", exp_name=""):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
@@ -49,7 +48,6 @@ def read_in_flux_files(experiment, flux_type, startdate,
             interpolation in time for negative of bad flux values
         :is_unixtime: (bool) - flag to indicate that time in first column
             of user file is in unixtime
-        :write_fluxes: (bool) True writes fluxes to standard format csv file
         
         OUTPUTS:
         
@@ -111,8 +109,7 @@ def read_in_flux_files(experiment, flux_type, startdate,
 
 
     #Extract the date range specified by the user
-    dates, fluxes = datasets.extract_date_range(startdate, enddate,
-                            all_dates, all_fluxes)
+    dates, fluxes = datasets.extract_date_range(startdate, enddate, all_dates, all_fluxes)
     
     #Interpolate bad data with linear interpolation in time or set to None
     print("read_in_flux_files: Checking for bad data.")
@@ -127,17 +124,7 @@ def read_in_flux_files(experiment, flux_type, startdate,
         sys.exit("The specified start and end dates were not present in the "
                 "specified input file. Exiting.")
 
-    subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-    if write_fluxes:
-        path = os.path.join(cfg.outpath, 'download', subdir)
-        if not os.path.isdir(path):
-            print("Making directory:", path)
-            os.mkdir(path)
-            
-        tools.write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
-            "download", spacecraft=spacecraft)
-
-    return dates, fluxes, energy_bins, subdir
+    return dates, fluxes, energy_bins
 
 
 def fluxes_to_df(dates, fluxes, energy_bins):
@@ -148,7 +135,8 @@ def fluxes_to_df(dates, fluxes, energy_bins):
 
 
 def get_data(str_startdate, str_enddate, experiment,
-    flux_type=None, options='', dointerp=False,
+    flux_type=None, directory_depth=2,
+    options='', dointerp=False,
     showplot=False, saveplot=False,
     write_fluxes=True, spacecraft="",
     path_to_data=None,
@@ -165,6 +153,12 @@ def get_data(str_startdate, str_enddate, experiment,
         :str_enddate: (str) end date in string format
         :experiment: (str) name of experiment native to FetchSEP
         :flux_type: (str) integral or differential, mainly matters for GOES
+        :directory_depth: (int) default = 2; Subdirectories for output files may be 
+                supressed by choosing the directory depth.
+                0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; 
+                1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); 
+                2 - Files output to subdirectory named according to experiment and 
+                options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/
         :options: (str) options that may be used with GOES data
         :dointerp: (bool) will interpolate bad data linearly with time
         :showplot: (bool) set True to show plots on screen
@@ -185,8 +179,13 @@ def get_data(str_startdate, str_enddate, experiment,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
     cfg.print_configured_values()
 
-    # Prepare download directories
-    dirs.setup_default_paths('download')
+    # Create directory names and prepare download directories
+    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+    subdir = names.idsep_naming_scheme(experiment, flux_type, '', modifier=modifier)
+    dl_outpath = dirs.create_subdirectories(cfg.outpath, module='download',
+        subdir=subdir, directory_depth=directory_depth)
+    dl_plotpath = dirs.create_subdirectories(cfg.plotpath, module='download',
+        subdir=subdir, directory_depth=directory_depth)
 
 
     #### SET UP EXPERIMENT VALUES #####
@@ -207,21 +206,20 @@ def get_data(str_startdate, str_enddate, experiment,
 
 
     #READ IN FLUXES
-    dates, fluxes, energy_bins, outsubdir = read_in_flux_files(experiment, flux_type,
-        startdate, enddate, options, dointerp, write_fluxes=write_fluxes, spacecraft=spacecraft)
-            
+    dates, fluxes, energy_bins = read_in_flux_files(experiment, flux_type,
+        startdate, enddate, options, dointerp, spacecraft=spacecraft)
+ 
+ 
+    if write_fluxes:
+        fluxes_filename = tools.write_fluxes(experiment, flux_type, '', energy_bins, dates,
+            fluxes, module='download', subdir=subdir, modifier=modifier, savepath=dl_outpath)
+ 
     if showplot or saveplot:
-        exp_name = '' #Not relevant to download
-        path = os.path.join(cfg.plotpath, 'download', subdir)
-        if not os.path.isdir(path):
-            print("Making directory:", path)
-            os.mkdir(path)
-
         unique_id = "FluxTimeSeries"
-        plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, False, showplot, saveplot, spacecraft=spacecraft,
-        subdir="download")
+        plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, '',
+        dates, fluxes, energy_bins, False, showplot, saveplot, modifier=modifier, title_mod=title_mod,
+        savepath=dl_plotpath)
         if showplot:
             plt.show()
     
-    return outsubdir
+    return dl_outpath

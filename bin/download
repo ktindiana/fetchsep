@@ -46,6 +46,16 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
 
+parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
+        help=("The default behavior of OpSEP is to create an opsep subdirectory under "
+                "the outpath and plotpath and an additional subdirectory named according to the "
+                "choice of experiment, flux_type, and other options. The subdirectories "
+                "may be supressed by choosing the directory depth. (Default=2) "
+                "0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; "
+                "1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); "
+                "2 - Files output to subdirectory named according to experiment and "
+                "options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/"))
+
 parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
@@ -94,6 +104,7 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+directory_depth = args.DirectoryDepth
 
 options = args.options
 dointerp = args.DoInterp
@@ -111,6 +122,7 @@ if flux_type == '':
 
 fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
     flux_type=flux_type,
+    directory_depth=directory_depth,
     options=options,
     dointerp=dointerp,
     showplot=showplot,

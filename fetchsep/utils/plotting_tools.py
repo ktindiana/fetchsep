@@ -292,11 +292,10 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, user_name,
 
 
 def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
-    options, sep_start_time, trim_times, trim_fluxes,
+    sep_start_time, trim_times, trim_fluxes,
     best_pars, best_fit, max_time, max_val, max_meas_time, max_meas,
     max_curve_model_time, max_curve_model_peak, max_curve_meas_time, max_curve_meas_peak,
-    saveplot, showplot, spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False):
+    saveplot=False, showplot=False, modifier='', title_mod='', savepath=''):
     """ Plot Weibull fit used to get onset peak """
 
     flux_units = names.get_flux_units_bin(energy_bin)
@@ -312,12 +311,8 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     best_Ip = best_pars['peak_intensity']
 
     suffix = f"Weibull_profile_fit_{energy_bin[0]}{energy_units}"
-    figname, subdir = names.opsep_naming_scheme(sep_start_time, suffix, experiment, flux_type, user_name,
-        options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+    figname = names.opsep_naming_scheme(sep_start_time, suffix, experiment, flux_type, user_name,
+        modifier=modifier)
 
     fig = plt.figure(figname,figsize=(9,5))
     label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
@@ -341,7 +336,7 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     plt.ylim(1e-4,5*max_val)
     
     if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
+        fig.savefig(os.path.join(savepath, figname + '.png'))
     if not showplot:
         plt.close(fig)
 
@@ -1481,12 +1476,11 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
 
 
 def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
-        spacecraft="", close_plot=False, subdir="idsep"):
+        dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
+        modifier='', title_mod='', close_plot=False, savepath=''):
 
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
 
 
     figname = (f"{name}_{unique_id}")
@@ -1530,7 +1524,7 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
         ax[iax].set_ylim([ymin, ymax])
         
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,subdir, name, (f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(savepath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
