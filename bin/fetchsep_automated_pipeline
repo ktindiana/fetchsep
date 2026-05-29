@@ -5,7 +5,7 @@ import fetchsep.idsep.make_event_list as event_list
 import fetchsep.opsep as opsep
 import fetchsep.opsep.batch_run_opsep as batch
 import fetchsep.utils.config as cfg
-import fetchsep.utils.tools as tools
+import fetchsep.utils.names as names
 import fetchsep.utils.experiments as expts
 import argparse
 import matplotlib.pyplot as plt
@@ -39,8 +39,8 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
         
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
-    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
     prename = (f"SEPTimes_{name}")
  
@@ -372,7 +372,7 @@ if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
 
 #IDSEP PATH
-idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+idsep_name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
 if startpoint == "IDSEP":

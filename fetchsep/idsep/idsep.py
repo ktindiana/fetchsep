@@ -6,6 +6,7 @@ from ..utils import define_background_idsep as defbg
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
 from ..utils import tools
+from ..utils import names
 from ..utils import experiments as expts
 import datetime
 from datetime import timedelta
@@ -27,13 +28,13 @@ __email__ = "kathryn.whitman@nasa.gov"
 #Should leave doBGSub = False
 doBGSub=False
 
-# Prepare directories
-cfg.prepare_dirs()
-for path in (cfg.outpath, cfg.plotpath):
-    path = os.path.join(path, 'idsep')
-    if not os.path.isdir(path):
-        print("Making directory:", path)
-        os.mkdir(path)
+## Prepare directories
+#cfg.prepare_dirs()
+#for path in (cfg.outpath, cfg.plotpath):
+#    path = os.path.join(path, 'idsep')
+#    if not os.path.isdir(path):
+#        print("Making directory:", path)
+#        os.mkdir(path)
 
 
 #Values below derived in identify_sep()
@@ -221,13 +222,13 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     one_sec = datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
-    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
 
     prename = (f"SEPTimes_{name}")
     
-    #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
+    #####WRITE SEP DATES OUT TO FILE##########
     for j in range(len(SEPstart)):
         fname = (f"{prename}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
         fname = os.path.join(cfg.outpath,'idsep', name, fname)
@@ -304,8 +305,8 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     if for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
-    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
     prename = (f"HighPoints_{name}")
     
@@ -609,7 +610,7 @@ def run_idsep(str_startdate, str_enddate, experiment,
     error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type, subroutine='idsep')
 
-    idsep_name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    idsep_name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
 
     make_idsep_dirs(add_path=idsep_name)
 

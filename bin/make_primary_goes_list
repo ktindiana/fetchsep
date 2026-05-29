@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import fetchsep.utils.tools as tools
+import fetchsep.utils.goes as goes
 import argparse
 
 
@@ -72,7 +72,7 @@ elif files != '':
     files = files.strip().split(",")
     lists = files
 
-tools.create_primary_goes_sep_list(lists, prefix=prefix,
+goes.create_primary_goes_sep_list(lists, prefix=prefix,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,

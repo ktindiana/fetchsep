@@ -1,5 +1,5 @@
 from . import opsep
-from ..utils import tools
+from ..utils import names
 from ..json import ccmc_json_handler as ccmc_json
 from ..json import keys
 from ..utils import config as cfg
@@ -664,10 +664,10 @@ def run_all_events(sep_filename, threshold,
     #Assuming that options is the same for all files in the batch list
     opts = options[0]
     opts = opts.strip().split(";")
-    modifier, title_mod = tools.setup_modifiers(opts, spacecraft=spacecraft,
+    modifier, title_mod = names.setup_modifiers(opts, spacecraft=spacecraft,
         doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement)
-    subdir = tools.opsep_subdir(experiment, flux_type, user_name, opts, spacecraft=spacecraft,
+    subdir = names.opsep_subdir(experiment, flux_type, user_name, opts, spacecraft=spacecraft,
         doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement) #f"{experiment}_{flux_type}{modifier}"
 

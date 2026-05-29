@@ -3,7 +3,7 @@ from . import config as cfg
 from . import date_handler as dh
 from ..json import keys
 from ..json import ccmc_json_handler as ccmc_json
-from . import tools
+from . import names
 import datetime
 import sys
 import os
@@ -570,7 +570,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-    subdir = tools.opsep_subdir(experiment, flux_type, user_name, options,
+    subdir = names.opsep_subdir(experiment, flux_type, user_name, options,
         spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
         doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement)

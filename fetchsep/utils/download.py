@@ -1,9 +1,11 @@
 from ..utils import config as cfg
+from ..utils import directories as dirs
 from ..utils import read_datasets as datasets
 from ..utils import date_handler as dh
 from ..utils import plotting_tools as plt_tools
 from ..utils import error_check
 from ..utils import tools
+from ..utils import names
 from ..utils import experiments as expts
 import datetime
 import os
@@ -125,7 +127,7 @@ def read_in_flux_files(experiment, flux_type, startdate,
         sys.exit("The specified start and end dates were not present in the "
                 "specified input file. Exiting.")
 
-    subdir = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
     if write_fluxes:
         path = os.path.join(cfg.outpath, 'download', subdir)
         if not os.path.isdir(path):
@@ -184,11 +186,7 @@ def get_data(str_startdate, str_enddate, experiment,
     cfg.print_configured_values()
 
     # Prepare download directories
-    for subdir in [cfg.outpath, cfg.plotpath]:
-        path = os.path.join(subdir, 'download')
-        if not os.path.isdir(path):
-            print("Making directory:", path)
-            os.mkdir(path)
+    dirs.setup_default_paths('download')
 
 
     #### SET UP EXPERIMENT VALUES #####
