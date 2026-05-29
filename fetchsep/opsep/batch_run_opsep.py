@@ -491,6 +491,7 @@ def clean_non_event_df(df):
 
 def run_all_events(sep_filename, threshold,
     statusfname='batch_run_status.csv',
+    directory_depth=2,
     color_scheme=1, no_goes_colors=False,
     umasep=False, dointerp=False,
     showplot=False, saveplot=True,
@@ -514,6 +515,12 @@ def run_all_events(sep_filename, threshold,
         :threshold: (string) any additional thresholds to run
             beyond >10 MeV, 10 pfu and >100 MeV, 1 pfu. Specify
             in same way as called for by operational_sep_quantities.py
+        :directory_depth: (int) default = 2; Subdirectories for output files may be 
+                supressed by choosing the directory depth.
+                0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; 
+                1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); 
+                2 - Files output to subdirectory named according to experiment and 
+                options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/
         :umasep: (boolean) set to true to calculate values related to
             the UMASEP model
         :dointerp: (bool) if set to true will do interpolation of bad points
@@ -603,8 +610,9 @@ def run_all_events(sep_filename, threshold,
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = opsep.run_opsep(start_date,
+            sep_date, jsonfname, event_dict_csv, op_outpath, op_plotpath = opsep.run_opsep(start_date,
                 end_date, experiment, flux_type=flux_type,
+                directory_depth=directory_depth,
                 color_scheme=color_scheme, no_goes_colors=no_goes_colors,
                 user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
@@ -624,7 +632,7 @@ def run_all_events(sep_filename, threshold,
                 fout.write(user_name + ',')
             if experiment != 'user':
                 fout.write(experiment + ',')
-            fout.write(str(startdate) + ', ')
+            fout.write(str(start_date) + ', ')
             fout.write('Success\n')
 
             #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
@@ -633,13 +641,6 @@ def run_all_events(sep_filename, threshold,
                 df_sep_csv = pd.concat([df_sep_csv, df_event_csv])
             else:
                 df_quiet_csv = pd.concat([df_quiet_csv, df_event_csv])
-
-            if not dict_all_pkl:
-                for key in event_dict_pkl.keys():
-                    dict_all_pkl.update({key: [event_dict_pkl[key]]})
-            else:
-                for key in dict_all_pkl.keys():
-                    dict_all_pkl[key].append(event_dict_pkl[key])
 
             plt.close('all')
             print(f"ANALYSIS SUCCEEDED: {experiment} {user_name} {start_date}")
@@ -667,23 +668,16 @@ def run_all_events(sep_filename, threshold,
     modifier, title_mod = names.setup_modifiers(opts, spacecraft=spacecraft,
         doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement)
-    subdir = names.opsep_subdir(experiment, flux_type, user_name, opts, spacecraft=spacecraft,
-        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
-        IDSEPEnhancement=IDSEPEnhancement) #f"{experiment}_{flux_type}{modifier}"
+    subdir = names.opsep_subdir(experiment, flux_type, user_name, modifier=modifier)
+        #f"{experiment}_{flux_type}{modifier}"
 
     sep_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_sep_events.csv"
-    sep_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, sep_fname_csv)
+    sep_fname_csv = os.path.join(op_outpath, sep_fname_csv)
     print(f"batch_run_opsep: Writing SEP events to csv file {sep_fname_csv}")
     df_sep_csv.to_csv(sep_fname_csv, index=False)
 
     quiet_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_non_events.csv"
-    quiet_fname_csv = os.path.join(cfg.outpath, 'opsep', subdir, quiet_fname_csv)
+    quiet_fname_csv = os.path.join(op_outpath, quiet_fname_csv)
     print(f"batch_run_opsep: Writing non-event periods to csv file {quiet_fname_csv}")
     df_quiet_csv = clean_non_event_df(df_quiet_csv)
     df_quiet_csv.to_csv(quiet_fname_csv, index=False)
-
-#    df_all_pkl = pd.DataFrame(dict_all_pkl)
-#    all_fname_pkl = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_all_events.pkl"
-#    all_fname_pkl = os.path.join(cfg.outpath, 'opsep', subdir, all_fname_pkl)
-#    print(f"batch_run_opsep: Writing all events to pkl file {all_fname_pkl}")
-#    df_all_pkl.to_pickle(all_fname_pkl)

@@ -31,6 +31,16 @@ parser.add_argument("--StatusFilename", type=str, default='batch_run_status.csv'
         help=("Name of csv file containing list of SEP dates with "
             "flags indicating status of opsep run. Default is batch_run_status.csv."))
 
+parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
+        help=("The default behavior of OpSEP is to create an opsep subdirectory under "
+                "the outpath and plotpath and an additional subdirectory named according to the "
+                "choice of experiment, flux_type, and other options. The subdirectories "
+                "may be supressed by choosing the directory depth. (Default=2) "
+                "0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; "
+                "1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); "
+                "2 - Files output to subdirectory named according to experiment and "
+                "options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/"))
+
 parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
         help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
             "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
@@ -99,6 +109,7 @@ parser.add_argument("--opsep_nsigma", type=float, default=None,
 args = parser.parse_args()
 sep_filename = args.Filename
 statusfname = args.StatusFilename
+directory_depth = args.DirectoryDepth
 color_scheme = args.ColorScheme
 no_goes_colors = args.NoGOESColors
 threshold = args.Threshold
@@ -116,6 +127,7 @@ opsep_nsigma = args.opsep_nsigma
 logger = logging.getLogger('opsep')
 
 batch.run_all_events(sep_filename, threshold, statusfname=statusfname,
+    directory_depth=directory_depth,
     color_scheme=color_scheme, no_goes_colors=no_goes_colors,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
     associations=associations,

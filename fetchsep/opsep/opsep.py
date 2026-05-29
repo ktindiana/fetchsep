@@ -3374,12 +3374,12 @@ def run_opsep(str_startdate, str_enddate, experiment,
             your model or data set (e.g. MyModel), otherwise set to ''.
         :user_file: (string) - Default is ''. If "user" is selected for experiment,
             specify name of flux file.
-        :directory_depth: (int) default = 2
-                0 - Directory only to cfg.oupath (output/), cfg.plotpath (plots/) level
-                1 - Include subdirectory to module, cfg.outpath/module (output/opsep)
-                2 - Include subdirectory named according to experiment and
-                    options, e.g. cfg.outpath/module/subdir
-                    (output/opsep/GOES-13_integral/
+        :directory_depth: (int) default = 2; Subdirectories for output files may be 
+                supressed by choosing the directory depth.
+                0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; 
+                1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); 
+                2 - Files output to subdirectory named according to experiment and 
+                options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/
         :spase_id: (string) - Default is ''. If you know the spase_id of you
             model or experiment, enter it here for the json file
         :showplot: (bool) - Set to True to show plots when run
@@ -3565,4 +3565,4 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     if showplot: plt.show()
     
-    return flux_data.startdate, flux_data.sep_date, jsonfname, event_dict_csv, event_dict_pkl
+    return flux_data.sep_date, jsonfname, event_dict_csv, flux_data.outpath, flux_data.plotpath
