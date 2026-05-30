@@ -40,6 +40,16 @@ parser.add_argument("--UserFile", type=str, default='tmp.txt', help=("If "
         "the fluxes. Specify energy bins and delimeter in code at top. "
         "Default is tmp.txt."))
 
+parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
+        help=("The default behavior of OpSEP is to create an opsep subdirectory under "
+                "the outpath and plotpath and an additional subdirectory named according to the "
+                "choice of experiment, flux_type, and other options. The subdirectories "
+                "may be supressed by choosing the directory depth. (Default=2) "
+                "0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; "
+                "1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); "
+                "2 - Files output to subdirectory named according to experiment and "
+                "options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/"))
+
 parser.add_argument("--Unixtime",
         help="Flag to indicate first column in user file is in unixtime",
             action="store_true")
@@ -149,6 +159,7 @@ flux_type = args.FluxType
 spacecraft = args.Spacecraft
 exp_name = args.ExperimentName
 user_file = args.UserFile
+directory_depth = args.DirectoryDepth
 is_unixtime = args.Unixtime
 
 options = args.options
@@ -177,6 +188,7 @@ fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
     spacecraft=spacecraft,
     exp_name=exp_name,
     user_file=user_file,
+    directory_depth=directory_depth,
     is_unixtime=is_unixtime,
     options=options,
     dointerp=dointerp,

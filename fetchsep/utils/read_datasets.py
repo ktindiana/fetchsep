@@ -5352,7 +5352,9 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
             detector is facing westward for each time point
         :options: (string array) possible options to apply to data
             (GOES)
-            :spacecraft: (string) primary or secondary if experiment is GOES-RT
+        :spacecraft: (string) primary or secondary if experiment is GOES-RT
+        :user_bins: (array) if experiment is "user" and want to override 
+            user_energy_bins set via config (better to set via cfg.set_user_energy_bins())
         
         OUTPUTS:
         

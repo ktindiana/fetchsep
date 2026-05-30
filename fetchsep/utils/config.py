@@ -117,6 +117,13 @@ def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
     prepare_dirs()
 
 
+#### USER ####
+def set_user_energy_bins(user_energy_bins):
+    pkg_globals['user_energy_bins'] = user_energy_bins
+    print(f"config: Setting global user_energy_bins to {user_energy_bins}.")
+
+
+
 #### IDSEP ####
 def set_kurtosis_cut(kurtosis_cut):
     pkg_globals['kurtosis_cut'] = kurtosis_cut

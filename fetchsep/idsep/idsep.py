@@ -1,5 +1,7 @@
 from ..utils import config as cfg
+from ..utils import directories as dirs
 from ..utils import read_datasets as datasets
+from ..utils import download as fsdl
 from ..utils import date_handler as dh
 from ..utils import analysis
 from ..utils import define_background_idsep as defbg
@@ -22,19 +24,6 @@ __maintainer__ = "Katie Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
 
-
-#Background subtraction automatically done where makes sense
-#This field does nothing except it's needed for plotting.
-#Should leave doBGSub = False
-doBGSub=False
-
-## Prepare directories
-#cfg.prepare_dirs()
-#for path in (cfg.outpath, cfg.plotpath):
-#    path = os.path.join(path, 'idsep')
-#    if not os.path.isdir(path):
-#        print("Making directory:", path)
-#        os.mkdir(path)
 
 
 #Values below derived in identify_sep()
@@ -61,111 +50,6 @@ dwell_pts = 0 #number of points that can be missed after SEP starts
     SEP fluxes only.
     
 """
-
-
-
-def read_in_flux_files(experiment, flux_type, user_file, exp_name, startdate,
-        enddate, options, dointerp, is_unixtime, write_fluxes=False,
-        spacecraft=""):
-    """ Read in the appropriate data or user files. Trims to dates
-        between start time and end time. Interpolates bad
-        points with linear interpolation if dointerp True.
-        
-        INPUTS:
-        
-        :experiment: (string)
-        :flux_type: (string) - integral, differential
-        :user_file: (string) - file containing user's flux time profiles
-        :model_name: (string) - model name or experiment if experiment = "user"
-        :startdate: (datetime) - start date of time period entered by user
-        :enddate: (datetime) - end date of time period entered by user
-        :options: (string array) - options that could be applied
-        :dointerp: (bool) - indicates if user DOES want to do linear
-            interpolation in time for negative of bad flux values
-        :is_unixtime: (bool) - flag to indicate that time in first column
-            of user file is in unixtime
-        :write_fluxes: (bool) True writes fluxes to standard format csv file
-        
-        OUTPUTS:
-        
-        :dates: (datetime 1xm array) - times in flux time profile trimmed
-            between startdate and enddate
-        :fluxes: (numpy float nxm array) - fluxes for n energy channels and m
-            time steps; these are background subtracted fluxes if background
-            subtraction was selected.
-        :energy_bins: (array nx2 for n thresholds)
-        
-    """
-    detector= []
-    
-    if experiment == "GOES":
-        filenames1, filenames2, filenames_orien, detector = datasets.check_data(startdate,
-                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
-    else:
-        filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
-                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
-                            
-    #read in flux files
-    if experiment != "user":
-        #Combine integral channels for all GOES spacecraft together into
-        #a long time series. Only works for integral channels, since
-        #GOES differential channels differ across experiments.
-        if experiment == "GOES":
-            all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
-                datasets.read_in_files(experiment, flux_type,
-                filenames1, filenames2, filenames_orien, options, detector,
-                spacecraft=spacecraft)
-        else:
-            all_dates, all_fluxes, west_detector = \
-                datasets.read_in_files(experiment, flux_type,
-                filenames1, filenames2, filenames_orien, options)
-    
-    if experiment == "user":
-        all_dates, all_fluxes = datasets.read_in_user_files(filenames1,is_unixtime)
-        west_detector = []
-    
-    if len(all_fluxes) == 0:
-        sys.exit("Could not read in flux files. Check for bad date ranges or missing files.")
-    
-    #Define energy bins
-    #ERNE energy bins depend on the time period of the experiment.
-    #For idsep, it is acceptable to include fluxes across slightly
-    #different energy channels for the purposes of SEP identification.
-    if experiment == "ERNE":
-        version = datasets.which_erne(startdate, enddate)
-        energy_bins, energy_bin_centers = datasets.define_energy_bins(version, flux_type,
-                                west_detector, options)
-    elif experiment != "GOES":
-        energy_bins, energy_bin_centers = datasets.define_energy_bins(experiment, flux_type,
-                                west_detector, options, spacecraft=spacecraft)
-
-
-    if energy_bins == None:
-        sys.exit("Could not identify energy bins for experiment " + experiment
-                + " and fluxtype " + flux_type)
-
-    all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins)
-
-
-    #Extract the date range specified by the user
-    dates, fluxes = datasets.extract_date_range(startdate, enddate,
-                            all_dates, all_fluxes)
-    
-    #Interpolate bad data with linear interpolation in time or set to None
-    print("read_in_flux_files: Checking for bad data and performing interpolation "
-        "(if not deselected).")
-    fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins,dointerp)
-    
-        
-    if len(dates) <= 1:
-        sys.exit("The specified start and end dates were not present in the "
-                "specified input file. Exiting.")
-
-    if write_fluxes:
-        tools.write_fluxes(experiment, flux_type, exp_name, options, energy_bins, dates, fluxes,
-            "idsep", spacecraft=spacecraft)
-
-    return dates, fluxes, energy_bins
 
 
 
@@ -470,34 +354,10 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins, add_path=''):
 
 
 
-def make_idsep_dirs(add_path=''):
-    """ Make subdirectories for files written out by idsep."""
-
-    #Output directory
-    check_path = os.path.join(cfg.outpath,'idsep',add_path)
-    if not os.path.isdir(check_path):
-        print('Making directory: ', check_path)
-        os.makedirs(check_path)
-
-    paths = ['csv'] #,'pkl']
-    
-    for path in paths:
-        check_path = os.path.join(cfg.outpath,'idsep',add_path, path)
-        if not os.path.isdir(check_path):
-            print('Making directory: ', check_path)
-            os.makedirs(check_path)
-
-    #Plot directory
-    check_path = os.path.join(cfg.plotpath,'idsep',add_path)
-    if not os.path.isdir(check_path):
-        print('Making directory: ', check_path)
-        os.makedirs(check_path)
-
-
-
 def run_idsep(str_startdate, str_enddate, experiment,
     flux_type=None, spacecraft="",
     exp_name=None, user_file=None,
+    directory_depth=1,
     is_unixtime=False, options=None, dointerp=False,
     remove_above=999999, for_inclusive=False,
     plot_timeseries_only=False,
@@ -530,6 +390,12 @@ def run_idsep(str_startdate, str_enddate, experiment,
         :user_file: (string) - Default is ''. If "user" is selected for experiment,
             specify name of flux file.
         :is_unixtime: (bool) True indicates first column in user file is in unixtime
+        :directory_depth: (int) default = 2; Subdirectories for output files may be 
+                supressed by choosing the directory depth.
+                0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; 
+                1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); 
+                2 - Files output to subdirectory named according to experiment and 
+                options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/
         :options: (string) may specify a series of options as a semi-colon separated list. 
             uncorrected - for GOES uncorrected differential fluxes
             S14 - apply Sandberg et al. (2014) effective energies to GOES P2-P6 
@@ -607,26 +473,29 @@ def run_idsep(str_startdate, str_enddate, experiment,
             eff_startdate = enddate - datetime.timedelta(days=cfg.init_win*2)
         
     
-    error_check.error_check_options(experiment, flux_type, options, doBGSub, spacecraft=spacecraft)
+    error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type, subroutine='idsep')
 
-    idsep_name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    # Create directory names and prepare directories
+    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+    subdir = names.idsep_naming_scheme(experiment, flux_type, '', modifier=modifier)
+    id_outpath = dirs.create_subdirectories(cfg.outpath, module='idsep',
+        subdir=subdir, directory_depth=directory_depth)
+    id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
+        subdir=subdir, directory_depth=directory_depth)
 
-    make_idsep_dirs(add_path=idsep_name)
 
     #READ IN FLUXES
     print("TIMESTAMP: Reading in flux files at time " + str(datetime.datetime.now()))
-    dates, fluxes, energy_bins = read_in_flux_files(experiment,
-        flux_type, user_file, exp_name, eff_startdate, enddate, options, dointerp, is_unixtime,
-        write_fluxes=write_fluxes, spacecraft=spacecraft)
-            
-            
+    #DOWNLOAD AND READ IN DATA
+    dl_outpath, dl_plotpath, dates, fluxes, energy_bins, energy_bin_centers =\
+        fsdl.get_data(eff_startdate, enddate, experiment, flux_type=flux_type,
+            exp_name=exp_name, user_file=user_file, is_unixtime=is_unixtime,
+            spacecraft=spacecraft, directory_depth=directory_depth, module='idsep',
+            options=options, dointerp=dointerp, showplot=plot_timeseries_only, saveplot=saveplot,
+            write_fluxes=write_fluxes, dl_outpath=id_outpath, dl_plotpath=id_plotpath)
+
     if plot_timeseries_only:
-        unique_id = "FluxTimeSeries"
-        plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot, spacecraft=spacecraft)
-        if showplot:
-            plt.show()
         sys.exit("Time series plot completed. Exiting.")
     
     #ITERATION 1: DEFINE AN INITIAL "MOVING" THRESHOLD W/DATE

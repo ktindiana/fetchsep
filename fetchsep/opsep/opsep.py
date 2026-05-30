@@ -1,4 +1,5 @@
 from ..utils import read_datasets as datasets
+from ..utils import download as fsdl
 from ..utils import directories as dirs
 from ..utils import config as cfg
 from ..utils import experiments as expts
@@ -115,8 +116,8 @@ class Data:
         self.species = None #protons, electrons
 
         #Paths for plots and output files - includes experiment subdirectory
-        self.outpath = ''
-        self.plotpath = ''
+        self.op_outpath = ''
+        self.op_plotpath = ''
         self.modifier = '' #for plots and filenames
         self.title_modifier = '' #For plot titles
         self.subdir = '' #For write_fluxes filename
@@ -433,7 +434,7 @@ class Data:
 
     def load_info(self, startdate, enddate, experiment, flux_type,
         spacecraft='', color_scheme=1, no_goes_colors=False,
-        user_name='', user_file='', directory_depth=2,
+        user_name='', user_file='', is_unixtime=False, directory_depth=2,
         spase_id='', showplot=False, saveplot=False,
         two_peaks=False, definitions='', options='',
         doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
@@ -489,8 +490,8 @@ class Data:
         self.no_goes_colors = no_goes_colors
         self.user_name = user_name #user input experiment (model or obs name)
         self.user_filename = user_file
+        self.is_unixtime = is_unixtime
         self.set_dates(startdate, enddate)
-        self.user_filename = user_file #default tmp.txt
         self.spacecraft = spacecraft
         self.location = location
         self.species = species
@@ -523,9 +524,9 @@ class Data:
             self.user_name, modifier=self.modifier)
         self.subdir = subdir
 
-        self.outpath = dirs.create_subdirectories(cfg.outpath, module='opsep',
+        self.op_outpath = dirs.create_subdirectories(cfg.outpath, module='opsep',
             subdir=subdir, directory_depth=directory_depth)
-        self.plotpath = dirs.create_subdirectories(cfg.plotpath, module='opsep',
+        self.op_plotpath = dirs.create_subdirectories(cfg.plotpath, module='opsep',
             subdir=subdir, directory_depth=directory_depth)
 
         return
@@ -537,17 +538,17 @@ class Data:
         plt_tools.opsep_plot_bgfluxes("Total_Fluxes",self.experiment, self.flux_type,
                 self.user_name, self.original_fluxes, self.original_dates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
-                modifier=self.modifier, title_mod=self.title_modifier, savepath=self.plotpath,
+                modifier=self.modifier, title_mod=self.title_modifier, savepath=self.op_plotpath,
                 color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors)
         plt_tools.opsep_plot_bgfluxes("Background_Fluxes", self.experiment, self.flux_type,
                 self.user_name, self.bgfluxes, self.bgdates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
-                modifier=self.modifier, title_mod=self.title_modifier, savepath=self.plotpath,
+                modifier=self.modifier, title_mod=self.title_modifier, savepath=self.op_plotpath,
                 color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors)
         plt_tools.opsep_plot_bgfluxes("SEP_Fluxes", self.experiment,
                 self.flux_type, self.user_name, self.fluxes, self.dates,
                 self.energy_bins, self.bgmeans, self.bgsigmas, self.saveplot,
-                modifier=self.modifier, title_mod=self.title_modifier, savepath=self.plotpath,
+                modifier=self.modifier, title_mod=self.title_modifier, savepath=self.op_plotpath,
                 color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors)
         
         if showplot:
@@ -570,7 +571,7 @@ class Data:
         plt_tools.plot_fluxes_basic(self.experiment, self.user_name, self.flux_type,
             self.dates, self.fluxes, self.energy_bins, self.showplot, self.saveplot,
             color_scheme=self.color_scheme, no_goes_colors=self.no_goes_colors,
-            savepath=self.plotpath, figname=figname)
+            savepath=self.op_plotpath, figname=figname)
 
 
     def opsep_background_and_sep_separation(self, all_dates, all_fluxes):
@@ -721,7 +722,7 @@ class Data:
         
  
 
-    def read_in_flux(self):
+    def read_in_flux(self, directory_depth=2):
         """ Read in the appropriate data or user files. Performs
             background subtraction or background and SEP separation, 
             if requested. Trims to dates between start time and end time. 
@@ -740,8 +741,6 @@ class Data:
             
         """
 
-        detector= []
-        west_detector = []
         startdate = self.startdate
         enddate = self.enddate
         #If want to do background subtraction with a specified date range,
@@ -751,48 +750,14 @@ class Data:
                 startdate = min(self.startdate,self.bgstartdate)
                 enddate = max(self.enddate, self.bgenddate)
         
-        
-        if self.experiment == "GOES": #Extra output
-            filenames1, filenames2, filenames_orien, detector = \
-                datasets.check_data(startdate, enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
-        else:
-            filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
-                    enddate, self.experiment, self.flux_type, self.user_filename, spacecraft=self.spacecraft)
-
-                                        
-        #read in flux files
-        if not self.user:
-            if self.experiment == "GOES":
-                all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
-                    datasets.read_in_files(self.experiment, self.flux_type,
-                            filenames1, filenames2, filenames_orien, self.options,
-                            detector=detector, spacecraft=self.spacecraft)
-            else:
-                all_dates, all_fluxes, west_detector = \
-                    datasets.read_in_files(self.experiment, self.flux_type,
-                        filenames1, filenames2, filenames_orien, self.options,
-                        detector=detector, spacecraft=self.spacecraft)
- 
-        else:
-            all_dates, all_fluxes = datasets.read_in_user_files(filenames1)
-
-
-        #Define energy bins
-        if self.experiment == "ERNE":
-            version = datasets.which_erne(startdate, enddate)
-            energy_bins, energy_bin_centers = datasets.define_energy_bins(version,
-                self.flux_type, west_detector, self.options)
-        elif self.experiment != "GOES":
-            energy_bins, energy_bin_centers = datasets.define_energy_bins(self.experiment, self.flux_type,
-                        west_detector, self.options, spacecraft=self.spacecraft,
-                        user_bins=self.user_energy_bins)
-
-
-        if len(all_dates) <= 1:
-            sys.exit(f"read_in_flux: The specified start and end dates ({startdate} to {enddate}) were not present in the specified input file or were too restrictive. Exiting.")
-
-        #Full flux and date range for specified input files, not yet trimmed in date
-        all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins, energy_bin_centers)
+        #DOWNLOAD AND READ IN DATA
+        dl_outpath, dl_plotpath, all_dates, all_fluxes, energy_bins, energy_bin_centers =\
+            fsdl.get_data(startdate, enddate, self.experiment, flux_type=self.flux_type,
+                exp_name=self.user_name, user_file=self.user_filename, is_unixtime=self.is_unixtime,
+                spacecraft=self.spacecraft,
+                directory_depth=directory_depth, module='opsep', options=self.options,
+                dointerp=False, showplot=False, saveplot=False, write_fluxes=True,
+                dl_outpath=self.op_outpath, dl_plotpath=self.op_plotpath)
         
         self.energy_bins = energy_bins
         self.energy_bin_centers = energy_bin_centers
@@ -800,8 +765,7 @@ class Data:
         ####Save original fluxes with bad points set to None
         #Extract date range that covers any background-subtraction periods
         print(f"Reading in original fluxes including any background subtraction periods with no interpolation for {all_dates[0]} to {all_dates[-1]}.")
-        orig_dates, orig_fluxes = datasets.extract_date_range(startdate, enddate,
-                                        all_dates, all_fluxes)
+        orig_dates, orig_fluxes = datasets.extract_date_range(startdate, enddate, all_dates, all_fluxes)
 
         orig_fluxes = datasets.check_for_bad_data(orig_dates,orig_fluxes,energy_bins,dointerp=False)
         self.original_dates = orig_dates
@@ -835,7 +799,7 @@ class Data:
         self.dates = dates
 
         #Write the resulting fluxes that will be analyzed to file
-        fluxes_filename = tools.write_fluxes(self.experiment, self.flux_type, self.user_name, self.energy_bins, dates, fluxes, module='opsep', subdir=self.subdir, modifier=self.modifier, savepath=self.outpath, suffix='fluxes_all_bins')
+        fluxes_filename = tools.write_fluxes(self.experiment, self.flux_type, self.user_name, self.energy_bins, dates, fluxes, module='opsep', subdir=self.subdir, modifier=self.modifier, savepath=self.op_outpath, suffix='fluxes_all_bins')
         self.fluxes_filename = os.path.basename(fluxes_filename)
 
         time_res = analysis.determine_time_resolution(dates)
@@ -1728,7 +1692,7 @@ class Analyze:
                 max_val, max_meas_time, max_meas, max_curve_model_time, max_curve_model_peak,
                 max_curve_meas_time, max_curve_meas_peak,
                 saveplot=data.saveplot, showplot=data.showplot, modifier=data.modifier,
-                title_mod=data.title_modifier, savepath=data.plotpath)
+                title_mod=data.title_modifier, savepath=data.op_plotpath)
 
         return onset_peak, onset_peak_time
 
@@ -2203,7 +2167,7 @@ class Output:
             
         """
 
-        fname = os.path.join(self.data.outpath, analyze.sep_profile)
+        fname = os.path.join(self.data.op_outpath, analyze.sep_profile)
         outfile = open(fname, "w")
         for i in range(len(analyze.dates)):
             zdate = dh.time_to_zulu(analyze.dates[i])
@@ -2318,7 +2282,7 @@ class Output:
         else:
             mftime = None
 
-        prof_filename = os.path.join(self.data.outpath, analyze.sep_profile)
+        prof_filename = os.path.join(self.data.op_outpath, analyze.sep_profile)
         
         dict = {f"{channel_label} {threshold_label} Flux Time Series": prof_filename,
                 f"{channel_label} {threshold_label} SEP Start Time": sttime,
@@ -2377,7 +2341,7 @@ class Output:
         if threshold == cfg.opsep_min_threshold:
             threshold_label = "above background"
 
-        prof_filename = os.path.join(self.data.outpath, analyze.sep_profile)
+        prof_filename = os.path.join(self.data.op_outpath, analyze.sep_profile)
         
         dict = {f"{channel_label} {threshold_label} Flux Time Series": prof_filename,
                 f"{channel_label} {threshold_label} SEP Start Time": analyze.sep_start_time,
@@ -2931,7 +2895,7 @@ class Output:
 
 
     def write_json(self):
-        filename = os.path.join(self.data.outpath, self.json_filename)
+        filename = os.path.join(self.data.op_outpath, self.json_filename)
         is_good = ccmc_json.write_json(self.json_dict, filename)
         return filename
 
@@ -2998,8 +2962,8 @@ class Output:
                 "Background Subtraction": bgsub,
                 "Analyzed Period Start": self.data.startdate.strftime("%Y-%m-%d %H:%M:%S"),
                 "Analyzed Period End": self.data.enddate.strftime("%Y-%m-%d %H:%M:%S"),
-                "All Fluxes Time Series": os.path.join(self.data.outpath,self.data.fluxes_filename),
-                "JSON": os.path.join(self.data.outpath, self.json_filename)
+                "All Fluxes Time Series": os.path.join(self.data.op_outpath,self.data.fluxes_filename),
+                "JSON": os.path.join(self.data.op_outpath, self.json_filename)
                 }
         
         for analyze in self.data.results:
@@ -3016,7 +2980,7 @@ class Output:
         
         filename = self.json_filename
         filename = filename.replace(".json",".csv")
-        filename = os.path.join(self.data.outpath, filename)
+        filename = os.path.join(self.data.op_outpath, filename)
         df.to_csv(filename, index=None)
         print(f"create_csv_dict: Wrote {filename}")
 
@@ -3040,8 +3004,8 @@ class Output:
                 "Background Subtraction": bgsub,
                 "Analyzed Period Start": self.data.startdate,
                 "Analyzed Period End": self.data.enddate,
-                "All Fluxes Time Series": os.path.join(self.data.outpath, self.data.fluxes_filename),
-                "JSON": os.path.join(self.data.outpath, self.json_filename)
+                "All Fluxes Time Series": os.path.join(self.data.op_outpath, self.data.fluxes_filename),
+                "JSON": os.path.join(self.data.op_outpath, self.json_filename)
                 }
         
         for analyze in self.data.results:
@@ -3065,7 +3029,7 @@ class Output:
         
         filename = self.json_filename
         filename = filename.replace(".json",".pkl")
-        filename = os.path.join(self.data.outpath, filename)
+        filename = os.path.join(self.data.op_outpath, filename)
         with open(filename, 'wb') as file:
             pickle.dump(dict, file)
             print(f"create_pkl_dict: Wrote {filename}")
@@ -3126,7 +3090,7 @@ class Output:
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times, self.data.showplot, self.data.saveplot,
             modifier=self.data.modifier, title_mod=self.data.title_modifier,
-            savepath=self.data.plotpath,
+            savepath=self.data.op_plotpath,
             color_scheme=self.data.color_scheme, no_goes_colors=self.data.no_goes_colors)
 
 
@@ -3144,7 +3108,7 @@ class Output:
             self.data.event_definitions, sep_start_times, sep_end_times,
             self.data.showplot, self.data.saveplot,
             modifier=self.data.modifier, title_mod=self.data.title_modifier,
-            savepath=self.data.plotpath,
+            savepath=self.data.op_plotpath,
             color_scheme=self.data.color_scheme, no_goes_colors=self.data.no_goes_colors)
 
 
@@ -3170,7 +3134,7 @@ class Output:
             self.data.energy_bin_centers, fluence_spectra, fluence_spectra_units,
             self.data.showplot, self.data.saveplot,
             modifier=self.data.modifier, title_mod=self.data.title_modifier,
-            savepath=self.data.plotpath,
+            savepath=self.data.op_plotpath,
             color_scheme=self.data.color_scheme, no_goes_colors=self.data.no_goes_colors)
         
 
@@ -3181,7 +3145,7 @@ class Output:
 def load_input_data(startdate, enddate, experiment, flux_type,
         spacecraft='', color_scheme=1, no_goes_colors=False,
         user_thresholds='',
-        user_name='', user_file='', directory_depth=2,
+        user_name='', user_file='', is_unixtime=False, directory_depth=2,
         spase_id='', showplot=False, saveplot=False,
         two_peaks=False, definitions='', options='',
         doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
@@ -3205,6 +3169,7 @@ def load_input_data(startdate, enddate, experiment, flux_type,
             your model or data set (e.g. MyModel), otherwise set to ''.
         :user_file: (string) - Default is ''. If "user" is selected for experiment,
             specify name of flux file.
+        :is_unixtime: (bool) True if first column of user file is in unixtime
         :directory_depth: (int) default = 2
             0 - Directory only to cfg.oupath (output/), cfg.plotpath (plots/) level
             1 - Include subdirectory to module, cfg.outpath/module (output/opsep)
@@ -3235,19 +3200,21 @@ def load_input_data(startdate, enddate, experiment, flux_type,
     #Load all info, including specifying desired SEP event definitions (user_thresholds)
     flux_data.load_info(startdate, enddate, experiment, flux_type,
         color_scheme=color_scheme, no_goes_colors=no_goes_colors,
-        user_name=user_name, user_file=user_file, directory_depth=directory_depth,
+        user_name=user_name, user_file=user_file, is_unixtime=is_unixtime,
+        spacecraft=spacecraft, options=options,
+        directory_depth=directory_depth,
         showplot=showplot, saveplot=saveplot,
-        two_peaks=two_peaks, definitions=user_thresholds, options=options,
+        two_peaks=two_peaks, definitions=user_thresholds,
         doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
         bgstartdate=bgstartdate, bgenddate=bgenddate,
         doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
-        idsep_path=idsep_path, dointerp=dointerp, spacecraft=spacecraft,
+        idsep_path=idsep_path, dointerp=dointerp,
         location=location, species=species)
 
 
     #Read in fluxes; perform any background subtraction, background and SEP
     #separation (for enhancement above background), or interpolation
-    flux_data.read_in_flux()
+    flux_data.read_in_flux(directory_depth=directory_depth)
 
     #If no event definitions loaded
     if len(flux_data.event_definitions) == 0:
@@ -3303,7 +3270,7 @@ def calculate_event_info(flux_data):
 ######## MAIN PROGRAM #########
 def run_opsep(str_startdate, str_enddate, experiment,
     flux_type=None, color_scheme=1, no_goes_colors=False,
-    user_name='', user_file='',
+    user_name='', user_file='', is_unixtime=False,
     directory_depth=2,
     json_type='', json_mode='', spase_id='',
     dointerp=False, spacecraft='',
@@ -3371,6 +3338,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
             your model or data set (e.g. MyModel), otherwise set to ''.
         :user_file: (string) - Default is ''. If "user" is selected for experiment,
             specify name of flux file.
+        :is_unixtime: (bool) Set True if first column of user-input flux file is in unixtime
         :directory_depth: (int) default = 2; Subdirectories for output files may be 
                 supressed by choosing the directory depth.
                 0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; 
@@ -3493,7 +3461,8 @@ def run_opsep(str_startdate, str_enddate, experiment,
     flux_data = load_input_data(str_startdate, str_enddate, experiment, flux_type,
                 spacecraft=spacecraft,
                 color_scheme=color_scheme, no_goes_colors=no_goes_colors,
-                user_name=user_name, user_file=user_file, directory_depth=directory_depth,
+                user_name=user_name, user_file=user_file, is_unixtime=is_unixtime,
+                directory_depth=directory_depth,
                 showplot=showplot, saveplot=saveplot, two_peaks=two_peaks,
                 user_thresholds=user_thresholds, options=options,
                 doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
@@ -3562,4 +3531,4 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     if showplot: plt.show()
     
-    return flux_data.sep_date, jsonfname, event_dict_csv, flux_data.outpath, flux_data.plotpath
+    return flux_data.sep_date, jsonfname, event_dict_csv, flux_data.op_outpath, flux_data.op_plotpath

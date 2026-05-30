@@ -1476,7 +1476,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
 
 
 def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
+        dates, fluxes, energy_bins, showplot, saveplot,
         modifier='', title_mod='', close_plot=False, savepath=''):
 
     #Additions to titles and filenames according to user-selected options
