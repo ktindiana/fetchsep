@@ -211,8 +211,6 @@ def experiment_info(experiment):
                 'first_date': None,
                 'last_date': None,
                 'flux_type': ['integral', 'differential'],
-                'dir': [''],
-                'subdir': [''],
                 'json_type': '',
                 'json_mode': '',
                 'species': '',
@@ -230,8 +228,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2001,8,7),#2001-08-07
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'ACE',
-                'subdir': ['SIS'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -258,8 +254,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2001,8,7),#2001-08-07
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'ACE',
-                'subdir': ['EPAM'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'electron',
@@ -287,8 +281,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1986,1,1),#1986-01-01
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'CalGOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -319,8 +311,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1995,12,8),#1995-12-08
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'EPHIN',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -347,8 +337,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2015,10,4),#2015-10-04
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'EPHIN_HESPERIA',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -375,8 +363,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1995,12,8),#1995-12-08
                 'last_date': datetime.datetime(2016,12,31),#2016-12-31
                 'flux_type': ['differential'],
-                'dir': 'EPHIN_REleASE',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -416,8 +402,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1996,5,7),#1996-05-07
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'ERNE',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -447,8 +431,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1996,5,7),#1996-05-07
                 'last_date': datetime.datetime(2000,4,19), #2000-04-19
                 'flux_type': ['differential'],
-                'dir': 'ERNE',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -486,8 +468,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2000,4,20), #2000-04-20
                 'last_date': datetime.datetime(2001,7,2), #2001-07-02
                 'flux_type': ['differential'],
-                'dir': 'ERNE',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -524,8 +504,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2001,7,3), #2000-04-20
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'ERNE',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -557,8 +535,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1984,1,1),#1984-01-01 GOES-05
                 'last_date': datetime.datetime(2020,3,4), #2020-03-04, GOES-15
                 'flux_type': ['integral'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'spacecraft': ['primary', 'secondary'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -589,8 +565,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1984,1,1),#1984-01-01
                 'last_date': datetime.datetime(1985,12,31), #1985-12-31
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -617,8 +591,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1986,1,1),#1986-01-01
                 'last_date': datetime.datetime(1994,11,30), #1994-11-30
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -652,8 +624,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1987,3,1),#1987-03-01
                 'last_date': datetime.datetime(1996,8,31), #1996-08-31
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -686,8 +656,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1995,1,1),#1995-01-01
                 'last_date': datetime.datetime(2003,6,30), #2003-05-31
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -724,8 +692,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1996,4,1),#1996-04-01
                 'last_date': datetime.datetime(1998,7,31), #1998-07-31
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -759,8 +725,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1998,7,1),#1998-07-01
                 'last_date': datetime.datetime(2004,6,30), #2004-06-30
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -794,8 +758,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2003,6,1),#2003-06-01
                 'last_date': datetime.datetime(2011,2,28), #2011-02-28
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -829,8 +791,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2003,1,1),#2003-01-01
                 'last_date': datetime.datetime(2010,8,31), #2010-08-31
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -864,8 +824,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2010,5,1),#2010-05-01
                 'last_date': datetime.datetime(2017,12,31), #2017-12-14
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -899,8 +857,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2009,7,1),#2009-07-01
                 'last_date': datetime.datetime(2020,3,4), #2020-03-04
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -934,8 +890,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2011,1,1),#2011-01-01
                 'last_date': datetime.datetime(2020,3,4), #2020-03-04
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -969,8 +923,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2020,11,1),#2020-11-01
                 'last_date': datetime.datetime(2025,4,6), #2025-04-06, there is a file on the 7th, but has a problem
                 'flux_type': ['differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1001,8 +953,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2020,12,1),#2020-12-01
                 'last_date': datetime.datetime(2023,3,14), #2023-03-14
                 'flux_type': ['differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1033,8 +983,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2022,9,13),#2022-09-13
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1065,8 +1013,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2024,8,22),#2024-08-22
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'GOES',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1097,8 +1043,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2010,4,14),#2010-04-14
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'GOES-RT',
-                'subdir': [''],
                 'spacecraft': ['primary','secondary'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1126,8 +1070,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime.now() - datetime.timedelta(days=7),#previous 7 days
                 'last_date': None,
                 'flux_type': ['integral', 'differential'],
-                'dir': 'GOES-SWPC',
-                'subdir': [''],
                 'spacecraft': ['primary','secondary'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1162,8 +1104,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1974,2,17),#1974-02-17
                 'last_date': datetime.datetime(2001,11,7), #2001-11-07
                 'flux_type': ['differential'],
-                'dir': 'IMP8',
-                'subdir': ['CPME'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1190,8 +1130,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1974,7,1),#1974-07-01
                 'last_date': datetime.datetime(2015,12,31), #2015-12-31
                 'flux_type': ['differential'],
-                'dir': 'SEPEM',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1224,8 +1162,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1974,7,1),#1974-07-01
                 'last_date': datetime.datetime(2017,12,31), #2017-12-31
                 'flux_type': ['differential'],
-                'dir': 'SEPEMv3',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1260,8 +1196,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2006,12,1), #2006-12-01
                 'last_date': None,
                 'flux_type': ['differential'],
-                'dir': 'STEREO-A',
-                'subdir': ['LET', 'HET'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1294,8 +1228,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2006,12,1), #2006-12-01
                 'last_date': datetime.datetime(2014,9,27,16,26,0), #2014-09-27 16:26:00
                 'flux_type': ['differential'],
-                'dir': 'STEREO-B',
-                'subdir': ['LET', 'HET'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -1331,8 +1263,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(2009,5,18),#2009-05-18
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1361,8 +1291,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1964,4,1),#1964-04-01
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1390,8 +1318,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1964,3,1),#1964-04-01
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1420,8 +1346,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1449,8 +1373,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1478,8 +1400,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1507,8 +1427,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1536,8 +1454,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1565,8 +1481,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1594,8 +1508,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1623,8 +1535,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1652,8 +1562,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1681,8 +1589,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1710,8 +1616,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1739,8 +1643,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1768,8 +1670,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1797,8 +1697,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1826,8 +1724,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1855,8 +1751,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1884,8 +1778,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1913,8 +1805,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1942,8 +1832,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -1971,8 +1859,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2000,8 +1886,6 @@ def experiment_info(experiment):
                 'first_date': datetime.datetime(1940,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
-                'dir': 'NeutronMonitor',
-                'subdir': [''],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2030,7 +1914,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2059,7 +1943,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2088,7 +1972,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2117,7 +2001,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2146,7 +2030,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2175,7 +2059,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2204,7 +2088,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2233,7 +2117,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2262,7 +2146,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2291,7 +2175,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2320,7 +2204,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2349,7 +2233,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2378,7 +2262,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2407,7 +2291,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2436,7 +2320,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2465,7 +2349,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2494,7 +2378,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2523,7 +2407,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2552,7 +2436,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2581,7 +2465,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2610,7 +2494,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2639,7 +2523,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2668,7 +2552,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2697,7 +2581,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2726,7 +2610,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2755,7 +2639,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2784,7 +2668,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2813,7 +2697,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2842,7 +2726,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2871,7 +2755,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2900,7 +2784,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2929,7 +2813,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2958,7 +2842,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -2987,7 +2871,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3016,7 +2900,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3045,7 +2929,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3074,7 +2958,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3103,7 +2987,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3132,7 +3016,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3161,7 +3045,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3190,7 +3074,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
@@ -3219,7 +3103,7 @@ def experiment_info(experiment):
                 'last_date': None,
                 'flux_type': ['integral'],
                 'dir': 'NeutronMonitor',
-                'subdir': [''],
+
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',

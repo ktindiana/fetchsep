@@ -1366,8 +1366,8 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow
 
 def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,
-        threshold, doBGSub, showplot, saveplot, disable_sigma=False, spacecraft="",
-        close_plot=False):
+        threshold, showplot, saveplot, disable_sigma=False, spacecraft="",
+        close_plot=False, modifier='', title_mod='', savepath=''):
     """ Make multiple plots with 3 vertical subplots representing individual energy
         channels.
         
@@ -1391,10 +1391,12 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             :threshold_dates: (1xn array of datetime) each time step of fluxes
             :threshold: (pxn array of float) ave_fluxes + n*ave_sigma for
                 n defined in the fetchsep.config for each time step of fluxes
-            :doBGSub: (bool) do background subtraction
             :showplot: (bool)
             :saveplot: (bool)
             :disable_sigma: (bool) True = plot only ave_fluxes withou ave_sigma
+            :modifier: (string) modifiers for filenames
+            :title_mod: (string) additions to plot titles
+            :savepath: (string) path to save output files
 
         OUPTPUTS:
         
@@ -1403,8 +1405,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
 
     figname = (f"{name}_FluxWithThreshold_{unique_id}")
     
@@ -1464,7 +1465,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
 
 
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(savepath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1536,15 +1537,12 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
 
 
 
-def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
-            dates, fluxes_bg, fluxes_sep, energy_bins, doBGSub,
-            showplot, saveplot, spacecraft="", close_plot=False):
+def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,
+            dates, fluxes_bg, fluxes_sep, energy_bins, showplot, saveplot,
+            spacecraft='', modifier='', title_mod='', savepath='', close_plot=False):
     
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-
-
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
     figname = (f"{name}_SEP_BG_{unique_id}")
 
     #UNITS
@@ -1583,7 +1581,6 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
 
 #        ax[iax].legend(loc='upper left', fontsize=11)
 
-
         #Put energy channel label on right y-axis
         ax_right[iax] = ax[iax].twinx()
         ax_right[iax].set_ylabel(f"{legend_label}\n ", rotation=270, labelpad=20)
@@ -1604,7 +1601,7 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
 
 
         if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
+            fig.savefig(os.path.join(savepath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:

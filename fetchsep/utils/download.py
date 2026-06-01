@@ -213,7 +213,7 @@ def get_data(str_startdate, str_enddate, experiment,
 
     error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type)
-    datasets.check_paths(experiment)
+    dirs.check_paths(experiment)
 
 
     #READ IN FLUXES

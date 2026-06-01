@@ -6,6 +6,7 @@ import fetchsep.opsep as opsep
 import fetchsep.opsep.batch_run_opsep as batch
 import fetchsep.utils.config as cfg
 import fetchsep.utils.names as names
+import fetchsep.utils.directories as dirs
 import fetchsep.utils.experiments as expts
 import argparse
 import matplotlib.pyplot as plt
@@ -23,8 +24,8 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 valid_experiments = expts.valid_experiments()
 
 #Helper
-def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
-    doBGSub=False, spacecraft=""):
+def septimes_fname(experiment, flux_type, exp_name, energy_bin,
+    modifier='', idsep_path=''):
     """ Create the filename of the file output by
         SEPAutoID (idsep) that contains the SEP start and
         end times of interest.
@@ -39,8 +40,7 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
         
     """
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
 
     prename = (f"SEPTimes_{name}")
  
@@ -50,12 +50,12 @@ def septimes_fname(experiment, flux_type, exp_name, options, energy_bin,
     else:
         energy_bin[1] = float(energy_bin[1])
  
-    fname = os.path.join(cfg.outpath,"idsep", name, f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
+    fname = os.path.join(idsep_path, f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
 
     if not os.path.isfile(fname):
         bin0 = int(energy_bin[0])
         bin1 = int(energy_bin[1])
-        fname = os.path.join(cfg.outpath,"idsep", name, f"{prename}_{bin0}_to_{bin1}.txt")
+        fname = os.path.join(idsep_path, f"{prename}_{bin0}_to_{bin1}.txt")
         
         if not os.path.isfile(fname):
             sys.exit(f"septimes_fname: Cannot find either file: {fname} or "
@@ -92,6 +92,16 @@ parser.add_argument("--FluxType", type=str, choices=['integral',
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary', 'secondary'],
         default='', help=("If GOES-RT is selected, choose the primary or secondary spacecraft."))
+
+parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
+        help=("The default behavior of OpSEP is to create an opsep subdirectory under "
+                "the outpath and plotpath and an additional subdirectory named according to the "
+                "choice of experiment, flux_type, and other options. The subdirectories "
+                "may be supressed by choosing the directory depth. (Default=2) "
+                "0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; "
+                "1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); "
+                "2 - Files output to subdirectory named according to experiment and "
+                "options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/"))
 
 parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
         help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
@@ -305,6 +315,7 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+directory_depth = args.DirectoryDepth
 color_scheme = args.ColorScheme
 no_goes_colors = args.NoGOESColors
 location = args.Location
@@ -371,14 +382,21 @@ if ref_energy_bin != None:
 if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
 
-#IDSEP PATH
-idsep_name = names.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+#PATHS for IDSEP
+modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
+id_outpath = dirs.create_subdirectories(cfg.outpath, module='idsep',
+    subdir=subdir, directory_depth=directory_depth)
+id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
+    subdir=subdir, directory_depth=directory_depth)
 
 
 if startpoint == "IDSEP":
-    fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
+    id_outpath, id_plotpath = fetchsep.idsep.run_idsep(str_startdate, str_enddate,
+        experiment,
         flux_type=flux_type, spacecraft=spacecraft,
         exp_name=exp_name, user_file=user_file,
+        directory_depth=directory_depth,
         is_unixtime=is_unixtime,
         options=options, dointerp=dointerp,
         remove_above=remove_above, for_inclusive=for_inclusive,
@@ -403,7 +421,7 @@ if startpoint == "IDSEP":
 #will be stored here.
 goesfname = ''
 if experiment == "GOES":
-    goesfname = os.path.join(cfg.outpath, "idsep", idsep_name, "goes_experiments_dates.txt")
+    goesfname = os.path.join(id_outpath, "goes_experiments_dates.txt")
 
 
 #SECOND ########################
@@ -411,16 +429,15 @@ if experiment == "GOES":
 #rewrite in the correct format to batch run quiet and elevated
 #time periods in OpSEP.
 ################################
-
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    septimes_file = septimes_fname(experiment, flux_type, exp_name, options, ref_energy_bin, spacecraft=spacecraft)
+    septimes_file = septimes_fname(experiment, flux_type, exp_name, ref_energy_bin,
+        modifier=modifier, idsep_path=id_outpath)
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
         septimes_file, detector_list,experiment, flux_type, options, json_type,
         batchfile, revise, flags=flags, spacecraft=spacecraft,
-        location=location, species=species, add_path=idsep_name,
-        path_to_output=path_to_output)
+        location=location, species=species, idsep_path=id_outpath)
 
 
 #THIRD #########################
@@ -436,11 +453,12 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
 showplot = False
 saveplot = True
 ############## END DEFAULTS #################
-sep_filename = os.path.join(cfg.outpath, "idsep", idsep_name, batchfile)
+sep_filename = os.path.join(idsep_path, batchfile)
 statusfname = 'batch_run_status.csv'
 
 batch.run_all_events(sep_filename, threshold,
     statusfname=statusfname,
+    directory_depth=directory_depth,
     color_scheme=color_scheme, no_goes_colors=no_goes_colors,
     umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,

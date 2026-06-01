@@ -757,7 +757,9 @@ class Data:
                 spacecraft=self.spacecraft,
                 directory_depth=directory_depth, module='opsep', options=self.options,
                 dointerp=False, showplot=False, saveplot=False, write_fluxes=True,
-                dl_outpath=self.op_outpath, dl_plotpath=self.op_plotpath)
+                dl_outpath=self.op_outpath, dl_plotpath=self.op_plotpath,
+                path_to_data=cfg.datapath, path_to_output=cfg.outpath,
+                path_to_plots=cfg.plotpath, path_to_lists=cfg.listpath)
         
         self.energy_bins = energy_bins
         self.energy_bin_centers = energy_bin_centers
@@ -3435,7 +3437,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
     cfg.configure_opsep(opsep_nsigma=opsep_nsigma)
     cfg.print_configured_values()
 
-    datasets.check_paths(experiment)
+    dirs.check_paths(experiment)
 
     #### SET UP EXPERIMENT VALUES #####
     #If user specifies a spacecraft but isn't relevant to experiment,

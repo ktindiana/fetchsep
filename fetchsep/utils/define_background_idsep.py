@@ -1,5 +1,6 @@
 from ..utils import config as cfg
 from ..utils import tools
+from ..utils import names
 from . import date_handler as dateh
 import datetime
 import numpy as np
@@ -412,17 +413,13 @@ def find_last_good(idx, arr):
 #attempt to speed up the computation. These subroutines are labeled
 #_optimized().
 
-def write_df(df, name, verbose=True, add_path=''):
+def write_df(df, name, verbose=True, savepath=''):
     """Writes a pandas dataframe to the standard location in multiple formats
     """
-    dataformats = (('csv',  getattr(df, 'to_csv'), {'index': False}),)
-    #('pkl' , getattr(df, 'to_pickle'), {}),
-    
-    for ext, write_func, kwargs in dataformats:
-        filepath = os.path.join(cfg.outpath, 'idsep', add_path, ext, name + '.' + ext)
-        write_func(filepath, **kwargs)
-        if verbose:
-            print('Wrote ' + filepath)
+    filepath = os.path.join(savepath, name + '.csv')
+    df.to_csv(filepath, index=False)
+    if verbose:
+        print('Wrote ' + filepath)
 
 
 def set_above_threshold_to_nan(df, thresh, col):
@@ -572,7 +569,7 @@ def plot_dist_hist(df, iteration):
 #OPTIMIZED ALGORITHM
 #####################################
 def ndays_average_optimized(N, dates, fluxes, energy_bins,
-    nsigma, remove_above, add_path=''):
+    nsigma, remove_above, savepath=''):
     """ Average flux over N days.
 
         INPUTS:
@@ -582,6 +579,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
         :fluxes: (pxn float array) fluxes for p energy channels
         :remove_above: (float) - remove all flux values above this value
             (assumed that these are enhanced or undesirable fluxes)
+        :savepath: (string) path to save output files
 
         OUTPUTS:
 
@@ -603,7 +601,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
     cols = []
     for ii in range(len(fluxes)):
         bin = energy_bins[ii]
-        key = tools.energy_bin_key(bin)
+        key = names.energy_bin_key(bin)
         dict.update({key: fluxes[ii]})
         cols.append(key)
     df = pd.DataFrame(dict)
@@ -680,11 +678,11 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
 
     #Write fluxes to file for testing and use
 #    write_df(df_means,'background_mean_fluxes_ndays_optimized',
-#            add_path=add_path)
+#            savepath=savepath)
 #    write_df(df_sigmas,'background_sigma_ndays_optimized',
-#            add_path=add_path)
+#            savepath=savepath)
 #    write_df(df_thresholds,'background_threshold_ndays_optimized',
-#            add_path=add_path)
+#            savepath=savepath)
 
     return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
 
@@ -693,7 +691,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
 ##OPTIMIZED AGLORITHM
 #####################################
 def backward_window_background_optimized(N, dates, fluxes, energy_bins,
-    nsigma, iteration=0, is_final=False, add_path=''):
+    nsigma, iteration=0, is_final=False, savepath=''):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -710,6 +708,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
         :dates: (1xn datetime array)
         :fluxes: (pxn float array) fluxes for p energy channels
         :nsigma: (float) number of sigma to calculate threshold
+        :savepath: (string) path to save output files
         
         OUTPUTS:
         
@@ -750,7 +749,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
     cols = []
     for ii in range(len(fluxes)):
         bin = energy_bins[ii]
-        key = tools.energy_bin_key(bin)
+        key = names.energy_bin_key(bin)
         dict.update({key: fluxes[ii]})
         cols.append(key)
     df = pd.DataFrame(dict)
@@ -917,13 +916,10 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
     appx = '_it'+str(iteration)
     if is_final:
         appx = '_FINAL'
-        write_df(df_means,'background_mean_fluxes'+appx,
-                add_path=add_path)
-        write_df(df_sigmas,'background_sigma'+appx,
-                add_path=add_path)
-        write_df(df_thresholds,'background_threshold'+appx,
-                add_path=add_path)
-        write_df(df_stats1,'kurtosis'+appx, add_path=add_path)
+        write_df(df_means,'background_mean_fluxes'+appx, savepath=savepath)
+        write_df(df_sigmas,'background_sigma'+appx, savepath=savepath)
+        write_df(df_thresholds,'background_threshold'+appx, savepath=savepath)
+        write_df(df_stats1,'kurtosis'+appx, savepath=savepath)
 
     return mean_background, ave_sigma, threshold
 

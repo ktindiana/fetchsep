@@ -1,4 +1,5 @@
 from . import config as cfg
+from . import directories as dirs
 from . import tools
 from . import experiments as expts
 from . import date_handler as dh
@@ -77,87 +78,6 @@ def about_read_datasets():
         * data/MyDataSet/
         
     """
-
-def check_paths(experiment):
-    """Check that the paths that hold the data and output exist. If not, create.
-    """
-    #General paths
-    if not os.path.isdir(cfg.outpath):
-        print('check_paths: Directory to store output information does not exist. Creating ' + cfg.outpath)
-        os.mkdir(cfg.outpath)
-
-    if not os.path.isdir(cfg.plotpath):
-        print('check_paths: Directory to store plots does not exist. Creating ' + cfg.plotpath)
-        os.mkdir(cfg.plotpath)
-        
-    print('Checking that paths exist: ' + cfg.datapath + ' and ' + cfg.outpath)
-    if not os.path.isdir(cfg.datapath):
-        print('check_paths: Directory containing fluxes, ' + cfg.datapath +
-        ', does not exist. Creating.')
-        os.mkdir(cfg.datapath)
-
-    #Paths to store data for each experiment
-    if experiment == 'GOES-RT':
-        if not os.path.isdir(os.path.join(cfg.datapath,'GOES-RT')):
-            print('check_paths: Directory containing GOES-RT fluxes does not exist. Creating ' + cfg.datapath + '/GOES-RT')
-            os.mkdir(os.path.join(cfg.datapath, 'GOES-RT'));
-
-    elif experiment == 'GOES-SWPC':
-        if not os.path.isdir(os.path.join(cfg.datapath,'GOES-SWPC')):
-            print('check_paths: Directory containing GOES-SWPC fluxes does not exist. Creating ' + cfg.datapath + '/GOES-SWPC')
-            os.mkdir(os.path.join(cfg.datapath, 'GOES-SWPC'));
-            
-    elif 'GOES' in experiment:
-        if not os.path.isdir(os.path.join(cfg.datapath, 'GOES')):
-            print('check_paths: Directory containing GOES fluxes does not exist. Creating ' + cfg.datapath + '/GOES')
-            os.mkdir(os.path.join(cfg.datapath, 'GOES'))
-
-    elif experiment in valid_nm:
-        if not os.path.isdir(os.path.join(cfg.datapath,'NeutronMonitor')):
-            print('check_paths: Directory containing Neutron Monitor measurements does not exist. Creating ' + cfg.datapath + '/NeutronMonitor')
-            os.mkdir(os.path.join(cfg.datapath,'NeutronMonitor'))
-        if not os.path.isdir(os.path.join(cfg.datapath,'NeutronMonitor',experiment)):
-            os.mkdir(os.path.join(cfg.datapath,'NeutronMonitor',experiment))
-
-    elif 'STEREO' in experiment:
-        if not os.path.isdir(os.path.join(cfg.datapath,experiment)):
-            print(f"check_paths: Directory containing {experiment} fluxes does not exist. Creating {cfg.datapath}/{experiment}")
-            os.mkdir(os.path.join(cfg.datapath,experiment))
-        if not os.path.isdir(os.path.join(cfg.datapath,experiment,'LET')):
-            os.mkdir(os.path.join(cfg.datapath,experiment,'LET'))
-        if not os.path.isdir(os.path.join(cfg.datapath,experiment,'HET')):
-            os.mkdir(os.path.join(cfg.datapath,experiment,'HET'))
-
-    elif experiment == 'ACE_SIS':
-        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
-            print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
-            '/ACE')
-            os.mkdir(os.path.join(cfg.datapath,'ACE'))
-        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','SIS')):
-            os.mkdir(os.path.join(cfg.datapath,'ACE','SIS'))
-
-    elif experiment == 'ACE_EPAM_electrons':
-        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE')):
-            print('check_paths: Directory containing ACE fluxes does not exist. Creating ' + cfg.datapath +
-            '/ACE')
-            os.mkdir(os.path.join(cfg.datapath,'ACE'))
-        if not os.path.isdir(os.path.join(cfg.datapath, 'ACE','EPAM')):
-            os.mkdir(os.path.join(cfg.datapath,'ACE','EPAM'))
-
-    elif experiment == 'ERNE':
-        if not os.path.isdir(os.path.join(cfg.datapath,'ERNE')):
-            print('check_paths: Directory containing ERNE fluxes does not exist. Creating ' + cfg.datapath + '/ERNE')
-            os.mkdir(os.path.join(cfg.datapath,'ERNE'))
-        if not os.path.isdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi')):
-            print('check_paths: Directory containing ERNE export fluxes does not exist. Creating ' + cfg.datapath + '/ERNE/export.srl.utu.fi')
-            os.mkdir(os.path.join(cfg.datapath,'ERNE','export.srl.utu.fi'))
-
-    else:
-        if not os.path.isdir(os.path.join(cfg.datapath,experiment)):
-            print(f"check_paths: Directory containing {experiment} fluxes does not exist. Creating {cfg.datapath}/{experiment}")
-            os.mkdir(os.path.join(cfg.datapath,experiment))
-
-
 
 
 def read_data_manager():
@@ -456,20 +376,20 @@ def check_sepem_data(startdate, enddate, experiment, flux_type):
 
     if experiment == 'SEPEM':
         basenm = 'SEPEM_H_reference'
-        dir = experiment
 
     if experiment == 'SEPEMv3':
         basenm = 'SEPEM_RDS_v3_H'
-        dir = experiment
+
+    dir = dirs.get_directory(experiment)
 
     while (year <= endyear):
         fname = basenm + '_' + str(year) + '.csv'
-        exists = os.path.isfile(os.path.join(cfg.datapath, dir, fname))
+        exists = os.path.isfile(os.path.join(dir, fname))
         if exists:
             filenames1.append(os.path.join(dir, fname))
             year = year + 1
         if not exists:
-            full_exists = os.path.isfile(os.path.join(cfg.datapath, dir, basenm + '.txt'))
+            full_exists = os.path.isfile(os.path.join(dir, basenm + '.txt'))
             if not full_exists:
                 if experiment == 'SEPEM':
                     sys.exit("Please download and unzip the RSDv2 data set."
@@ -522,12 +442,12 @@ def check_calgoes_data(startdate, enddate, experiment, flux_type):
 
     if experiment == 'CalGOES':
         basenm = 'srag12'
-        dir = experiment
 
+    dir = dirs.get_directory(experiment)
 
     while (year <= endyear):
         fname = basenm + '_' + str(year) + '.dat'
-        exists = os.path.isfile(os.path.join(cfg.datapath, dir, fname))
+        exists = os.path.isfile(os.path.join(dir, fname))
         if exists:
             filenames1.append(os.path.join(dir, fname))
             year = year + 1
@@ -609,6 +529,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         prefix2 = ''
         satellite = 'goes07'
 
+    dir = dirs.get_directory('GOES')
 
     #for every month that data is required, check if file is present or
     #needs to be downloaded.
@@ -620,7 +541,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,
                         last_day)
         fname1 = prefix1 + date_suffix + '.csv'
-        fullpath1 = os.path.join(cfg.datapath, 'GOES', fname1)
+        fullpath1 = os.path.join(dir, fname1)
         exists1 = os.path.isfile(fullpath1)
 
         complete = None
@@ -654,7 +575,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         fname2 = None
         if prefix2 != '':
             fname2 = prefix2 + date_suffix + '.csv'
-            fullpath2 = os.path.join(cfg.datapath,'GOES',fname2)
+            fullpath2 = os.path.join(dir,fname2)
             exists2 = os.path.isfile(fullpath2)
 
             complete = None
@@ -685,11 +606,11 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         if fname1 == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join('GOES', fname1))
+            filenames1.append(os.path.join(dir, fname1))
         if fname2 == None:
             filenames2.append(None)
         else:
-            filenames2.append(os.path.join('GOES', fname2))
+            filenames2.append(os.path.join(dir, fname2))
 
     return filenames1, filenames2, date
 
@@ -826,6 +747,8 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
         if flux_type == "integral":
             prefix1 = 'g15_epead_cpflux_5m_'
 
+    dir = dirs.get_directory('GOES')
+
     #for every month that data is required, check if file is present or
     #needs to be downloaded.
     for i in range(NFILES):
@@ -836,15 +759,15 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
         date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,
                         last_day)
         fname1 = prefix1 + date_suffix + '.csv'
-        fullpath1 = os.path.join(cfg.datapath, 'GOES', fname1)
+        fullpath1 = os.path.join(dir, fname1)
         exists1 = os.path.isfile(fullpath1)
         fname2 = prefix2 + date_suffix + '.csv'
-        fullpath2 = os.path.join(cfg.datapath,'GOES',fname2)
+        fullpath2 = os.path.join(dir, fname2)
         exists2 = os.path.isfile(fullpath2)
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
             fname_orien = prefix_orien + date_suffix + '_v1.0.0.csv'
-            fullpath_orien = os.path.join(cfg.datapath, 'GOES', fname_orien)
+            fullpath_orien = os.path.join(dir, fname_orien)
             exists_orien = os.path.isfile(fullpath_orien)
 
 
@@ -929,17 +852,17 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
         if fname1 == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join('GOES', fname1))
+            filenames1.append(fullpath1)
         if fname2 == None:
             filenames2.append(None)
         else:
-            filenames2.append(os.path.join('GOES', fname2))
+            filenames2.append(fullpath2)
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
             if fname_orien == None:
                 filenames_orien.append(None)
             else:
-                filenames_orien.append(os.path.join('GOES', fname_orien))
+                filenames_orien.append(fullpath_orien)
 
     return filenames1, filenames2, filenames_orien, date
 
@@ -993,11 +916,13 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
     filenames1 = []  #GOES-R
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
-    
+
+    dir = dirs.get_directory('GOES')
+
     #SPECIAL FILE FOR 2017-09-10 SEP EVENTS
     if experiment == "GOES-16" and styear == 2017:
         fname1 = 'se_sgps-l2-avg5m_g16_s20172440000000_e20172732355000_v2_0_0.nc'
-        fullpath1 = os.path.join(cfg.datapath,'GOES',fname1)
+        fullpath1 = os.path.join(dir,fname1)
         exists1 = os.path.isfile(fullpath1)
         if not exists1:
             url=('https://www.ngdc.noaa.gov/stp/space-weather/satellite-data/satellite-systems/goesr/solar_proton_events/sgps_sep2017_event_data/%s' % (fname1))
@@ -1014,7 +939,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
 
 
         print("check_goesR_data: Special file containing 2017-09-10 data is {fname1}")
-        filenames1.append(os.path.join('GOES',fname1))
+        filenames1.append(os.path.join(dir,fname1))
         return filenames1, filenames2, filenames_orien, startdate
     
     
@@ -1055,7 +980,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         foundfile = None
         for ext in file_ext:
             fname_data = prefix + date_suffix + ext
-            fullpath = os.path.join(cfg.datapath,'GOES',fname_data)
+            fullpath = os.path.join(dir,fname_data)
             exists = os.path.isfile(fullpath)
             if exists:
                 #Check if the file is listed as complete
@@ -1066,7 +991,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         if foundfile == None:
             for ext in file_ext:
                 fname_data = prefix + date_suffix + ext
-                fullpath = os.path.join(cfg.datapath,'GOES',fname_data)
+                fullpath = os.path.join(dir,fname_data)
                 url=('https://data.ngdc.noaa.gov/platforms/solar-space-observing-satellites/goes/%s/l2/data/sgps-l2-avg5m/%i/%02i/%s' % (satellite,year,month,fname_data))
                 try:
                     urllib.request.urlopen(url, timeout=5)
@@ -1075,7 +1000,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
                         os.remove(fullpath) # if exist, remove it directly
                         print(f"check_goesR_data: Removed existing file to avoid creating duplicates during download {fullpath}")
           
-                    wget.download(url, os.path.join(cfg.datapath,'GOES',fname_data))
+                    wget.download(url, fullpath)
                     foundfile = fname_data
                     print(f"\ncheck_goesR_data: Downloaded {url}")
                     break
@@ -1095,7 +1020,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         if foundfile == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join('GOES', foundfile))
+            filenames1.append(os.path.join(dir, foundfile))
             
         
     return filenames1, filenames2, filenames_orien, date
@@ -1195,6 +1120,8 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
+    dir = dirs.get_directory(experiment)
+
     #Choose to download daily data files
     td = enddate - startdate
     NFILES = td.days #number of data files to download
@@ -1219,7 +1146,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
         fname1 = date_suffix + prefix + '_' + spacecraft + '.csv'
-        fullpath1 = os.path.join(cfg.datapath, 'GOES-RT', fname1)
+        fullpath1 = os.path.join(dir, fname1)
         exists1 = os.path.isfile(fullpath1)
         
         complete = False
@@ -1243,7 +1170,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
                 response = rerequest(url)
                 if response.status_code == 200:
                     data = response.text
-                    fileout = open(os.path.join(cfg.datapath, 'GOES-RT', fname1),'w')
+                    fileout = open(os.path.join(dir, fname1),'w')
                     fileout.write(data)
                     fileout.close()
             except:
@@ -1253,7 +1180,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         if fname1 == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join('GOES-RT', fname1))
+            filenames1.append(fullpath1)
 
     return filenames1, filenames2, filenames_orien, date
 
@@ -1266,7 +1193,9 @@ def check_goes_swpc_data(flux_type, spacecraft):
     """
 
     url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (spacecraft,flux_type))
-     
+
+    dir = dirs.get_directory('GOES-SWPC')
+
     fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
     filenames1 = []
     print("Trying to download url: " + url)
@@ -1274,14 +1203,14 @@ def check_goes_swpc_data(flux_type, spacecraft):
         response = rerequest(url)
         if response.status_code == 200:
             data = response.text
-            fileout = open(os.path.join(cfg.datapath, 'GOES-SWPC', fname1),'w')
+            fileout = open(os.path.join(dir, fname1),'w')
             fileout.write(data)
             fileout.close()
     except:
         print(f'Failed to retrieve data. Skipping.')
         fname1 = None
 
-    filenames1.append(fname1)
+    filenames1.append(os.path.join(dir, fname1))
     return filenames1
 
 
@@ -1349,7 +1278,7 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     #Write dates and experiment used for those dates
     #This is meant to allow the user to know which
     #spacecraft is available for which time period
-    outfname = os.path.join(cfg.outpath, "idsep", "goes_experiments_dates.txt")
+    outfname = os.path.join(cfg.outpath, "goes_experiments_dates.txt")
     outfile = open(outfname,'w')
     
     
@@ -1523,7 +1452,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
     #Write dates and experiment used for those dates
     #This is meant to allow the user to know which
     #spacecraft is available for which time period
-    outfname = os.path.join(cfg.outpath, "idsep", "goes_experiments_dates.txt")
+    outfname = os.path.join(cfg.outpath, "goes_experiments_dates.txt")
     outfile = open(outfname,'w')
 
     #Check for and download (if needed) the data for the primary/secondary
@@ -1636,13 +1565,14 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
+    dir = dirs.get_directory(experiment)
 
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = str(year) + '.l3i'
         res = '5min'
         
-        svfile = os.path.join(cfg.datapath,'EPHIN',fname)
+        svfile = os.path.join(dir,fname)
         exists = os.path.isfile(svfile)
         
         complete = False
@@ -1674,7 +1604,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
 
 
         if fname != None:
-            filenames1.append(os.path.join('EPHIN', fname))
+            filenames1.append(svfile)
         
     return filenames1
 
@@ -1717,17 +1647,18 @@ def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
+    dir = dirs.get_directory(experiment)
 
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = 'HESPERIA_SOHO_PROTON_' + str(year) + '.txt'
 
-        exists = os.path.isfile(os.path.join(cfg.datapath, 'EPHIN_HESPERIA', fname))
+        exists = os.path.isfile(os.path.join(dir, fname))
         if not exists:
                 sys.exit("check_ephin_hesperia_data: Cannot access EPHIN file " + fname +
                ". Please manually download yearly data from https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool and put files in data/EPHIN_HESPERIA/HESPERIA_SOHO_PROTON_YYYY.txt")
        
-        filenames1.append(os.path.join('EPHIN_HESPERIA', fname))
+        filenames1.append(os.path.join(dir, fname))
         
     return filenames1
 
@@ -1807,17 +1738,18 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-
+    dir = dirs.get_directory(experiment)
+    
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = str(year) + '.asc'
 
-        exists = os.path.isfile(os.path.join(cfg.datapath, 'EPHIN_REleASE', fname))
+        exists = os.path.isfile(os.path.join(dir, fname))
         if not exists: #download file if not found on your computer
                 sys.exit("Cannot access EPHIN file " + fname +
                ". Please download the data from https://zenodo.org/records/14191918 and put in data/EPHIN_REleASE/.")
        
-        filenames1.append(os.path.join('EPHIN_REleASE', fname))
+        filenames1.append(os.path.join(dir, fname))
         
     return filenames1
 
@@ -1856,7 +1788,7 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
     endmonth = enddate.month
     endday = enddate.day
 
-    ernepath = os.path.join(cfg.datapath,'ERNE')
+    ernepath = dirs.get_directory(experiment)
     
     #Download all the .dates files each time
     #Should always work if user has an internet connection,
@@ -1984,6 +1916,8 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
     if numyr > 0:
         NFILESm = (12 - stmonth) + endmonth + (numyr-1)*12 + 1
 
+    dir_het = dirs.get_directory(experiment + '_HET')
+    dir_let = dirs.get_directory(experiment + '_LET')
 
     #pulls primary spacecraft fluxes
     if experiment == 'STEREO-A':
@@ -2018,7 +1952,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
 
         #LET
         fname1 = '%s%i_%03i_level1_11.txt' % (let_prefix,year,doy)
-        fullpath1 = os.path.join(cfg.datapath,experiment,'LET',fname1)
+        fullpath1 = os.path.join(dir_let,fname1)
         exists1 = os.path.isfile(fullpath1)
 
         complete = False
@@ -2026,7 +1960,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
             #Check if the file is listed as complete
             complete = check_completeness(experiment, flux_type, fullpath1, df=df)
             if complete:
-                filenames1.append(os.path.join(experiment,'LET',fname1))
+                filenames1.append(fullpath1)
 
         if not exists1 or not complete:
             url=(let_url_prefix + '%i/Summed/H/%s' % (year,fname1))
@@ -2038,7 +1972,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
   
                 wget.download(url, fullpath1)
                 print("Downloaded file --> " + fullpath1)
-                filenames1.append(os.path.join(experiment,'LET',fname1))
+                filenames1.append(fullpath1)
 
             except urllib.request.HTTPError as e:
                 sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
@@ -2065,7 +1999,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
 
         #HET
         fname2 = '%s%s%s.1m' % (het_prefix,stryr[2:4],strmonth)
-        fullpath2 = os.path.join(cfg.datapath,experiment,'HET',fname2)
+        fullpath2 = os.path.join(dir_het,fname2)
         exists2 = os.path.isfile(fullpath2)
 
         complete = False
@@ -2073,7 +2007,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
             #Check if the file is listed as complete
             complete = check_completeness(experiment, flux_type, fullpath2, df=df)
             if complete:
-                filenames2.append(os.path.join(experiment,'HET',fname2))
+                filenames2.append(fullpath2)
 
         if not exists2 or not complete:
             url=het_url_prefix + fname2
@@ -2085,7 +2019,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
   
                 wget.download(url,fullpath2)
                 print("Downloaded file --> " + fullpath2)
-                filenames2.append(os.path.join(experiment,'HET',fname2))
+                filenames2.append(fullpath2)
 
             except urllib.request.HTTPError as e:
                 sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
@@ -2139,13 +2073,14 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
+    dir = dirs.get_directory(experiment)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
         #20010807_ace_sis_5m.txt
         fname = getday.strftime("%Y%m%d") + "_ace_sis_5m.txt"
         
-        svfile = os.path.join(cfg.datapath,'ACE','SIS',fname)
+        svfile = os.path.join(dir,fname)
         exists = os.path.isfile(svfile)
         
         complete = False
@@ -2177,7 +2112,7 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
  
  
         if fname != None:
-            filenames1.append(os.path.join('ACE', 'SIS', fname))
+            filenames1.append(svfile)
         
     return filenames1
 
@@ -2221,13 +2156,14 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
+    dir = dirs.get_directory(experiment)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
         #20010807_ace_sis_5m.txt
         fname = getday.strftime("%Y%m%d") + "_ace_epam_5m.txt"
         
-        svfile = os.path.join(cfg.datapath,'ACE','EPAM',fname)
+        svfile = os.path.join(dir,fname)
         exists = os.path.isfile(svfile)
         
         complete = False
@@ -2258,7 +2194,7 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
                 fname = None
 
         if fname != None:
-            filenames1.append(os.path.join('ACE', 'EPAM', fname))
+            filenames1.append(svfile)
         
     return filenames1
 
@@ -2309,6 +2245,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
+    dir = dirs.get_directory(experiment)
 
     for i in range(Nyr):
         year = styear + i
@@ -2338,8 +2275,8 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
             fname = f"h_330s_{year}_{dy1:03d}_{dy2:03d}.txt"
             gzfname = f"{fname}.gz"
         
-            gzsvfile = os.path.join(cfg.datapath,'IMP8','CPME',gzfname)
-            svfile = os.path.join(cfg.datapath,'IMP8','CPME',fname)
+            gzsvfile = os.path.join(dir,gzfname)
+            svfile = os.path.join(dir,fname)
             exists = os.path.isfile(svfile)
         
             complete = False
@@ -2418,13 +2355,14 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
+    dir = dirs.get_directory(experiment)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
         #20010807_OULU.txt
         fname = f"{getday.strftime('%Y%m%d')}_{experiment}.txt"
         
-        svfile = os.path.join(cfg.datapath,'NeutronMonitor',experiment,fname)
+        svfile = os.path.join(dir,fname)
         exists = os.path.isfile(svfile)
         
         complete = False
@@ -2624,7 +2562,7 @@ def find_goes_data_dimensions(filename):
         :nrow: (int) number of rows of data
         
     """
-    with open(os.path.join(cfg.datapath, filename)) as csvfile:
+    with open(filename) as csvfile:
         #GOES data has very large headers; figure out where the data
         #starts inside the file and skip the required number of lines
         nhead = 0
@@ -2672,7 +2610,7 @@ def get_west_detector(filename, dates):
     if dates[0] == datetime.datetime(2013,5,1) and dates[-1] == datetime.datetime(2013,5,31,23,55,0):
         return ["B"]*len(dates)
 
-    with open(os.path.join(cfg.datapath, filename)) as orienfile:
+    with open(filename) as orienfile:
         #GOES data has very large headers; figure out where the data
         #starts inside the file and skip the required number of lines
         readCSV = csv.reader(orienfile, delimiter=',')
@@ -2732,8 +2670,8 @@ def read_in_sepem(experiment, flux_type, filenames1):
     """
     NFILES = len(filenames1)
     for i in range(NFILES):
-        print('Reading in file ' + os.path.join(cfg.datapath, filenames1[i]))
-        with open(os.path.join(cfg.datapath, filenames1[i])) as csvfile:
+        print('Reading in file ' + filenames1[i])
+        with open(filenames1[i]) as csvfile:
             readCSV = csv.reader(csvfile, delimiter=',')
             has_header = csv.Sniffer().has_header(csvfile.readline())
             if has_header:
@@ -2787,7 +2725,7 @@ def read_in_calgoes(experiment, filenames1):
 
     for filenm in filenames1:
         print("reading filename " + filenm)
-        with open(os.path.join(cfg.datapath, filenm)) as file:
+        with open(filenm) as file:
             if len(fluxes) == 0:
                 #Get number of columns in file
                 #Fill in first row so can have correct format array
@@ -2914,9 +2852,8 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
             fluxes = np.zeros(shape=(totcol,nrow))
             
             
-            print('Reading in file ' + os.path.join(cfg.datapath, filenames1[i]))
-            fullpath1 = os.path.join(cfg.datapath, filenames1[i])
-            with open(fullpath1) as csvfile:
+            print('Reading in file ' + filenames1[i])
+            with open(filenames1[i]) as csvfile:
                 #GOES data has very large headers; figure out where the data
                 #starts inside the file and skip the required number of lines
                 readCSV = csv.reader(csvfile, delimiter=',')
@@ -2947,16 +2884,15 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
             csvfile.close()
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, fullpath1, file_dates)
+            df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
 
 
         #SECOND set of files for higher energy hepad
         if filenames2:
             if filenames2[i] != None:
                 nhead, nrow = find_goes_data_dimensions(filenames2[i])
-                fullpath2 = os.path.join(cfg.datapath,filenames2[i])
-                print('Reading in file ' + fullpath2)
-                with open(fullpath2) as csvfile:
+                print('Reading in file ' + filenames2[i])
+                with open(filenames2[i]) as csvfile:
                     readCSV = csv.reader(csvfile, delimiter=',')
                     for k in range(nhead):
                         next(readCSV)  #to start of data
@@ -2978,7 +2914,7 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
                 csvfile.close()
 
                 #Update file completeness
-                df = file_completeness(df, experiment, flux_type, fullpath2, file_dates)
+                df = file_completeness(df, experiment, flux_type, filenames2[i], file_dates)
 
         if len(fluxes) == 0: continue
         #If reading in multiple files, then combine all data into one array
@@ -3106,9 +3042,8 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                         hepad_columns = [17]
                 
             
-            print('Reading in file ' + cfg.datapath + '/' + filenames1[i])
-            fullpath1 = os.path.join(cfg.datapath, filenames1[i])
-            with open(fullpath1) as csvfile:
+            print('Reading in file ' + filenames1[i])
+            with open(filenames1[i]) as csvfile:
                 #GOES data has very large headers; figure out where the data
                 #starts inside the file and skip the required number of lines
                 readCSV = csv.reader(csvfile, delimiter=',')
@@ -3166,7 +3101,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             csvfile.close()
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, fullpath1, file_dates)
+            df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
 
         #SECOND set of files for higher energy hepad
         if filenames2[i] != None:
@@ -3175,9 +3110,8 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             if len(fluxes) == 0:
                 fluxes = np.zeros(shape=(totcol,nrow))
             
-            fullpath2 = os.path.join(cfg.datapath,filenames2[i])
-            print('Reading in file ' + fullpath2)
-            with open(fullpath2) as csvfile:
+            print('Reading in file ' + filenames2[i])
+            with open(filenames2[i]) as csvfile:
                 readCSV = csv.reader(csvfile, delimiter=',')
                 for k in range(nhead):
                     next(readCSV)  #to start of data
@@ -3199,7 +3133,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             csvfile.close()
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, fullpath2, file_dates)
+            df = file_completeness(df, experiment, flux_type, filenames2[i], file_dates)
     
         if len(dates) == 0:
             continue
@@ -3281,8 +3215,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         file_dates = []
         if filenames1[i] != None:
             print(filenames1[i])
-            fullpath = os.path.join(cfg.datapath, filenames1[i])
-            infile = os.path.expanduser(fullpath)
+            infile = os.path.expanduser(filenames1[i])
             data = netCDF4.Dataset(infile)
             
             if "v3-0" in filenames1[i]:
@@ -3329,7 +3262,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 fluxes[-1][j] = flux
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+            df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
 
         if len(file_dates) == 0:
             continue
@@ -3439,9 +3372,8 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
         if filenames1[i] == None:
             continue
 
-        fullpath = os.path.join(cfg.datapath, filenames1[i])
         try:
-            df_in = pd.read_csv(fullpath, header=None)
+            df_in = pd.read_csv(filenames1[i], header=None)
         except:
             #Sometimes files may be empty if there is a data gap > 1 day
             print(f"read_in_GOES-RT: Could not open {fullpath}. Skipping.")
@@ -3453,7 +3385,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
  
         #Update file completeness
         file_dates = df_in[0].to_list()
-        df = file_completeness(df, experiment, flux_type, fullpath, file_dates,
+        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates,
                 spacecraft=spacecraft)
  
         for col in cols_to_drop:
@@ -3482,7 +3414,8 @@ def read_in_goes_swpc(flux_type, spacecraft):
     """ Read in SWPC 7-day jsons for GOES protons """
 
     fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
-    fname = os.path.join(cfg.datapath,"GOES-SWPC", fname1)
+    dir = dirs.get_directory('GOES-SWPC')
+    fname = os.path.join(dir, fname1)
 
     all_dates = []
 
@@ -3782,8 +3715,7 @@ def read_in_ephin(experiment, flux_type, filenames1):
     ncol= len(fluxcols)
 
     for i in range(NFILES):
-        fullpath = os.path.join(cfg.datapath, filenames1[i])
-        print('Reading in file ' + fullpath)
+        print('Reading in file ' + filenames1[i])
         with open(fullpath) as csvfile:
             #Count header lines indicated by hash #
             nhead = 0
@@ -3826,7 +3758,7 @@ def read_in_ephin(experiment, flux_type, filenames1):
                 count = count + 1
 
         #Update file completeness
-        df = file_completeness(df, experiment, flux_type, fullpath, dates)
+        df = file_completeness(df, experiment, flux_type, filenames1[i], dates)
 
         #If reading in multiple files, then combine all data into one array
         if i==0:
@@ -3870,9 +3802,8 @@ def read_in_ephin_hesperia(experiment, flux_type, filenames1):
     ncol= len(fluxcols)
 
     for i in range(NFILES):
-        pathnm  = os.path.join(cfg.datapath,filenames1[i])
         print(f"Reading in file {pathnm}")
-        with open(pathnm) as csvfile:
+        with open(filenames1[i]) as csvfile:
             #Count header lines indicated by hash #
             nhead = 0
             for line in csvfile:
@@ -3966,9 +3897,8 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
     all_fluxes = []
 
     for i in range(NFILES):
-        pathnm  = os.path.join(cfg.datapath,filenames1[i])
-        print(f"Reading in file {pathnm}")
-        with open(pathnm) as csvfile:
+        print(f"Reading in file {filenames1[i]}")
+        with open(filenames1[i]) as csvfile:
             for line in csvfile:
                 if line == '': continue
                 if line[0] == "#": continue
@@ -4191,7 +4121,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
     
     #READ IN LET
     for i in range(NFILESL):
-        fullpathL = os.path.join(cfg.datapath,filenames1[i])
+        fullpathL = filenames1[i]
         print(f"{datetime.datetime.now()} Reading in file {fullpathL}")
         with open(fullpathL) as infile:
             #Count header lines up until "BEGIN DATA"
@@ -4258,7 +4188,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 
     #READ IN HET
     for i in range(NFILESH):
-        fullpathH = os.path.join(cfg.datapath,filenames2[i])
+        fullpathH = filenames2[i]
         print(f"{datetime.datetime.now()} Reading in file {fullpathH}")
         with open(fullpathH) as infile:
             #Count header lines up until "BEGIN DATA"
@@ -4451,8 +4381,7 @@ def read_in_ace_sis(experiment, flux_type, filenames1):
         if filenames1[i] == None:
             continue
 
-        fullpath = os.path.join(cfg.datapath, filenames1[i])
-        if not os.path.isfile(fullpath):
+        if not os.path.isfile(filenames1[i]):
             print(f"read_in_ace_sis: Cannot read {fullpath}. Skipping.")
             continue
         with open(fullpath, 'r') as file:
@@ -4480,9 +4409,7 @@ def read_in_ace_sis(experiment, flux_type, filenames1):
             
                 all_fluxes.append([flx30, flx60])
                 
-
-
-        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
 
     print(f"{datetime.datetime.now()} read_in_ace_sis: Finished reading ACE/SIS integral data.")
     write_data_manager(df)
@@ -4543,8 +4470,7 @@ def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
         if filenames1[i] == None:
             continue
 
-        fullpath = os.path.join(cfg.datapath, filenames1[i])
-        if not os.path.isfile(fullpath):
+        if not os.path.isfile(filenames1[i]):
             print(f"read_in_ace_epam_electrons: Cannot read {fullpath}. Skipping.")
             continue
         with open(fullpath, 'r') as file:
@@ -4572,7 +4498,7 @@ def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
                 
 
 
-        df = file_completeness(df, experiment, flux_type, fullpath, file_dates)
+        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
 
     print(f"{datetime.datetime.now()} read_in_ace_epam_electrons: Finished reading ACE/EPAM energetic electron data.")
     write_data_manager(df)
