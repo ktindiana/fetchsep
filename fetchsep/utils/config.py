@@ -88,11 +88,13 @@ def process_experiment_paths():
     expt_paths = pkg_globals['experiment_directories']
     keys = expt_paths.keys()
     for key in keys:
+        path = expt_paths[key]
         if '/' in expt_paths[key]:
             path = expt_paths[key].strip().split('/')
-        elif '\' in expt_paths[key]:
+            path = os.path.join(*path)
+        elif '\\' in expt_paths[key]:
             path = expt_paths[key].strip().split('\\')
-        path = os.path.join(*path)
+            path = os.path.join(*path)
         expt_paths[key] = path
     pkg_globals['experiment_directories'] = expt_paths
 
