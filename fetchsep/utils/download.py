@@ -30,7 +30,7 @@ __email__ = "kathryn.whitman@nasa.gov"
 
 
 def read_in_flux_files(experiment, flux_type, startdate, enddate, options, dointerp,
-        spacecraft="", user_file="", is_unixtime=False):
+        spacecraft="", user_file="", is_unixtime=False, use_absolute_datapath=False):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
         points with linear interpolation if dointerp True.
@@ -65,10 +65,12 @@ def read_in_flux_files(experiment, flux_type, startdate, enddate, options, doint
     ##### Check if data is available and download
     if experiment == "GOES":
         filenames1, filenames2, filenames_orien, detector = datasets.check_data(startdate,
-                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
+                enddate, experiment, flux_type, user_file, spacecraft=spacecraft,
+                use_absolute_datapath=use_absolute_datapath)
     else:
         filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
-                enddate, experiment, flux_type, user_file, spacecraft=spacecraft)
+                enddate, experiment, flux_type, user_file, spacecraft=spacecraft,
+                use_absolute_datapath=use_absolute_datapath)
                             
     ###### Read in flux files
     if experiment != "user":
@@ -145,6 +147,7 @@ def get_data(str_startdate, str_enddate, experiment,
     path_to_output=None,
     path_to_plots=None,
     path_to_lists=None,
+    use_absolute_datapath=False,
     format='dict'):
     """ Download data. Create an output file of all fluxes in the
         specified date range.
@@ -213,13 +216,12 @@ def get_data(str_startdate, str_enddate, experiment,
 
     error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
     error_check.error_check_inputs(startdate, enddate, experiment, flux_type)
-    dirs.check_paths(experiment)
 
 
     #READ IN FLUXES
     dates, fluxes, energy_bins, energy_bin_centers = read_in_flux_files(experiment, flux_type,
         startdate, enddate, options, dointerp, spacecraft=spacecraft, user_file=user_file,
-        is_unixtime=is_unixtime)
+        is_unixtime=is_unixtime, use_absolute_datapath=use_absolute_datapath)
  
  
     if write_fluxes:

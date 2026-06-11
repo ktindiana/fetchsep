@@ -346,7 +346,8 @@ def make_yearly_files(filename):
     return
 
 
-def check_sepem_data(startdate, enddate, experiment, flux_type):
+def check_sepem_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check if SEPEM data is present on the computer. Break into yearly
         files if needed. Return SEPEM filenames for analysis.
         
@@ -380,7 +381,8 @@ def check_sepem_data(startdate, enddate, experiment, flux_type):
     if experiment == 'SEPEMv3':
         basenm = 'SEPEM_RDS_v3_H'
 
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     while (year <= endyear):
         fname = basenm + '_' + str(year) + '.csv'
@@ -406,13 +408,14 @@ def check_sepem_data(startdate, enddate, experiment, flux_type):
                 print('The SEPEM (RSDv2 and RDSv3) is more tractable when '
                         'breaking into yearly data files. '
                         'Producing yearly files.')
-                make_yearly_files(dir + '/' + basenm + '.txt')
+                make_yearly_files(os.path.join(dir, basenm + '.txt'))
                 year = styear
 
     return filenames1
     
     
-def check_calgoes_data(startdate, enddate, experiment, flux_type):
+def check_calgoes_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check if SRAG1.2 (CalGOES) data is present on the computer. Break into yearly
         files if needed. Return SRAG filenames for analysis.
         
@@ -443,7 +446,8 @@ def check_calgoes_data(startdate, enddate, experiment, flux_type):
     if experiment == 'CalGOES':
         basenm = 'srag12'
 
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     while (year <= endyear):
         fname = basenm + '_' + str(year) + '.dat'
@@ -460,7 +464,8 @@ def check_calgoes_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_old_goes_data(startdate, enddate, experiment, flux_type):
+def check_old_goes_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         
@@ -516,7 +521,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
     #Set correct file prefix for data files
     if experiment == "GOES-05": #No HEPAD
         prefix1 = 'g05_eps_5m_3s_'
-        prefix2 = ''
+        prefix2 = '' #No GOES-05 HEPAD data appears to be available
         satellite = 'goes05'
 
     if experiment == "GOES-06":
@@ -526,10 +531,14 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
     
     if experiment == "GOES-07": #No HEPAD
         prefix1 = 'g07_eps_5m_'
-        prefix2 = ''
+        prefix2 = '' #No GOES-07 HEPAD data appears to be available
         satellite = 'goes07'
 
-    dir = dirs.get_directory('GOES')
+    dir1 = dirs.get_directory(experiment+'_EPS', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir1)
+
+    dir2 = dirs.get_directory(experiment+'_HEPAD', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir2)
 
     #for every month that data is required, check if file is present or
     #needs to be downloaded.
@@ -541,7 +550,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,
                         last_day)
         fname1 = prefix1 + date_suffix + '.csv'
-        fullpath1 = os.path.join(dir, fname1)
+        fullpath1 = os.path.join(dir1, fname1)
         exists1 = os.path.isfile(fullpath1)
 
         complete = None
@@ -575,7 +584,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         fname2 = None
         if prefix2 != '':
             fname2 = prefix2 + date_suffix + '.csv'
-            fullpath2 = os.path.join(dir,fname2)
+            fullpath2 = os.path.join(dir2,fname2)
             exists2 = os.path.isfile(fullpath2)
 
             complete = None
@@ -606,17 +615,18 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type):
         if fname1 == None:
             filenames1.append(None)
         else:
-            filenames1.append(os.path.join(dir, fname1))
+            filenames1.append(fullpath1)
         if fname2 == None:
             filenames2.append(None)
         else:
-            filenames2.append(os.path.join(dir, fname2))
+            filenames2.append(fullpath2)
 
     return filenames1, filenames2, date
 
 
 
-def check_goes_data(startdate, enddate, experiment, flux_type):
+def check_goes_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         
@@ -697,32 +707,38 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
     #Set correct file prefix for data files
     if experiment == "GOES-08":
         prefix1 = 'g08_eps_5m_'
+        name_for_dir1 = experiment + '_EPS'
         prefix2 = 'g08_hepad_5m_'
         satellite = 'goes08'
 
     if experiment == "GOES-09":
         prefix1 = 'g09_eps_5m_'
+        name_for_dir1 = experiment + '_EPS'
         prefix2 = 'g09_hepad_5m_'
         satellite = 'goes09'
 
     if experiment == "GOES-10":
         prefix1 = 'g10_eps_5m_'
+        name_for_dir1 = experiment + '_EPS'
         prefix2 = 'g10_hepad_5m_'
         satellite = 'goes10'
 
     if experiment == "GOES-11":
         prefix1 = 'g11_eps_5m_'
+        name_for_dir1 = experiment + '_EPS'
         prefix2 = 'g11_hepad_5m_'
         satellite = 'goes11'
 
     if experiment == "GOES-12":
         prefix1 = 'g12_eps_5m_'
+        name_for_dir1 = experiment + '_EPS'
         prefix2 = 'g12_hepad_5m_'
         satellite = 'goes12'
 
     if experiment == "GOES-13":
         prefix2 = 'g13_hepad_ap_5m_'
         prefix_orien = 'g13_epead_orientation_flag_1m_'
+        name_for_dir1 = experiment + '_EPEAD'
         satellite = 'goes13'
         if flux_type == "differential":
             prefix1 = 'g13_epead_p17ew_5m_'
@@ -732,6 +748,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
     if experiment == "GOES-14":
         prefix2 = 'g14_hepad_ap_5m_'
         prefix_orien = 'g14_epead_orientation_flag_1m_'
+        name_for_dir1 = experiment + '_EPEAD'
         satellite = 'goes14'
         if flux_type == "differential":
             prefix1 = 'g14_epead_p17ew_5m_'
@@ -741,13 +758,18 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
     if experiment == "GOES-15":
         prefix2 = 'g15_hepad_ap_5m_'
         prefix_orien = 'g15_epead_orientation_flag_1m_'
+        name_for_dir1 = experiment + '_EPEAD'
         satellite = 'goes15'
         if flux_type == "differential":
             prefix1 = 'g15_epead_p17ew_5m_'
         if flux_type == "integral":
             prefix1 = 'g15_epead_cpflux_5m_'
 
-    dir = dirs.get_directory('GOES')
+    dir1 = dirs.get_directory(name_for_dir1, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir1)
+
+    dir2 = dirs.get_directory(experiment+'_HEPAD', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir2)
 
     #for every month that data is required, check if file is present or
     #needs to be downloaded.
@@ -756,18 +778,17 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
         month = get_months[i]
         last_day = calendar.monthrange(year,month)[1]
         date = datetime.datetime(year=year,month=month, day=1)
-        date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,
-                        last_day)
+        date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,last_day)
         fname1 = prefix1 + date_suffix + '.csv'
-        fullpath1 = os.path.join(dir, fname1)
+        fullpath1 = os.path.join(dir1, fname1)
         exists1 = os.path.isfile(fullpath1)
         fname2 = prefix2 + date_suffix + '.csv'
-        fullpath2 = os.path.join(dir, fname2)
+        fullpath2 = os.path.join(dir2, fname2)
         exists2 = os.path.isfile(fullpath2)
         if (experiment == "GOES-13" or experiment == "GOES-14"
             or experiment == "GOES-15"):
             fname_orien = prefix_orien + date_suffix + '_v1.0.0.csv'
-            fullpath_orien = os.path.join(dir, fname_orien)
+            fullpath_orien = os.path.join(dir1, fname_orien)
             exists_orien = os.path.isfile(fullpath_orien)
 
 
@@ -869,7 +890,8 @@ def check_goes_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_goesR_data(startdate, enddate, experiment, flux_type):
+def check_goesR_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         GOES files are saved daily in cdf format.
@@ -964,6 +986,11 @@ def check_goesR_data(startdate, enddate, experiment, flux_type):
         prefix = 'sci_sgps-l2-avg5m_g19_' #'sci_sgps-l2-avg1m_g19_'
         satellite = 'goes19'
 
+
+    dir = dirs.get_directory(experiment+'_SGPS', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
+
+
     #for every day that data is required, check if file is present or
     #needs to be downloaded.
     for i in range(NFILES):
@@ -1050,7 +1077,7 @@ def rerequest(url, tries=0):
 
 
 def check_goes_RTdata(startdate, enddate, experiment, flux_type,
-    spacecraft="primary"):
+    spacecraft="primary", use_absolute_datapath=False):
     """Check that GOES Real Time data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         GOES real time integral files are saved daily in txt format.
@@ -1120,7 +1147,8 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment+'_SGPS', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     #Choose to download daily data files
     td = enddate - startdate
@@ -1185,7 +1213,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     return filenames1, filenames2, filenames_orien, date
 
 
-def check_goes_swpc_data(flux_type, spacecraft):
+def check_goes_swpc_data(flux_type, spacecraft, use_absolute_datapath=False):
     """ Download the NOAA SWPC most recent 7-day json of differential protons. 
         User has no control of time periods. Will grab the current file at 
         the time of running.
@@ -1194,7 +1222,8 @@ def check_goes_swpc_data(flux_type, spacecraft):
 
     url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (spacecraft,flux_type))
 
-    dir = dirs.get_directory('GOES-SWPC')
+    dir = dirs.get_directory('GOES-SWPC', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
     filenames1 = []
@@ -1532,7 +1561,8 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
 
     
 
-def check_ephin_data(startdate, enddate, experiment, flux_type):
+def check_ephin_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check for SOHO/COSTEP/EPHIN data on your computer. If not there,
         download from http://ulysses.physik.uni-kiel.de/costep/level3/l3i/
         5 minute data will be downloaded. Intensities are in units of
@@ -1565,7 +1595,8 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
@@ -1609,7 +1640,8 @@ def check_ephin_data(startdate, enddate, experiment, flux_type):
     return filenames1
 
 
-def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type):
+def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check for SOHO/COSTEP/EPHIN data on your computer provided by the
         HESPERIA collaboration on the website
         https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool
@@ -1647,7 +1679,8 @@ def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
@@ -1664,7 +1697,8 @@ def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_ephin_release_data(startdate, enddate, experiment, flux_type):
+def check_ephin_release_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath):
     """Check for SOHO/COSTEP/EPHIN data on your computer provided by 
         https://zenodo.org/records/14191918. 
         Yearly files of this data set are provided from 1995 to 2016. 
@@ -1738,7 +1772,8 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
     
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
@@ -1756,7 +1791,8 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_erne_data(startdate, enddate, experiment, flux_type):
+def check_erne_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check for SOHO/ERNE data on your computer. If not there,
         download from https://export.srl.utu.fi.
         Intensities are in units of (cm^2 s sr mev/nuc)^-1
@@ -1788,8 +1824,9 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
     endmonth = enddate.month
     endday = enddate.day
 
-    ernepath = dirs.get_directory(experiment)
-    
+    ernepath = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(ernepath)
+
     #Download all the .dates files each time
     #Should always work if user has an internet connection,
     #but allow for case where user doesn't have internet access.
@@ -1866,7 +1903,8 @@ def check_erne_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_stereo_data(startdate, enddate, experiment, flux_type):
+def check_stereo_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """ Check for 1 min STEREO data on your computer provided on:
         https://izw1.caltech.edu/STEREO/Public/LET_public.html
         https://izw1.caltech.edu/STEREO/Public/HET_public.html            
@@ -1916,8 +1954,11 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
     if numyr > 0:
         NFILESm = (12 - stmonth) + endmonth + (numyr-1)*12 + 1
 
-    dir_het = dirs.get_directory(experiment + '_HET')
-    dir_let = dirs.get_directory(experiment + '_LET')
+    dir_het = dirs.get_directory(experiment+ '_HET', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir_het)
+
+    dir_let = dirs.get_directory(experiment+ '_LET', use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir_let)
 
     #pulls primary spacecraft fluxes
     if experiment == 'STEREO-A':
@@ -2028,14 +2069,14 @@ def check_stereo_data(startdate, enddate, experiment, flux_type):
             except Exception as e:
                 sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
 
-
         month += 1
 
     return filenames1, filenames2
 
 
 
-def check_ace_sis_data(startdate, enddate, experiment, flux_type):
+def check_ace_sis_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check for ACE/SIS data on your computer. If not there,
         download from https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
         5 minute data will be downloaded. Only >30 and >60 MeV fluxes.
@@ -2073,7 +2114,8 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
@@ -2117,7 +2159,8 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type):
     return filenames1
 
 
-def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
+def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check for ACE/EPAM data on your computer. If not there,
         download from https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
         5 minute data will be downloaded. Electron and proton data. Only take
@@ -2156,7 +2199,8 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
@@ -2200,7 +2244,8 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type):
 
 
 
-def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
+def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
+    use_absolute_datapath=False):
     """Check for IMP-8/CPME data on your computer. If not there,
         download from http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/
         330s data will be downloaded. 
@@ -2245,7 +2290,8 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     for i in range(Nyr):
         year = styear + i
@@ -2355,7 +2401,8 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment)
+    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dirs.check_path(dir)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
@@ -2400,7 +2447,7 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
 #https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]=KERG&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year=2009&start_month=09&start_day=01&start_hour=00&start_min=00&end_year=2009&end_month=09&end_day=01&end_hour=23&end_min=59&yunits=0
 
 def check_data(startdate, enddate, experiment, flux_type, user_file,
-    spacecraft="primary"):
+    spacecraft="primary", use_absolute_datapath=False):
     """Check that the files containing the data are in the data directory. If
         the files for the requested dates aren't present, they will be
         downloaded from the NOAA website. For SEPEM (RSDv2) data, if missing,
@@ -2484,7 +2531,8 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
     #Specific GOES prior to GOES-R, e.g. GOES-13 or GOES-08
     if experiment in goes_sc:
         filenames1, filenames2, filenames_orien, date =\
-            check_goes_data(startdate, enddate, experiment, flux_type)
+            check_goes_data(startdate, enddate, experiment, flux_type,
+            use_absolute_datapath=use_absolute_datapath)
         return filenames1, filenames2, filenames_orien
 
     if (experiment in goes_R) and flux_type == "differential":
@@ -3716,7 +3764,7 @@ def read_in_ephin(experiment, flux_type, filenames1):
 
     for i in range(NFILES):
         print('Reading in file ' + filenames1[i])
-        with open(fullpath) as csvfile:
+        with open(filenames1[i]) as csvfile:
             #Count header lines indicated by hash #
             nhead = 0
             for line in csvfile:
@@ -4384,7 +4432,7 @@ def read_in_ace_sis(experiment, flux_type, filenames1):
         if not os.path.isfile(filenames1[i]):
             print(f"read_in_ace_sis: Cannot read {fullpath}. Skipping.")
             continue
-        with open(fullpath, 'r') as file:
+        with open(filenames1[i], 'r') as file:
             for line in file:
                 if ":Data" in line: continue
                 if ":Created" in line: continue
@@ -4473,7 +4521,7 @@ def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
         if not os.path.isfile(filenames1[i]):
             print(f"read_in_ace_epam_electrons: Cannot read {fullpath}. Skipping.")
             continue
-        with open(fullpath, 'r') as file:
+        with open(filenames1[i], 'r') as file:
             for line in file:
                 if ":Data" in line: continue
                 if ":Created" in line: continue
@@ -4659,7 +4707,8 @@ def read_in_neutron_monitor(experiment, flux_type, filenames1):
 
 
 def read_in_files(experiment, flux_type, filenames1, filenames2,
-                filenames_orien, options, detector=[], spacecraft=""):
+    filenames_orien, options, detector=[], spacecraft="",
+    use_absolute_datapath=False):
     """ Read in the appropriate data files with the correct format.
         Return an array with dates and fluxes. Bad flux values (any
         negative flux) are set to -1. Format is defined to work with
@@ -4732,8 +4781,8 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
 
     elif experiment in goes_sc:
         all_dates, all_fluxes, west_detector =\
-            read_in_goes(experiment, flux_type, filenames1,
-                filenames2, filenames_orien, options)
+            read_in_goes(experiment, flux_type, filenames1, filenames2,
+                filenames_orien, options)
         
     elif experiment in goes_R and flux_type == "differential":
         all_dates, all_fluxes, west_detector =\

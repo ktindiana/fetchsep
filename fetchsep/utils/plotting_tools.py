@@ -427,7 +427,9 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_c
             "#1A3D8C",  # vivid cosmic blue
             "#FF6D2E",  # bright molten orange
             "#00A28A",  # strong teal / alien green
-            "#E63946",  # vivid cosmic red
+#            "#E63946",  # vivid cosmic red; too close to GOES
+#            "#FF6B64",  # bright coral
+            "#FF4B4B",  # vivid coral
             "#8C4BDC",  # adjusted nebula purple (distinct from #6A4DC9)
             "#F0C27B",  # glowing sand / orange
             "#4DA6FF",  # bright sky blue

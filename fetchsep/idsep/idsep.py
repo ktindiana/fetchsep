@@ -444,8 +444,6 @@ def run_idsep(str_startdate, str_enddate, experiment,
         init_win=init_win, sliding_win=sliding_win, percent_points=percent_points)
     cfg.print_configured_values()
 
-    dirs.check_paths(experiment)
-
 
     #### SET UP EXPERIMENT VALUES #####
     #If user specifies a spacecraft but isn't relevant to experiment,

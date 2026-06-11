@@ -34,6 +34,7 @@ the default.
 Note that while section names are required (a configparser
 requirement), they are not used.  All variables from all sections are
 dumped into the same package namespace.
+
 """
 
 pkg_configfile = os.path.join(os.path.dirname(__file__), 'fetchsep.cfg')
@@ -50,6 +51,7 @@ for section in sections:
     if section in config.sections():
         for k in config[section]:
             pkg_globals[k] = eval(config[section][k])
+
 
 def export_config(overwrite=False):
     if not overwrite and os.path.isfile(cwd_configfile):
@@ -82,6 +84,20 @@ def print_configured_values():
     print()
 
 ##### PATHS ####
+def process_experiment_paths():
+    expt_paths = pkg_globals['experiment_directories']
+    keys = expt_paths.keys()
+    for key in keys:
+        if '/' in expt_paths[key]:
+            path = expt_paths[key].strip().split('/')
+        elif '\' in expt_paths[key]:
+            path = expt_paths[key].strip().split('\\')
+        path = os.path.join(*path)
+        expt_paths[key] = path
+    pkg_globals['experiment_directories'] = expt_paths
+
+process_experiment_paths() #specify subdirectories in datapath
+
 def set_datapath(datapath):
     #allow user to set the datapath on the fly across all modules
     pkg_globals['datapath'] = datapath

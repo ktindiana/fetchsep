@@ -118,6 +118,7 @@ class Data:
         #Paths for plots and output files - includes experiment subdirectory
         self.op_outpath = ''
         self.op_plotpath = ''
+        self.use_absolute_datapath = False
         self.modifier = '' #for plots and filenames
         self.title_modifier = '' #For plot titles
         self.subdir = '' #For write_fluxes filename
@@ -439,6 +440,7 @@ class Data:
         two_peaks=False, definitions='', options='',
         doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
         doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
+        use_absolute_datapath=False,
         dointerp=False, location='earth', species='proton'):
         """ Create new Data object and load with all values.
         
@@ -499,6 +501,7 @@ class Data:
         self.idsep_path = idsep_path
         self.set_opsep_background_info(doBGSubOPSEP, OPSEPEnhancement, bgstartdate, bgenddate)
         self.set_idsep_background_info(doBGSubIDSEP, idsep_path, IDSEPEnhancement)
+        self.use_absolute_datapath=use_absolute_datapath
 
         default=True
         if (energy_units != 'MeV') or (species != 'proton') or ('counts' in flux_type):
@@ -759,7 +762,8 @@ class Data:
                 dointerp=False, showplot=False, saveplot=False, write_fluxes=True,
                 dl_outpath=self.op_outpath, dl_plotpath=self.op_plotpath,
                 path_to_data=cfg.datapath, path_to_output=cfg.outpath,
-                path_to_plots=cfg.plotpath, path_to_lists=cfg.listpath)
+                path_to_plots=cfg.plotpath, path_to_lists=cfg.listpath,
+                use_absolute_datapath=self.use_absolute_datapath)
         
         self.energy_bins = energy_bins
         self.energy_bin_centers = energy_bin_centers
@@ -3152,6 +3156,7 @@ def load_input_data(startdate, enddate, experiment, flux_type,
         two_peaks=False, definitions='', options='',
         doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
         doBGSubIDSEP=False, IDSEPEnhancement=False, idsep_path='',
+        use_absolute_datapath=False,
         dointerp=False, location='earth', species='proton'):
     """ Instantiate an InputData object. Load all data.
         If differential fluxes specified, estimate integral fluxes.
@@ -3211,7 +3216,7 @@ def load_input_data(startdate, enddate, experiment, flux_type,
         bgstartdate=bgstartdate, bgenddate=bgenddate,
         doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
         idsep_path=idsep_path, dointerp=dointerp,
-        location=location, species=species)
+        location=location, species=species, use_absolute_datapath=use_absolute_datapath)
 
 
     #Read in fluxes; perform any background subtraction, background and SEP
@@ -3319,7 +3324,8 @@ def run_opsep(str_startdate, str_enddate, experiment,
     path_to_output=None,
     path_to_plots=None,
     path_to_lists=None,
-    opsep_nsigma=None):
+    opsep_nsigma=None,
+    use_absolute_datapath=False):
     """"Runs all subroutines and gets all needed values. Takes the command line
         arguments as input. Code may be imported into other python scripts and
         run using this routine.
@@ -3437,7 +3443,6 @@ def run_opsep(str_startdate, str_enddate, experiment,
     cfg.configure_opsep(opsep_nsigma=opsep_nsigma)
     cfg.print_configured_values()
 
-    dirs.check_paths(experiment)
 
     #### SET UP EXPERIMENT VALUES #####
     #If user specifies a spacecraft but isn't relevant to experiment,
@@ -3471,7 +3476,8 @@ def run_opsep(str_startdate, str_enddate, experiment,
                 bgstartdate=bgstartdate, bgenddate=bgenddate,
                 doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,
                 idsep_path=idsep_path, dointerp=dointerp,
-                location=location, species=species)
+                location=location, species=species,
+                use_absolute_datapath=use_absolute_datapath)
             
 
     #Calculate SEP info for each event definition and create Analyze objects.
