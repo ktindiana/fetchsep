@@ -117,17 +117,22 @@ path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
-if flux_type == '':
-    flux_type = expts.get_flux_type(experiment)
-
-fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
+params = fetchsep.utils.download.load_parameters('download',
+    str_startdate, str_enddate, experiment,
     flux_type=flux_type,
+    spacecraft=spacecraft,
+    user_name=user_name,
+    user_file=user_file,
+    is_unixtime=is_unixtime,
     directory_depth=directory_depth,
     options=options,
     dointerp=dointerp,
     showplot=showplot,
     saveplot=saveplot,
-    spacecraft=spacecraft,
+    write_fluxes=True,
+    use_absolute_datapath=use_absolute_datapath)
+
+fetchsep.utils.download.get_data(params,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,

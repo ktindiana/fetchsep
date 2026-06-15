@@ -7,8 +7,7 @@ import sys
 """ Check inputs and options for errors and incompatabilities."""
 
 
-def error_check_options(experiment, flux_type, options, subroutine=None,
-    spacecraft=""):
+def error_check_options(experiment, flux_type, options, spacecraft=""):
     """ Make sure the selected options make sense for the experiment.
         
         INPUTS:
@@ -16,8 +15,7 @@ def error_check_options(experiment, flux_type, options, subroutine=None,
         :experiment: (string)
         :flux_type: (string) - integral or differential
         :options: (string array) - various options applied to GOES data
-        :doBGSub: (boolean) - indicates if background subtraction to be
-            performed
+        :spacecraft: (string)
         
         OUTPUTS:
         
@@ -56,8 +54,8 @@ def error_check_options(experiment, flux_type, options, subroutine=None,
                 "uncorrected, S14, or Bruno2017.")
 
 
-def error_check_inputs(startdate, enddate, experiment, flux_type,
-    json_type=None, json_mode='', is_diff_thresh=[], subroutine=None):
+def error_check_inputs(startdate, enddate, experiment, flux_type, module=None,
+    init_win=None):
     """ Check that all of the user inputs make sense and fall within bounds.
         
         INPUTS:
@@ -66,13 +64,8 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         :enddate: (datetime) - end of time period entered by user
         :experiment: (string) - name of experiment specifed by user
         :flux_type: (string) - integral or differential
-        :json_type: (string) - model or observations, only needed if "user" experiment
-        :json_mode: (string) - measurement (for observations), or values like forecast,
-            historical, simulated_realtime_forecast for model
-        :is_diff_thresh: (bool 1xn array) - where n indicates the number of
-            thresholds input by the user, e.g. "30,1;50,1" n=2
-            Indicates if the user-input thresholds apply to integral or
-            differential channels
+        :module: (string) idsep, opsep, download
+        :init_win: (int) initial window used to estimate background
             
         OUTPUTS:
         
@@ -84,9 +77,9 @@ def error_check_inputs(startdate, enddate, experiment, flux_type,
         sys.exit('End time before start time! Enter a valid date range. '
                 'Exiting.')
  
-    if subroutine == 'idsep':
+    if module == 'idsep':
         dt = enddate - startdate
-        if (dt.days < cfg.init_win):
+        if (dt.days < init_win):
             print(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
                 'is less than the '
                 f'length of the background subtraction window, init_win={cfg.init_win} days. '

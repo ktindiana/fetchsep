@@ -12,6 +12,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import copy
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -29,25 +30,14 @@ __email__ = "kathryn.whitman@nasa.gov"
 """
 
 
-def read_in_flux_files(experiment, flux_type, startdate, enddate, options, dointerp,
-        spacecraft="", user_file="", is_unixtime=False, use_absolute_datapath=False):
+def read_in_flux_files(params):
     """ Read in the appropriate data or user files. Trims to dates
         between start time and end time. Interpolates bad
         points with linear interpolation if dointerp True.
         
         INPUTS:
         
-        :experiment: (string)
-        :flux_type: (string) - integral, differential
-        :user_file: (string) - file containing user's flux time profiles
-        :model_name: (string) - model name or experiment if experiment = "user"
-        :startdate: (datetime) - start date of time period entered by user
-        :enddate: (datetime) - end date of time period entered by user
-        :options: (string array) - options that could be applied
-        :dointerp: (bool) - indicates if user DOES want to do linear
-            interpolation in time for negative of bad flux values
-        :is_unixtime: (bool) - flag to indicate that time in first column
-            of user file is in unixtime
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -63,31 +53,24 @@ def read_in_flux_files(experiment, flux_type, startdate, enddate, options, doint
     west_detector = []
 
     ##### Check if data is available and download
-    if experiment == "GOES":
-        filenames1, filenames2, filenames_orien, detector = datasets.check_data(startdate,
-                enddate, experiment, flux_type, user_file, spacecraft=spacecraft,
-                use_absolute_datapath=use_absolute_datapath)
+    if params.experiment == "GOES":
+        filenames1, filenames2, filenames_orien, detector = datasets.check_data(params)
     else:
-        filenames1, filenames2, filenames_orien = datasets.check_data(startdate,
-                enddate, experiment, flux_type, user_file, spacecraft=spacecraft,
-                use_absolute_datapath=use_absolute_datapath)
+        filenames1, filenames2, filenames_orien = datasets.check_data(params)
                             
     ###### Read in flux files
-    if experiment != "user":
+    if params.experiment != "user":
         #Combine integral channels for all GOES spacecraft together into
         #a long time series. Only works for integral channels, since
         #GOES differential channels differ across experiments.
-        if experiment == "GOES":
+        if params.experiment == "GOES":
             all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers = \
-                datasets.read_in_files(experiment, flux_type,
-                filenames1, filenames2, filenames_orien, options, detector,
-                spacecraft=spacecraft)
+                datasets.read_in_files(params, filenames1, filenames2, filenames_orien, detector)
         else:
             all_dates, all_fluxes, west_detector = \
-                datasets.read_in_files(experiment, flux_type, filenames1, filenames2,
-                filenames_orien, options, detector=detector, spacecraft=spacecraft)
+                datasets.read_in_files(params, filenames1, filenames2, filenames_orien, detector)
     
-    if experiment == "user":
+    if params.experiment == "user":
         all_dates, all_fluxes = datasets.read_in_user_files(filenames1, is_unixtime)
  
  
@@ -96,32 +79,32 @@ def read_in_flux_files(experiment, flux_type, startdate, enddate, options, doint
     
     #Define energy bins
     #ERNE energy bins depend on the time period of the experiment.
-    if experiment == "ERNE":
-        version = datasets.which_erne(startdate, enddate)
-        energy_bins, energy_bin_centers = datasets.define_energy_bins(version, flux_type,
-                                west_detector, options)
-    elif experiment != "GOES":
-        energy_bins, energy_bin_centers = datasets.define_energy_bins(experiment, flux_type,
-                                west_detector, options, spacecraft=spacecraft)
+    if params.experiment == "SOHO_ERNE":
+        version = datasets.which_erne(params.startdate, params.enddate)
+        params_cp = copy.deepcopy(params)
+        params_cp.experiment = version
+        energy_bins, energy_bin_centers = datasets.define_energy_bins(params_cp, west_detector)
+    elif params.experiment != "GOES":
+        energy_bins, energy_bin_centers = datasets.define_energy_bins(params, west_detector=west_detector)
 
 
     if energy_bins == None:
-        sys.exit("Could not identify energy bins for experiment " + experiment
-                + " and fluxtype " + flux_type)
+        sys.exit("Could not identify energy bins for experiment " + params.experiment
+                + " and fluxtype " + params.flux_type)
 
     all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins)
 
 
     #Extract the date range specified by the user
-    dates, fluxes = datasets.extract_date_range(startdate, enddate, all_dates, all_fluxes)
+    dates, fluxes = datasets.extract_date_range(params.startdate, params.enddate, all_dates, all_fluxes)
     
     #Interpolate bad data with linear interpolation in time or set to None
     print("read_in_flux_files: Checking for bad data.")
-    if dointerp:
+    if params.do_interpolation:
         print("Performing interpolation with time.")
     else:
         print("Setting bad values to NaN.")
-    fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins,dointerp)
+    fluxes = datasets.check_for_bad_data(dates,fluxes,energy_bins,params.do_interpolation)
     
         
     if len(dates) <= 1:
@@ -131,23 +114,31 @@ def read_in_flux_files(experiment, flux_type, startdate, enddate, options, doint
     return dates, fluxes, energy_bins, energy_bin_centers
 
 
+def load_parameters(str_startdate, str_enddate, experiment,
+    flux_type=None, spacecraft=None, user_name=None, user_file=None, is_unixtime=None,
+    directory_depth=None, options=None, dointerp=None,
+    showplot=None, saveplot=None, write_fluxes=None, use_absolute_datapath=None):
+    """ Create FetchSEP Parameters object """
+
+    #### SET UP EXPERIMENT VALUES #####
+    params = fsparam.Parameters('download', str_startdate, str_enddate, experiment)
+    params.set_values(flux_type=flux_type, spacecraft=spacecraft, user_name=user_name,
+        user_file=user_file, is_unixtime=is_unixtime, options=options, dointerp=dointerp,
+        showplot=showplot, saveplot=saveplot, directory_depth=directory_depth,
+        write_fluxes=write_fluxes, use_absolute_datapath=use_absolute_datapath)
+    
+    params.print_parameters()
+
+    return params
 
 
-def get_data(str_startdate, str_enddate, experiment,
-    flux_type=None,
-    exp_name='', user_file='', is_unixtime=False,
-    spacecraft='',
-    directory_depth=2,
-    module='download',
-    options='', dointerp=False,
-    showplot=False, saveplot=False,
-    write_fluxes=True,
-    dl_outpath='', dl_plotpath='',
+def get_data(params,
+    showplot=None,
+    saveplot=None,
     path_to_data=None,
     path_to_output=None,
     path_to_plots=None,
     path_to_lists=None,
-    use_absolute_datapath=False,
     format='dict'):
     """ Download data. Create an output file of all fluxes in the
         specified date range.
@@ -189,52 +180,20 @@ def get_data(str_startdate, str_enddate, experiment,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
     cfg.print_configured_values()
 
-    # Create directory names and prepare download directories
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-    subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
-
-    if dl_outpath == '':
-        dl_outpath = dirs.create_subdirectories(cfg.outpath, module=module,
-            subdir=subdir, directory_depth=directory_depth)
-    if dl_plotpath == '':
-        dl_plotpath = dirs.create_subdirectories(cfg.plotpath, module=module,
-            subdir=subdir, directory_depth=directory_depth)
-
-
-    #### SET UP EXPERIMENT VALUES #####
-    #If user specifies a spacecraft but isn't relevant to experiment,
-    #overrides and sets spacecraft to ''
-    spacecraft = expts.get_spacecraft(experiment, spacecraft)
-    if flux_type == '' or flux_type == None:
-        flux_type = expts.get_flux_type(experiment)
-
-    startdate = dh.str_to_datetime(str_startdate)
-    enddate = dh.str_to_datetime(str_enddate)
-    
-    if isinstance(options, str):
-        options = options.split(";")
-
-    error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
-    error_check.error_check_inputs(startdate, enddate, experiment, flux_type)
-
+    if showplot == None: showplot = params.showplot
+    if saveplot == None: saveplot = params.saveplot
 
     #READ IN FLUXES
-    dates, fluxes, energy_bins, energy_bin_centers = read_in_flux_files(experiment, flux_type,
-        startdate, enddate, options, dointerp, spacecraft=spacecraft, user_file=user_file,
-        is_unixtime=is_unixtime, use_absolute_datapath=use_absolute_datapath)
+    dates, fluxes, energy_bins, energy_bin_centers = read_in_flux_files(params)
  
  
-    if write_fluxes:
-        fluxes_filename = tools.write_fluxes(experiment, flux_type, exp_name, energy_bins, dates,
-            fluxes, module=module, subdir=subdir, modifier=modifier, savepath=dl_outpath,
-            suffix="original_fluxes")
+    if params.write_fluxes:
+        fluxes_filename = tools.write_fluxes(params, energy_bins, dates, fluxes, suffix="original_fluxes")
  
     if showplot or saveplot:
         unique_id = "FluxTimeSeries"
-        plt_tools.idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        dates, fluxes, energy_bins, showplot, saveplot, modifier=modifier, title_mod=title_mod,
-        savepath=dl_plotpath)
-        if showplot:
+        plt_tools.idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins)
+        if params.showplot:
             plt.show()
     
-    return dl_outpath, dl_plotpath, dates, fluxes, energy_bins, energy_bin_centers
+    return params.module_outpath, params.module_plotpath, dates, fluxes, energy_bins, energy_bin_centers

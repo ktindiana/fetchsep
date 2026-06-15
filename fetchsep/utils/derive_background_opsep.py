@@ -114,8 +114,7 @@ def remove_below(flux, val):
     return strip_flux
 
 
-def separate_sep_and_background(fluxes, means, sigmas,
-    nsigma=cfg.opsep_nsigma, doBGSub=True):
+def separate_sep_and_background(params, fluxes, means, sigmas, doBGSub=True):
     """ Take the input fluxes, separate them into arrays containing
         the background flux and SEP flux. Values above mean + Nsigma*sigma is
         considered SEP flux while values below are considered the background.
@@ -148,10 +147,10 @@ def separate_sep_and_background(fluxes, means, sigmas,
         bgflux = [-1]
         sepflux = [-1]
         for j in range(len(fluxes[i])):
-            if fluxes[i][j] <= means[i] + nsigma*sigmas[i]:
+            if fluxes[i][j] <= means[i] + params.opsep_nsigma*sigmas[i]:
                 bgflux.append(fluxes[i][j])
                 sepflux.append(0)
-            if fluxes[i][j] > means[i] + nsigma*sigmas[i]:
+            if fluxes[i][j] > means[i] + params.opsep_nsigma*sigmas[i]:
                 bgflux.append(0)
                 bgsubflux = fluxes[i][j] - means[i]
                 if bgsubflux < 0: bgsubflux = 0
@@ -179,8 +178,7 @@ def separate_sep_and_background(fluxes, means, sigmas,
     return bgfluxes, sepfluxes
 
 
-def separate_sep_and_background_idsep(fluxes, means, sigmas,
-    nsigma=cfg.opsep_nsigma, doBGSub=True):
+def separate_sep_and_background_idsep(params, fluxes, means, sigmas, doBGSub=True):
     """ Take the input fluxes, separate them into arrays containing
         the background flux and SEP flux. Values above mean + Nsigma*sigma is
         considered SEP flux while values below are considered the background.
@@ -219,10 +217,10 @@ def separate_sep_and_background_idsep(fluxes, means, sigmas,
             elif pd.isnull(means[i][j]): #idsep did not get a good background
                 bgflux.append(np.nan)
                 sepflux.append(np.nan)
-            elif fluxes[i][j] <= means[i][j] + nsigma*sigmas[i][j]:
+            elif fluxes[i][j] <= means[i][j] + params.opsep_nsigma*sigmas[i][j]:
                 bgflux.append(fluxes[i][j])
                 sepflux.append(0)
-            elif fluxes[i][j] > means[i][j] + nsigma*sigmas[i][j]:
+            elif fluxes[i][j] > means[i][j] + params.opsep_nsigma*sigmas[i][j]:
                 bgflux.append(0)
                 bgsubflux = fluxes[i][j] - means[i][j]
                 if bgsubflux < 0: bgsubflux = 0
@@ -272,8 +270,7 @@ def define_hist_bins(flux):
     #Create nbins bins in log space between min_val and max_val
     logmax = math.log10(max_val)
     logmin = math.log10(min_val)
-    log_bins = np.linspace(start=logmin, stop=logmax, num=nbins + 1,\
-                        endpoint=True)
+    log_bins = np.linspace(start=logmin, stop=logmax, num=nbins + 1, endpoint=True)
 
     for bin in log_bins:
         if not bins:
@@ -424,9 +421,7 @@ def iterate_background(fluxes, energy_bins):
 
 
 
-def derive_background(experiment, flux_type, options,
-    bgstartdate, bgenddate, dates, fluxes, energy_bins,
-    showplot, saveplot, nsigma=cfg.opsep_nsigma, doBGSub=False):
+def derive_background(params, dates, fluxes, energy_bins, doBGSub=False):
     """ Derive the background using fluxes in the time period between
         background start and end dates specified by the user. Derive the
         mean background value along with an expected level of variation (sigma)
@@ -445,14 +440,15 @@ def derive_background(experiment, flux_type, options,
         
         INPUTS:
         
+        :params: (FetchSEP Parameters object)
         :bgstartdate: (datetime) starting date of background time period
         :bgenddate: (datetime) ending date of background time period 
         :dates: (datetime 1xm array) 
         :fluxes: (numpy float nxm array) - fluxes for n energy channels and m
             time steps
         :energy_bins: (array nx2 for n thresholds)
-        :showplot: (bool) True to print plot to screen
-        :saveplot: (bool) True to save plot automatically
+        :doBGSub: (bool) allow user to set separately from overall selection for bgsub
+
         
         OUTPUTS:
         
@@ -468,16 +464,15 @@ def derive_background(experiment, flux_type, options,
 
     #Pull out the fluxes in the time period to be used for calculating
     #background
-    bg_dates, bg_fluxes = datasets.extract_date_range(bgstartdate, bgenddate, dates, fluxes)
-    print(f"Calculating background with data from {bgstartdate} to {bgenddate}.")
+    bg_dates, bg_fluxes = datasets.extract_date_range(params.bgstartdate, params.bgenddate, dates, fluxes)
+    print(f"Calculating background with data from {params.bgstartdate} to {params.bgenddate}.")
 
     means, sigmas = iterate_background(bg_fluxes, energy_bins)
-    bgfluxes, sepfluxes = separate_sep_and_background(fluxes, means, sigmas,
-                        doBGSub=doBGSub)
+    bgfluxes, sepfluxes = separate_sep_and_background(params, fluxes, means, sigmas, doBGSub=doBGSub)
                      
     print("=====BACKGROUND IDENTIFICATION=====")
     for k in range(len(means)):
-        print(f"Mean: {means[k]} +- {cfg.opsep_nsigma} * {sigmas[k]}")
+        print(f"Mean: {means[k]} +- {params.opsep_nsigma} * {sigmas[k]}")
     
     #To get into a consistent format as used in opsep.py
     bgfluxes = np.array(bgfluxes)

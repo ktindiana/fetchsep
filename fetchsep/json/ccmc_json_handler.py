@@ -403,41 +403,45 @@ def add_flare_trigger(template, json_type, flare_dict):
     return template
 
 
-def fill_json_header(json_type, issue_time, experiment,
-    flux_type, options, spase_id, user_name=None, json_mode='',
-    spacecraft=None):
-    """ Fill in top level header information in json """
+def fill_json_header(params, issue_time):
+    """ Fill in top level header information in json 
+    
+        INPUTS:
+        
+            :params: (FetchSEP Parameters object)
+            :issue_time: (datetime) time the prediction/observation was created
+    """
     
     zissue = dh.time_to_zulu(issue_time)
     
-    short_name = experiment
-    if user_name:
-        short_name = user_name
+    short_name = params.experiment
+    if params.experiment == 'user' and user_name != '' and user_name != None:
+        short_name = params.user_name
     
     #If mode not specified, guess
-    if not json_mode or json_mode == '':
-        if json_type == "observations":
-            json_mode = 'measurement'
+    if params.json_mode == None or params.json_mode == '':
+        if params.json_type == "observations":
+            params.json_mode = 'measurement'
         else:
-            json_mode = 'forecast'
+            params.json_mode = 'forecast'
 
     template = {}
-    if json_type == "observations":
+    if params.json_type == "observations":
         template = observation_json()
-    elif json_type == "model":
+    elif params.json_type == "model":
         template = forecast_json()
 
-    key, type_key, win_key, exp_key = set_keys(json_type)
+    key, type_key, win_key, exp_key = set_keys(params.json_type)
 
     template[key][exp_key]['short_name'] = short_name
-    if spacecraft and spacecraft != '':
-        template[key][keys.obs_exp]['short_name'] = f"{short_name} {spacecraft}"
-    template[key]['source_info']['native_flux_type'] = flux_type
-    if spase_id and spase_id != "":
-        template[key][exp_key]['spase_id'] = spase_id
-    template[key]['mode'] = json_mode
+    if params.spacecraft and params.spacecraft != '':
+        template[key][keys.obs_exp]['short_name'] = f"{short_name} {params.spacecraft}"
+    template[key]['source_info']['native_flux_type'] = params.flux_type
+    if params.spase_id and params.spase_id != "":
+        template[key][exp_key]['spase_id'] = params.spase_id
+    template[key]['mode'] = params.json_mode
 
-    template[key]['options'] = options
+    template[key]['options'] = params.options
     template[key]['issue_time'] = zissue
 
     return template

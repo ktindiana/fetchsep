@@ -360,23 +360,23 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins, savepath=''):
 
 
 def run_idsep(str_startdate, str_enddate, experiment,
-    flux_type=None, spacecraft="",
+    flux_type=None, spacecraft=None,
     exp_name=None, user_file=None,
-    directory_depth=1,
-    is_unixtime=False, options=None, dointerp=False,
-    remove_above=999999, for_inclusive=False,
-    plot_timeseries_only=False,
-    showplot=False, saveplot=False,
-    write_fluxes=True,
-    path_to_data=None,
-    path_to_output=None,
-    path_to_plots=None,
-    path_to_lists=None,
+    directory_depth=None,
+    is_unixtime=None, options=None, dointerp=None,
+    remove_above=None, for_inclusive=None,
     kurtosis_cut=None,
     idsep_nsigma=None,
     init_win=None,
     sliding_win=None,
-    percent_points=None):
+    percent_points=None,
+    plot_timeseries_only=None,
+    showplot=None, saveplot=None,
+    write_fluxes=None,
+    path_to_data=None,
+    path_to_output=None,
+    path_to_plots=None,
+    path_to_lists=None):
     """ Run all the steps to do background and SEP separation.
     
         INPUTS:
@@ -440,30 +440,30 @@ def run_idsep(str_startdate, str_enddate, experiment,
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
-    cfg.configure_idsep(kurtosis_cut=kurtosis_cut, idsep_nsigma=idsep_nsigma,
-        init_win=init_win, sliding_win=sliding_win, percent_points=percent_points)
+#    cfg.configure_idsep(kurtosis_cut=kurtosis_cut, idsep_nsigma=idsep_nsigma,
+#        init_win=init_win, sliding_win=sliding_win, percent_points=percent_points)
     cfg.print_configured_values()
 
 
     #### SET UP EXPERIMENT VALUES #####
     #If user specifies a spacecraft but isn't relevant to experiment,
     #overrides and sets spacecraft to ''
-    spacecraft = expts.get_spacecraft(experiment, spacecraft)
+#    spacecraft = expts.get_spacecraft(experiment, spacecraft)
 
     #Check for empty dates
-    if (str_startdate == "" or str_enddate == ""):
-        sys.exit('You must enter start and end dates. Exiting.')
+#    if (str_startdate == "" or str_enddate == ""):
+#        sys.exit('You must enter start and end dates. Exiting.')
 
-    if experiment != 'user':
-        exp_info = expts.experiment_info(experiment)
+#    if experiment != 'user':
+#        exp_info = expts.experiment_info(experiment)
 
     #################
 
-    startdate = dh.str_to_datetime(str_startdate)
-    enddate = dh.str_to_datetime(str_enddate)
+#    startdate = dh.str_to_datetime(str_startdate)
+#    enddate = dh.str_to_datetime(str_enddate)
     eff_startdate = startdate
     
-    options = options.split(";")
+#    options = options.split(";")
     #If the user entered a date range shorter than required for the
     #initial window used to identify the background, extend the date range
     #Note that the user should consider adding up to two months prior to the dates
@@ -476,16 +476,16 @@ def run_idsep(str_startdate, str_enddate, experiment,
             eff_startdate = enddate - datetime.timedelta(days=cfg.init_win*2)
         
     
-    error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
-    error_check.error_check_inputs(startdate, enddate, experiment, flux_type, subroutine='idsep')
-
-    # Create directory names and prepare directories
-    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-    subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
-    id_outpath = dirs.create_subdirectories(cfg.outpath, module='idsep',
-        subdir=subdir, directory_depth=directory_depth)
-    id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
-        subdir=subdir, directory_depth=directory_depth)
+#    error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
+#    error_check.error_check_inputs(startdate, enddate, experiment, flux_type, subroutine='idsep')
+#
+#    # Create directory names and prepare directories
+#    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+#    subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
+#    id_outpath = dirs.create_subdirectories(cfg.outpath, module='idsep',
+#        subdir=subdir, directory_depth=directory_depth)
+#    id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
+#        subdir=subdir, directory_depth=directory_depth)
 
 
     #READ IN FLUXES

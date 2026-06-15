@@ -63,8 +63,7 @@ def sort_bin_order(all_fluxes, energy_bins, energy_bin_centers=[]):
 
 
 
-def write_fluxes(experiment, flux_type, exp_name, energy_bins, dates, fluxes,
-    module='', subdir='', modifier='', savepath='', suffix=''):
+def write_fluxes(params, energy_bins, dates, fluxes, suffix=''):
     """ Write dates, fluxes to a standard format csv file with datetime in the 
         first column and fluxes in the remaining column. The energy bins will 
         be indicated in the file comments.
@@ -88,19 +87,19 @@ def write_fluxes(experiment, flux_type, exp_name, energy_bins, dates, fluxes,
     name = ''
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
-    if module == 'idsep' or module == 'download':
-        name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
-        fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
-        fname = os.path.join(savepath, fname)
-    elif module == 'opsep':
+    if params.module == 'opsep':
         #name like the json schema
         tzulu = dh.time_to_zulu(dates[0])
         tzulu = tzulu.replace(":","")
-        fname = f"{subdir}.{tzulu}.csv"
+        fname = f"{params.module_subdir}.{tzulu}.csv"
         if suffix != '':
-            fname = f"{subdir}.{tzulu}_{suffix}.csv"
-        fname = os.path.join(savepath, fname)
-        
+            fname = f"{params.module_subdir}.{tzulu}_{suffix}.csv"
+        fname = os.path.join(params.module_outpath, fname)
+    else:
+        name = params.idsep_subdir
+        fname = (f"fluxes_{name}_{stdate}_{enddate}.csv")
+        fname = os.path.join(params.module_outpath, fname)
+
     keys = []
     for bin in energy_bins:
         keys.append(names.energy_bin_key(bin))

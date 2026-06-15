@@ -12,7 +12,7 @@ def valid_experiments():
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
         'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES-RT', 'GOES-SWPC',
         'SEPEM', 'SEPEMv3', 'SOHO_EPHIN', 'EPHIN_REleASE','SOHO_ERNE', 'CalGOES',
-        'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME']
+        'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP-8_CPME']
         
     valid_nm = valid_neutron_monitors()
     valid_experiments = valid_experiments + valid_nm
@@ -1100,7 +1100,7 @@ def experiment_info(experiment):
             },
 
 
-            'IMP8_CPME':{
+            'IMP-8_CPME':{
                 'first_date': datetime.datetime(1974,2,17),#1974-02-17
                 'last_date': datetime.datetime(2001,11,7), #2001-11-07
                 'flux_type': ['differential'],

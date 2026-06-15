@@ -30,6 +30,7 @@ import subprocess
 import gzip
 import shutil
 import json
+import copy
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -126,7 +127,7 @@ def check_completeness(experiment, flux_type, filename, df=pd.DataFrame):
             "have the most up-to-date data.")
         return True
         
-    if experiment == 'IMP8_CPME':
+    if experiment == 'IMP-8_CPME':
         print(f"file_completeness: {experiment} uses variable time periods and cannot "
             "be checked for completeness. Double check data files to ensure you "
             "have the most up-to-date data.")
@@ -196,9 +197,9 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
                         'resolution': datetime.timedelta(minutes=5)},
                 'GOES-RT': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
-                'EPHIN': {'cadence': 'year',
+                'SOHO_EPHIN': {'cadence': 'year',
                         'resolution': datetime.timedelta(minutes=5)},
-                'ERNE': {'cadence': 'variable',
+                'SOHO_ERNE': {'cadence': 'variable',
                         'resolution': datetime.timedelta(minutes=1)},
                 'STEREO HET': {'cadence': 'month',
                         'resolution': datetime.timedelta(minutes=1)},
@@ -208,7 +209,7 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
                         'resolution': datetime.timedelta(minutes=5)},
                 'ACE_EPAM_electrons': {'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=5)},
-                'IMP8_CPME': {'cadence': 'variable',
+                'IMP-8_CPME': {'cadence': 'variable',
                         'resolution': datetime.timedelta(seconds=330)},
                 'NeutronMonitor':{'cadence': 'day',
                         'resolution': datetime.timedelta(minutes=1)},
@@ -346,17 +347,13 @@ def make_yearly_files(filename):
     return
 
 
-def check_sepem_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_sepem_data(params):
     """Check if SEPEM data is present on the computer. Break into yearly
         files if needed. Return SEPEM filenames for analysis.
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "differential"
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -364,24 +361,24 @@ def check_sepem_data(startdate, enddate, experiment, flux_type,
             data that span the desired time range (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     filenames1 = []  #SEPEM, eps, or epead
 
     year = styear
 
-    if experiment == 'SEPEM':
+    if params.experiment == 'SEPEM':
         basenm = 'SEPEM_H_reference'
 
-    if experiment == 'SEPEMv3':
+    if params.experiment == 'SEPEMv3':
         basenm = 'SEPEM_RDS_v3_H'
 
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     while (year <= endyear):
@@ -414,17 +411,13 @@ def check_sepem_data(startdate, enddate, experiment, flux_type,
     return filenames1
     
     
-def check_calgoes_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_calgoes_data(params):
     """Check if SRAG1.2 (CalGOES) data is present on the computer. Break into yearly
         files if needed. Return SRAG filenames for analysis.
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "differential"
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -432,21 +425,21 @@ def check_calgoes_data(startdate, enddate, experiment, flux_type,
             data that span the desired time range (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     filenames1 = []  #SEPEM, eps, or epead
 
     year = styear
 
-    if experiment == 'CalGOES':
+    if params.experiment == 'CalGOES':
         basenm = 'srag12'
 
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     while (year <= endyear):
@@ -464,17 +457,13 @@ def check_calgoes_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_old_goes_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_old_goes_data(params):
     """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -485,12 +474,12 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type,
         
     """
     
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
     
     date = pd.NaT
 
@@ -519,25 +508,25 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type,
     NFILES = len(get_months)  #number of data files to download
 
     #Set correct file prefix for data files
-    if experiment == "GOES-05": #No HEPAD
+    if params.experiment == "GOES-05": #No HEPAD
         prefix1 = 'g05_eps_5m_3s_'
         prefix2 = '' #No GOES-05 HEPAD data appears to be available
         satellite = 'goes05'
 
-    if experiment == "GOES-06":
+    if params.experiment == "GOES-06":
         prefix1 = 'g06_eps_5m_'
         prefix2 = 'g06_hepad_5m_'
         satellite = 'goes06'
     
-    if experiment == "GOES-07": #No HEPAD
+    if params.experiment == "GOES-07": #No HEPAD
         prefix1 = 'g07_eps_5m_'
         prefix2 = '' #No GOES-07 HEPAD data appears to be available
         satellite = 'goes07'
 
-    dir1 = dirs.get_directory(experiment+'_EPS', use_absolute_datapath=use_absolute_datapath)
+    dir1 = dirs.get_directory(params.experiment+'_EPS', use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir1)
 
-    dir2 = dirs.get_directory(experiment+'_HEPAD', use_absolute_datapath=use_absolute_datapath)
+    dir2 = dirs.get_directory(params.experiment+'_HEPAD', use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir2)
 
     #for every month that data is required, check if file is present or
@@ -547,15 +536,14 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type,
         month = get_months[i]
         last_day = calendar.monthrange(year,month)[1]
         date = datetime.datetime(year=year,month=month, day=1)
-        date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,
-                        last_day)
+        date_suffix = '%i%02i01_%i%02i%02i' % (year,month,year,month,last_day)
         fname1 = prefix1 + date_suffix + '.csv'
         fullpath1 = os.path.join(dir1, fname1)
         exists1 = os.path.isfile(fullpath1)
 
         complete = None
         if exists1:
-            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, fullpath1, df=df)
         
         if not exists1 or not complete: #download file if not found on your computer
             url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
@@ -580,7 +568,6 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type,
                 fname1 = None
 
 
-
         fname2 = None
         if prefix2 != '':
             fname2 = prefix2 + date_suffix + '.csv'
@@ -589,7 +576,7 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type,
 
             complete = None
             if exists2:
-                complete = check_completeness(experiment, flux_type, fullpath2, df=df)
+                complete = check_completeness(params.experiment, params.flux_type, fullpath2, df=df)
 
             if not exists2 or not complete: #download file if not found on your computer
                 url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
@@ -625,17 +612,13 @@ def check_old_goes_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_goes_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_goes_data(params):
     """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -673,12 +656,12 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
     g14_bad = []
     g15_bad = []
     
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     df = read_data_manager() #file completeness record
 
@@ -693,7 +676,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date < enddate):
+    while (test_date < params.enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -705,70 +688,70 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
     NFILES = len(get_months)  #number of data files to download
 
     #Set correct file prefix for data files
-    if experiment == "GOES-08":
+    if params.experiment == "GOES-08":
         prefix1 = 'g08_eps_5m_'
-        name_for_dir1 = experiment + '_EPS'
+        name_for_dir1 = params.experiment + '_EPS'
         prefix2 = 'g08_hepad_5m_'
         satellite = 'goes08'
 
-    if experiment == "GOES-09":
+    if params.experiment == "GOES-09":
         prefix1 = 'g09_eps_5m_'
-        name_for_dir1 = experiment + '_EPS'
+        name_for_dir1 = params.experiment + '_EPS'
         prefix2 = 'g09_hepad_5m_'
         satellite = 'goes09'
 
-    if experiment == "GOES-10":
+    if params.experiment == "GOES-10":
         prefix1 = 'g10_eps_5m_'
-        name_for_dir1 = experiment + '_EPS'
+        name_for_dir1 = params.experiment + '_EPS'
         prefix2 = 'g10_hepad_5m_'
         satellite = 'goes10'
 
-    if experiment == "GOES-11":
+    if params.experiment == "GOES-11":
         prefix1 = 'g11_eps_5m_'
-        name_for_dir1 = experiment + '_EPS'
+        name_for_dir1 = params.experiment + '_EPS'
         prefix2 = 'g11_hepad_5m_'
         satellite = 'goes11'
 
-    if experiment == "GOES-12":
+    if params.experiment == "GOES-12":
         prefix1 = 'g12_eps_5m_'
-        name_for_dir1 = experiment + '_EPS'
+        name_for_dir1 = params.experiment + '_EPS'
         prefix2 = 'g12_hepad_5m_'
         satellite = 'goes12'
 
-    if experiment == "GOES-13":
+    if params.experiment == "GOES-13":
         prefix2 = 'g13_hepad_ap_5m_'
         prefix_orien = 'g13_epead_orientation_flag_1m_'
-        name_for_dir1 = experiment + '_EPEAD'
+        name_for_dir1 = params.experiment + '_EPEAD'
         satellite = 'goes13'
-        if flux_type == "differential":
+        if params.flux_type == "differential":
             prefix1 = 'g13_epead_p17ew_5m_'
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             prefix1 = 'g13_epead_cpflux_5m_'
 
-    if experiment == "GOES-14":
+    if params.experiment == "GOES-14":
         prefix2 = 'g14_hepad_ap_5m_'
         prefix_orien = 'g14_epead_orientation_flag_1m_'
-        name_for_dir1 = experiment + '_EPEAD'
+        name_for_dir1 = params.experiment + '_EPEAD'
         satellite = 'goes14'
-        if flux_type == "differential":
+        if params.flux_type == "differential":
             prefix1 = 'g14_epead_p17ew_5m_'
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             prefix1 = 'g14_epead_cpflux_5m_'
 
-    if experiment == "GOES-15":
+    if params.experiment == "GOES-15":
         prefix2 = 'g15_hepad_ap_5m_'
         prefix_orien = 'g15_epead_orientation_flag_1m_'
-        name_for_dir1 = experiment + '_EPEAD'
+        name_for_dir1 = params.experiment + '_EPEAD'
         satellite = 'goes15'
-        if flux_type == "differential":
+        if params.flux_type == "differential":
             prefix1 = 'g15_epead_p17ew_5m_'
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             prefix1 = 'g15_epead_cpflux_5m_'
 
-    dir1 = dirs.get_directory(name_for_dir1, use_absolute_datapath=use_absolute_datapath)
+    dir1 = dirs.get_directory(name_for_dir1, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir1)
 
-    dir2 = dirs.get_directory(experiment+'_HEPAD', use_absolute_datapath=use_absolute_datapath)
+    dir2 = dirs.get_directory(params.experiment+'_HEPAD', use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir2)
 
     #for every month that data is required, check if file is present or
@@ -785,8 +768,8 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
         fname2 = prefix2 + date_suffix + '.csv'
         fullpath2 = os.path.join(dir2, fname2)
         exists2 = os.path.isfile(fullpath2)
-        if (experiment == "GOES-13" or experiment == "GOES-14"
-            or experiment == "GOES-15"):
+        if (params.experiment == "GOES-13" or params.experiment == "GOES-14"
+            or params.experiment == "GOES-15"):
             fname_orien = prefix_orien + date_suffix + '_v1.0.0.csv'
             fullpath_orien = os.path.join(dir1, fname_orien)
             exists_orien = os.path.isfile(fullpath_orien)
@@ -799,7 +782,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
 
         complete = None
         if exists1:
-            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, fullpath1, df=df)
         
         if not exists1 or not complete: #download file if not found on your computer
             url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
@@ -824,7 +807,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
 
         complete = None
         if exists2:
-            complete = check_completeness(experiment, flux_type, fullpath2, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, fullpath2, df=df)
 
         if not exists2 or not complete: #download file if not found on your computer
             url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
@@ -847,8 +830,8 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
                 print(f"Cannot access file at {url} because {e}. Skipping.")
                 fname2 = None
 
-        if (experiment == "GOES-13" or experiment == "GOES-14"
-            or experiment == "GOES-15"):
+        if (params.experiment == "GOES-13" or params.experiment == "GOES-14"
+            or params.experiment == "GOES-15"):
             if not exists_orien or not complete: #download file if not found on your computer
                 url = ('https://www.ncei.noaa.gov/data/goes-space-environment-monitor/access/avg/' +
                    '%i/%02i/%s/csv/%s' % (year,month,satellite,fname_orien))
@@ -878,8 +861,8 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
             filenames2.append(None)
         else:
             filenames2.append(fullpath2)
-        if (experiment == "GOES-13" or experiment == "GOES-14"
-            or experiment == "GOES-15"):
+        if (params.experiment == "GOES-13" or params.experiment == "GOES-14"
+            or params.experiment == "GOES-15"):
             if fname_orien == None:
                 filenames_orien.append(None)
             else:
@@ -890,8 +873,7 @@ def check_goes_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_goesR_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_goesR_data(params):
     """Check that GOES data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         GOES files are saved daily in cdf format.
@@ -901,10 +883,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type,
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -918,19 +897,19 @@ def check_goesR_data(startdate, enddate, experiment, flux_type,
             EPEAD detector (so can choose westward facing detector)
         
     """
-    if flux_type == "integral":
+    if params.flux_type == "integral":
         sys.exit("check_goesR_data: This subroutine is only valid for GOES-R+ "
                 "differential fluxes. Please set the flux_type to differential "
                 "and try again.")
  
     g16_last_date = datetime.datetime(2025,4,6) #there is a file on the 7th, but has a problem
  
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     df = read_data_manager() #file completeness record
 
@@ -939,10 +918,11 @@ def check_goesR_data(startdate, enddate, experiment, flux_type,
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
-    dir = dirs.get_directory('GOES')
+    dir = dirs.get_directory(params.experiment+'_SGPS',
+            use_absolute_datapath=params.use_absolute_datapath)
 
     #SPECIAL FILE FOR 2017-09-10 SEP EVENTS
-    if experiment == "GOES-16" and styear == 2017:
+    if params.experiment == "GOES-16" and styear == 2017:
         fname1 = 'se_sgps-l2-avg5m_g16_s20172440000000_e20172732355000_v2_0_0.nc'
         fullpath1 = os.path.join(dir,fname1)
         exists1 = os.path.isfile(fullpath1)
@@ -962,39 +942,39 @@ def check_goesR_data(startdate, enddate, experiment, flux_type,
 
         print("check_goesR_data: Special file containing 2017-09-10 data is {fname1}")
         filenames1.append(os.path.join(dir,fname1))
-        return filenames1, filenames2, filenames_orien, startdate
+        return filenames1, filenames2, filenames_orien, params.startdate
     
     
     #GOES-R data is stored in daily data files
-    td = enddate - startdate
+    td = params.enddate - params.startdate
     NFILES = td.days #number of data files to download
     if td.seconds > 0: NFILES = NFILES + 1
 
-    if experiment == "GOES-16":
+    if params.experiment == "GOES-16":
         prefix = 'sci_sgps-l2-avg5m_g16_' #'sci_sgps-l2-avg1m_g16_'
         satellite = 'goes16'
 
-    if experiment == "GOES-17":
+    if params.experiment == "GOES-17":
         prefix = 'sci_sgps-l2-avg5m_g17_' #'sci_sgps-l2-avg1m_g17_'
         satellite = 'goes17'
         
-    if experiment == "GOES-18": #2022-09-13 forward
+    if params.experiment == "GOES-18": #2022-09-13 forward
         prefix = 'sci_sgps-l2-avg5m_g18_' #'sci_sgps-l2-avg1m_g18_'
         satellite = 'goes18'
 
-    if experiment == "GOES-19": #2022-09-13 forward
+    if params.experiment == "GOES-19": #2022-09-13 forward
         prefix = 'sci_sgps-l2-avg5m_g19_' #'sci_sgps-l2-avg1m_g19_'
         satellite = 'goes19'
 
 
-    dir = dirs.get_directory(experiment+'_SGPS', use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment+'_SGPS', use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
 
     #for every day that data is required, check if file is present or
     #needs to be downloaded.
     for i in range(NFILES):
-        date = startdate + datetime.timedelta(days=i)
+        date = params.startdate + datetime.timedelta(days=i)
         year = date.year
         month = date.month
         day = date.day
@@ -1011,7 +991,7 @@ def check_goesR_data(startdate, enddate, experiment, flux_type,
             exists = os.path.isfile(fullpath)
             if exists:
                 #Check if the file is listed as complete
-                complete = check_completeness(experiment, flux_type, fullpath, df=df)
+                complete = check_completeness(params.experiment, params.flux_type, fullpath, df=df)
                 if complete: foundfile = fname_data
             
         #Try versions
@@ -1076,8 +1056,7 @@ def rerequest(url, tries=0):
         return rerequest(url, tries + 1)
 
 
-def check_goes_RTdata(startdate, enddate, experiment, flux_type,
-    spacecraft="primary", use_absolute_datapath=False):
+def check_goes_RTdata(params):
     """Check that GOES Real Time data is on your computer or download it from the NOAA
         website. Return the filenames associated with the correct GOES data.
         GOES real time integral files are saved daily in txt format.
@@ -1100,11 +1079,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
-        :spacecraft: 9string) 
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -1118,24 +1093,25 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
             EPEAD detector (so can choose westward facing detector)
         
     """
-    if flux_type == "differential":
+    if params.flux_type == "differential":
         sys.exit("check_goes_RTdata: This subroutine is only valid for GOES real time "
-                "integral fluxes. Please set the FluxType (flux_type) to integral and try "
-                "again.")
+                "integral fluxes. Please set the FluxType (flux_type) to integral and "
+                "try again.")
 
-    if spacecraft != "primary" and spacecraft != "secondary":
+    if params.spacecraft != "primary" and params.spacecraft != "secondary":
         sys.exit(f"check_goes_RTdata: spacecraft must be primary or secondary. You specified {spacecraft}. Please correct and try again.")
 
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
     
+    enddate = params.enddate
     #If the end date extends partially into the last day
-    if enddate > datetime.datetime(enddate.year, enddate.month, enddate.day):
-        enddate = enddate + datetime.timedelta(hours=24)
+    if params.enddate > datetime.datetime(endyear, endmonth, endday):
+        enddate = params.enddate + datetime.timedelta(hours=24)
         endyear = enddate.year
         endmonth = enddate.month
         endday = enddate.day
@@ -1147,11 +1123,11 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     filenames2 = []  #place holder
     filenames_orien = []  #place holder
 
-    dir = dirs.get_directory(experiment+'_SGPS', use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     #Choose to download daily data files
-    td = enddate - startdate
+    td = params.enddate - params.startdate
     NFILES = td.days #number of data files to download
     if td.seconds > 0: NFILES = NFILES + 1
 
@@ -1162,9 +1138,9 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
 
     #for every day that data is required, check if file is present or
     #needs to be downloaded.
-    date = startdate
+    date = params.startdate
     for i in range(NFILES):
-        date = startdate + datetime.timedelta(days=i)
+        date = params.startdate + datetime.timedelta(days=i)
         date2 = date + datetime.timedelta(days=1)
         year = date.year
         month = date.month
@@ -1173,14 +1149,14 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
  
         #Previously pulled a txt file archived by CCMC, but no longer
         #available, do using their HAPI API to query iSWA.
-        fname1 = date_suffix + prefix + '_' + spacecraft + '.csv'
+        fname1 = date_suffix + prefix + '_' + params.spacecraft + '.csv'
         fullpath1 = os.path.join(dir, fname1)
         exists1 = os.path.isfile(fullpath1)
         
         complete = False
         if exists1:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, fullpath1, df=df)
 
         if not exists1 or not complete:
             #https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=2023-05-23T00:00:00.0Z&time.max=2023-05-24T00:00:00.0Z&format=csv
@@ -1188,9 +1164,9 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
             #data isn't present yet. This can cause idsep or opsep to think the data is
             #already present on the computer and leave it as an empty file.
 
-            if spacecraft == "primary":
+            if params.spacecraft == "primary":
                 url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goesp_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
-            elif spacecraft == "secondary":
+            elif params.spacecraft == "secondary":
                 url=('https://iswa.gsfc.nasa.gov/IswaSystemWebApp/hapi/data?id=goess_part_flux_P5M&time.min=%i-%02i-%02iT00:00:00.0Z&time.max=%i-%02i-%02iT00:00:00.0Z&format=csv' % (year,month,day,date2.year,date2.month,date2.day))
             
             print("Trying to download url: " + url)
@@ -1213,7 +1189,7 @@ def check_goes_RTdata(startdate, enddate, experiment, flux_type,
     return filenames1, filenames2, filenames_orien, date
 
 
-def check_goes_swpc_data(flux_type, spacecraft, use_absolute_datapath=False):
+def check_goes_swpc_data(params):
     """ Download the NOAA SWPC most recent 7-day json of differential protons. 
         User has no control of time periods. Will grab the current file at 
         the time of running.
@@ -1222,7 +1198,7 @@ def check_goes_swpc_data(flux_type, spacecraft, use_absolute_datapath=False):
 
     url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (spacecraft,flux_type))
 
-    dir = dirs.get_directory('GOES-SWPC', use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
@@ -1244,7 +1220,7 @@ def check_goes_swpc_data(flux_type, spacecraft, use_absolute_datapath=False):
 
 
 
-def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spacecraft="primary"):
+def check_preferential_goes_data(params):
     """ If the user specifies only "GOES" for the experiment, then
         read in any of the GOES experiments and string them together.
         This will allow the creation of a long flux timeseries
@@ -1274,16 +1250,16 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     #integral fluxes (as of June 2025).
     
     goes = []
-    if flux_type == "integral":
-        if startdate >= datetime.datetime(year=2020,month=3,day=8):
+    if params.flux_type == "integral":
+        if params.startdate >= datetime.datetime(year=2020,month=3,day=8):
             goes = ["GOES-RT"]
         else:
             goes = ["GOES-13","GOES-15","GOES-11", "GOES-14",
                     "GOES-09", "GOES-08", "GOES-07", "GOES-06",
                     "GOES-05"]
 
-    if flux_type == "differential":
-        if startdate >= datetime.datetime(year=2020,month=3,day=8):
+    if params.flux_type == "differential":
+        if params.startdate >= datetime.datetime(year=2020,month=3,day=8):
             goes = ["GOES-16","GOES-18", "GOES-19", "GOES-17"]
                 
         else:
@@ -1297,17 +1273,17 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     filenames_orien_all = []
     detector = []
     
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     #Write dates and experiment used for those dates
     #This is meant to allow the user to know which
     #spacecraft is available for which time period
-    outfname = os.path.join(cfg.outpath, "goes_experiments_dates.txt")
+    outfname = os.path.join(params.module_outpath, "goes_experiments_dates.txt")
     outfile = open(outfname,'w')
     
     
@@ -1318,7 +1294,7 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date < enddate):
+    while (test_date < params.enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -1342,28 +1318,28 @@ def check_preferential_goes_data(startdate, enddate, experiment, flux_type, spac
         enddt = datetime.datetime(year=year,month=month, day=last_day)
         print(f"======Date: {stdate} to {enddt}")
         
+        params_cp = copy.deepcopy(params)
         for i in range(len(goes)):
-            print(f"Testing {goes[i]}")
-            
+            print(f"Checking {goes[i]} for desired date range.")
             filenames1 = []
             filenames2 = []
             filenames_orien = []
-
+            params_cp.experiment=goes[i]
             if goes[i] in old_goes_sc:
                 filenames1, filenames2 = \
-                     check_old_goes_data(stdate, enddt, goes[i], flux_type)
+                     check_old_goes_data(params_cp)
 
             if goes[i] in goes_sc:
                 filenames1, filenames2, filenames_orien, date = \
-                     check_goes_data(stdate, enddt, goes[i], flux_type)
+                     check_goes_data(params_cp)
                                      
-            if goes[i]=="GOES-RT" and flux_type == "integral":
+            if goes[i]=="GOES-RT" and params.flux_type == "integral":
                 filenames1, filenames2, filenames_orien, date = \
-                 check_goes_RTdata(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
+                 check_goes_RTdata(params_cp)
                  
-            if goes[i] in goes_R and flux_type == "differential":
+            if goes[i] in goes_R and params.flux_type == "differential":
                 filenames1, filenames2, filenames_orien, date = \
-                     check_goesR_data(stdate, enddt, goes[i], flux_type, spacecraft=spacecraft)
+                     check_goesR_data(params_cp)
 
 
             if filenames1 != [] and filenames1 != None:
@@ -1452,7 +1428,7 @@ def identify_which_goes_spacecraft(startdate, enddate, spacecraft="primary"):
 
 
 
-def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="primary"):
+def check_all_goes_data(params):
     """ If the user specifies only "GOES" for the experiment, then
         read in the primary/seconday GOES experiments and string them together.
         This will allow the creation of a long flux timeseries
@@ -1470,8 +1446,8 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
     """
     #Identify the primary or secondary GOES spacecraft during the time
     #period of interest
-    starttimes, endtimes, goes = identify_which_goes_spacecraft(startdate,
-            enddate, spacecraft=spacecraft)
+    starttimes, endtimes, goes = identify_which_goes_spacecraft(params.startdate,
+            params.enddate, spacecraft=params.spacecraft)
 
     filenames1_all = []
     filenames2_all = []
@@ -1481,41 +1457,44 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
     #Write dates and experiment used for those dates
     #This is meant to allow the user to know which
     #spacecraft is available for which time period
-    outfname = os.path.join(cfg.outpath, "goes_experiments_dates.txt")
+    outfname = os.path.join(params.module_outpath, "goes_experiments_dates.txt")
     outfile = open(outfname,'w')
 
     #Check for and download (if needed) the data for the primary/secondary
     #spacecraft on a monthly basis.
-    for startdate, enddate, goes_i in zip(starttimes, endtimes, goes):
+    params_cp = copy.deepcopy(params)
+    for startdt, enddt, goes_i in zip(starttimes, endtimes, goes):
         filenames1 = []
         filenames2 = []
         filenames_orien = []
         
-        styear = startdate.year
-        stmonth = startdate.month
-        stday = startdate.day
-        endyear = enddate.year
-        endmonth = enddate.month
-        endday = enddate.day
+        styear = startdt.year
+        stmonth = startdt.month
+        stday = startdt.day
+        endyear = enddt.year
+        endmonth = enddt.month
+        endday = enddt.day
         
-        print(f"======Date: {startdate} to {enddate}")
-
+        print(f"======Date: {startdt} to {enddt}")
+        params_cp.experiment = goes_i
+        
         if goes_i in old_goes_sc:
             filenames1, filenames2, date = \
-                 check_old_goes_data(startdate, enddate, goes_i, flux_type)
+                 check_old_goes_data(params_cp)
 
         if goes_i in goes_sc:
             filenames1, filenames2, filenames_orien, date = \
-                 check_goes_data(startdate, enddate, goes_i, flux_type)
+                 check_goes_data(params_cp)
 
-        if (goes_i in goes_R) and flux_type == "differential":
+        if (goes_i in goes_R) and params.flux_type == "differential":
             filenames1, filenames2, filenames_orien, date = \
-             check_goesR_data(startdate, enddate, goes_i, flux_type, spacecraft=spacecraft)
+             check_goesR_data(params_cp)
 
-        if (goes_i=="GOES-RT" or goes_i in goes_R) and flux_type == "integral":
-            filenames1, filenames2, filenames_orien, date = check_goes_RTdata(startdate,
-                enddate, goes_i, flux_type, spacecraft=spacecraft)
+        if (goes_i=="GOES-RT" or goes_i in goes_R) and params.flux_type == "integral":
             goes_i = "GOES-RT"
+            params_cp.experiment = goes_i
+            filenames1, filenames2, filenames_orien, date = check_goes_RTdata(params_cp)
+
 
         if len(filenames1) != 0 and filenames1 != None:
             filenames1_all.extend(filenames1)
@@ -1561,8 +1540,7 @@ def check_all_goes_data(startdate, enddate, experiment, flux_type, spacecraft="p
 
     
 
-def check_ephin_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_ephin_data(params):
     """Check for SOHO/COSTEP/EPHIN data on your computer. If not there,
         download from http://ulysses.physik.uni-kiel.de/costep/level3/l3i/
         5 minute data will be downloaded. Intensities are in units of
@@ -1584,18 +1562,18 @@ def check_ephin_data(startdate, enddate, experiment, flux_type,
             (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     df = read_data_manager() #file completeness record
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     Nyr = endyear - styear + 1
@@ -1609,7 +1587,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type,
         complete = False
         if exists:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, svfile, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, svfile, df=df)
         
         if not exists or not complete: #download file if not found on your computer
             url = ('http://ulysses.physik.uni-kiel.de/costep/level3/l3i/%s/%s'
@@ -1640,8 +1618,7 @@ def check_ephin_data(startdate, enddate, experiment, flux_type,
     return filenames1
 
 
-def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_ephin_hesperia_data(params):
     """Check for SOHO/COSTEP/EPHIN data on your computer provided by the
         HESPERIA collaboration on the website
         https://www.hesperia.astro.noa.gr/index.php/results/real-time-prediction-tools/data-retrieval-tool
@@ -1670,16 +1647,16 @@ def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type,
             time range (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     Nyr = endyear - styear + 1
@@ -1697,8 +1674,7 @@ def check_ephin_hesperia_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_ephin_release_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath):
+def check_ephin_release_data(params):
     """Check for SOHO/COSTEP/EPHIN data on your computer provided by 
         https://zenodo.org/records/14191918. 
         Yearly files of this data set are provided from 1995 to 2016. 
@@ -1763,36 +1739,39 @@ def check_ephin_release_data(startdate, enddate, experiment, flux_type,
             time range (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, EPHIN, eps, or epead
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
     
     Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = str(year) + '.asc'
 
-        exists = os.path.isfile(os.path.join(dir, fname))
+        fullpath = os.path.join(dir, fname)
+        exists = os.path.isfile(fullpath)
         if not exists: #download file if not found on your computer
-                sys.exit("Cannot access EPHIN file " + fname +
-               ". Please download the data from https://zenodo.org/records/14191918 and put in data/EPHIN_REleASE/.")
-       
-        filenames1.append(os.path.join(dir, fname))
-        
+            url = 'https://zenodo.org/records/14191918/files/%i.asc?download=1' % (year)
+            try:
+                urllib.request.urlopen(url, timeout=5)
+                wget.download(url, fullpath)
+                filenames1.append(fullpath) #add to datefiles if not present
+            except:
+                print('Cannot download ' + url)
+ 
     return filenames1
 
 
 
 
-def check_erne_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_erne_data(params):
     """Check for SOHO/ERNE data on your computer. If not there,
         download from https://export.srl.utu.fi.
         Intensities are in units of (cm^2 s sr mev/nuc)^-1
@@ -1817,14 +1796,14 @@ def check_erne_data(startdate, enddate, experiment, flux_type,
             (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
-    ernepath = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    ernepath = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(ernepath)
 
     #Download all the .dates files each time
@@ -1838,6 +1817,7 @@ def check_erne_data(startdate, enddate, experiment, flux_type,
         soup = BeautifulSoup(r.text, 'html.parser')
         links = soup.find_all('a')
         checkfiles = [x.text for x in links if 'dates' in x.text]
+        print('check_erne_data: Checking all .dates files from the ERNE website to understand file organization.')
         for fl in checkfiles:
             if fl in datefiles:
                 continue #don't need to download again
@@ -1847,8 +1827,9 @@ def check_erne_data(startdate, enddate, experiment, flux_type,
                 urllib.request.urlopen(url, timeout=5)
                 wget.download(url, localfl)
                 datefiles.append(fl) #add to datefiles if not present
+                print(f"Downloaded {url}")
             except:
-                print('Cannot download ' + url)
+                print(f"Cannot download {url}")
     except:
         pass
 
@@ -1870,9 +1851,9 @@ def check_erne_data(startdate, enddate, experiment, flux_type,
             unzipdir = os.path.join(ernepath,datedir)
 
             #Are the user requested dates contained within this file?
-            if (startdate >= firstdate and startdate < lastdate) or \
-                (enddate > firstdate and enddate <= lastdate) or \
-                (firstdate >= startdate and firstdate <= enddate):
+            if (params.startdate >= firstdate and params.startdate < lastdate) or \
+                (params.enddate > firstdate and params.enddate <= lastdate) or \
+                (firstdate >= params.startdate and firstdate <= params.enddate):
 
                 exists = os.path.isfile(localfnm)
 
@@ -1903,8 +1884,7 @@ def check_erne_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_stereo_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_stereo_data(params):
     """ Check for 1 min STEREO data on your computer provided on:
         https://izw1.caltech.edu/STEREO/Public/LET_public.html
         https://izw1.caltech.edu/STEREO/Public/HET_public.html            
@@ -1927,12 +1907,12 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
             that span the desired time range (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     df = read_data_manager() #file completeness record
 
@@ -1940,34 +1920,30 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
     filenames1 = [] #LET  
     filenames2 = [] #HET
 
-    td = enddate - startdate
+    td = params.enddate - params.startdate
     #LET STEREO data is stored in daily data files
     NFILESd = td.days + 1
     #HET STEREO data is stored in monthly data files
-    styear = startdate.year
-    stmonth = startdate.month
-    endyear = enddate.year
-    endmonth = enddate.month
     numyr = endyear - styear
     if numyr == 0:
         NFILESm = endmonth - stmonth + 1
     if numyr > 0:
         NFILESm = (12 - stmonth) + endmonth + (numyr-1)*12 + 1
 
-    dir_het = dirs.get_directory(experiment+ '_HET', use_absolute_datapath=use_absolute_datapath)
+    dir_het = dirs.get_directory(params.experiment+ '_HET', use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir_het)
 
-    dir_let = dirs.get_directory(experiment+ '_LET', use_absolute_datapath=use_absolute_datapath)
+    dir_let = dirs.get_directory(params.experiment+ '_LET', use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir_let)
 
     #pulls primary spacecraft fluxes
-    if experiment == 'STEREO-A':
+    if params.experiment == 'STEREO-A':
         let_url_prefix = 'https://izw1.caltech.edu/STEREO/DATA/Level1/Public/ahead/1Minute/'
         let_prefix = 'H_summed_ahead_'
         het_url_prefix = 'https://izw1.caltech.edu/STEREO/DATA/HET/Ahead/1minute/'
         het_prefix = 'AeH'
 
-    if experiment == 'STEREO-B':
+    if params.experiment == 'STEREO-B':
         let_url_prefix = 'https://izw1.caltech.edu/STEREO/DATA/Level1/Public/behind/1Minute/'
         let_prefix = 'H_summed_behind_'
         het_url_prefix = 'https://izw1.caltech.edu/STEREO/DATA/HET/Behind/1minute/'
@@ -1983,7 +1959,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
  
     #LET data
     for i in range(NFILESd):
-        date = startdate + datetime.timedelta(days=i)
+        date = params.startdate + datetime.timedelta(days=i)
         year = date.year
         month = date.month
         day = date.day
@@ -1999,7 +1975,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
         complete = False
         if exists1:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, fullpath1, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, fullpath1, df=df)
             if complete:
                 filenames1.append(fullpath1)
 
@@ -2025,8 +2001,8 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
 
 
     #HET data - monthly
-    year = startdate.year
-    month = startdate.month
+    year = params.startdate.year
+    month = params.startdate.month
     nyr = 0
     for i in range(NFILESm):
         if month == 13:
@@ -2046,7 +2022,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
         complete = False
         if exists2:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, fullpath2, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, fullpath2, df=df)
             if complete:
                 filenames2.append(fullpath2)
 
@@ -2063,11 +2039,11 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
                 filenames2.append(fullpath2)
 
             except urllib.request.HTTPError as e:
-                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
+                sys.exit(f"Cannot access {params.experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Exiting.")
             except socket.timeout as e:
-                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+                sys.exit(f"Cannot access {params.experiment} file at {url} because {e}. Exiting.")
             except Exception as e:
-                sys.exit(f"Cannot access {experiment} file at {url} because {e}. Exiting.")
+                sys.exit(f"Cannot access {params.experiment} file at {url} because {e}. Exiting.")
 
         month += 1
 
@@ -2075,8 +2051,7 @@ def check_stereo_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_ace_sis_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_ace_sis_data(params):
     """Check for ACE/SIS data on your computer. If not there,
         download from https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
         5 minute data will be downloaded. Only >30 and >60 MeV fluxes.
@@ -2099,12 +2074,12 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type,
             (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
     enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
@@ -2114,7 +2089,7 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type,
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     for i in range(Ndays):
@@ -2128,7 +2103,7 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type,
         complete = False
         if exists:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, svfile, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, svfile, df=df)
         
         if not exists or not complete: #download file if not found on your computer
             url = ('https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/%s'
@@ -2143,13 +2118,13 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type,
                 wget.download(url, svfile)
  
             except urllib.request.HTTPError as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
                 fname=None
             except socket.timeout as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                 fname=None
             except Exception as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                 fname=None
  
  
@@ -2159,8 +2134,7 @@ def check_ace_sis_data(startdate, enddate, experiment, flux_type,
     return filenames1
 
 
-def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_ace_epam_electrons_data(params):
     """Check for ACE/EPAM data on your computer. If not there,
         download from https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/
         5 minute data will be downloaded. Electron and proton data. Only take
@@ -2184,12 +2158,12 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
             (yearly files)
         
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
     enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
@@ -2199,7 +2173,7 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     for i in range(Ndays):
@@ -2213,7 +2187,7 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
         complete = False
         if exists:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, svfile, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, svfile, df=df)
         
         if not exists or not complete: #download file if not found on your computer
             url = ('https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/%s'
@@ -2228,13 +2202,13 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
                 wget.download(url, svfile)
 
             except urllib.request.HTTPError as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
                 fname = None
             except socket.timeout as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                 fname = None
             except Exception as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                 fname = None
 
         if fname != None:
@@ -2244,8 +2218,7 @@ def check_ace_epam_electrons_data(startdate, enddate, experiment, flux_type,
 
 
 
-def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
-    use_absolute_datapath=False):
+def check_imp8_cpme_data(params):
     """Check for IMP-8/CPME data on your computer. If not there,
         download from http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/
         330s data will be downloaded. 
@@ -2257,10 +2230,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral"
+        :params: (FetchSEP Parameters object)
         
         OUTPUTS:
         
@@ -2275,14 +2245,14 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
 
     leap_year_ref = 1980
 
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    stdoy = startdate.timetuple().tm_yday
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
-    enddoy = enddate.timetuple().tm_yday
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    stdoy = params.startdate.timetuple().tm_yday
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
+    enddoy = params.enddate.timetuple().tm_yday
     
     Nyr = (endyear - styear) + 1
 
@@ -2290,7 +2260,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     for i in range(Nyr):
@@ -2319,46 +2289,46 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
             if is_leap_year and dy2 == 365: dy2 = 366
             #h_330s_1974_048_071.txt.gz
             fname = f"h_330s_{year}_{dy1:03d}_{dy2:03d}.txt"
-            gzfname = f"{fname}.gz"
+#            gzfname = f"{fname}.gz"
         
-            gzsvfile = os.path.join(dir,gzfname)
+#            gzsvfile = os.path.join(dir,gzfname)
             svfile = os.path.join(dir,fname)
             exists = os.path.isfile(svfile)
         
             complete = False
             if exists:
                 #Check if the file is listed as complete
-                complete = check_completeness(experiment, flux_type, svfile, df=df)
+                complete = check_completeness(params.experiment, params.flux_type, svfile, df=df)
             
             if not exists or not complete: #download file if not found on your computer
                 url = ('http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/%s/%s'
-                        % (year, gzfname))
+                        % (year, fname))
                 print('Downloading IMP-8/CPME data: ' + url)
                 try:
                     urllib.request.urlopen(url,timeout=5)
                     
-                    if os.path.exists(gzsvfile):
-                        os.remove(gzsvfile) # if exist, remove it directly
+                    if os.path.exists(svfile):
+                        os.remove(svfile) # if exist, remove it directly
                     if os.path.exists(svfile):
                         os.remove(svfile) # if exist, remove it directly
       
-                    wget.download(url, gzsvfile)
+                    wget.download(url, svfile)
                     #Decompress gzip file
-                    # Open the gzipped file in binary read mode ('rb')
-                    with gzip.open(gzsvfile, 'rb') as f_in:
-                        # Open the output file in binary write mode ('wb')
-                        with open(svfile, 'wb') as f_out:
-                            # Copy the decompressed data from the input to the output file
-                            shutil.copyfileobj(f_in, f_out)
+#                    # Open the gzipped file in binary read mode ('rb')
+#                    with gzip.open(gzsvfile, 'rb') as f_in:
+#                        # Open the output file in binary write mode ('wb')
+#                        with open(svfile, 'wb') as f_out:
+#                            # Copy the decompressed data from the input to the output file
+#                            shutil.copyfileobj(f_in, f_out)
 
                 except urllib.request.HTTPError as e:
-                    print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                    print(f"Cannot access {params.experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
                     svfile = None
                 except socket.timeout as e:
-                    print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                    print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                     svfile = None
                 except Exception as e:
-                    print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                    print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                     svfile = None
 
             if svfile != None:
@@ -2367,7 +2337,7 @@ def check_imp8_cpme_data(startdate, enddate, experiment, flux_type,
     return filenames1
 
 
-def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
+def check_neutron_monitor_data(params):
     """ Check if neutron monitor data is present in the data directory. 
         Download if needed.
         
@@ -2386,12 +2356,12 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
             :experiment: (string) name of neutron monitor as used by NEST   
                  
     """
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
     startdt = datetime.datetime(year=styear,month=stmonth,day=stday)
     enddt = datetime.datetime(year=endyear,month=endmonth,day=endday)
@@ -2401,13 +2371,13 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []
-    dir = dirs.get_directory(experiment, use_absolute_datapath=use_absolute_datapath)
+    dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
     for i in range(Ndays):
         getday = startdt + i*datetime.timedelta(hours=24)
         #20010807_OULU.txt
-        fname = f"{getday.strftime('%Y%m%d')}_{experiment}.txt"
+        fname = f"{getday.strftime('%Y%m%d')}_{params.experiment}.txt"
         
         svfile = os.path.join(dir,fname)
         exists = os.path.isfile(svfile)
@@ -2415,11 +2385,11 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
         complete = False
         if exists:
             #Check if the file is listed as complete
-            complete = check_completeness(experiment, flux_type, svfile, df=df)
+            complete = check_completeness(params.experiment, params.flux_type, svfile, df=df)
         
         if not exists or not complete: #download file if not found on your computer
-            url = (f"https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]={experiment}&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year={getday.year}&start_month={getday.month}&start_day={getday.day}&start_hour=00&start_min=00&end_year={getday.year}&end_month={getday.month}&end_day={getday.day}&end_hour=23&end_min=59&yunits=0")
-            print(f"Downloading {experiment} data: {url}")
+            url = (f"https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]={params.experiment}&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year={getday.year}&start_month={getday.month}&start_day={getday.day}&start_hour=00&start_min=00&end_year={getday.year}&end_month={getday.month}&end_day={getday.day}&end_hour=23&end_min=59&yunits=0")
+            print(f"Downloading {params.experiment} data: {url}")
             try:
                 urllib.request.urlopen(url, timeout=5)
                 
@@ -2429,13 +2399,13 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
                 wget.download(url, svfile)
 
             except urllib.request.HTTPError as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
                 fname = None
             except socket.timeout as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                 fname = None
             except Exception as e:
-                print(f"Cannot access {experiment} file at {url} because {e}. Skipping.")
+                print(f"Cannot access {params.experiment} file at {url} because {e}. Skipping.")
                 fname = None
 
         if fname != None:
@@ -2443,11 +2413,9 @@ def check_neutron_monitor_data(startdate, enddate, experiment, flux_type):
         
     return filenames1
     
-    
-#https://www.nmdb.eu/nest/draw_graph.php?formchk=1&stations[]=KERG&output=ascii&tabchoice=ori&dtype=corr_for_efficiency&date_choice=bydate&start_year=2009&start_month=09&start_day=01&start_hour=00&start_min=00&end_year=2009&end_month=09&end_day=01&end_hour=23&end_min=59&yunits=0
 
-def check_data(startdate, enddate, experiment, flux_type, user_file,
-    spacecraft="primary", use_absolute_datapath=False):
+
+def check_data(params):
     """Check that the files containing the data are in the data directory. If
         the files for the requested dates aren't present, they will be
         downloaded from the NOAA website. For SEPEM (RSDv2) data, if missing,
@@ -2459,12 +2427,7 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
         
         INPUTS:
         
-        :startdate: (datetime) start of time period specified by user
-        :enddate: (datetime) end of time period entered by user
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
-        :user_file: (string) name of file containing user-input data
-            (if applicable)
+        :params: (FetchSEP Pameters object) 
         
         OUTPUTS:
         
@@ -2476,14 +2439,14 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
         
     """
     print('Checking that the requested data is present on your computer.')
-    styear = startdate.year
-    stmonth = startdate.month
-    stday = startdate.day
-    endyear = enddate.year
-    endmonth = enddate.month
-    endday = enddate.day
+    styear = params.startdate.year
+    stmonth = params.startdate.month
+    stday = params.startdate.day
+    endyear = params.enddate.year
+    endmonth = params.enddate.month
+    endday = params.enddate.day
 
-    user_fname = [user_file]
+    user_fname = [params.user_filename]
 
     #Array of filenames that contain the data requested by the User
     filenames1 = []  #SEPEM, eps, or epead
@@ -2491,16 +2454,14 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
     filenames_orien = []  #orientation flag for GOES-13+
 
     #If user wants to use own input file (filename defined as input)
-    if experiment == "user":
-        nuser = len(user_fname)
-        for i in range(nuser):
-            exists = os.path.isfile(user_fname[i])
-            if exists:
-                filenames1.append(user_fname[i])
-            if not exists:
-                sys.exit("You have selected to read a user input "
-                "file with filename " + user_fname[i]
-                + ". This file is not found! Exiting.")
+    if params.experiment == "user":
+        exists = os.path.isfile(params.user_file)
+        if exists:
+            filenames1 = [params.user_file]
+        if not exists:
+            sys.exit("You have selected to read a user input "
+            "file with filename " + params.user_file
+            + ". This file is not found! Exiting.")
 
         return filenames1, filenames2, filenames_orien
 
@@ -2508,88 +2469,79 @@ def check_data(startdate, enddate, experiment, flux_type, user_file,
     #Check if user has yearly files; if not:
         #check if user has original SEPEM, then create yearly files
         #Otherwise alert user to download data set and try again
-    if (experiment == "SEPEM" or experiment == "SEPEMv3"):
-        filenames1 = check_sepem_data(startdate, enddate, experiment, flux_type)
+    if (params.experiment == "SEPEM" or params.experiment == "SEPEMv3"):
+        filenames1 = check_sepem_data(params)
         return filenames1, filenames2, filenames_orien
         
-    if experiment == "CalGOES":
-        filenames1 = check_calgoes_data(startdate, enddate, experiment, flux_type)
+    if params.experiment == "CalGOES":
+        filenames1 = check_calgoes_data(params)
         return filenames1, filenames2, filenames_orien
 
     #Try all GOES experiments
-    if experiment == "GOES":
+    if params.experiment == "GOES":
         filenames1, filenames2, filenames_orien, detector = \
-         check_all_goes_data(startdate, enddate, experiment, flux_type,
-         spacecraft=spacecraft)
+         check_all_goes_data(params)
         return filenames1, filenames2, filenames_orien, detector
 
     #Specific GOES-07 and previous
-    if experiment in old_goes_sc:
-        filenames1, filenames2, date = check_old_goes_data(startdate, enddate, experiment, flux_type)
+    if params.experiment in old_goes_sc:
+        filenames1, filenames2, date = check_old_goes_data(params)
         return filenames1, filenames2, filenames_orien
 
     #Specific GOES prior to GOES-R, e.g. GOES-13 or GOES-08
-    if experiment in goes_sc:
+    if params.experiment in goes_sc:
         filenames1, filenames2, filenames_orien, date =\
-            check_goes_data(startdate, enddate, experiment, flux_type,
-            use_absolute_datapath=use_absolute_datapath)
+            check_goes_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if (experiment in goes_R) and flux_type == "differential":
+    if (params.experiment in goes_R) and params.flux_type == "differential":
         filenames1, filenames2, filenames_orien, date =\
-            check_goesR_data(startdate,enddate, experiment, flux_type)
+            check_goesR_data(params)
         return filenames1, filenames2, filenames_orien
         
-    if (experiment == "GOES-RT"):
+    if (params.experiment == "GOES-RT"):
         filenames1, filenames2, filenames_orien, date =\
-            check_goes_RTdata(startdate,enddate, experiment, flux_type, spacecraft=spacecraft)
+            check_goes_RTdata(params)
         return filenames1, filenames2, filenames_orien
 
-    if (experiment == "GOES-SWPC"):
-        filenames1 = check_goes_swpc_data(flux_type, spacecraft=spacecraft)
+    if (params.experiment == "GOES-SWPC"):
+        filenames1 = check_goes_swpc_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "EPHIN":
-        filenames1 = check_ephin_data(startdate, enddate, experiment, flux_type)
+    if params.experiment == "SOHO_EPHIN":
+        filenames1 = check_ephin_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "EPHIN_HESPERIA":
-        filenames1 = check_ephin_hesperia_data(startdate, enddate,
-            experiment, flux_type)
+    if params.experiment == "EPHIN_HESPERIA":
+        filenames1 = check_ephin_hesperia_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "EPHIN_REleASE":
-        filenames1 = check_ephin_release_data(startdate, enddate,
-            experiment, flux_type)
+    if params.experiment == "EPHIN_REleASE":
+        filenames1 = check_ephin_release_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "ERNE":
-        filenames1 = check_erne_data(startdate, enddate, experiment, flux_type)
+    if params.experiment == "SOHO_ERNE":
+        filenames1 = check_erne_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if 'STEREO' in experiment:
-        filenames1, filenames2 = check_stereo_data(startdate,
-            enddate, experiment, flux_type)
+    if 'STEREO' in params.experiment:
+        filenames1, filenames2 = check_stereo_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "ACE_SIS":
-        filenames1 = check_ace_sis_data(startdate,
-            enddate, experiment, flux_type)
+    if params.experiment == "ACE_SIS":
+        filenames1 = check_ace_sis_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "ACE_EPAM_electrons":
-        filenames1 = check_ace_epam_electrons_data(startdate,
-            enddate, experiment, flux_type)
+    if params.experiment == "ACE_EPAM_electrons":
+        filenames1 = check_ace_epam_electrons_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment == "IMP8_CPME":
-        filenames1 = check_imp8_cpme_data(startdate,
-            enddate, experiment, flux_type)
+    if params.experiment == "IMP-8_CPME":
+        filenames1 = check_imp8_cpme_data(params)
         return filenames1, filenames2, filenames_orien
 
-    if experiment in valid_nm:
-        filenames1 = check_neutron_monitor_data(startdate,
-            enddate, experiment, flux_type)
+    if params.experiment in valid_nm:
+        filenames1 = check_neutron_monitor_data(params)
         return filenames1, filenames2, filenames_orien
 
     return filenames1, filenames2, filenames_orien
@@ -2696,13 +2648,11 @@ def get_west_detector(filename, dates):
     return west_detector
 
 
-def read_in_sepem(experiment, flux_type, filenames1):
+def read_in_sepem(filenames1):
     """ Read in SEPEM data files from the computer.
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) "differential"
         :filenames1: (string array) names of files containing
             SEPEM data in desired time range (yearly files)
             
@@ -2763,7 +2713,7 @@ def read_in_sepem(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
-def read_in_calgoes(experiment, filenames1):
+def read_in_calgoes(filenames1):
     """ Read in the data set created by Shaowen Hu (NASA JSC SRAG)
         that generates a consistent and recalibrated GOES data set.
     """
@@ -2801,15 +2751,14 @@ def read_in_calgoes(experiment, filenames1):
 
 
 
-def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
+def read_in_old_goes(params, filenames1, filenames2):
     """Read in GOES data from your computer. User may specify option to choose
         corrected or uncorrected GOES fluxes.
         For GOES-07 and previous which did not have HEPAD.
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) the files containing the GOES
             EPS or EPEAD data that span the desired time range
         :filenames2: (string array) the files containing the GOES
@@ -2837,45 +2786,45 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
     #Read in file that identified data files as complete
     df = read_data_manager()
 
-    if (experiment == "GOES-05"):
-        if flux_type == "differential":
+    if (params.experiment == "GOES-05"):
+        if params.flux_type == "differential":
             #NO CORRECTED FLUXES PRODUCED
             print("Note that GOES-05 NCEI data files contain only UNCORRECTED fluxes.")
             columns = [5,7,9,11,13,15] #eps uncorrected
             hepad_columns = []
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             #NO INTEGRAL CHANNELS PRODUCED
             print("GOES-05 files do not contain integral proton fluxes.")
             columns = [] #eps
             hepad_columns = []
 
 
-    if (experiment == "GOES-06"):
-        if flux_type == "differential":
-            if "corrected" in options or "uncorrected" not in options:
+    if (params.experiment == "GOES-06"):
+        if params.flux_type == "differential":
+            if params.goes_datatype == "corrected":
                 #CORRECTED CHANNELS; DEFAULT
                 columns = [16,17,18,19,20,21] #eps
                 hepad_columns = [1,2,3,4]
-            if "uncorrected" in options:
+            if params.goes_datatype == "uncorrected":
                 #UNCORRECTED channels
                 columns = [3,4,5,6,7,8] #eps
                 hepad_columns = [1,2,3,4]
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             #ONLY CORRECTED CHANNELS AVAILABLE
             columns = [23,24,25,26,27,28] #eps
             hepad_columns = [4]
 
-    if (experiment == "GOES-07"):
-        if flux_type == "differential":
-            if "corrected" in options or "uncorrected" not in options:
+    if (params.experiment == "GOES-07"):
+        if params.flux_type == "differential":
+            if params.goes_datatype == "corrected":
                 #CORRECTED CHANNELS; DEFAULT
                 columns = [16,17,18,19,20,21] #eps
                 hepad_columns = []
-            if "uncorrected" in options:
+            if params.goes_datatype == "uncorrected":
                 #UNCORRECTED channels
                 columns = [3,4,5,6,7,8] #eps
                 hepad_columns = []
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             #ONLY CORRECTED CHANNELS AVAILABLE
             columns = [23,24,25,26,27,28] #eps
             hepad_columns = []
@@ -2932,7 +2881,7 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
             csvfile.close()
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+            df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
 
         #SECOND set of files for higher energy hepad
@@ -2962,7 +2911,7 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
                 csvfile.close()
 
                 #Update file completeness
-                df = file_completeness(df, experiment, flux_type, filenames2[i], file_dates)
+                df = file_completeness(df, params.experiment, params.flux_type, filenames2[i], file_dates)
 
         if len(fluxes) == 0: continue
         #If reading in multiple files, then combine all data into one array
@@ -2983,15 +2932,13 @@ def read_in_old_goes(experiment, flux_type, filenames1, filenames2, options):
 
 
 
-def read_in_goes(experiment, flux_type, filenames1, filenames2,
-                filenames_orien, options):
+def read_in_goes(params, filenames1, filenames2, filenames_orien):
     """Read in GOES data from your computer. User may specify option to choose
         corrected or uncorrected GOES fluxes.
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) the files containing the GOES
             EPS or EPEAD data that span the desired time range
         :filenames2: (string array) the files containing the GOES
@@ -3022,37 +2969,36 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
     #Read in file that identified data files as complete
     df = read_data_manager()
 
-    if (experiment == "GOES-08" or experiment == "GOES-09" or
-        experiment == "GOES-10" or experiment == "GOES-11" or
-        experiment == "GOES-12"):
-        if flux_type == "differential":
-            if "corrected" in options or "uncorrected" not in options:
+    goes_1 = ["GOES-08", "GOES-09", "GOES-10", "GOES-11", "GOES-12"]
+    if params.experiment in goes_1:
+        if params.flux_type == "differential":
+            if params.goes_datatype == "corrected":
                 #CORRECTED CHANNELS; DEFAULT
                 columns = [18,19,20,21,22,23] #eps
                 hepad_columns = [1,2,3,4]
-            if "uncorrected" in options:
+            if params.goes_datatype == "uncorrected":
                 #UNCORRECTED channels
                 columns = [5,6,7,8,9,10] #eps
                 hepad_columns = [1,2,3,4]
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             #ONLY CORRECTED CHANNELS AVAILABLE
             columns = [25,26,27,28,29,30] #eps
             hepad_columns = [4]
-   
-    if (experiment == "GOES-13" or experiment == "GOES-14" or
-        experiment == "GOES-15"):
-        if flux_type == "differential":
-            if "corrected" in options or "uncorrected" not in options:
+
+    goes_2 = ["GOES-13", "GOES-14", "GOES-15"]
+    if params.experiment in goes_2:
+        if params.flux_type == "differential":
+            if params.goes_datatype == "corrected":
                 #CORRECTED CHANNELS
                 columns = [16,24,32,40,48,56] #epead, default A detector
                 columnsB = [12,20,28,36,44,52] #epead, B detector
                 hepad_columns = [9,12,15,18]
-            if "uncorrected" in options:
+            if params.goes_datatype == "uncorrected":
                 #UNCORRECTED CHANNELS
                 columns = [15,23,31,39,47,55] #epead, default A detector
                 columnsB = [11,19,27,35,43,51] #epead, B detector
                 hepad_columns = [9,12,15,18]
-        if flux_type == "integral":
+        if params.flux_type == "integral":
             #ONLY CORRECTED CHANNELS AVAILABLE
             columns = [18,20,22,24,26,28] #epead, default A detector
             columnsB = [4,6,8,10,12,14] #epead, B detector
@@ -3078,15 +3024,15 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             #in the filenames1 and apply the correct hepad columns for
             #those specific files.
             #filename1 e.g. 15_epead_cpflux_5m_20200301_20200331.csv
-            if (experiment == "GOES-14" or experiment == "GOES-15"):
+            if (params.experiment == "GOES-14" or params.experiment == "GOES-15"):
                 fsplit = filenames1[i].split("/") #break up path
                 fnm = fsplit[-1].split(".csv") #last entry is the filename
                 fnm = fnm[0].split("_")
                 dt = datetime.datetime.strptime(fnm[-2],"%Y%m%d")
                 if dt >= datetime.datetime(year=2019,month=9,day=1):
-                    if flux_type == "differential":
+                    if params.flux_type == "differential":
                         hepad_columns = [8,11,14,17]
-                    if flux_type == "integral":
+                    if params.flux_type == "integral":
                         hepad_columns = [17]
                 
             
@@ -3101,13 +3047,11 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                 #Get dates first; need dates to identify spacecraft orientation
                 #for GOES-13+
                 for row in readCSV:
-                    date = datetime.datetime.strptime(row[0][0:19],
-                                                    "%Y-%m-%d %H:%M:%S")
+                    date = datetime.datetime.strptime(row[0][0:19], "%Y-%m-%d %H:%M:%S")
                     dates.append(date)
                     file_dates.append(date) #only dates in current file
 
-                if (experiment == "GOES-13" or experiment == "GOES-14"
-                    or experiment == "GOES-15"):
+                if params.experiment in goes_2:
                     west_detector = []
                     if filenames_orien[i] != None:
                         west_detector = get_west_detector(filenames_orien[i], dates)
@@ -3134,8 +3078,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
                     for j in range(ncol):
                         flux = float(row[columns[j]])
                         #Account for orientation
-                        if (experiment == "GOES-13" or experiment == "GOES-14"
-                            or experiment == "GOES-15"):
+                        if params.experiment in goes_2:
                             if west_det == None:
                                 flux = cfg.badval
                             elif west_det == "B":
@@ -3149,7 +3092,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             csvfile.close()
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+            df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
         #SECOND set of files for higher energy hepad
         if filenames2[i] != None:
@@ -3181,7 +3124,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
             csvfile.close()
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, filenames2[i], file_dates)
+            df = file_completeness(df, params.experiment, params.flux_type, filenames2[i], file_dates)
     
         if len(dates) == 0:
             continue
@@ -3203,7 +3146,7 @@ def read_in_goes(experiment, flux_type, filenames1, filenames2,
 
 
 
-def read_in_goesR(experiment, flux_type, filenames1):
+def read_in_goesR(params, filenames1):
     """Read in GOES-R+ data from your computer.
         Appears that only differential channels + one >500 MeV
         integral channel are available in the files.
@@ -3227,8 +3170,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) the files containing the GOES-R
             netcdf data that span the desired time range
         
@@ -3310,7 +3252,7 @@ def read_in_goesR(experiment, flux_type, filenames1):
                 fluxes[-1][j] = flux
 
             #Update file completeness
-            df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+            df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
         if len(file_dates) == 0:
             continue
@@ -3362,7 +3304,7 @@ def zulu_to_time(zt):
 
 
 
-def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
+def read_in_goes_RT(params, filenames1):
     """ Read in GOES-RT real time data from your computer.
         Read in the NOAA SWPC real time integral flux files from
         the 1 day json files for the primary GOES spacecraft.
@@ -3385,8 +3327,7 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) the files containing the GOES-R
             netcdf data that span the desired time range
         
@@ -3433,8 +3374,8 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
  
         #Update file completeness
         file_dates = df_in[0].to_list()
-        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates,
-                spacecraft=spacecraft)
+        df = file_completeness(df, params.experiment, params.flux_type, filenames1[i],
+            file_dates, spacecraft=params.spacecraft)
  
         for col in cols_to_drop:
             if col in df_in.columns:
@@ -3458,11 +3399,11 @@ def read_in_goes_RT(experiment, flux_type, filenames1, spacecraft=''):
 
 
 
-def read_in_goes_swpc(flux_type, spacecraft):
+def read_in_goes_swpc(params):
     """ Read in SWPC 7-day jsons for GOES protons """
 
     fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
-    dir = dirs.get_directory('GOES-SWPC')
+    dir = dirs.get_directory('GOES-SWPC', use_absolute_datapath=params.use_absolute_datapath)
     fname = os.path.join(dir, fname1)
 
     all_dates = []
@@ -3554,8 +3495,7 @@ def read_in_goes_swpc(flux_type, spacecraft):
     return all_dates, all_fluxes
 
 
-def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
-                filenames_orien, options, detector, spacecraft=""):
+def read_in_all_goes(params, filenames1, filenames2, filenames_orien, detector):
     """ If the user specified "GOES" as the experiment, then
         read in the files from any of the GOES spacecraft that
         are available in the date range.
@@ -3593,7 +3533,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
     for i in range(len(filenames1)):
         print(f"{detector[i]} {filenames1[i]}")
     
-    if flux_type != 'integral':
+    if params.flux_type != 'integral':
         sys.exit('read_in_all_goes only works for GOES integral energy channels for now. Exiting.')
         
     #Choose to align the fluxes with the goes_energy_bins
@@ -3603,8 +3543,8 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
 #        nbins = 10 #all GOES differential have up to 10 channels
     
     #Use the energy bins defined in experiments.py for 'GOES'
-    goes = expts.experiment_info(experiment)
-    ref_energy_bins = goes[flux_type]['energy_bins']
+    goes = expts.experiment_info(params.experiment)
+    ref_energy_bins = goes[params.flux_type]['energy_bins']
     
     all_dates_out = []
     all_fluxes_out = []
@@ -3623,33 +3563,34 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
 
     #Read in each file one at a time because they may be different
     #detectors for each file
+    params_cp = copy.deepcopy(params)
     for i in range(len(filenames1)):
+        params_cp.experiment = detector[i]
+        
         #All GOES data
         print(f"read_in_all_goes: Reading in files for {detector[i]}, File: {filenames1[i]}")
         if detector[i] in old_goes_sc:
             all_dates, all_fluxes, west_detector =\
-                read_in_old_goes(detector[i], flux_type, [filenames1[i]],
-                    [filenames2[i]], options)
+                read_in_old_goes(params_cp, [filenames1[i]], [filenames2[i]])
 
         elif detector[i] in goes_sc:
             all_dates, all_fluxes, west_detector =\
-                read_in_goes(detector[i], flux_type, [filenames1[i]],
-                [filenames2[i]], [filenames_orien[i]], options)
+                read_in_goes(params_cp, [filenames1[i]], [filenames2[i]], [filenames_orien[i]])
             
-        elif detector[i] in goes_R and flux_type == "differential":
+        elif detector[i] in goes_R and params.flux_type == "differential":
             all_dates, all_fluxes, west_detector =\
-                read_in_goesR(detector[i],flux_type, [filenames1[i]])
+                read_in_goesR(params_cp, [filenames1[i]])
             
-        elif (detector[i] == "GOES-RT" or detector[i] in goes_R) and flux_type == "integral":
+        elif (detector[i] == "GOES-RT" or detector[i] in goes_R) and params.flux_type == "integral":
             all_dates, all_fluxes, west_detector =\
-                read_in_goes_RT(detector[i],flux_type, [filenames1[i]], spacecraft=spacecraft)
+                read_in_goes_RT(params_cp, [filenames1[i]])
 
         if len(all_fluxes) == 0: continue
         #Energy bins for this detector
-        energy_bins, energy_bin_centers = define_energy_bins(detector[i], flux_type,
-                        west_detector, options,spacecraft=spacecraft)
+        energy_bins, energy_bin_centers = define_energy_bins(params_cp,
+                west_detector=west_detector)
         all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes,
-                        energy_bins, energy_bin_centers)
+                energy_bins, energy_bin_centers)
 
         #If the fluxes are integral, then all GOES-06+ will have the same
         #integral channels.
@@ -3682,7 +3623,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
         startdate = all_dates[0]
         enddate = all_dates[len(all_dates)-1]
         starttimes, endtimes, goes = identify_which_goes_spacecraft(startdate,
-                enddate, spacecraft=spacecraft)
+                enddate, spacecraft=params_cp.spacecraft)
 
         #Check the primary or secondary date ranges and fill in the lists
         #accordingly
@@ -3692,7 +3633,7 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
             start = starttimes[j]
             end = endtimes[j]
             det = goes[j]
-            if det in goes_R and flux_type == "integral":
+            if det in goes_R and params_cp.flux_type == "integral":
                 det = "GOES-RT"
             if start in sc_starttimes: continue
             if det != detector[i]: continue
@@ -3732,13 +3673,12 @@ def read_in_all_goes(experiment, flux_type, filenames1, filenames2,
 
 
 
-def read_in_ephin(experiment, flux_type, filenames1):
+def read_in_ephin(params, filenames1):
     """ Read in EPHIN files from your computer.
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) names of files containing
             EPHIN data in desired time range (yearly files)
             
@@ -3806,7 +3746,7 @@ def read_in_ephin(experiment, flux_type, filenames1):
                 count = count + 1
 
         #Update file completeness
-        df = file_completeness(df, experiment, flux_type, filenames1[i], dates)
+        df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], dates)
 
         #If reading in multiple files, then combine all data into one array
         if i==0:
@@ -3822,7 +3762,7 @@ def read_in_ephin(experiment, flux_type, filenames1):
 
 
 
-def read_in_ephin_hesperia(experiment, flux_type, filenames1):
+def read_in_ephin_hesperia(filenames1):
     """ Read in EPHIN HESPERIA files from your computer.
         
         INPUTS:
@@ -3901,7 +3841,7 @@ def read_in_ephin_hesperia(experiment, flux_type, filenames1):
 
 
 
-def read_in_ephin_release(experiment, flux_type, filenames1):
+def read_in_ephin_release(filenames1):
     """ Read in EPHIN RELeASE files from your computer.
         
         Contents of each file: 
@@ -3920,8 +3860,6 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
         
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
         :filenames1: (string array) names of files containing
             EPHIN REleASE data in desired time range (yearly files)
             
@@ -3984,7 +3922,7 @@ def read_in_ephin_release(experiment, flux_type, filenames1):
 
 
 
-def read_in_erne(experiment, flux_type, filenames1):
+def read_in_erne(filenames1):
     """ Read in ERNE files from your computer.
         Each ERNE gzip file (erne-1996.05.07-1996.05.31-23.tgz) has
         a subfolder export.src which contains HED files names as
@@ -3999,8 +3937,7 @@ def read_in_erne(experiment, flux_type, filenames1):
 
         INPUTS:
         
-        :experiment: (string) experiment name
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) names of files containing
             ERNE data in desired time range (randomly dated files)
             This list contains both LED and HED files in order of
@@ -4131,7 +4068,7 @@ def read_in_erne(experiment, flux_type, filenames1):
 
 
 
-def read_in_stereo(experiment, flux_type, filenames1, filenames2):
+def read_in_stereo(params, filenames1, filenames2):
     """ Read in STEREO-A or STEREO-B LET (summed) and HET files
         and combine together to make a time profile across
         the energy ranged covered by the STEREO spacecraft,
@@ -4229,7 +4166,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 count = count + 1
 
         #Update file completeness
-        df = file_completeness(df, experiment, flux_type, fullpathL, datesL)
+        df = file_completeness(df, params.experiment, params.flux_type, fullpathL, datesL)
 
     print(f"{datetime.datetime.now()} read_in_stereo: Finished reading LET data.")
     write_data_manager(df)
@@ -4296,7 +4233,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
                 count = count + 1
         
         #Update file completeness
-        df = file_completeness(df, experiment, flux_type, fullpathH, datesH)
+        df = file_completeness(df, params.experiment, params.flux_type, fullpathH, datesH)
 
     print(f"{datetime.datetime.now()} read_in_stereo: Finished reading HET data.")
     write_data_manager(df)
@@ -4380,7 +4317,7 @@ def read_in_stereo(experiment, flux_type, filenames1, filenames2):
 
 
 
-def read_in_ace_sis(experiment, flux_type, filenames1):
+def read_in_ace_sis(params, filenames1):
     """ Read in ACE/SIS integral >30, >60 MeV data from your computer.
         
         # Units: proton flux p/cs2-sec-ster
@@ -4457,7 +4394,7 @@ def read_in_ace_sis(experiment, flux_type, filenames1):
             
                 all_fluxes.append([flx30, flx60])
                 
-        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+        df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
     print(f"{datetime.datetime.now()} read_in_ace_sis: Finished reading ACE/SIS integral data.")
     write_data_manager(df)
@@ -4467,7 +4404,7 @@ def read_in_ace_sis(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
-def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
+def read_in_ace_epam_electrons(params, filenames1):
     """ Read in ACE/EPAM energetic electrons 175-315 keV from your computer.
         
         # Units: Differential Flux particles/cm2-s-ster-MeV
@@ -4546,7 +4483,7 @@ def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
                 
 
 
-        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+        df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
     print(f"{datetime.datetime.now()} read_in_ace_epam_electrons: Finished reading ACE/EPAM energetic electron data.")
     write_data_manager(df)
@@ -4556,7 +4493,7 @@ def read_in_ace_epam_electrons(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
-def read_in_imp8_cpme(experiment, flux_type, filenames1):
+def read_in_imp8_cpme(params, filenames1):
     """ Read in IMP-8/CPME protons from your computer.
         
         IMP-8 CPME: 330-sec. Avg. Proton Intensities & Uncertainties [no./(cm^2-sc-ster-MeV)]                                   
@@ -4635,7 +4572,7 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
                 
 
 
-        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+        df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
     print(f"{datetime.datetime.now()} read_in_imp8_cpme: Finished reading IMP-8/CPME data.")
     write_data_manager(df)
@@ -4645,7 +4582,7 @@ def read_in_imp8_cpme(experiment, flux_type, filenames1):
     return all_dates, all_fluxes
 
 
-def read_in_neutron_monitor(experiment, flux_type, filenames1):
+def read_in_neutron_monitor(params, filenames1):
     """ Read in data downloaded from nmdb.eu """
 
     n_chan = 1
@@ -4694,9 +4631,9 @@ def read_in_neutron_monitor(experiment, flux_type, filenames1):
                 all_fluxes.append(flx)
                 
 
-        df = file_completeness(df, experiment, flux_type, filenames1[i], file_dates)
+        df = file_completeness(df, params.experiment, params.flux_type, filenames1[i], file_dates)
 
-    print(f"{datetime.datetime.now()} read_in_neutron_monitor: Finished reading {experiment} data.")
+    print(f"{datetime.datetime.now()} read_in_neutron_monitor: Finished reading {params.experiment} data.")
     write_data_manager(df)
     
     all_fluxes = np.array(all_fluxes).T
@@ -4706,9 +4643,7 @@ def read_in_neutron_monitor(experiment, flux_type, filenames1):
     
 
 
-def read_in_files(experiment, flux_type, filenames1, filenames2,
-    filenames_orien, options, detector=[], spacecraft="",
-    use_absolute_datapath=False):
+def read_in_files(params, filenames1, filenames2, filenames_orien, detector=[]):
     """ Read in the appropriate data files with the correct format.
         Return an array with dates and fluxes. Bad flux values (any
         negative flux) are set to -1. Format is defined to work with
@@ -4727,21 +4662,15 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         
         INPUTS:
         
-        :experiment: (string) name of native experiment or "user"
-        :flux_type: (string) "integral" or "differential"
-        :user_file: (string) name of file containing user-input data
-            (if applicable)
+        :params: (FetchSEP Parameters object)
         :filenames1: (string array) the files containing the data that
             span the desired time range
         :filenames2: (string array) if GOES, files containing HEPAD data
         :filenames_orien: (string array if GOES, files containing
             satellite orientation
-        :options: (string array) options that may be applied to GOES data
         :detector: (string array) if experiment = "GOES",
             will contain which specific spacecraft is needed
             (will be used instead of experiment)
-        :spacecraft: (string) FOR GOES ONLY. "primary" or "secondary" 
-            to specify which GOES spacecraft to read in.
 
         OUTPUTS:
         
@@ -4756,74 +4685,66 @@ def read_in_files(experiment, flux_type, filenames1, filenames2,
         user time period of interest.
        
     """
-    print('Reading in data files for ' + experiment + '.')
+    print('Reading in data files for ' + params.experiment + '.')
     all_dates = []
     all_fluxes = []
     west_detector = []
 
-    if experiment == "SEPEM" or experiment == "SEPEMv3":
-        all_dates, all_fluxes = read_in_sepem(experiment, flux_type, filenames1)
+    if params.experiment == "SEPEM" or params.experiment == "SEPEMv3":
+        all_dates, all_fluxes = read_in_sepem(filenames1)
 
-    elif experiment == "CalGOES":
+    elif params.experiment == "CalGOES":
         all_dates, all_fluxes = read_in_calgoes(experiment, filenames1)
 
     #All GOES data
-    elif experiment == "GOES":
-        all_dates, all_fluxes, west_detector, energy_bins = read_in_all_goes(experiment,
-                    flux_type, filenames1, filenames2, filenames_orien,
-                    options, detector, spacecraft=spacecraft)
+    elif params.experiment == "GOES":
+        all_dates, all_fluxes, west_detector, energy_bins = read_in_all_goes(params, filenames1, filenames2, filenames_orien, detector)
         energy_bin_centers = expts.calculate_geometric_means(energy_bins)
         return all_dates, all_fluxes, west_detector, energy_bins, energy_bin_centers
                     
-    elif experiment in old_goes_sc:
+    elif params.experiment in old_goes_sc:
         all_dates, all_fluxes, west_detector =\
-            read_in_old_goes(experiment, flux_type, filenames1, filenames2, options)
+            read_in_old_goes(params, filenames1, filenames2)
 
-    elif experiment in goes_sc:
+    elif params.experiment in goes_sc:
         all_dates, all_fluxes, west_detector =\
-            read_in_goes(experiment, flux_type, filenames1, filenames2,
-                filenames_orien, options)
+            read_in_goes(params, filenames1, filenames2, filenames_orien)
         
-    elif experiment in goes_R and flux_type == "differential":
-        all_dates, all_fluxes, west_detector =\
-            read_in_goesR(experiment,flux_type, filenames1)
+    elif params.experiment in goes_R and params.flux_type == "differential":
+        all_dates, all_fluxes, west_detector = read_in_goesR(params, filenames1)
         
-    elif (experiment == "GOES-RT") and flux_type == "integral":
-        all_dates, all_fluxes, west_detector =\
-            read_in_goes_RT(experiment,flux_type, filenames1, spacecraft=spacecraft)
+    elif (params.experiment == "GOES-RT") and params.flux_type == "integral":
+        all_dates, all_fluxes, west_detector = read_in_goes_RT(params, filenames1)
 
-    elif (experiment == "GOES-SWPC"):
-        all_dates, all_fluxes = read_in_goes_swpc(flux_type, spacecraft)
+    elif (params.experiment == "GOES-SWPC"):
+        all_dates, all_fluxes = read_in_goes_swpc(params)
 
-    elif experiment == "EPHIN":
-        all_dates, all_fluxes = read_in_ephin(experiment, flux_type, filenames1)
+    elif params.experiment == "SOHO_EPHIN":
+        all_dates, all_fluxes = read_in_ephin(params, filenames1)
         
-    elif experiment == "EPHIN_HESPERIA":
-        all_dates, all_fluxes = read_in_ephin_hesperia(experiment, flux_type,
-                    filenames1)
+    elif params.experiment == "EPHIN_HESPERIA":
+        all_dates, all_fluxes = read_in_ephin_hesperia(filenames1)
 
-    elif experiment == "EPHIN_REleASE":
-        all_dates, all_fluxes = read_in_ephin_release(experiment, flux_type,
-                    filenames1)
+    elif params.experiment == "EPHIN_REleASE":
+        all_dates, all_fluxes = read_in_ephin_release(filenames1)
 
-    elif experiment == "ERNE":
-        all_dates, all_fluxes = read_in_erne(experiment, flux_type, filenames1)
+    elif params.experiment == "SOHO_ERNE":
+        all_dates, all_fluxes = read_in_erne(filenames1)
 
-    elif "STEREO" in experiment:
-        all_dates, all_fluxes = read_in_stereo(experiment, flux_type,
-                    filenames1, filenames2)
+    elif "STEREO" in params.experiment:
+        all_dates, all_fluxes = read_in_stereo(params, filenames1, filenames2)
 
-    elif experiment == "ACE_SIS":
-        all_dates, all_fluxes = read_in_ace_sis(experiment, flux_type, filenames1)
+    elif params.experiment == "ACE_SIS":
+        all_dates, all_fluxes = read_in_ace_sis(params, filenames1)
         
-    elif experiment == "ACE_EPAM_electrons":
-        all_dates, all_fluxes = read_in_ace_epam_electrons(experiment, flux_type, filenames1)
+    elif params.experiment == "ACE_EPAM_electrons":
+        all_dates, all_fluxes = read_in_ace_epam_electrons(params, filenames1)
         
-    elif experiment == "IMP8_CPME":
-        all_dates, all_fluxes = read_in_imp8_cpme(experiment, flux_type, filenames1)
+    elif params.experiment == "IMP-8_CPME":
+        all_dates, all_fluxes = read_in_imp8_cpme(params, filenames1)
 
-    elif experiment in valid_nm:
-        all_dates, all_fluxes = read_in_neutron_monitor(experiment, flux_type, filenames1)
+    elif params.experiment in valid_nm:
+        all_dates, all_fluxes = read_in_neutron_monitor(params, filenames1)
 
     return all_dates, all_fluxes, west_detector
 
@@ -5309,8 +5230,7 @@ def which_erne(startdate, enddate):
                 + str(date_f40) + " to present")
 
 
-def define_energy_bins(experiment, flux_type, west_detector, options,
-    spacecraft="primary", user_bins=[]):
+def define_energy_bins(params, west_detector=[], user_bins=[]):
     """ Define the energy bins for the selected spacecraft or data set.
         If the user inputs their own file, they must set the
         user_energy_bins variable in fetchsep.cfg.
@@ -5321,13 +5241,9 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
         
         INPUTS:
         
-        :experiment: (string) name of experiment or "user"
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameter object) 
         :west_detector: (string 1xp array) array indicating which GOES
             detector is facing westward for each time point
-        :options: (string array) possible options to apply to data
-            (GOES)
-        :spacecraft: (string) primary or secondary if experiment is GOES-RT
         :user_bins: (array) if experiment is "user" and want to override 
             user_energy_bins set via config (better to set via cfg.set_user_energy_bins())
         
@@ -5341,7 +5257,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
     energy_bin_centers = []
     
 
-    if experiment == "user":
+    if params.experiment == "user":
         #modify to match your energy bins or integral channels
         #use -1 in the second edge of the bin for integral channel (infinity)
         if user_bins:
@@ -5351,18 +5267,17 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
         energy_bin_centers = expts.calculate_geometric_means(energy_bins)
 
     else:
-        exp_info = expts.experiment_info(experiment)
-        energy_bins = exp_info[flux_type]['energy_bins']
-        energy_bin_centers = exp_info[flux_type]['energy_bin_centers']
+        exp_info = expts.experiment_info(params.experiment)
+        energy_bins = exp_info[params.flux_type]['energy_bins']
+        energy_bin_centers = exp_info[params.flux_type]['energy_bin_centers']
 
 
     ####APPLY CALIBRATED ENERGY BINS FROM LITERATURE
-    if (experiment == "GOES-08" or experiment == "GOES-09"
-        or experiment == "GOES-10" or experiment == "GOES-11"
-        or experiment == "GOES-12"):
-        if (flux_type == "differential"):
-            if "S14" in options:
-                if experiment == "GOES-08":
+    goes_for_cal_1 = ["GOES-08", "GOES-09", "GOES-10", "GOES-11", "GOES-12"]
+    if params.experiment in goes_for_cal_1:
+        if (params.flux_type == "differential"):
+            if params.goes_S14:
+                if params.experiment == "GOES-08":
                     energy_bins = [[4.0,7.9],[7.4,15.0],[13.3,21.3],
                                [37.0,53.6],[91.5,113.0],[119.0,179.0],
                                [350.0,420.0],[420.0,510.0],[510.0,700.0],
@@ -5370,7 +5285,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     energy_bin_centers = [6.05, 10.6, 19.0, 47.8, 107.0, 153.0,
                                 math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
                                 math.sqrt(510.0*700.0), 700]
-                if experiment == "GOES-11":
+                if params.experiment == "GOES-11":
                     energy_bins = [[5.0,7.9],[9.4,15.9],[16.7,23.2],
                                [32.5,56.4],[89.8,114.0],[120.0,186.0],
                                [350.0,420.0],[420.0,510.0],[510.0,700.0],
@@ -5379,10 +5294,10 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                                 math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
                                 math.sqrt(510.0*700.0), 700]
 
-    if (experiment == "GOES-13" or experiment == "GOES-14" or
-        experiment == "GOES-15"):
-        if (flux_type == "differential"):
-            if "S14" in options:
+    goes_for_cal_2 = ["GOES-13", "GOES-14", "GOES-15"]
+    if params.experiment in goes_for_cal_2:
+        if (params.flux_type == "differential"):
+            if params.goes_S14:
                 #S14 is not specifically calibrated to these GOES, but
                 #apply the GOES-11 EPS energy bins for P2 - P7
                 energy_bins = [[5.0,7.9],[9.4,15.9],[16.7,23.2],
@@ -5392,18 +5307,18 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                 energy_bin_centers = [6.4, 12.5, 20.8, 46.1, 104.0, 148.0,
                             math.sqrt(350.0*420.0), math.sqrt(420.0*510.0),
                             math.sqrt(510.0*700.0), 700]
-            if "Bruno2017" in options:
+            if params.goes_Bruno2017:
                 #EPEAD CHANNELS P6 and P7
-                if "uncorrected" in options:
+                if params.goes_datatype == "uncorrected":
                     if west_detector.count("A") >= west_detector.count("B"):
                         print("Choosing Bruno2017 energy bins for uncorrected A detector.")
                         #A detector bins
-                        if experiment == "GOES-13":
+                        if params.experiment == "GOES-13":
                             energy_bins[4] = [93.3,129.0]
                             energy_bin_centers[4] = 114.4
                             energy_bins[5] = [145.2,203.9]
                             energy_bin_centers[5] = 179.6
-                        if experiment == "GOES-15":
+                        if params.experiment == "GOES-15":
                             energy_bins[4] = [97.5,134.8]
                             energy_bin_centers[4] = 119.5
                             energy_bins[5] = [142.2,199.0]
@@ -5411,26 +5326,26 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     if west_detector.count("B") > west_detector.count("A"):
                         print("Choosing Bruno2017 energy bins for uncorrected B detector.")
                         #B detector bins
-                        if experiment == "GOES-13":
+                        if params.experiment == "GOES-13":
                             energy_bins[4] = [92.3,127.5]
                             energy_bin_centers[4] = 113.1
                             energy_bins[5] = [143.5,200.5]
                             energy_bin_centers[5] = 177.0
-                        if experiment == "GOES-15":
+                        if params.experiment == "GOES-15":
                             energy_bins[4] = [95.9,132.3]
                             energy_bin_centers[4] = 117.4
                             energy_bins[5] = [144.6,202.3]
                             energy_bin_centers[5] = 178.5
-                if "corrected" in options or "uncorrected" not in options: #Z89 applied
+                if params.goes_datatype == "corrected": #Z89 applied
                     if west_detector.count("A") >= west_detector.count("B"):
                         print("Choosing Bruno2017 energy bins for corrected A detector.")
                         #A detector bins
-                        if experiment == "GOES-13":
+                        if params.experiment == "GOES-13":
                             energy_bins[4] = [93.3,129.1]
                             energy_bin_centers[4] = 114.5
                             energy_bins[5] = [146.7,205.6]
                             energy_bin_centers[5] = 181.2
-                        if experiment == "GOES-15":
+                        if params.experiment == "GOES-15":
                             energy_bins[4] = [97.9,135.3]
                             energy_bin_centers[4] = 120.0
                             energy_bins[5] = [145.0,202.3]
@@ -5438,17 +5353,17 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     if west_detector.count("B") > west_detector.count("A"):
                         print("Choosing Bruno2017 energy bins for corrected B detector.")
                         #B detector bins
-                        if experiment == "GOES-13":
+                        if params.experiment == "GOES-13":
                             energy_bins[4] = [92.4,127.8]
                             energy_bin_centers[4] = 113.3
                             energy_bins[5] = [144.6,202.5]
                             energy_bin_centers[5] = 178.5
-                        if experiment == "GOES-15":
+                        if params.experiment == "GOES-15":
                             energy_bins[4] = [96.1,132.8]
                             energy_bin_centers[4] = 117.7
                             energy_bins[5] = [147.3,205.7]
                             energy_bin_centers[5] = 181.5
-                if experiment == "GOES-13": #Should use with bg-subtracted flux
+                if params.experiment == "GOES-13": #Should use with bg-subtracted flux
                     energy_bins[6] = [273.9,387.5] #P8
                     energy_bin_centers[6] = 337.3
                     energy_bins[7] = [330.0,458.0] #P9
@@ -5457,7 +5372,7 @@ def define_energy_bins(experiment, flux_type, west_detector, options,
                     energy_bin_centers[8] = 508.8
                     energy_bins[9] = [852.6,1081.2] #P11
                     energy_bin_centers[9] = 1002.4
-                if experiment == "GOES-15":
+                if params.experiment == "GOES-15":
                     energy_bins[6] = [240.4,335.6] #P8
                     energy_bin_centers[6] = 297.3
                     energy_bins[7] = [325.3,464.6] #P9
