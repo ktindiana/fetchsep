@@ -414,7 +414,7 @@ class Parameters:
         #### Directory and plotting names FOR IDSEP OR DOWNLOAD ####
         #Directory name, filename, and plot title modifiers based on selections
         #Need idsep subdir before setting idsep background info
-        id_modifier, id_title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
+        id_modifier, id_title_mod = names.setup_modifiers(self.options, spacecraft=self.spacecraft)
  
         #Need idsep subdir and outpath in opsep and download, too
         self.idsep_subdir = names.idsep_naming_scheme(self.experiment, self.flux_type, self.user_name, modifier=id_modifier)
