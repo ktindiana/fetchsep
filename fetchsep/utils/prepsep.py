@@ -10,6 +10,7 @@ import os
 import pandas as pd
 import numpy as np
 import shutil
+from pathlib import Path
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -570,12 +571,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-#    subdir = names.opsep_subdir(experiment, flux_type, user_name, options,
-#        spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
-#        doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
-#        IDSEPEnhancement=IDSEPEnhancement)
-    
-    startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
+    sep_date, jsonfname, event_dict_csv, opsep_outpath, opsep_plotpath = \
         opsep.run_opsep(start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,
@@ -615,4 +611,8 @@ def update_observations(target_dir, start_date, end_date, experiment,
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
 
-    return
+    subdirectories = Path(opsep_outpath)
+    subdirectories = subdirectories.parts
+    subdir = subdirectories[-1]
+
+    return subdir
