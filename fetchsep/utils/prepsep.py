@@ -590,7 +590,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         spase_id=spase_id,
         showplot=showplot,
         saveplot=saveplot,
-        use_absolute_datapath=use_absoluate_datapth,
+        use_absolute_datapath=use_absolute_datapath,
         detect_prev_event=detect_prev_event,
         two_peaks=two_peaks,
         options=options,
@@ -615,4 +615,4 @@ def update_observations(target_dir, start_date, end_date, experiment,
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
 
-    return 
+    return
