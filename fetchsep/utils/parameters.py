@@ -136,10 +136,13 @@ class Parameters:
         """ Set options (arr) if any specified """
 
         #First, reset
-        self.options = []
-        self.goes_datatype = None
-        self.goes_S14 = None
-        self.goes_Bruno2017 = None
+#        self.options = []
+#        self.goes_datatype = None
+#        self.goes_S14 = None
+#        self.goes_Bruno2017 = None
+    
+        if not isinstance(options, str):
+            return
     
         options = options.split(";")
         if options[0] != "":
