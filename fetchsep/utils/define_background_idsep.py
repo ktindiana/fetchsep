@@ -444,7 +444,7 @@ def make_log_bins():
     return bins
 
 
-def check_bg_kurtosis(df, col):
+def check_bg_kurtosis(params, df, col):
     """ Check the kurtosis of the distribution and try to identify 
         strong outliers in a distribution.
         
@@ -461,20 +461,20 @@ def check_bg_kurtosis(df, col):
     if isinstance(kurt, bool):
         if not kurt:
             is_good = False
-    elif kurt >= cfg.kurtosis_cut:
+    elif kurt >= params.kurtosis_cut:
         is_good = False
 
     return is_good, kurt
 
 
-def clean_distribution(df, col):
+def clean_distribution(params, df, col):
     """ Attempt to clean a distribution that has high kurtosis
         due to a single bottom bin that has a large percentage of the
         values (i.e. floor). Remove the bin, recalculate the kurtosis, and, 
         if good, return the cleaned distribution. 
     
     """
-    is_good, kurtosis = check_bg_kurtosis(df, col)
+    is_good, kurtosis = check_bg_kurtosis(params, df, col)
     if is_good: #kurtosis already good
         return is_good, kurtosis, np.nan
     
@@ -500,7 +500,7 @@ def clean_distribution(df, col):
     #the values that fall in the bottom bin to np.nan
     if counts[ix] >= sum(counts[ix+1:]):
         df.loc[df[col] < bins[ix+1], col] = np.nan
-        is_good_bg, kurtosis = check_bg_kurtosis(df, col)
+        is_good_bg, kurtosis = check_bg_kurtosis(params, df, col)
         #print(f"cleaned distribution: {df['dates'].iloc[0]} to {df['dates'].iloc[len(df)-1]}, kurtosis {kurtosis}")
     return is_good, kurtosis, bins[1]
     
@@ -532,12 +532,12 @@ def calc_bg_stats(df, nsigma, col):
 
 
 #TESTING
-def plot_dist_hist(df, iteration):
+def plot_dist_hist(params, df, iteration):
     """ PLOT HISTOGRAMS OF THE DATA TO INVESTIGATE distribution. """
     if iteration != 0: return
     
-    if not os.path.isdir(os.path.join(cfg.plotpath,'idsep','hist')):
-        os.mkdir(os.path.join(cfg.plotpath,'idsep','hist'))
+    if not os.path.isdir(os.path.join(params.module_plotpath,'hist')):
+        os.mkdir(os.path.join(params.module_plotpath,'hist'))
 
     firstdate = df['dates'].iloc[0]
     lastdate = df['dates'].iloc[-1]
@@ -549,7 +549,7 @@ def plot_dist_hist(df, iteration):
         fig = plt.figure()  # Creates a new figure
         ax = fig.add_subplot(111)
 
-        is_good, kurtosis = check_bg_kurtosis(df, col)
+        is_good, kurtosis = check_bg_kurtosis(params, df, col)
         bins = make_log_bins()
         hist = df[col].hist(bins=bins, figsize=(8, 6), ax=ax)
         fig.suptitle(f"{firstdate} to {lastdate}", fontsize=14, fontweight='bold')
@@ -560,7 +560,7 @@ def plot_dist_hist(df, iteration):
         ax.text(0.01, 0.95, f"Kurtosis: {kurtosis}",
                 verticalalignment='top', horizontalalignment='left',
                 transform=ax.transAxes, fontsize=12)
-        figname = os.path.join(cfg.plotpath,'idsep','hist',f"hist_{col}_{firstdate.year}_{firstdate.month}_{firstdate.day}_it{iteration}.jpg")
+        figname = os.path.join(params.module_plotpath,'hist',f"hist_{col}_{firstdate.year}_{firstdate.month}_{firstdate.day}_it{iteration}.jpg")
         plt.savefig(figname)
         plt.close()
 
@@ -690,8 +690,8 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
 #####################################
 ##OPTIMIZED AGLORITHM
 #####################################
-def backward_window_background_optimized(N, dates, fluxes, energy_bins,
-    nsigma, iteration=0, is_final=False, savepath=''):
+def backward_window_background_optimized(params, dates, fluxes, energy_bins,
+    iteration=0, is_final=False):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -717,6 +717,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
         :ave_sigma: (px2xm float array) sigma of flux for the month
         
     """
+    N = params.sliding_win
     print("backward_window_background: Calculating the background using "
         "a backward smoothing window of " + str(N) + " days.")
     
@@ -738,7 +739,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
     nwin_pts = int(window_sec/time_res_sec)
     print("backward_window_background_optimized: There are " + str(nwin_pts)
         + " data points in the " + str(N) + " days time window.")
-    print("backward_window_background_optimized: Require " + str(cfg.percent_points*nwin_pts)
+    print("backward_window_background_optimized: Require " + str(params.percent_points*nwin_pts)
         + " point to calculate background.")
 
     #Average the flux between N days
@@ -825,7 +826,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
             #values or very high value
             ngood = len(sub[col].dropna())
             #print(f"Start Time: {starttime}, End Time: {endtime}, Number of good points: {ngood}, Required: {cfg.percent_points*nwin_pts}")
-            if ngood < cfg.percent_points*nwin_pts:
+            if ngood < params.percent_points*nwin_pts:
                 if df_means.empty:
                     mean = 1e6
                     sigma = 0
@@ -844,11 +845,11 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
 
             ####CHECK THAT BACKGROUND IS OF GOOD QUALITY
             #Don't use time period if too many of a single value (non-Gaussian distribution)
-            is_good_bg, kurtosis = check_bg_kurtosis(sub, col)
+            is_good_bg, kurtosis = check_bg_kurtosis(params, sub, col)
 
             if not is_good_bg:
                 #Try to clean the distribution and get a good kurtosis value
-                is_clean, kurtosis, bin_high_edge = clean_distribution(sub, col)
+                is_clean, kurtosis, bin_high_edge = clean_distribution(params, sub, col)
                 if not is_clean:
                     if df_means.empty:
                         mean = 1e6
@@ -870,7 +871,7 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
                     sub[col].loc[sub[col] < bin_high_edge] == np.nan
 
             #Recalculate the background using the refined data and save
-            mean, sigma, threshold = calc_bg_stats(sub, nsigma, col)
+            mean, sigma, threshold = calc_bg_stats(sub, params.idsep_nsigma, col)
             means.append(mean)
             sigmas.append(sigma)
             thresholds.append(threshold)
@@ -916,10 +917,10 @@ def backward_window_background_optimized(N, dates, fluxes, energy_bins,
     appx = '_it'+str(iteration)
     if is_final:
         appx = '_FINAL'
-        write_df(df_means,'background_mean_fluxes'+appx, savepath=savepath)
-        write_df(df_sigmas,'background_sigma'+appx, savepath=savepath)
-        write_df(df_thresholds,'background_threshold'+appx, savepath=savepath)
-        write_df(df_stats1,'kurtosis'+appx, savepath=savepath)
+        write_df(df_means,'background_mean_fluxes'+appx, savepath=params.module_outpath)
+        write_df(df_sigmas,'background_sigma'+appx, savepath=params.module_outpath)
+        write_df(df_thresholds,'background_threshold'+appx, savepath=params.module_outpath)
+        write_df(df_stats1,'kurtosis'+appx, savepath=params.module_outpath)
 
     return mean_background, ave_sigma, threshold
 

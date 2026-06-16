@@ -216,10 +216,10 @@ def experiment_info(experiment):
                 'species': '',
                 'location': '',
                 'differential': {
-                    'kurtosis_cut': cfg.kurtosis_cut,
+                    'kurtosis_cut': 999,
                 },
                 'integral': {
-                    'kurtosis_cut': cfg.kurtosis_cut,
+                    'kurtosis_cut': 999,
                 },
 
             },

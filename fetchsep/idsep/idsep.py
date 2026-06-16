@@ -289,8 +289,8 @@ def apply_sliding_window(params, dates, fluxes_bg_in, fluxes, energy_bins, itera
     
     """
     ave_background, ave_sigma, threshold =\
-            defbg.backward_window_background_optimized(params.sliding_win, dates, fluxes_bg_in,
-            energy_bins, params.idsep_nsigma, iteration, is_final=is_final, savepath=params.module_outpath)
+            defbg.backward_window_background_optimized(params, dates, fluxes_bg_in,
+            energy_bins, iteration, is_final=is_final)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
