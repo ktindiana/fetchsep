@@ -570,10 +570,10 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-    subdir = names.opsep_subdir(experiment, flux_type, user_name, options,
-        spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
-        doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
-        IDSEPEnhancement=IDSEPEnhancement)
+#    subdir = names.opsep_subdir(experiment, flux_type, user_name, options,
+#        spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
+#        doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
+#        IDSEPEnhancement=IDSEPEnhancement)
     
     startdate, sep_date, jsonfname, event_dict_csv, event_dict_pkl = \
         opsep.run_opsep(start_date, end_date, experiment,
@@ -615,4 +615,4 @@ def update_observations(target_dir, start_date, end_date, experiment,
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
 
-    return subdir
+    return 
