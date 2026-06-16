@@ -444,7 +444,7 @@ class Parameters:
         #### Directory and plotting names FOR OPSEP ####
         #Directory name, filename, and plot title modifiers based on selections
         if self.module == 'opsep':
-            modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft,
+            modifier, title_mod = names.setup_modifiers(self.options, spacecraft=self.spacecraft,
                 doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
                 OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
             self.modifier = modifier
