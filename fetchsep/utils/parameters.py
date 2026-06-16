@@ -64,6 +64,8 @@ class Parameters:
         self.idsep_outpath = ''
         self.idsep_plotpath = ''
 
+        self.idsep_path = '' #May be set by user as path to background_mean_fluxes_FINAL.csv, etc
+
         self.module_subdir = ''
         self.module_outpath = ''
         self.module_plotpath = ''
