@@ -104,12 +104,12 @@ def set_config_flux_units(experiment):
             flux_units_differential, fluence_units_differential)
 
 
-def set_config_kurtosis_cut(experiment, flux_type):
+def set_kurtosis_cut(experiment, flux_type):
     """ Set global kurtosis_cut values for idsep """
     
     exp_info = experiment_info(experiment)
     kurtosis_cut = exp_info[flux_type]['kurtosis_cut']
-    cfg.set_kurtosis_cut(kurtosis_cut)
+    return kurtosis_cut
     
 
 def get_spacecraft(experiment, spacecraft):

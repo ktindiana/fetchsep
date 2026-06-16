@@ -193,7 +193,7 @@ def get_data(params,
     if showplot or saveplot:
         unique_id = "FluxTimeSeries"
         plt_tools.idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins)
-        if params.showplot:
+        if showplot:
             plt.show()
     
     return params.module_outpath, params.module_plotpath, dates, fluxes, energy_bins, energy_bin_centers

@@ -1,5 +1,6 @@
 from ..utils import config as cfg
 from ..utils import directories as dirs
+from ..utils import parameters as fsparam
 from ..utils import read_datasets as datasets
 from ..utils import download as fsdl
 from ..utils import date_handler as dh
@@ -18,6 +19,7 @@ import matplotlib.pyplot as plt
 import sys
 import math
 import pandas as pd
+import copy
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -71,32 +73,17 @@ def get_bg_high(threshold, dates, fluxes):
 
 
 
-def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
-    str_stdate, str_enddate, remove_above, SEPstart, SEPend,
-    for_inclusive=False, spacecraft='', modifier='', savepath=''):
+def write_sep_dates(params, energy_bins, SEPstart, SEPend):
     """ Write out SEP start and end times to file.
         
         INPUTS:
         
-        :experiment: (string) name of experimen or "user"
-        :exp_name: (string) if experiment is user, indicates name of experiment
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object) 
         :energy_bins: (nx2 float array) energy bins for each channel
-        :options: (array of strings) any modifications applied to data
-            (only for GOES data currently)
-        :str_stdate: (string) start of time period searched for SEP events
-        :str_enddate: (string) end of time period searched for SEP events
-        :remove_above: (float) intial cut input by user when program called
         :SEPend: (nxm datetime array) start times for n energy channels
             and m SEP events
         :SEPend: (nxm datetime array) end times for n energy channels
             and m SEP events
-        :for_inclusive: (bool) if set to true, will output end time
-            1 second before the next data point starts; if end time found
-            to be point on 2011-01-01 00:00:00, will make end time
-            2010-12-31 23:59:59
-        :modifier: (string) modifier for path and filenames
-        :savepath: (string) path to save output file
             
         OUTPUTS:
         
@@ -107,34 +94,34 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     
     one_sec = datetime.timedelta(seconds=1)
     
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
+    name = params.idsep_subdir
     prename = (f"SEPTimes_{name}")
-    zstdate = dh.time_to_zulu(str_stdate)
+    zstdate = dh.time_to_zulu(params.startdate)
     zstdate = zstdate.replace(':', '')
-    zenddate = dh.time_to_zulu(str_enddate)
+    zenddate = dh.time_to_zulu(params.enddate)
     zenddate = zenddate.replace(':', '')
     
     #####WRITE SEP DATES OUT TO FILE##########
     for j in range(len(SEPstart)):
         fname = (f"{prename}_{zstdate}_{zenddate}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
-        fname = os.path.join(savepath, fname)
+        fname = os.path.join(params.module_outpath, fname)
         outfile = open(fname,"w")
         outfile.write("#SEP times calculated by idsep\n")
-        if experiment == "user" and exp_name != '':
-            outfile.write(f"#Experiment: {exp_name}\n")
+        if params.experiment == "user" and params.user_name != '' and params.user_name != None:
+            outfile.write(f"#Experiment: {params.user_name}\n")
         else:
-            outfile.write(f"#Experiment: {experiment}\n")
-        outfile.write(f"#Flux type: {flux_type}\n")
+            outfile.write(f"#Experiment: {params.experiment}\n")
+        outfile.write(f"#Flux type: {params.flux_type}\n")
         outfile.write(f"#Energy channel: {energy_bins[j][0]} - {energy_bins[j][1]}\n")
-        outfile.write(f"#Selected options: {options}\n")
-        outfile.write(f"#Searched date range: {str_stdate} to {str_enddate}\n")
-        outfile.write("#User applied an initial cut of " + str(remove_above)
-                + ", initial averaging window of " + str(cfg.init_win) + " days"
+        outfile.write(f"#Selected options: {params.options}\n")
+        outfile.write(f"#Searched date range: {params.startdate} to {params.enddate}\n")
+        outfile.write("#User applied an initial cut of " + str(params.remove_above)
+                + ", initial averaging window of " + str(params.init_win) + " days"
                 + ", final threshold with a sliding window of "
-                + str(cfg.sliding_win) + " days\n")
+                + str(params.sliding_win) + " days\n")
         outfile.write("#The percentage of points in the sliding window that must be "
-                "background was " + str(cfg.percent_points) + "\n")
-        outfile.write("#Threshold defined as mean background + " + str(cfg.idsep_nsigma)
+                "background was " + str(params.percent_points) + "\n")
+        outfile.write("#Threshold defined as mean background + " + str(params.idsep_nsigma)
                 + " x sigma\n")
         outfile.write("#SEPs were identified when " + str(nconsec) + " points "
                 + " exceeded threshold, allowing up to " + str(allow_miss)
@@ -145,7 +132,7 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
         for k in range(len(SEPstart[j])):
             SEPst = SEPstart[j][k]
             SEPed = SEPend[j][k]
-            if for_inclusive:
+            if params.for_inclusive:
                 SEPed = SEPed - one_sec
             outfile.write(str(SEPst) + " " + str(SEPed) + "\n")
             
@@ -154,30 +141,17 @@ def write_sep_dates(experiment, exp_name, flux_type, energy_bins, options,
     
     
 
-def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
-    str_stdate, str_enddate, remove_above, dates, fluxes_high,
-    for_inclusive=False, spacecraft="", modifier='', savepath=''):
+def write_all_high_points(params, energy_bins, dates, fluxes_high):
     """ Write out SEP start and end times to file.
         
         INPUTS:
         
-        :experiment: (string) name of experimen or "user"
-        :exp_name: (string) if experiment is user, indicates name of experiment
-        :flux_type: (string) integral or differential
+        :params: (FetchSEP Parameters object) 
         :energy_bins: (nx2 float array) energy bins for each channel
-        :options: (array of strings) any modifications applied to data
-            (only for GOES data currently)
-        :str_stdate: (string) start of time period searched for SEP events
-        :str_enddate: (string) end of time period searched for SEP events
-        :remove_above: (float) intial cut input by user when program called
         :dates: (1xm datetime array) dates associated with flux points
         :fluxes_high: (nxm float array) flux values for n energy channels and
             m dates; expect all values below threshold to be set to zero and
             all values above threshold to be non-zero
-        :for_inclusive: (bool) if set to true, will output end time
-            1 second before the next data point starts; if end time found
-            to be point on 2011-01-01 00:00:00, will make end time
-            2010-12-31 23:59:59
         
             
         OUTPUTS:
@@ -188,40 +162,40 @@ def write_all_high_points(experiment, exp_name, flux_type, energy_bins, options,
     """
     #duration of each data point
     time_res = analysis.determine_time_resolution(dates)
-    if for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
+    if params.for_inclusive: time_res = time_res - datetime.timedelta(seconds=1)
     
     #Additions to titles and filenames according to user-selected options
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
+    name = params.idsep_subdir
 
     prename = (f"HighPoints_{name}")
-    zstdate = dh.time_to_zulu(str_stdate)
-    zenddate = dh.time_to_zulu(str_enddate)
+    zstdate = dh.time_to_zulu(params.startdate)
+    zenddate = dh.time_to_zulu(params.enddate)
     
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(fluxes_high)):
         fname = (f"{prename}_{zstdate}_{zenddate}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
-        fname = os.path.join(savepath, fname)
+        fname = os.path.join(params.module_outpath, fname)
         outfile = open(fname,"w")
         outfile.write("#All high points above mean background + 3*sigma calculated by idsep\n")
-        if experiment == "user" and exp_name != '':
-            outfile.write(f"#Experiment: {exp_name}\n")
+        if params.experiment == "user" and params.user_name != '' and params.user_name != None:
+            outfile.write(f"#Experiment: {params.user_name}\n")
         else:
-            outfile.write(f"#Experiment: {experiment}\n")
-        outfile.write(f"#Flux type: {flux_type}\n")
+            outfile.write(f"#Experiment: {params.experiment}\n")
+        outfile.write(f"#Flux type: {params.flux_type}\n")
         outfile.write(f"#Energy channel: {energy_bins[j][0]} - {energy_bins[j][1]}\n")
-        outfile.write(f"#Selected options: {options}\n")
-        outfile.write(f"#Searched date range: {str_stdate} to {str_enddate}\n")
-        outfile.write("#User applied an initial cut of " + str(remove_above)
-                + ", initial averaging window of " + str(cfg.init_win) + " days"
+        outfile.write(f"#Selected options: {params.options}\n")
+        outfile.write(f"#Searched date range: {params.startdate} to {params.enddate}\n")
+        outfile.write("#User applied an initial cut of " + str(params.remove_above)
+                + ", initial averaging window of " + str(params.init_win) + " days"
                 + ", final threshold with a sliding window of "
-                + str(cfg.sliding_win) + " days\n")
+                + str(params.sliding_win) + " days\n")
         outfile.write("#The percentage of points in the sliding window that must be "
-                "background was " + str(cfg.percent_points) + "\n")
-        outfile.write("#Threshold defined as mean background + " + str(cfg.idsep_nsigma)
+                "background was " + str(params.percent_points) + "\n")
+        outfile.write("#Threshold defined as mean background + " + str(params.idsep_nsigma)
                 + " x sigma\n")
         outfile.write("#High flux points were identified when flux values "
                     "exceeded mean background flux + 3*sigma "
-                    "by applying a " + str(cfg.sliding_win) + " days "
+                    "by applying a " + str(params.sliding_win) + " days "
                     "backward sliding window to estimate the background levels.\n")
         outfile.write("#Start Time    End Time\n")
         
@@ -251,9 +225,7 @@ def separate_sep_with_dates(dates, fluxes, SEPstart, SEPend, padding):
 
 
 
-def rough_cut(dates, fluxes, remove_above, energy_bins, experiment,
-        flux_type, exp_name, options, showplot, saveplot, spacecraft="",
-        modifier='', title_mod='', id_outpath='', id_plotpath=''):
+def rough_cut(params, dates, fluxes, energy_bins):
     """ Remove fluxes above remove_above.
         Group fluxes into time periods of init_win.
         For each time period, calculate the mean background and sigma.
@@ -265,10 +237,8 @@ def rough_cut(dates, fluxes, remove_above, energy_bins, experiment,
         
             :dates: (1xn datetime array)
             :fluxes: (mxn float array) fluxes for m energy bins, n dates
-            :remove_above: (float) and initial cut on flux applied to all
-                energy bins. Flux > remove_above is considered an enhancement.
-            :id_outpath: (string) path to save output files
-            :id_plotpath: (string) path to save plots
+            :energy_bins: (array) energy bins that go with fluxes 
+            :params: (FetchSEP Parameters object) 
         
         OUTPUTS:
         
@@ -277,26 +247,26 @@ def rough_cut(dates, fluxes, remove_above, energy_bins, experiment,
             
     """
     print("Preforming an initial rough cut between the background and enhanced fluxes.")
-    print(f"Init win: {cfg.init_win}, Nsigma: {cfg.idsep_nsigma}, Remove above: {remove_above}")
+    print(f"Init win: {params.init_win}, Nsigma: {params.idsep_nsigma}, Remove above: {params.remove_above}")
     ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold =\
-                defbg.ndays_average_optimized(cfg.init_win, dates, fluxes, energy_bins,
-                cfg.idsep_nsigma, remove_above, savepath=id_outpath)
+                defbg.ndays_average_optimized(params.init_win, dates, fluxes, energy_bins,
+                params.idsep_nsigma, params.remove_above, savepath=params.module_outpath)
     
     #INITIAL SEPARATION OF BG AND HIGHER THAN BG
     fluxes_bg, fluxes_high = get_bg_high(threshold,dates,fluxes)
     
-    if showplot or saveplot:
-        plt_tools.idsep_make_plots(str(cfg.init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, showplot, saveplot, spacecraft=spacecraft, modifier=modifier, title_mod=title_mod, savepath=id_plotpath)
+    if params.showplot or params.saveplot:
+        plt_tools.idsep_make_plots(str(params.init_win)+"days", params, dates, fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold, showplot=False)
         
-        plt_tools.idsep_make_bg_sep_plot(str(cfg.init_win)+"days", experiment, flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins, showplot, saveplot, spacecraft=spacecraft,
-            modifier=modifier, title_mod=title_mod, savepath=id_plotpath)
+        plt_tools.idsep_make_bg_sep_plot(str(params.init_win)+"days", params, dates, fluxes_bg,
+            fluxes_high, energy_bins, showplot=False)
 
     
     return fluxes_bg, fluxes_high
 
 
-def apply_sliding_window(dates, fluxes_bg_in, fluxes, energy_bins, iteration=0,
-    is_final=False, modifier='', title_mod='', savepath=''):
+def apply_sliding_window(params, dates, fluxes_bg_in, fluxes, energy_bins, iteration=0,
+    is_final=False):
     """ Identify the background value for every day using a sliding window.
         Use the initial estimated background from rough_cut and refine
         by applying a sliding window of sliding_win days to get a background
@@ -306,6 +276,7 @@ def apply_sliding_window(dates, fluxes_bg_in, fluxes, energy_bins, iteration=0,
         
         INPUTS:
         
+            :params: (FetchSEP Parameters object)
             :dates: (1xn datetime array)
             :fluxes_bg_in: (mxn float array) background fluxes for m energy bins,
                 n dates
@@ -318,8 +289,8 @@ def apply_sliding_window(dates, fluxes_bg_in, fluxes, energy_bins, iteration=0,
     
     """
     ave_background, ave_sigma, threshold =\
-            defbg.backward_window_background_optimized(cfg.sliding_win, dates, fluxes_bg_in,
-            energy_bins, cfg.idsep_nsigma, iteration, is_final=is_final, savepath=savepath)
+            defbg.backward_window_background_optimized(params.sliding_win, dates, fluxes_bg_in,
+            energy_bins, params.idsep_nsigma, iteration, is_final=is_final, savepath=params.module_outpath)
     
     for i in range(len(fluxes_bg_in)):
         if None in fluxes_bg_in[i]:
@@ -361,7 +332,7 @@ def write_sep_fluxes(dates, fluxes, fluxes_bg, energy_bins, savepath=''):
 
 def run_idsep(str_startdate, str_enddate, experiment,
     flux_type=None, spacecraft=None,
-    exp_name=None, user_file=None,
+    user_name=None, user_file=None,
     directory_depth=None,
     is_unixtime=None, options=None, dointerp=None,
     remove_above=None, for_inclusive=None,
@@ -373,6 +344,7 @@ def run_idsep(str_startdate, str_enddate, experiment,
     plot_timeseries_only=None,
     showplot=None, saveplot=None,
     write_fluxes=None,
+    use_absolute_datapath=None,
     path_to_data=None,
     path_to_output=None,
     path_to_plots=None,
@@ -432,38 +404,31 @@ def run_idsep(str_startdate, str_enddate, experiment,
     
     """
     print("TIMESTAMP: Starting idsep " + str(datetime.datetime.now()))
-
-    if flux_type == '' or flux_type == None:
-        flux_type = expts.get_flux_type(experiment)
-    expts.set_config_kurtosis_cut(experiment, flux_type)
     expts.set_config_energy_units(experiment)
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
-#    cfg.configure_idsep(kurtosis_cut=kurtosis_cut, idsep_nsigma=idsep_nsigma,
-#        init_win=init_win, sliding_win=sliding_win, percent_points=percent_points)
-    cfg.print_configured_values()
 
 
     #### SET UP EXPERIMENT VALUES #####
-    #If user specifies a spacecraft but isn't relevant to experiment,
-    #overrides and sets spacecraft to ''
-#    spacecraft = expts.get_spacecraft(experiment, spacecraft)
-
-    #Check for empty dates
-#    if (str_startdate == "" or str_enddate == ""):
-#        sys.exit('You must enter start and end dates. Exiting.')
-
-#    if experiment != 'user':
-#        exp_info = expts.experiment_info(experiment)
-
+    params = fsparam.Parameters('idsep', str_startdate, str_enddate, experiment)
+    params.set_values(flux_type=flux_type, spacecraft=spacecraft, user_name=user_name,
+        user_file=user_file, is_unixtime=is_unixtime, options=options, dointerp=dointerp,
+        showplot=showplot, saveplot=saveplot, directory_depth=directory_depth,
+        use_absolute_datapath=use_absolute_datapath,
+        remove_above=remove_above, for_inclusive=for_inclusive,
+        kurtosis_cut=kurtosis_cut,
+        idsep_nsigma=idsep_nsigma,
+        init_win=init_win,
+        sliding_win=sliding_win,
+        percent_points=percent_points,
+        write_fluxes=write_fluxes)
     #################
+    #Once params have been set up, need to use variable from params because
+    #some processing and logic have been applied when creating the Parameters object
 
-#    startdate = dh.str_to_datetime(str_startdate)
-#    enddate = dh.str_to_datetime(str_enddate)
-    eff_startdate = startdate
-    
-#    options = options.split(";")
+    eff_startdate = params.startdate
+    params_cp = copy.deepcopy(params)
     #If the user entered a date range shorter than required for the
     #initial window used to identify the background, extend the date range
     #Note that the user should consider adding up to two months prior to the dates
@@ -471,44 +436,24 @@ def run_idsep(str_startdate, str_enddate, experiment,
     #timeseries are not accurate
     if not plot_timeseries_only:
         #Extend timeseries to cover init_win
-        diff = (enddate - startdate).days
-        if diff < cfg.init_win*2:
-            eff_startdate = enddate - datetime.timedelta(days=cfg.init_win*2)
-        
-    
-#    error_check.error_check_options(experiment, flux_type, options, False, spacecraft=spacecraft)
-#    error_check.error_check_inputs(startdate, enddate, experiment, flux_type, subroutine='idsep')
-#
-#    # Create directory names and prepare directories
-#    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft)
-#    subdir = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
-#    id_outpath = dirs.create_subdirectories(cfg.outpath, module='idsep',
-#        subdir=subdir, directory_depth=directory_depth)
-#    id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
-#        subdir=subdir, directory_depth=directory_depth)
-
+        diff = (params.enddate - params.startdate).days
+        if diff < params.init_win*2:
+            eff_startdate = params.enddate - datetime.timedelta(days=params.init_win*2)
+            
+    params_cp.startdate = eff_startdate
 
     #READ IN FLUXES
     print("TIMESTAMP: Reading in flux files at time " + str(datetime.datetime.now()))
     #DOWNLOAD AND READ IN DATA
     dl_outpath, dl_plotpath, dates, fluxes, energy_bins, energy_bin_centers =\
-        fsdl.get_data(eff_startdate, enddate, experiment, flux_type=flux_type,
-            exp_name=exp_name, user_file=user_file, is_unixtime=is_unixtime,
-            spacecraft=spacecraft, directory_depth=directory_depth, module='idsep',
-            options=options, dointerp=dointerp, showplot=plot_timeseries_only, saveplot=saveplot,
-            write_fluxes=write_fluxes, dl_outpath=id_outpath, dl_plotpath=id_plotpath,
-            path_to_data=cfg.datapath, path_to_output=cfg.outpath,
-            path_to_plots=cfg.plotpath, path_to_lists=cfg.listpath)
+        fsdl.get_data(params_cp, showplot=False)
 
     if plot_timeseries_only:
         sys.exit("Time series plot completed. Exiting.")
     
     #ITERATION 1: DEFINE AN INITIAL "MOVING" THRESHOLD W/DATE
     print("TIMESTAMP: Creating rough cut first guess at threshold at time " + str(datetime.datetime.now()))
-    fluxes_bg_init, fluxes_high_init = rough_cut(dates, fluxes,
-        remove_above, energy_bins, experiment, flux_type, exp_name, options,
-        False, saveplot, spacecraft=spacecraft, modifier=modifier, title_mod=title_mod,
-        id_outpath=id_outpath, id_plotpath=id_plotpath)
+    fluxes_bg_init, fluxes_high_init = rough_cut(params, dates, fluxes, energy_bins)
     
     
     #ITERATE over the identification of background and SEP periods
@@ -537,26 +482,22 @@ def run_idsep(str_startdate, str_enddate, experiment,
         #The mean background is sensitive to the background selection in fluxes_bg_init
         print(f"TIMESTAMP: Starting sliding window background calculation, {datetime.datetime.now()}")
         fluxes_bg, fluxes_high, ave_background, ave_sigma, threshold =\
-            apply_sliding_window(dates, fluxes_bg_init, fluxes, energy_bins,
-            iteration=iter, is_final=is_final, savepath=id_outpath)
+            apply_sliding_window(params, dates, fluxes_bg_init, fluxes, energy_bins,
+            iteration=iter, is_final=is_final)
         print(f"TIMESTAMP: Completed sliding window background calculation, {datetime.datetime.now()}")
 
 
-        if showplot or saveplot:
-            plt_tools.idsep_make_plots(str(cfg.sliding_win)+"window" + post, experiment, flux_type, exp_name, options, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold, False, saveplot, spacecraft=spacecraft, close_plot=close_plot,
-                modifier=modifier, title_mod=title_mod, savepath=id_plotpath)
+        if params.showplot or params.saveplot:
+            plt_tools.idsep_make_plots(str(params.sliding_win)+"window" + post, params, dates,
+                fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma, dates, threshold,
+                showplot=False, close_plot=close_plot)
             
-            plt_tools.idsep_make_plots(str(cfg.sliding_win)+"window_nosigma" + post,
-                experiment, flux_type,
-                exp_name, options, dates, fluxes_bg_init, energy_bins, dates,
-                ave_background, ave_sigma, dates, threshold, showplot,
-                saveplot, True, spacecraft=spacecraft, close_plot=close_plot,
-                modifier=modifier, title_mod=title_mod, savepath=id_plotpath) #disable sigma
+            plt_tools.idsep_make_plots(str(params.sliding_win)+"window_nosigma" + post,
+                params, dates, fluxes_bg_init, energy_bins, dates, ave_background, ave_sigma,
+                dates, threshold, close_plot=close_plot, disable_sigma=True) #disable sigma
             
-            plt_tools.idsep_make_bg_sep_plot(str(cfg.sliding_win)+"window" + post, experiment,
-                flux_type, exp_name, options, dates, fluxes_bg, fluxes_high, energy_bins,
-                showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot,
-                modifier=modifier, title_mod=title_mod, savepath=id_plotpath)
+            plt_tools.idsep_make_bg_sep_plot(str(params.sliding_win)+"window" + post, params,
+                dates, fluxes_bg, fluxes_high, energy_bins, close_plot=close_plot)
 
 
         #Identify SEP events in full time range
@@ -565,17 +506,16 @@ def run_idsep(str_startdate, str_enddate, experiment,
         #automatically extended the data set to accomodate the required
         #date lengths. Don't calculate and plot if it will be redundant.
         get_sep = True
-        if is_final and dates[0] == startdate:
+        if is_final and dates[0] == params.startdate:
             get_sep = False
         if get_sep:
             global dwell_pts #to get value from tools and print to screen
-            SEPstart, SEPend, fluxes_sep = analysis.identify_sep_above_background(dates, fluxes_high)
+            SEPstart, SEPend, fluxes_sep = analysis.identify_sep_above_background(dates,
+                fluxes_high)
 
             if showplot or saveplot:
-                plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, experiment, flux_type,
-                    exp_name, options, dates, fluxes, fluxes_sep, energy_bins,
-                    showplot, saveplot, spacecraft=spacecraft, close_plot=close_plot,
-                    modifier=modifier, title_mod=title_mod, savepath=id_plotpath)
+                plt_tools.idsep_make_bg_sep_plot("OnlySEP"+post, params, dates, fluxes,
+                    fluxes_sep, energy_bins, close_plot=close_plot)
 
 
         #Taking the estimated background flux and remove SEP periods
@@ -588,34 +528,27 @@ def run_idsep(str_startdate, str_enddate, experiment,
     
 
     #Trim fluxes to the date range specified by the user
-    trim_dates, trim_fluxes_high = datasets.extract_date_range(startdate, enddate, dates, fluxes_high)
-    trim_dates, trim_fluxes = datasets.extract_date_range(startdate, enddate, dates, fluxes)
-    trim_bg_dates, trim_ave_bg = datasets.extract_date_range(startdate, enddate, dates, ave_background)
+    trim_dates, trim_fluxes_high = datasets.extract_date_range(params.startdate, params.enddate, dates, fluxes_high)
+    trim_dates, trim_fluxes = datasets.extract_date_range(params.startdate, params.enddate, dates, fluxes)
+    trim_bg_dates, trim_ave_bg = datasets.extract_date_range(params.startdate, params.enddate, dates, ave_background)
     #Expect that this solution is exactly the same as the last one in the loop above,
     #UNLESS the dates need to be trimmed down
     SEPstart, SEPend, final_fluxes_sep = analysis.identify_sep_above_background(trim_dates, trim_fluxes_high)
     
-    #Write background-subtracted SEP only fluxes to file
-    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_ave_bg, energy_bins, savepath=id_outpath)
+    #Write SEP only fluxes to file
+    write_sep_fluxes(trim_dates, final_fluxes_sep, trim_ave_bg, energy_bins,
+        savepath=params.module_outpath)
     
     #Write start and end times to file
-    write_sep_dates(experiment, exp_name, flux_type, energy_bins,
-                    options, str_startdate, str_enddate, remove_above,
-                    SEPstart, SEPend, for_inclusive, spacecraft=spacecraft,
-                    modifier=modifier, savepath=id_outpath)
-    write_all_high_points(experiment, exp_name, flux_type, energy_bins,
-                    options, str_startdate, str_enddate, remove_above,
-                    dates, fluxes_high, for_inclusive, spacecraft=spacecraft,
-                    modifier=modifier, savepath=id_outpath)
+    write_sep_dates(params, energy_bins, SEPstart, SEPend)
+    write_all_high_points(params, energy_bins, dates, fluxes_high)
 
  
-    if showplot or saveplot:
-        plt_tools.idsep_make_bg_sep_plot("FINALSEP", experiment, flux_type, exp_name, options,
-            trim_dates, trim_fluxes, final_fluxes_sep, energy_bins, showplot, saveplot,
-            spacecraft=spacecraft, modifier=modifier, title_mod=title_mod, savepath=id_plotpath)
+    if params.showplot or params.saveplot:
+        plt_tools.idsep_make_bg_sep_plot("FINALSEP", params, trim_dates, trim_fluxes,
+            final_fluxes_sep, energy_bins)
  
-        
-        if showplot: plt.show()
+        if params.showplot: plt.show()
 
     print("TIMESTAMP: Completed idsep " + str(datetime.datetime.now()))
-    return id_outpath, id_plotpath
+    return params.module_outpath, params.module_plotpath

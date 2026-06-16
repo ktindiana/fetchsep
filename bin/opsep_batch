@@ -100,12 +100,6 @@ parser.add_argument("--opsep_nsigma", type=float, default=None,
             "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
             "Will default to value in fetchsep.cfg."))
 
-#parser.add_argument("--UMASEP",
-#        help=("Flag to calculate flux values and thresholds specific to "
-#            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
-#            "flux values at 3, 4, 5, 6, 7 hours after "
-#            "crossing thresholds."), action="store_true")
-
 args = parser.parse_args()
 sep_filename = args.Filename
 statusfname = args.StatusFilename
@@ -115,7 +109,6 @@ no_goes_colors = args.NoGOESColors
 threshold = args.Threshold
 associations = args.Associations
 dointerp=args.DoInterp
-umasep = False #args.UMASEP
 
 path_to_data = args.datapath
 path_to_output = args.outpath

@@ -1355,22 +1355,15 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow
     return fig, ax
 
 
-def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
-        fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,
-        threshold, showplot, saveplot, disable_sigma=False, spacecraft="",
-        close_plot=False, modifier='', title_mod='', savepath=''):
+def idsep_make_plots(unique_id, params, dates, fluxes, energy_bins, ave_dates, ave_fluxes,
+    ave_sigma, threshold_dates, threshold, showplot=None, disable_sigma=False, close_plot=False):
     """ Make multiple plots with 3 vertical subplots representing individual energy
         channels.
         
         INPUTS:
             
             :unique_id: (string) used in filename and figname
-            :experiment: (string)
-            :flux_type: (string) integral or differential
-            :exp_name: (string) if experiment is "user", then this holds
-                the name of the satellite/model
-            :options: (array of strings) options applied to data set, used
-                to append to filenames and plot title
+            :params: (FetchSEP Parameters object)
             :dates: (1xn array of datetime) n time steps
             :fluxes: (pxn array of float) p energy channels for n time steps
             :energy_bins: (px2 array of float) p energy channels
@@ -1382,12 +1375,7 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             :threshold_dates: (1xn array of datetime) each time step of fluxes
             :threshold: (pxn array of float) ave_fluxes + n*ave_sigma for
                 n defined in the fetchsep.config for each time step of fluxes
-            :showplot: (bool)
-            :saveplot: (bool)
             :disable_sigma: (bool) True = plot only ave_fluxes withou ave_sigma
-            :modifier: (string) modifiers for filenames
-            :title_mod: (string) additions to plot titles
-            :savepath: (string) path to save output files
 
         OUPTPUTS:
         
@@ -1395,13 +1383,17 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     
     
     """
+    #allow to override showplot
+    if showplot == None:
+        showplot = params.showplot
+    
     #Additions to titles and filenames according to user-selected options
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
+    name = params.idsep_subdir
 
     figname = (f"{name}_FluxWithThreshold_{unique_id}")
     
     #UNITS
-    flux_units = names.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = names.get_energy_units()
 
@@ -1409,10 +1401,10 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     nrow = 3 #3 plots per page
     for i in range(nbins):
         if not i%3:
-            exp = experiment
-            if experiment == 'user' and exp_name != '':
-                exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            exp = params.experiment
+            if params.experiment == 'user' and params.user_name != '':
+                exp = params.user_name
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, params.title_modifier, unique_id, flux_units, nrow)
             ax_right = [0]*len(ax)
             iax = 0
 
@@ -1455,8 +1447,8 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         ax[iax].set_ylim([ymin, ymax])
 
 
-        if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(savepath, (f"{figname}_{i}.png")))
+        if params.saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1467,7 +1459,12 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
  
 
 
-def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins, close_plot=False):
+def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins,
+    showplot=None, close_plot=False):
+    
+    #allow override for showplot
+    if showplot == None:
+        showplot = params.showplot
 
     #Additions to titles and filenames according to user-selected options
     name = params.idsep_subdir
@@ -1513,7 +1510,7 @@ def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins, cl
         
         if params.saveplot and (iax ==2 or i == nbins-1):
             fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
-            if not params.showplot:
+            if not showplot:
                 plt.close(fig)
             if close_plot:
                 plt.close(fig)
@@ -1524,16 +1521,19 @@ def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins, cl
 
 
 
-def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,
-            dates, fluxes_bg, fluxes_sep, energy_bins, showplot, saveplot,
-            spacecraft='', modifier='', title_mod='', savepath='', close_plot=False):
+def idsep_make_bg_sep_plot(unique_id, params, dates, fluxes_bg, fluxes_sep, energy_bins,
+    showplot=None, close_plot=False):
     
+    #allow showplot override
+    if showplot == None:
+        showplot = params.showplot
+
     #Additions to titles and filenames according to user-selected options
-    name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
+    name = params.idsep_subdir
     figname = (f"{name}_SEP_BG_{unique_id}")
 
     #UNITS
-    flux_units = names.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
     energy_units = names.get_energy_units()
 
@@ -1541,10 +1541,10 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,
     nrow = 3
     for i in range(nbins):
         if not i%3:
-            exp = experiment
-            if experiment == 'user' and exp_name != '':
-                exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            exp = params.experiment
+            if params.experiment == 'user' and params.user_name != '':
+                exp = params.user_name
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, params.title_modifier, unique_id, flux_units, nrow)
             ax_right = [0]*len(ax)
             iax = 0
 
@@ -1587,8 +1587,8 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,
         ax[iax].set_ylim([ymin, ymax])
 
 
-        if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(savepath, (f"{figname}_{i}.png")))
+        if params.saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:

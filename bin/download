@@ -23,7 +23,7 @@ parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help="Enter name of spacecraft or dataset")
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
-        'differential'], default='',
+        'differential'], default=None,
         help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',

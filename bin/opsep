@@ -200,7 +200,7 @@ parser.add_argument("--TwoPeaks",
                 action="store_true")
 
 parser.add_argument("--AbsoluteDatapath",
-        help=("Set flag to use datapath as an absolute path."), action="store_true")
+        help=("Set flag to use datapath as an absolute path to store data there without any subdirectories."), action="store_true")
 
 parser.add_argument("--opsep_nsigma", type=float, default=None,
         help=("Set opsep_nsigma to indicate the number of sigma above background required to "

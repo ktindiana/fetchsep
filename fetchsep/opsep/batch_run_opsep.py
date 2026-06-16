@@ -493,7 +493,7 @@ def run_all_events(sep_filename, threshold,
     statusfname='batch_run_status.csv',
     directory_depth=2,
     color_scheme=1, no_goes_colors=False,
-    umasep=False, dointerp=False,
+    dointerp=False,
     showplot=False, saveplot=True,
     associations=False,
     path_to_data=None,
@@ -521,8 +521,6 @@ def run_all_events(sep_filename, threshold,
                 1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); 
                 2 - Files output to subdirectory named according to experiment and 
                 options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/
-        :umasep: (boolean) set to true to calculate values related to
-            the UMASEP model
         :dointerp: (bool) if set to true will do interpolation of bad points
             with time
         :associations: (bool) set to true to find flare, CME, radio associated
