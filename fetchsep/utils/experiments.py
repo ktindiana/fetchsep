@@ -3,6 +3,7 @@ import os
 import datetime
 import math
 from . import config as cfg
+from . import date_handler as dh
 
 def valid_experiments():
     """ Return a list of experiments that can be processed by FetchSEP """
@@ -10,8 +11,8 @@ def valid_experiments():
     valid_experiments = ['user', 'GOES', 'GOES-05','GOES-06', 'GOES-07', 'GOES-08',
         'GOES-10', 'GOES-11', 'GOES-12', 'GOES-13', 'GOES-14', 'GOES-15',
         'GOES-16', 'GOES-17','GOES-18','GOES-19','GOES-RT', 'GOES-SWPC',
-        'SEPEM', 'SEPEMv3', 'EPHIN', 'EPHIN_REleASE','ERNE', 'CalGOES',
-        'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP8_CPME']
+        'SEPEM', 'SEPEMv3', 'SOHO_EPHIN', 'EPHIN_REleASE','SOHO_ERNE', 'CalGOES',
+        'STEREO-A', 'STEREO-B', 'ACE_SIS', 'ACE_EPAM_electrons', 'IMP-8_CPME']
         
     valid_nm = valid_neutron_monitors()
     valid_experiments = valid_experiments + valid_nm
@@ -103,12 +104,12 @@ def set_config_flux_units(experiment):
             flux_units_differential, fluence_units_differential)
 
 
-def set_config_kurtosis_cut(experiment, flux_type):
+def set_kurtosis_cut(experiment, flux_type):
     """ Set global kurtosis_cut values for idsep """
     
     exp_info = experiment_info(experiment)
     kurtosis_cut = exp_info[flux_type]['kurtosis_cut']
-    cfg.set_kurtosis_cut(kurtosis_cut)
+    return kurtosis_cut
     
 
 def get_spacecraft(experiment, spacecraft):
@@ -148,8 +149,6 @@ def get_json_mode(experiment):
     return json_mode
 
 
-#first_date and last_date indicate data availability.
-#last_date = None indicates experiment continues to the present
 #Energy bins listed for GOES are the nominal energy bins provided by NOAA
 
 def calculate_geometric_means(energy_bins):
@@ -172,6 +171,29 @@ def calculate_geometric_means(energy_bins):
             centers.append(math.sqrt(bin[0]*bin[1]))
         
     return centers
+
+#first_date and last_date indicate data availability.
+#last_date = None indicates experiment continues to the present
+def dates_available(experiment, startdate, enddate):
+    """ Check if experiment available during the requested dates.
+
+    """
+    startdate = dh.str_to_datetime(startdate)
+    enddate = dh.str_to_datetime(enddate)
+    exp_info = experiment_info(experiment)
+    if exp_info['last_date'] != None:
+        date = exp_info['last_date']+datetime.timedelta(hours=24)
+        exclusive_end_date = datetime.datetime(date.year, date.month, date.day)
+        if startdate < exp_info['first_date'] or enddate > exclusive_end_date:
+            msg = (f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
+            return False, msg
+    else:
+        if startdate < exp_info['first_date']:
+            msg = (f"The {experiment} data is available from {exp_info['first_date']} to present. Please change your requested dates. Exiting.")
+            return False, msg
+
+    return True, "Success"
+
 
 ########
 #Fluxes can be converted back and forth between integral and differential by fetchsep.
@@ -285,7 +307,7 @@ def experiment_info(experiment):
             },
 
 
-            'EPHIN':{
+            'SOHO_EPHIN':{
                 'first_date': datetime.datetime(1995,12,8),#1995-12-08
                 'last_date': None,
                 'flux_type': ['differential'],
@@ -375,7 +397,7 @@ def experiment_info(experiment):
                 }
             },
 
-            'ERNE':{
+            'SOHO_ERNE':{
                 'info': 'The highest energy 3 channels of ERNE tend to saturate and show incorrect values during high intensity SEP events. For this reason, only the >10 MeV integral fluxes should be used from ERNE data during themost intense part of intense SEP events.',
                 'first_date': datetime.datetime(1996,5,7),#1996-05-07
                 'last_date': None,
@@ -1078,7 +1100,7 @@ def experiment_info(experiment):
             },
 
 
-            'IMP8_CPME':{
+            'IMP-8_CPME':{
                 'first_date': datetime.datetime(1974,2,17),#1974-02-17
                 'last_date': datetime.datetime(2001,11,7), #2001-11-07
                 'flux_type': ['differential'],

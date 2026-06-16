@@ -1,5 +1,6 @@
 from . import config as cfg
 from . import tools
+from . import names
 from . import date_handler as dh
 from . import experiments as expts
 from ..json import ccmc_json_handler as ccmc_json
@@ -199,11 +200,7 @@ def check_for_good_fluxes(flux):
     return is_good
 
 
-def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
-    fluxes, dates, energy_bins, means, sigmas, saveplot,
-    spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False,
-    color_scheme=1, no_goes_colors=False):
+def opsep_plot_bgfluxes(unique_id, params, fluxes, dates, energy_bins, means, sigmas):
     """Plot fluxes with time for all of the energy bins on the same plot. The
         estimated mean background levels are plotted as dashed lines.
         Zero values are masked, which is useful when make plots of the
@@ -211,43 +208,33 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         
         INPUTS:
         
-        :experiment: (string) name of experiment
-        :flux_type: (string) "integral" or "differential"
-        :options: (string array) array of options that can be applied
-        :user_name: (string) name of data source is user input file
+        :params: (FetchSEP Parameters object) user-set parameters
         :fluxes: (float nxm array) flux time profiles for n energy channels and
             m time points
         :dates: (datetime 1xm array) m time points for flux time profile
         :energy_bins: (float nx2 array) energy bins for n energy channels
         :means: (float 1xn array) mean values of histogram for n energy channels
         :sigmas: (float 1xn array) sigma of histograms for n energy channels
-        :saveplot: (bool) True to save plot automatically
+
         
         OUTPUTS:
         
         Plot to screen and plot saved to file
         
     """
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
-    energy_units = tools.get_energy_units()
+    energy_units = names.get_energy_units()
     
-    colors = define_colors(energy_bins, color_scheme=color_scheme, no_goes_colors=no_goes_colors)
+    colors = define_colors(energy_bins, color_scheme=params.color_scheme,
+        no_goes_colors=params.no_goes_colors)
     
     #All energy channels in specified date range with event start and stop
     #Plot all channels of user specified data
     #Additions to titles and filenames according to user-selected options
     suffix = f"All_Bins_{unique_id}"
-    figname, subdir = tools.opsep_naming_scheme(dates[0], suffix, experiment, flux_type,
-        user_name, options, spacecraft=spacecraft,
-        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft,
-        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-
-    exp_name = experiment
+    figname = names.opsep_naming_scheme(dates[0], suffix, params.experiment, params.flux_type,
+        params.user_name, modifier=params.modifier)
 
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
@@ -264,7 +251,7 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         if isinstance(means[i], list):
             mean = np.nanmean(np.array(means[i]))
             
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = names.setup_energy_bin_label(energy_bins[i])
         p = ax.plot_date(dates,maskfluxes, '-', label=legend_label, color=colors[legend_label])
         color = p[0].get_color()
         if i==0:
@@ -272,8 +259,12 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
         else:
             plt.axhline(mean,color=color,linestyle=':')
 
+    exp_name = params.experiment
+    if params.experiment == 'user':
+        if params.user_name != None and params.user_name != '':
+            exp_name = params.user_name
 
-    fig.suptitle((f"{unique_id}\n {exp_name} {title_mod} {flux_type}"))
+    fig.suptitle((f"{unique_id}\n {exp_name} {params.title_modifier} {params.flux_type}"))
     
     #Formatting of axes
     ax.set_ylabel((f"Intensity ({flux_units})"))
@@ -292,38 +283,33 @@ def opsep_plot_bgfluxes(unique_id, experiment, flux_type, options, user_name,
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] + ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(10)
 
-    if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
+    if params.saveplot:
+        fig.savefig(os.path.join(params.module_plotpath, figname + '.png'))
 
 
 
-def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
-    options, sep_start_time, trim_times, trim_fluxes,
+def plot_weibull_fit(params, energy_bin, threshold,
+    sep_start_time, trim_times, trim_fluxes,
     best_pars, best_fit, max_time, max_val, max_meas_time, max_meas,
-    max_curve_model_time, max_curve_model_peak, max_curve_meas_time, max_curve_meas_peak,
-    saveplot, showplot, spacecraft='', doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False):
+    max_curve_model_time, max_curve_model_peak, max_curve_meas_time, max_curve_meas_peak):
     """ Plot Weibull fit used to get onset peak """
 
-    flux_units = tools.get_flux_units_bin(energy_bin)
+    flux_units = names.get_flux_units_bin(energy_bin)
     flux_units = make_math_label(flux_units)
-    energy_units = tools.get_energy_units()
+    energy_units = names.get_energy_units()
 
-    exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
+    exp_name = params.experiment
+    if params.experiment == 'user':
+        if params.user_name != None and params.user_name != '':
+            exp_name = params.user_name
 
     best_a = best_pars['alpha']
     best_b = best_pars['beta']
     best_Ip = best_pars['peak_intensity']
 
     suffix = f"Weibull_profile_fit_{energy_bin[0]}{energy_units}"
-    figname, subdir = tools.opsep_naming_scheme(sep_start_time, suffix, experiment, flux_type, user_name,
-        options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+    figname = names.opsep_naming_scheme(sep_start_time, suffix, params.experiment, params.flux_type,
+        params.user_name, modifier=params.modifier)
 
     fig = plt.figure(figname,figsize=(9,5))
     label = f"{energy_bin[0]} - {energy_bin[1]} {energy_units}"
@@ -340,15 +326,15 @@ def plot_weibull_fit(energy_bin, threshold, experiment, flux_type, user_name,
     plt.plot(max_curve_meas_time, max_curve_meas_peak,"^",label="measured peak near\nmin 2nd Derivative")
     #plt.plot(onset_time, onset_peak[i],">",label="onset Weibull")
     plt.legend(loc='lower right')
-    plt.title(f"Onset Peak Weibull Fit\n {exp_name} {title_mod} {flux_type}\n {sep_start_time}")
+    plt.title(f"Onset Peak Weibull Fit\n {exp_name} {params.title_modifier} {params.flux_type}\n {sep_start_time}")
     plt.xlabel("Hours")
     plt.ylabel(flux_units)
     plt.yscale("log")
     plt.ylim(1e-4,5*max_val)
     
-    if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath, 'opsep', subdir, figname + '.png'))
-    if not showplot:
+    if params.saveplot:
+        fig.savefig(os.path.join(params.module_plotpath, figname + '.png'))
+    if not params.showplot:
         plt.close(fig)
 
 
@@ -438,7 +424,9 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_c
             "#1A3D8C",  # vivid cosmic blue
             "#FF6D2E",  # bright molten orange
             "#00A28A",  # strong teal / alien green
-            "#E63946",  # vivid cosmic red
+#            "#E63946",  # vivid cosmic red; too close to GOES
+#            "#FF6B64",  # bright coral
+            "#FF4B4B",  # vivid coral
             "#8C4BDC",  # adjusted nebula purple (distinct from #6A4DC9)
             "#F0C27B",  # glowing sand / orange
             "#4DA6FF",  # bright sky blue
@@ -495,8 +483,8 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_c
             "#E8AC5A",  # muted gold-orange
 
             # Extra blues (space instruments)
-            "#1B4463",  # deep navy
-            "#5797D5",  # soft sky blue
+#            "#1B4463",  # deep navy
+#            "#5797D5",  # soft sky blue
                        ]
 
         threshold_colors = [
@@ -550,6 +538,9 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_c
             "#70C9C4",  # soft aqua (diffuse gas)
             "#8B5C42",  # asteroid / rocky brown (planetary surfaces)
             "#E0B56B",  # soft gold (starlight glow)
+            # Brown / Sand pair (lunar / asteroid surfaces)
+#            "#876048",  # rich dark brown
+#            "#D1B081",  # warm sand
         ]
 
         threshold_colors = [
@@ -893,7 +884,7 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_c
     #cycle through colors
     colorcycler = cycle(flux_colors)
     for i, bin in enumerate(energy_bins):
-        label = tools.setup_energy_bin_label(bin)
+        label = names.setup_energy_bin_label(bin)
         if label in integral_colors.keys() and not no_goes_colors:
             color_map.update({label: integral_colors[label]})
         else:
@@ -904,7 +895,7 @@ def define_colors(energy_bins, event_definitions=None, color_scheme=1, no_goes_c
     if event_definitions != None:
         for i, evdef in enumerate(event_definitions):
             bin = [evdef['energy_channel'].min, evdef['energy_channel'].max]
-            label = tools.setup_energy_bin_label(bin)
+            label = names.setup_energy_bin_label(bin)
             if label in color_map.keys():
                 continue
             elif label in integral_colors.keys() and not no_goes_colors:
@@ -931,53 +922,51 @@ def vline_styles(event_definitions):
     
 
 
-def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
-    energy_bins, showplot, saveplot, ylog=True, color_scheme=1, no_goes_colors=False,
-    figname='basic.png'):
+def plot_fluxes_basic(unique_id, params, dates, fluxes, energy_bins, ylog=True, savepath=''):
     """ Plot the fluxes for visualization only.
         
         INPUT:
         
-            :experiment: (str) e.g. "GOES-13" or "user" for user input
-            :user_name: (str) if user input or if specified, will be used
-                instead of experiments
-            :flux_type: (str) integral or differential
+            :params: (FetchSEP Paramaters object) 
             :dates: (arr) dates for the fluxes that were evaluated
                 using event definitions, called evaluated_dates in Data obj
             :fluxes: (2D arr, probably numpy) all fluxes that were
                 evaluted with event definitions, called evaluated_fluxes in Data obj
-            :color_scheme: (int) choices of 1 to 7
-            :no_goes_colors: (bool) if True won't use SWPC colors for >5, >10, etc MeV
 
         OUTPUT:
         
             Multi-pane plot showing event definitions
     
     """
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
-    energy_units = tools.get_energy_units()
+    energy_units = names.get_energy_units()
 
-    exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
+    exp_name = params.experiment
+    if params.experiment == "user":
+        exp_name = params.user_name
 
     plot_title = f"{exp_name}"
-    
+ 
+    figname = names.opsep_naming_scheme(dates[0], unique_id, params.experiment,
+        params.flux_type, params.user_name, modifier=params.modifier)
+    figname = (f"{figname}.png")
+ 
+ 
     fig = plt.figure(figname,figsize=(16,8))
     ax = plt.subplot(111)
-    colors = define_colors(energy_bins, color_scheme=color_scheme, no_goes_colors=no_goes_colors)
+    colors = define_colors(energy_bins, color_scheme=params.color_scheme, no_goes_colors=params.no_goes_colors)
     
     #Plot the fluxes
     for j in range(len(energy_bins)):
         energy_bin = energy_bins[j]
-        energy_label = tools.setup_energy_bin_label(energy_bin)
+        energy_label = names.setup_energy_bin_label(energy_bin)
         is_good = check_for_good_fluxes(fluxes[j])
         if not is_good:
             continue
         
         #Don't plot integral channels on plots with differential units
-        if flux_type == 'differential' and '>' in energy_label:
+        if params.flux_type == 'differential' and '>' in energy_label:
             continue
 
         maskfluxes = np.ma.masked_where(fluxes[j] <=0, fluxes[j])
@@ -996,30 +985,26 @@ def plot_fluxes_basic(experiment, user_name, flux_type, dates, fluxes,
     if 'counts' in flux_units: ylog=False
     if ylog: plt.yscale("log")
     chartBox = ax.get_position()
-    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
-                     chartBox.height])
+    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85, chartBox.height])
     ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), fontsize=12)
     for item in ([ax.title, ax.yaxis.label] + ax.get_yticklabels()):
         item.set_fontsize(14)
     for item in ([ax.xaxis.label] + ax.get_xticklabels()):
         item.set_fontsize(10)
 
-    if saveplot:
+    if params.saveplot:
         print(f"plot_fluxes_basic: Saving plot {figname}")
-        fig.savefig(figname)
+        fig.savefig(os.path.join(savepath,figname))
 
-    if not showplot:
+    if not params.showplot:
         plt.close(fig)
 
 
 
-def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_name, options,
+def opsep_plot_event_definitions(params, all_energy_bins,
     evaluated_dates, evaluated_fluxes, evaluated_energy_bins, event_definitions,
     sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
-    max_fluxes, max_flux_times, showplot, saveplot, spacecraft='',
-    doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False,
-    color_scheme=1, no_goes_colors=False):
+    max_fluxes, max_flux_times):
     """ Plot the fluxes used for event definitions with threshold,
         start and end times, onset peak and max flux.
         
@@ -1029,8 +1014,6 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
             :flux_type: (str) integral or differential
             :user_name: (str) if user input or if specified, will be used
                 instead of experiments
-            :options: (arr of str) any options applied to fluxes/energy bings
-            :doBGSub: (bool) was background subtraction applied?
             :evaluated_dates: (arr) dates for the fluxes that were evaluated
                 using event definitions, called evaluated_dates in Data obj
             :evaluated_fluxes: (2D arr, probably numpy) all fluxes that were
@@ -1041,7 +1024,9 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
                 in the same order of the event_definitions list 
             :sep_end_dates: (list of datetime) end of SEP events
                 in the same order of the event_definitions list
-            :spacecraft: (str) primary or secondary if specified
+            :modifier: (str) filename modifier based off user selections(created in names.py)
+            :title_mod: (str) plot title modifier based off user selections (created in names.py)
+            :savepath: (str) directory to save plot
             
         OUTPUT:
         
@@ -1050,23 +1035,21 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
     """
  
     suffix = "Event_Def"
-    figname, subdir = tools.opsep_naming_scheme(evaluated_dates[0], suffix, experiment, flux_type, user_name,
-        options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
- 
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
-    exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
+    figname = names.opsep_naming_scheme(evaluated_dates[0], suffix, params.experiment,
+        params.flux_type, params.user_name, modifier=params.modifier)
+
+    exp_name = params.experiment
+    if params.experiment == "user":
+        exp_name = params.user_name
  
     colors = define_colors(all_energy_bins, event_definitions=event_definitions,
-        color_scheme=color_scheme, no_goes_colors=no_goes_colors)
+        color_scheme=params.color_scheme, no_goes_colors=params.no_goes_colors)
  
     #Plot selected results
     #Event definition from integral fluxes
-    if flux_type == "differential":
+    if params.flux_type == "differential":
         print("Generating figure of estimated integral fluxes with threshold crossings.")
-    if flux_type == "integral":
+    if params.flux_type == "integral":
         print("Generating figure of integral fluxes with threshold crossings.")
 
     #plot integral fluxes (either input or estimated)
@@ -1082,7 +1065,7 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
         if nthresh == 1: ax = [ax]
 
     fig.canvas.manager.set_window_title(figname)
-    plot_title = f"Event Definitions\n {exp_name} {title_mod} {flux_type} Fluxes"
+    plot_title = f"Event Definitions\n {exp_name} {params.title_modifier} {params.flux_type} Fluxes"
     plt.suptitle(plot_title)
 
     for i in range(nthresh):
@@ -1104,13 +1087,13 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
             continue
  
         #Find energy bin to get index for colors
-        energy_label = tools.setup_energy_bin_label(energy_bin)
+        energy_label = names.setup_energy_bin_label(energy_bin)
  
         #Create labels
         ylabel = f"Intensity\n[{flux_units}]"
         ylabel = make_math_label(ylabel)
         data_label = f"{energy_label}"
-        if energy_bin[1] == -1 and flux_type == "differential":
+        if energy_bin[1] == -1 and params.flux_type == "differential":
             data_label = f"Estimated {energy_label}"
 
     
@@ -1152,54 +1135,46 @@ def opsep_plot_event_definitions(experiment, flux_type, all_energy_bins, user_na
             for item in ([ax[i].title, ax[i].yaxis.label] + ax[i].get_yticklabels()):
                 item.set_fontsize(14)
 
-    if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
-    if not showplot:
+    if params.saveplot:
+        fig.savefig(os.path.join(params.module_plotpath, figname + '.png'))
+    if not params.showplot:
         plt.close(fig)
 
 
 
-def opsep_plot_all_bins(experiment, flux_type, user_name, options,
-    all_dates, all_fluxes, all_energy_bins, event_definitions,
-    sep_start_times, sep_end_times, showplot, saveplot, spacecraft='',
-    doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False, color_scheme=1,
-    no_goes_colors=False):
+def opsep_plot_all_bins(params, all_dates, all_fluxes, all_energy_bins, event_definitions,
+    sep_start_times, sep_end_times):
     """ Plot all energy bins with all event definitions """
 
     suffix = "All_Bins"
-    figname, subdir = tools.opsep_naming_scheme(all_dates[0], suffix, experiment, flux_type, user_name,
-        options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
- 
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+    figname = names.opsep_naming_scheme(all_dates[0], suffix, params.experiment, params.flux_type,
+        params.user_name, modifier=params.modifier)
 
-    exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
+    exp_name = params.experiment
+    if params.experiment == "user":
+        exp_name = params.user_name
 
     energy_units = event_definitions[0]['energy_channel'].units
 
-    plot_title = f"All Energy Bins with Threshold Crossings\n {exp_name} {title_mod} {flux_type}"
+    plot_title = f"All Energy Bins with Threshold Crossings\n {exp_name} {params.title_modifier} {params.flux_type}"
     
     fig = plt.figure(figname,figsize=(13.5,8))
     ax = plt.subplot(111)
-    colors = define_colors(all_energy_bins, color_scheme=color_scheme,
-        event_definitions=event_definitions, no_goes_colors=no_goes_colors)
+    colors = define_colors(all_energy_bins, color_scheme=params.color_scheme,
+        event_definitions=event_definitions, no_goes_colors=params.no_goes_colors)
     vstyles = vline_styles(event_definitions)
 
     #Plot the fluxes
     for j in range(len(all_energy_bins)):
         energy_bin = all_energy_bins[j]
-        energy_label = tools.setup_energy_bin_label(energy_bin)
+        energy_label = names.setup_energy_bin_label(energy_bin)
     
         is_good = check_for_good_fluxes(all_fluxes[j])
         if not is_good:
             continue
 
         #Don't plot integral channels on plots with differential units
-        if flux_type == 'differential' and '>' in energy_label:
+        if params.flux_type == 'differential' and '>' in energy_label:
             continue
 
         maskfluxes = np.ma.masked_where(all_fluxes[j] <=0, all_fluxes[j])
@@ -1209,7 +1184,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     for i in range(len(event_definitions)):
         energy_bin = [event_definitions[i]['energy_channel'].min,
                     event_definitions[i]['energy_channel'].max]
-        energy_label = tools.setup_energy_bin_label(energy_bin)
+        energy_label = names.setup_energy_bin_label(energy_bin)
         
         threshold = event_definitions[i]['threshold'].threshold
         flux_units = event_definitions[i]['threshold'].threshold_units
@@ -1230,7 +1205,7 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
     plt.title(plot_title)
     
     #Flux in original energy bins
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     ylabel = f"Intensity [{flux_units}]"
     ylabel = make_math_label(ylabel)
     plt.ylabel(ylabel)
@@ -1250,21 +1225,17 @@ def opsep_plot_all_bins(experiment, flux_type, user_name, options,
         item.set_fontsize(14)
     for item in ([ax.xaxis.label] + ax.get_xticklabels()):
         item.set_fontsize(10)
-    if saveplot:
-        fname = os.path.join(cfg.plotpath,'opsep',subdir, figname + '.png')
+    if params.saveplot:
+        fname = os.path.join(params.module_plotpath, figname + '.png')
         fig.savefig(fname)
-    if not showplot:
+    if not params.showplot:
         plt.close(fig)
     
     
 
 
-def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
-    event_definitions, evaluated_dates, energy_bin_centers, fluence_spectra,
-    fluence_spectra_units, showplot, saveplot, spacecraft='',
-    doBGSubOPSEP=False, doBGSubIDSEP=False,
-    OPSEPEnhancement=False, IDSEPEnhancement=False,
-    color_scheme=1, no_goes_colors=False):
+def opsep_plot_fluence_spectrum(params, event_definitions, evaluated_dates,
+    energy_bin_centers, fluence_spectra, fluence_spectra_units):
     """ Plot the fluence spectrum calculated by OpSEP. 
         
         fluence_spectra correspond to multiple event_definitions.
@@ -1277,21 +1248,17 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     print("Generating figure of event-integrated fluence spectrum.")
     
     suffix = "Fluence"
-    figname, subdir = tools.opsep_naming_scheme(evaluated_dates[0], suffix, experiment, flux_type, user_name,
-        options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
+    figname = names.opsep_naming_scheme(evaluated_dates[0], suffix, params.experiment,
+        params.flux_type, params.user_name, modifier=params.modifier)
  
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,
-        OPSEPEnhancement=OPSEPEnhancement, IDSEPEnhancement=IDSEPEnhancement)
- 
-    exp_name = experiment
-    if experiment == "user":
-        exp_name = user_name
+    exp_name = params.experiment
+    if params.experiment == "user":
+        exp_name = params.user_name
 
     energy_bins = []
-    if experiment != "user":
-        expt = expts.experiment_info(experiment)
-        energy_bins = expt[flux_type]['energy_bins']
+    if params.experiment != "user":
+        expt = expts.experiment_info(params.experiment)
+        energy_bins = expt[params.flux_type]['energy_bins']
     else:
         energy_bins = cfg.user_energy_bins
 
@@ -1307,8 +1274,8 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
     fig = plt.figure(figname,figsize=(10,8))
     ax = plt.subplot(111)
     markers = ['o','P','D','v','^','<','>','*','d','+','8','p','h','1','X','x']
-    colors = define_colors(energy_bins, event_definitions=event_definitions, color_scheme=color_scheme,
-        no_goes_colors=no_goes_colors)
+    colors = define_colors(energy_bins, event_definitions=event_definitions,
+        color_scheme=params.color_scheme, no_goes_colors=params.no_goes_colors)
     
     for i in range(nthresh):
     
@@ -1317,7 +1284,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
         ncross = ncross + 1
 
         energy_bin = [event_definitions[i]['energy_channel'].min, event_definitions[i]['energy_channel'].max]
-        energy_label = tools.setup_energy_bin_label(energy_bin)
+        energy_label = names.setup_energy_bin_label(energy_bin)
         
         flspec_units = fluence_spectra_units[i]
         threshold_label = f"{event_definitions[i]['threshold'].threshold} {event_definitions[i]['threshold'].threshold_units}"
@@ -1333,7 +1300,7 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
                 color=colors[energy_label], mfc='none', label=legend_label, linewidth=3)
     
     plt.grid(which="both", axis="both")
-    plot_title = f"Event-Integrated Fluence Spectra\n {exp_name} {title_mod} {flux_type}"
+    plot_title = f"Event-Integrated Fluence Spectra\n {exp_name} {params.title_modifier} {params.flux_type}"
     plt.title(plot_title)
     plt.xlabel(f"Energy [{energy_units}]")
     ylabel = f"Fluence [{fluence_units}]"
@@ -1350,9 +1317,9 @@ def opsep_plot_fluence_spectrum(experiment, flux_type, user_name, options,
 
     if ncross == 0: plt.close(fig) #no thresholds crossed, empty plot
 
-    if saveplot:
-        fig.savefig(os.path.join(cfg.plotpath,'opsep', subdir, figname + '.png'))
-    if not showplot:
+    if params.saveplot:
+        fig.savefig(os.path.join(params.module_plotpath, figname + '.png'))
+    if not params.showplot:
         plt.close(fig)
 
 
@@ -1388,22 +1355,15 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow
     return fig, ax
 
 
-def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
-        fluxes, energy_bins, ave_dates, ave_fluxes, ave_sigma, threshold_dates,
-        threshold, doBGSub, showplot, saveplot, disable_sigma=False, spacecraft="",
-        close_plot=False):
+def idsep_make_plots(unique_id, params, dates, fluxes, energy_bins, ave_dates, ave_fluxes,
+    ave_sigma, threshold_dates, threshold, showplot=None, disable_sigma=False, close_plot=False):
     """ Make multiple plots with 3 vertical subplots representing individual energy
         channels.
         
         INPUTS:
             
             :unique_id: (string) used in filename and figname
-            :experiment: (string)
-            :flux_type: (string) integral or differential
-            :exp_name: (string) if experiment is "user", then this holds
-                the name of the satellite/model
-            :options: (array of strings) options applied to data set, used
-                to append to filenames and plot title
+            :params: (FetchSEP Parameters object)
             :dates: (1xn array of datetime) n time steps
             :fluxes: (pxn array of float) p energy channels for n time steps
             :energy_bins: (px2 array of float) p energy channels
@@ -1415,9 +1375,6 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
             :threshold_dates: (1xn array of datetime) each time step of fluxes
             :threshold: (pxn array of float) ave_fluxes + n*ave_sigma for
                 n defined in the fetchsep.config for each time step of fluxes
-            :doBGSub: (bool) do background subtraction
-            :showplot: (bool)
-            :saveplot: (bool)
             :disable_sigma: (bool) True = plot only ave_fluxes withou ave_sigma
 
         OUPTPUTS:
@@ -1426,29 +1383,32 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
     
     
     """
+    #allow to override showplot
+    if showplot == None:
+        showplot = params.showplot
+    
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
-    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
+    name = params.idsep_subdir
 
     figname = (f"{name}_FluxWithThreshold_{unique_id}")
     
     #UNITS
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
-    energy_units = tools.get_energy_units()
+    energy_units = names.get_energy_units()
 
     nbins = len(energy_bins)
     nrow = 3 #3 plots per page
     for i in range(nbins):
         if not i%3:
-            exp = experiment
-            if experiment == 'user' and exp_name != '':
-                exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            exp = params.experiment
+            if params.experiment == 'user' and params.user_name != '':
+                exp = params.user_name
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, params.title_modifier, unique_id, flux_units, nrow)
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = names.setup_energy_bin_label(energy_bins[i])
             
         #PLOT FLUXES
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
@@ -1487,8 +1447,8 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
         ax[iax].set_ylim([ymin, ymax])
 
 
-        if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
+        if params.saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1499,34 +1459,34 @@ def idsep_make_plots(unique_id, experiment, flux_type, exp_name, options, dates,
  
 
 
-def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
-        options, dates, fluxes, energy_bins, doBGSub, showplot, saveplot,
-        spacecraft="", close_plot=False, subdir="idsep"):
+def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins,
+    showplot=None, close_plot=False):
+    
+    #allow override for showplot
+    if showplot == None:
+        showplot = params.showplot
 
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
-    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-
-
+    name = params.idsep_subdir
     figname = (f"{name}_{unique_id}")
  
     #UNITS
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
-    energy_units = tools.get_energy_units()
+    energy_units = names.get_energy_units()
     
     nbins = len(energy_bins)
     nrow = 3 #3 plots per page
     for i in range(nbins):
         if not i%nrow:
-            exp = experiment
-            if experiment == 'user' and exp_name != '':
-                exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            exp = params.experiment
+            if params.experiment == 'user' and (params.user_name != '' and params.user_name != None):
+                exp = user_name
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, params.title_modifier, unique_id, flux_units, nrow)
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = names.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes = np.ma.masked_less_equal(fluxes[i], 0)
         if np.isnan(maskfluxes).all():
@@ -1548,8 +1508,8 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
             ymax = np.ceil(np.nanmax(maskfluxes))
         ax[iax].set_ylim([ymin, ymax])
         
-        if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,subdir, name, (f"{figname}_{i}.png")))
+        if params.saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:
@@ -1561,34 +1521,34 @@ def idsep_make_timeseries_plot(unique_id, experiment, flux_type, exp_name,
 
 
 
-def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
-            dates, fluxes_bg, fluxes_sep, energy_bins, doBGSub,
-            showplot, saveplot, spacecraft="", close_plot=False):
+def idsep_make_bg_sep_plot(unique_id, params, dates, fluxes_bg, fluxes_sep, energy_bins,
+    showplot=None, close_plot=False):
     
+    #allow showplot override
+    if showplot == None:
+        showplot = params.showplot
+
     #Additions to titles and filenames according to user-selected options
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft)
-    name = tools.idsep_naming_scheme(experiment, flux_type, exp_name, options, spacecraft=spacecraft)
-
-
+    name = params.idsep_subdir
     figname = (f"{name}_SEP_BG_{unique_id}")
 
     #UNITS
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(params.flux_type)
     flux_units = make_math_label(flux_units)
-    energy_units = tools.get_energy_units()
+    energy_units = names.get_energy_units()
 
     nbins = len(energy_bins)
     nrow = 3
     for i in range(nbins):
         if not i%3:
-            exp = experiment
-            if experiment == 'user' and exp_name != '':
-                exp = exp_name
-            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, title_mod, unique_id, flux_units, nrow)
+            exp = params.experiment
+            if params.experiment == 'user' and params.user_name != '':
+                exp = params.user_name
+            fig, ax = setup_idsep_plot((f"{figname}_{i}"), exp, params.title_modifier, unique_id, flux_units, nrow)
             ax_right = [0]*len(ax)
             iax = 0
 
-        legend_label = tools.setup_energy_bin_label(energy_bins[i])
+        legend_label = names.setup_energy_bin_label(energy_bins[i])
 
         maskfluxes_bg = np.ma.masked_less_equal(fluxes_bg[i], 0)
         if np.isnan(maskfluxes_bg).all():
@@ -1607,7 +1567,6 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
 
 
 #        ax[iax].legend(loc='upper left', fontsize=11)
-
 
         #Put energy channel label on right y-axis
         ax_right[iax] = ax[iax].twinx()
@@ -1628,8 +1587,8 @@ def idsep_make_bg_sep_plot(unique_id, experiment, flux_type, exp_name, options,\
         ax[iax].set_ylim([ymin, ymax])
 
 
-        if saveplot and (iax ==2 or i == nbins-1):
-            fig.savefig(os.path.join(cfg.plotpath,"idsep", name, (f"{figname}_{i}.png")))
+        if params.saveplot and (iax ==2 or i == nbins-1):
+            fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
             if close_plot:

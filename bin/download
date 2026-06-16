@@ -23,7 +23,7 @@ parser.add_argument("--Experiment", type=str, choices=valid_experiments,
         default='', help="Enter name of spacecraft or dataset")
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
-        'differential'], default='',
+        'differential'], default=None,
         help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
@@ -45,6 +45,16 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
         "fluxes.\n"
         "e.g. \"uncorrected;S14;Bruno2017\""))
+
+parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
+        help=("The default behavior of OpSEP is to create an opsep subdirectory under "
+                "the outpath and plotpath and an additional subdirectory named according to the "
+                "choice of experiment, flux_type, and other options. The subdirectories "
+                "may be supressed by choosing the directory depth. (Default=2) "
+                "0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; "
+                "1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); "
+                "2 - Files output to subdirectory named according to experiment and "
+                "options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/"))
 
 parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
@@ -94,6 +104,7 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
+directory_depth = args.DirectoryDepth
 
 options = args.options
 dointerp = args.DoInterp
@@ -106,11 +117,22 @@ path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
-if flux_type == '':
-    flux_type = expts.get_flux_type(experiment)
+params = fetchsep.utils.download.load_parameters('download',
+    str_startdate, str_enddate, experiment,
+    flux_type=flux_type,
+    spacecraft=spacecraft,
+    user_name=user_name,
+    user_file=user_file,
+    is_unixtime=is_unixtime,
+    directory_depth=directory_depth,
+    options=options,
+    dointerp=dointerp,
+    showplot=showplot,
+    saveplot=saveplot,
+    write_fluxes=True,
+    use_absolute_datapath=use_absolute_datapath)
 
-fetchsep.utils.download.get_data(str_startdate, str_enddate, experiment,
-    flux_type, options, dointerp, showplot, saveplot, spacecraft=spacecraft,
+fetchsep.utils.download.get_data(params,
     path_to_data=path_to_data,
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,

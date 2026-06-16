@@ -25,25 +25,43 @@ parser = argparse.ArgumentParser(
     description=("DESCRIPTION: OPSEP analyzes a single SEP event to calculate threshold crossings, peak fluxes, and event-integrated fluence and fluence spectra for automatic (>10 MeV, 10 pfu and >100 MeV, 1 pfu) and user-provided event definitions. OPSEP may perform background subtraction and identify enhancements above background using the mean background calculated by IDSEP or a time period specified by the user. OPSEP outputs flux time series in a simple csv format and json files in the CCMC SEP Scoreboard format, which is also the same format used by SPHINX for SEP model validation. Users may input their own time profiles (e.g. produced by a prediction model) to analyze SEP event characteristics. SEP events may be associated with flares, CMEs, radio data, etc by referencing a number of SEP event lists stored in the reference/ directory, including SEP lists compiled by SRAG, Cane et al., and Ian Richardson. Users may input their own flare, CME, and source locations associations via command line or in a file containing a CCMC SEP Scoreboard trigger block.")
 )
 
-parser.add_argument("--StartDate", type=str, default='',
+parser.add_argument("--StartDate", type=str, default=None,
         help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                " with quotes"))
 
-parser.add_argument("--EndDate", type=str, default='',
+parser.add_argument("--EndDate", type=str, default=None,
         help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
                 " with quotes"))
 
 parser.add_argument("--Experiment", type=str, choices=valid_experiments,
-        default='', help="Enter name of spacecraft or dataset")
+        default=None, help="Enter name of spacecraft or dataset")
 
 parser.add_argument("--FluxType", type=str, choices=['integral',
-        'differential'], default='',
+        'differential'], default=None,
         help=("Will be set automatically for experiments with only one flux type available. For experiments that provide integral and differential fluxes, specify your choice."))
 
 parser.add_argument("--Spacecraft", type=str, choices=['primary',
         'secondary'], default='',
         help=("If GOES-RT is selected, choose the primary or secondary spacecraft. Default = primary."))
-        
+            
+parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
+        "chose user for experiment, specify the name of the model or "
+        "experiment that you are analyzing (no spaces)."))
+
+parser.add_argument("--UserFile", type=str, default='', help=("If "
+        "you chose user for experiment, specify the filename containing "
+        "the fluxes. Specify energy bins and delimeter in fetchsep.cfg."))
+
+parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
+        help=("The default behavior of OpSEP is to create an opsep subdirectory under "
+                "the outpath and plotpath and an additional subdirectory named according to the "
+                "choice of experiment, flux_type, and other options. The subdirectories "
+                "may be supressed by choosing the directory depth. (Default=2) "
+                "0 - Files output to top directories: cfg.outpath (output/), cfg.plotpath (plots/) level; "
+                "1 - Files output to subdirectory at module level, cfg.outpath/module (output/opsep); "
+                "2 - Files output to subdirectory named according to experiment and "
+                "options, e.g. cfg.outpath/module/subdir (output/opsep/GOES-13_integral/"))
+
 parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
         help=("Color scheme for plots. Integral channels >5, >10, >30, >50, >60, >100, and >500 MeV "
             "will be plotted with the colors used by NOAA SWPC and SEP Scoreboards for GOES. "
@@ -67,14 +85,6 @@ parser.add_argument("--NoGOESColors",
         help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
             "Set to True not to use these colors and to use the seleted color scheme instead."),
             action="store_true")
-            
-parser.add_argument("--ExperimentName", type=str, default='', help=("If you "
-        "chose user for experiment, specify the name of the model or "
-        "experiment that you are analyzing (no spaces)."))
-
-parser.add_argument("--UserFile", type=str, default='', help=("If "
-        "you chose user for experiment, specify the filename containing "
-        "the fluxes. Specify energy bins and delimeter in code at top."))
 
 parser.add_argument("--JSONType", type=str, choices=['model',
         'observations'], default='',
@@ -188,6 +198,34 @@ parser.add_argument("--TwoPeaks",
                 "for a couple of points), then drops below threshold "
                 "before increasing again to the true peak of the event."),
                 action="store_true")
+
+parser.add_argument("--AbsoluteDatapath",
+        help=("Set flag to use datapath as an absolute path to store data there without any subdirectories."), action="store_true")
+
+parser.add_argument("--opsep_nsigma", type=float, default=None,
+        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
+            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
+            "Will default to value in fetchsep.cfg."))
+
+
+########### OVERRIDE PATH LOCATIONS SET IN fetchsep.cfg #########
+parser.add_argument("--datapath", type=str, default=None,
+        help=("Specify path where satellite data should be downloaded. Will default to "
+            "datapath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--outpath", type=str, default=None,
+        help=("Specify path where output files should be saved. Will default to "
+            "outpath listed in fetchsep.cfg if a value is not specified."))
+            
+parser.add_argument("--plotpath", type=str, default=None,
+        help=("Specify path where plots should be saved. Will default to "
+            "plotpath listed in fetchsep.cfg if a value is not specified."))
+
+parser.add_argument("--listpath", type=str, default=None,
+        help=("Specify path where lists should be saved. Will default to "
+            "listpath listed in fetchsep.cfg if a value is not specified."))
+
+
 
 ########## FLARE, CME ASSOCIATIONS #############
 parser.add_argument("--Associations",
@@ -304,34 +342,6 @@ parser.add_argument("--NOAA-region", type=int, default=np.nan,
                     help="NOAA active region number, if not specified for flare.")
 
 
-parser.add_argument("--datapath", type=str, default=None,
-        help=("Specify path where satellite data should be downloaded. Will default to "
-            "datapath listed in fetchsep.cfg if a value is not specified."))
-
-parser.add_argument("--outpath", type=str, default=None,
-        help=("Specify path where output files should be saved. Will default to "
-            "outpath listed in fetchsep.cfg if a value is not specified."))
-            
-parser.add_argument("--plotpath", type=str, default=None,
-        help=("Specify path where plots should be saved. Will default to "
-            "plotpath listed in fetchsep.cfg if a value is not specified."))
-
-parser.add_argument("--listpath", type=str, default=None,
-        help=("Specify path where lists should be saved. Will default to "
-            "listpath listed in fetchsep.cfg if a value is not specified."))
-
-parser.add_argument("--opsep_nsigma", type=float, default=None,
-        help=("Set opsep_nsigma to indicate the number of sigma above background required to "
-            "identify an enhancement: fluxes > mean + opsep_nsigma*sigma. "
-            "Will default to value in fetchsep.cfg."))
-
-
-#parser.add_argument("--UMASEP",
-#        help=("Flag to calculate flux values and thresholds specific to "
-#            "the UMASEP model. Thresholds for >10, >30, >50, >100 MeV and "
-#            "flux values at various time periods after crossing "
-#            "thresholds."), action="store_true")
-
 parser.add_argument("--ExportConfig", action="store_true",
         help=("Export the default configuration file to fetchsep.cfg in "
               "the current working directory and exit.  Used to prepare a "
@@ -351,10 +361,11 @@ str_enddate = args.EndDate
 experiment = args.Experiment
 flux_type = args.FluxType
 spacecraft = args.Spacecraft
-color_scheme = args.ColorScheme
-no_goes_colors = args.NoGOESColors
 user_name = args.ExperimentName
 user_file = args.UserFile
+directory_depth = args.DirectoryDepth
+color_scheme = args.ColorScheme
+no_goes_colors = args.NoGOESColors
 json_type = args.JSONType
 json_mode = args.JSONMode
 spase_id = args.spase_id
@@ -372,9 +383,15 @@ showplot = args.showplot
 saveplot = args.saveplot
 detect_prev_event = args.DetectPreviousEvent
 two_peaks = args.TwoPeaks
-umasep = False #args.UMASEP
 options = args.options
 dointerp = args.DoInterp
+use_absolute_datapath = args.AbsoluteDatapath
+opsep_nsigma = args.opsep_nsigma
+
+path_to_data = args.datapath
+path_to_output = args.outpath
+path_to_plots = args.plotpath
+path_to_lists = args.listpath
 
 associations = args.Associations
 save_associations = args.SaveAssociations
@@ -416,24 +433,19 @@ source_lat = args.Source_latitude
 source_lon = args.Source_longitude
 noaa_region = args.NOAA_region
 
-path_to_data = args.datapath
-path_to_output = args.outpath
-path_to_plots = args.plotpath
-path_to_lists = args.listpath
-
-opsep_nsigma = args.opsep_nsigma
-
+print(f"opsep bin: flux_type is {flux_type}")
 
 date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_opsep(
     str_startdate, str_enddate, experiment,
     flux_type=flux_type,
     spacecraft=spacecraft,
-    color_scheme=color_scheme,
-    no_goes_colors=no_goes_colors,
     user_thresholds=user_thresholds,
     dointerp=dointerp,
     user_name=user_name,
     user_file=user_file,
+    directory_depth=directory_depth,
+    color_scheme=color_scheme,
+    no_goes_colors=no_goes_colors,
     json_type=json_type,
     json_mode=json_mode,
     spase_id=spase_id,
@@ -441,7 +453,6 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     saveplot=saveplot,
     detect_prev_event=detect_prev_event,
     two_peaks=two_peaks,
-    umasep=umasep,
     options=options,
     doBGSubOPSEP=doBGSubOPSEP,
     OPSEPEnhancement=OPSEPEnhancement,
@@ -493,6 +504,7 @@ date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_o
     path_to_output=path_to_output,
     path_to_plots=path_to_plots,
     path_to_lists=path_to_lists,
-    opsep_nsigma=opsep_nsigma)
+    opsep_nsigma=opsep_nsigma,
+    use_absolute_datapath=use_absolute_datapath)
 
 if showplot: plt.show()

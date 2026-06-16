@@ -142,8 +142,7 @@ def get_detector(date, detector_dates, detector):
 def make_event_list(str_startdate, str_enddate, septimes_file,
             detector_list, experiment, flux_type, options, json_type,
             outfile, revise=False, spacecraft="",
-            location='earth', species='proton', add_path='', flags='',
-            path_to_output=None):
+            location='earth', species='proton', idsep_path='', flags=''):
     """ Read in SEP times and detector list, if applicable,
         and create a file in the appropriate format to run
         operational_sep_quantities.py in batch mode.
@@ -162,23 +161,20 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
         to include some padding at the front of the event. This is
         useful if submitting times to OpSEP for processing.
 
-        :path_to_output: (string) path where output files should be saved. Will default to 
-            outpath listed in fetchsep.cfg if a value is not specified.
+        :idsep_path: (string) path where output files should be saved AND 
+            location of the background .csv files output by idsep.
         
     """
 
     startdate = dh.str_to_datetime(str_startdate)
     enddate = dh.str_to_datetime(str_enddate)
 
-    cfg.set_config_paths(path_to_output=path_to_output)
-
     header = "#Start Time,End Time,Experiment,Flux Type,Flags," \
             + "User Experiment Name,User Filename,Options,"\
             +"BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,"\
             +"Location,Species\n"
     
-    idsep_path = os.path.join(cfg.outpath, "idsep", add_path, 'csv')
-    outfname = os.path.join(cfg.outpath, "idsep", add_path, outfile)
+    outfname = os.path.join(idsep_path, outfile)
     out = open(outfname,'w')
     out.write(header)
     

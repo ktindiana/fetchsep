@@ -34,6 +34,7 @@ the default.
 Note that while section names are required (a configparser
 requirement), they are not used.  All variables from all sections are
 dumped into the same package namespace.
+
 """
 
 pkg_configfile = os.path.join(os.path.dirname(__file__), 'fetchsep.cfg')
@@ -51,6 +52,7 @@ for section in sections:
         for k in config[section]:
             pkg_globals[k] = eval(config[section][k])
 
+
 def export_config(overwrite=False):
     if not overwrite and os.path.isfile(cwd_configfile):
         print("Not overwriting existing config file:", cwd_configfile)
@@ -64,12 +66,6 @@ def prepare_dirs():
             print('Making directory:', dir)
             os.makedirs(dir)
 
-        if dir != datapath:
-            for sub in ['idsep', 'opsep']:
-                subdir = os.path.join(dir, sub)
-                if not os.path.isdir(subdir):
-                    print('Making directory:', subdir)
-                    os.makedirs(subdir)
 
 #def configure_for(experiment):
 #    section = 'experiment.' + experiment
@@ -88,6 +84,22 @@ def print_configured_values():
     print()
 
 ##### PATHS ####
+def process_experiment_paths():
+    expt_paths = pkg_globals['experiment_directories']
+    keys = expt_paths.keys()
+    for key in keys:
+        path = expt_paths[key]
+        if '/' in expt_paths[key]:
+            path = expt_paths[key].strip().split('/')
+            path = os.path.join(*path)
+        elif '\\' in expt_paths[key]:
+            path = expt_paths[key].strip().split('\\')
+            path = os.path.join(*path)
+        expt_paths[key] = path
+    pkg_globals['experiment_directories'] = expt_paths
+
+process_experiment_paths() #specify subdirectories in datapath
+
 def set_datapath(datapath):
     #allow user to set the datapath on the fly across all modules
     pkg_globals['datapath'] = datapath
@@ -123,52 +135,10 @@ def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
     prepare_dirs()
 
 
-#### IDSEP ####
-def set_kurtosis_cut(kurtosis_cut):
-    pkg_globals['kurtosis_cut'] = kurtosis_cut
-    print(f"config: Setting global kurtosis_cut to {kurtosis_cut}.")
-
-def set_idsep_nsigma(idsep_nsigma):
-    pkg_globals['idsep_nsigma'] = idsep_nsigma
-    print(f"config: Setting global idsep_nsigma to {idsep_nsigma}.")
-
-def set_idsep_init_win(init_win):
-    pkg_globals['init_win'] = init_win
-    print(f"config: Setting global idsep init_win to {init_win}.")
-
-def set_idsep_sliding_win(sliding_win):
-    pkg_globals['sliding_win'] = sliding_win
-    print(f"config: Setting global idsep sliding_win to {sliding_win}.")
-
-def set_idsep_percent_points(percent_points):
-    pkg_globals['percent_points'] = percent_points
-    print(f"config: Setting global idsep percent_points to {percent_points}.")
-
-def configure_idsep(kurtosis_cut=None, idsep_nsigma=None,
-    init_win=None, sliding_win=None, percent_points=None):
-    if kurtosis_cut != None:
-        set_kurtosis_cut(kurtosis_cut)
-        print(f"configure_idsep: Superceding any kurtosis_cut value set in experiments.py")
-    if idsep_nsigma != None:
-        set_idsep_nsigma(idsep_nsigma)
-    if init_win != None:
-        set_idsep_init_win(init_win)
-    if sliding_win != None:
-        set_idsep_sliding_win(sliding_win)
-    if percent_points != None:
-        set_idsep_percent_points(percent_points)
-
-
-
-#### OPSEP ####
-def set_opsep_nsigma(opsep_nsigma):
-    pkg_globals['opsep_nsigma'] = opsep_nsigma
-    print(f"config: Setting global opsep_nsigma to {opsep_nsigma}.")
-
-def configure_opsep(opsep_nsigma=None):
-    if opsep_nsigma != None:
-        set_opsep_nsigma(opsep_nsigma)
-
+#### USER ####
+def set_user_energy_bins(user_energy_bins):
+    pkg_globals['user_energy_bins'] = user_energy_bins
+    print(f"config: Setting global user_energy_bins to {user_energy_bins}.")
 
 #### UNITS ####
 def set_energy_units(energy_units):

@@ -3,7 +3,7 @@ from . import config as cfg
 from . import date_handler as dh
 from ..json import keys
 from ..json import ccmc_json_handler as ccmc_json
-from . import tools
+from . import names
 import datetime
 import sys
 import os
@@ -503,18 +503,18 @@ def move_output(target_dir, subdir='', enforce_new=True,
 
 
 def update_observations(target_dir, start_date, end_date, experiment,
-    flux_type='', spacecraft='', user_thresholds='',
-    user_name='', user_file='',
-    color_scheme=1, no_goes_colors=False,
-    json_type='observations', json_mode='measurement', spase_id='',
-    showplot=False, saveplot=True,
-    detect_prev_event=False, two_peaks=False, options='',
-    doBGSubOPSEP=False, OPSEPEnhancement=False, bgstartdate='', bgenddate='',
-    dointerp=False, doBGSubIDSEP=False,
-    IDSEPEnhancement=False, idsep_path='',
-    location='earth', species='proton',
+    flux_type=None, spacecraft=None, user_thresholds=None,
+    user_name=None, user_file=None,
+    color_scheme=None, no_goes_colors=None,
+    json_type='observations', json_mode='measurement', spase_id=None,
+    showplot=False, saveplot=True, use_absolute_datapath=None,
+    detect_prev_event=None, two_peaks=None, options=None,
+    doBGSubOPSEP=None, OPSEPEnhancement=None, bgstartdate=None, bgenddate=None,
+    dointerp=False, doBGSubIDSEP=None,
+    IDSEPEnhancement=None, idsep_path=None,
+    location=None, species=None,
     associations=False, save_associations=False,
-    auto_flare_time='', auto_cme_time='',
+    auto_flare_time=None, auto_cme_time=None,
     source_lat=np.nan, source_lon=np.nan, noaa_region=np.nan,
     path_to_data=None,
     path_to_output=None,
@@ -570,7 +570,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-    subdir = tools.opsep_subdir(experiment, flux_type, user_name, options,
+    subdir = names.opsep_subdir(experiment, flux_type, user_name, options,
         spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP,
         doBGSubIDSEP=doBGSubIDSEP, OPSEPEnhancement=OPSEPEnhancement,
         IDSEPEnhancement=IDSEPEnhancement)
@@ -590,6 +590,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         spase_id=spase_id,
         showplot=showplot,
         saveplot=saveplot,
+        use_absolute_datapath=use_absoluate_datapth,
         detect_prev_event=detect_prev_event,
         two_peaks=two_peaks,
         options=options,

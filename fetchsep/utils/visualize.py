@@ -2,7 +2,7 @@ import os
 import sys
 import matplotlib.pyplot as plt
 from . import config as cfg
-from . import tools
+from . import names
 from . import plotting_tools as plt_tools
 from . import date_handler as dh
 from ..json import ccmc_json_handler as ccmc_json
@@ -120,9 +120,9 @@ def setup_labels(experiment='', flux_type='', options='',
     if bgsub == 'IDSEP':
         doBGSubIDSEP = True
 
-    modifier, title_mod = tools.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP)
+    modifier, title_mod = names.setup_modifiers(options, spacecraft=spacecraft, doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP)
 
-    flux_units = tools.get_flux_units(flux_type)
+    flux_units = names.get_flux_units(flux_type)
 
     ylabel = f"Flux [{flux_units}]"
     ylabel = plt_tools.make_math_label(ylabel)
@@ -178,7 +178,7 @@ def plot_fluxes_all_bins(filename, experiment='', flux_type='',
     ax = plt.subplot(111)
     
     for i, col in enumerate(cols[1:]):
-        bin_label = tools.setup_energy_bin_label(energy_bins[i])
+        bin_label = names.setup_energy_bin_label(energy_bins[i])
         fluxes = np.array(df[col].to_list())
         maskfluxes = np.ma.masked_where(fluxes <= 0, fluxes)
         plt.plot(dates, maskfluxes, label=bin_label, marker='.')
@@ -230,10 +230,10 @@ def plot_event_definition(filename, experiment='', flux_type='', options='',
         flux_type=flux_type, options=options, bgsub=bgsub,
         spacecraft=spacecraft)
 
-    flux_units = tools.get_flux_units_bin(energy_bin)
+    flux_units = names.get_flux_units_bin(energy_bin)
     flux_units = plt_tools.make_math_label(flux_units)
 
-    bin_label = tools.setup_energy_bin_label(energy_bin)
+    bin_label = names.setup_energy_bin_label(energy_bin)
     plot_title = f"SEP Event Definition {bin_label}, {threshold} {flux_units}\n {experiment} {title_mod} {flux_type}"
     
     fig = plt.figure(figsize=(13.5,8))
@@ -281,7 +281,7 @@ def cast_time_columns(df):
 def sep_column_label(flux_type, energy_bin, threshold):
     """ Create the column names used in the SEP lists """
 
-    threshold_units = tools.get_flux_units_bin(energy_bin)
+    threshold_units = names.get_flux_units_bin(energy_bin)
     energy_units = cfg.energy_units
     
     if energy_bin[1] == -1:
