@@ -2588,7 +2588,7 @@ class Output:
 
         opts = ''
         for k,opt in enumerate(self.data.params.options):
-            if k < len(self.data.options)-1:
+            if k < len(self.data.params.options)-1:
                 opts += opt + ';'
             else:
                 opts += opt
