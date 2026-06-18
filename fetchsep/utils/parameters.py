@@ -5,6 +5,7 @@ from ..utils import experiments as expts
 from ..utils import directories as dirs
 from ..utils import error_check
 import os
+import sys
 import pandas as pd
 
 __author__ = "Katie Whitman"
@@ -143,7 +144,11 @@ class Parameters:
     
         if not isinstance(options, str):
             return
-    
+
+        if options != '' and ',' in options:
+            sys.exit("parameters: options must be separated by a ; not a comma. "
+                f"You wrote {options}. Please revise.")
+
         options = options.split(";")
         if options[0] != "":
             self.options = options
