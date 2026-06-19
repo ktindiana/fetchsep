@@ -435,7 +435,7 @@ noaa_region = args.NOAA_region
 
 print(f"opsep bin: flux_type is {flux_type}")
 
-date, sep_date, jsonfname, event_dict_csv, event_dict_pkl = fetchsep.opsep.run_opsep(
+sep_date, jsonfname, event_dict_csv, op_outpath, op_plotpath = fetchsep.opsep.run_opsep(
     str_startdate, str_enddate, experiment,
     flux_type=flux_type,
     spacecraft=spacecraft,
