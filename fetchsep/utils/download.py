@@ -71,7 +71,7 @@ def read_in_flux_files(params):
                 datasets.read_in_files(params, filenames1, filenames2, filenames_orien, detector)
     
     if params.experiment == "user":
-        all_dates, all_fluxes = datasets.read_in_user_files(filenames1, is_unixtime)
+        all_dates, all_fluxes = datasets.read_in_user_files(filenames1, params.is_unixtime)
  
  
     if len(all_fluxes) == 0:
