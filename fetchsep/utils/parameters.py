@@ -252,30 +252,38 @@ class Parameters:
 
 
     def check_json_info(self):
+        #Check if experiments.py has a recorded json_type for this experiment
+        #This is to be compared with self.json_type that may have been set by
+        #the user via argument
         json_type = expts.get_json_type(self.experiment)
         
-        #If json type isn't specified for the experiment in experiments.py
+        #If json type isn't specified for the experiment in experiments.py, e.g. user,
+        #go with whatever value the user set at run
         if json_type == '' or json_type == None:
             if self.json_type != '':
                 pass
             else:
-                sys.exit(f"check_json_info: You must specify a json type for {self.data.experiment} experiment. Choose from observations or model. Exiting.")
+                sys.exit(f"check_json_info: You must specify a json type for {self.experiment} experiment. Choose from observations or model. Exiting.")
         
-        #User specified wrong json type; override
+        #User specified wrong json type (already stored in self.json_type); override
         elif json_type != '' and self.json_type != '':
             if json_type != self.json_type:
-                print(f"check_json_info: You specified a json type of {json_type}, however the "
+                print(f"check_json_info: You specified a json type of {self.json_type}, however the "
                     f"correct json_type is {json_type}. Replacing.")
                 self.json_type = json_type
         
         #User didn't specify json type and want to get it from experiments.py
+        #This probably shouldn't be hit as previous step would have already set
+        #self.json_type with the value from experiments.py
         elif json_type != '' and self.json_type == '':
             print(f"check_json_info: Automatically setting json type {json_type}.")
             self.json_type = json_type
 
  
+        #json_mode from experiments.py to compare with the value that might have
+        #been set by the user via argument
         json_mode = expts.get_json_mode(self.experiment)
-        #If json mode isn't specified for the experiment in experiments.py
+        #If json mode isn't specified for the experiment in experiments.py, e.g. user
         if json_mode == '':
             if self.json_mode != '':
                 pass
@@ -290,6 +298,8 @@ class Parameters:
                 self.json_mode = json_mode
 
         #User didn't specify json mode and want to get it from experiments.py
+        #This probably shouldn't be hit as previous step would have already set
+        #self.json_mode with the value from experiments.py
         elif json_mode != '' and self.json_mode == '':
             print(f"check_json_info: Automatically setting json mode {json_mode}.")
             self.json_mode = json_mode
@@ -399,7 +409,7 @@ class Parameters:
             json_type = expts.get_json_type(self.experiment)
         self.json_type=json_type
 
-        if json_mode == '' or json_type == None:
+        if json_mode == '' or json_mode == None:
             json_mode = expts.get_json_mode(self.experiment)
         if json_mode != None: self.json_mode=json_mode
 
