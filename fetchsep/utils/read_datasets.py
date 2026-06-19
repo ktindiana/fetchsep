@@ -2455,12 +2455,12 @@ def check_data(params):
 
     #If user wants to use own input file (filename defined as input)
     if params.experiment == "user":
-        exists = os.path.isfile(params.user_file)
+        exists = os.path.isfile(params.user_filename)
         if exists:
-            filenames1 = [params.user_file]
+            filenames1 = [params.user_filename]
         if not exists:
             sys.exit("You have selected to read a user input "
-            "file with filename " + params.user_file
+            "file with filename " + params.user_filename
             + ". This file is not found! Exiting.")
 
         return filenames1, filenames2, filenames_orien
