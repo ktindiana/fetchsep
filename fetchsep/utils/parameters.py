@@ -288,7 +288,7 @@ class Parameters:
             if self.json_mode != '':
                 pass
             else:
-                sys.exit(f"check_json_info: You must specify a json mode for {self.data.experiment} experiment. Choose from measurements for observations or forecast, historical, nowcast, etc for model. Recommend to follow the options for the CCMC SEP Scoreboard JSON schema. Exiting.")
+                sys.exit(f"check_json_info: You must specify a json mode for {self.experiment} experiment. Choose from measurements for observations or forecast, historical, nowcast, etc for model. Recommend to follow the options for the CCMC SEP Scoreboard JSON schema. Exiting.")
 
         #User specified wrong json mode; override
         elif self.json_mode != '' and json_mode != '':
