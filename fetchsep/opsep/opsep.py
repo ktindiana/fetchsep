@@ -1716,10 +1716,10 @@ class Output:
         
         #Check if any Analysis objects were created
         if len(data.results) == 0:
-            print("No event definitons were specified. If energy is other than MeV and species is not protons, user must specify energy and threshold to define an SEP event. If showplot, a plot of the data will be provided to aid in choosing an event definition.")
+            print("No event definitions were specified. If energy is other than MeV and species is not protons, user must specify energy and threshold to define an SEP event. If showplot, a plot of the data will be provided to aid in choosing an event definition.")
             if data.params.showplot:
                 plt.show()
-            sys.exit()
+            sys.exit("No analysis results were found. Were appropriate event definitions applied?")
     
 
         self.json_dict = {} #json dictionary from template
