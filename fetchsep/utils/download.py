@@ -7,6 +7,7 @@ from ..utils import error_check
 from ..utils import tools
 from ..utils import names
 from ..utils import experiments as expts
+from ..utils import parameters as fsparam
 import datetime
 import os
 import numpy as np
@@ -117,8 +118,13 @@ def read_in_flux_files(params):
 def load_parameters(str_startdate, str_enddate, experiment,
     flux_type=None, spacecraft=None, user_name=None, user_file=None, is_unixtime=None,
     directory_depth=None, options=None, dointerp=None,
-    showplot=None, saveplot=None, write_fluxes=None, use_absolute_datapath=None):
+    showplot=None, saveplot=None, write_fluxes=None,
+    path_to_data=None, path_to_output=None, path_to_plots=None,
+    path_to_lists=None, use_absolute_datapath=None):
     """ Create FetchSEP Parameters object """
+
+    cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
+        path_to_plots=path_to_plots, path_to_lists=path_to_lists)
 
     #### SET UP EXPERIMENT VALUES #####
     params = fsparam.Parameters('download', str_startdate, str_enddate, experiment)
@@ -126,8 +132,6 @@ def load_parameters(str_startdate, str_enddate, experiment,
         user_file=user_file, is_unixtime=is_unixtime, options=options, dointerp=dointerp,
         showplot=showplot, saveplot=saveplot, directory_depth=directory_depth,
         write_fluxes=write_fluxes, use_absolute_datapath=use_absolute_datapath)
-    
-    params.print_parameters()
 
     return params
 
