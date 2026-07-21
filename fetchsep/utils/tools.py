@@ -36,7 +36,6 @@ def sort_bin_order(all_fluxes, energy_bins, energy_bin_centers=[]):
         :sort_bins: (float 2xn array) - same as above, but sorted
         
     """
-
     nbins = len(energy_bins)
     #Rank energy bins in order of lowest to highest effective
     #energies

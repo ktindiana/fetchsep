@@ -88,17 +88,15 @@ def read_in_flux_files(params):
     elif params.experiment != "GOES":
         energy_bins, energy_bin_centers = datasets.define_energy_bins(params, west_detector=west_detector)
 
-
     if energy_bins == None:
         sys.exit("Could not identify energy bins for experiment " + params.experiment
                 + " and fluxtype " + params.flux_type)
 
-    all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins)
-
+    all_fluxes, energy_bins, energy_bin_centers = tools.sort_bin_order(all_fluxes, energy_bins, energy_bin_centers=energy_bin_centers)
 
     #Extract the date range specified by the user
     dates, fluxes = datasets.extract_date_range(params.startdate, params.enddate, all_dates, all_fluxes)
-    
+
     #Interpolate bad data with linear interpolation in time or set to None
     print("read_in_flux_files: Checking for bad data.")
     if params.do_interpolation:
@@ -189,8 +187,7 @@ def get_data(params,
 
     #READ IN FLUXES
     dates, fluxes, energy_bins, energy_bin_centers = read_in_flux_files(params)
- 
- 
+  
     if params.write_fluxes:
         fluxes_filename = tools.write_fluxes(params, energy_bins, dates, fluxes, suffix="original_fluxes")
  
@@ -199,5 +196,5 @@ def get_data(params,
         plt_tools.idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins)
         if showplot:
             plt.show()
-    
+
     return params.module_outpath, params.module_plotpath, dates, fluxes, energy_bins, energy_bin_centers

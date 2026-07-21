@@ -415,7 +415,7 @@ def fill_json_header(params, issue_time):
     zissue = dh.time_to_zulu(issue_time)
     
     short_name = params.experiment
-    if params.experiment == 'user' and user_name != '' and user_name != None:
+    if params.experiment == 'user' and params.user_name != '' and params.user_name != None:
         short_name = params.user_name
     
     #If mode not specified, guess
