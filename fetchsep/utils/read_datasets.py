@@ -4915,12 +4915,6 @@ def read_in_user_files(filenames1, is_unixtime=False):
                     fluxes[j][count] = flux
                 count = count + 1
 
-        #Remove dates that have None values
-        for k in range(len(dates)-1,-1,-1):
-            if None in fluxes[:,k] or np.isnan(np.sum(fluxes[:,k])):
-                del dates[k]
-                fluxes = np.delete(fluxes, k, 1)
-
         #If reading in multiple files, then combine all data into one array
         if i==0:
             all_fluxes = fluxes
@@ -5074,8 +5068,8 @@ def do_interpolation(i,dates,flux):
 
             
     if preflux == cfg.badval or postflux == cfg.badval:
-        interp_flux = cfg.badval
-#        print(f'do_interpolation could not interpolate flux at {i}. Setting to {cfg.badval}.')
+        interp_flux = np.nan
+#        print(f'do_interpolation could not interpolate flux at {i}. Setting to {interp_flux}.')
     
     else:
         if preflux == postflux:
@@ -5127,16 +5121,7 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
                 if dointerp:
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
-#                    print('There is null data for time ' + str(dates[j])
-#                        + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-#                        + str(energy_bins[i][1]) + '.'
-#                        + ' Filling in missing value with linear '
-#                        + 'interpolation in time. ' + str(interp_flux))
                 else:
-#                    print('There is bad data for time ' + str(dates[j])
-#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-#                            + str(energy_bins[i][1]) + '.'
-#                            + ' Filling in missing value with NaN ')
                     fluxes[i,j] = np.nan
 
             elif fluxes[i,j] < 0:
@@ -5144,16 +5129,7 @@ def check_for_bad_data(dates,fluxes,energy_bins,dointerp=True):
                 if dointerp:
                     interp_flux = do_interpolation(j,dates,fluxes[i,:])
                     fluxes[i,j] = interp_flux
-#                    print('There is negative data for time ' + str(dates[j])
-#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-#                            + str(energy_bins[i][1]) + '.'
-#                            + ' Filling in missing value with linear '
-#                            + 'interpolation in time. ' + str(interp_flux))
                 else:
-#                    print('There is bad data for time ' + str(dates[j])
-#                            + ' and energy bin ' + str(energy_bins[i][0]) + ' - '
-#                            + str(energy_bins[i][1]) + '.'
-#                            + ' Filling in missing value with NaN ')
                     fluxes[i,j] = np.nan #results in NaN value in np array
 
     
