@@ -97,7 +97,7 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
             if energy_bins[i][1] != -1:
                 centerE = math.sqrt(energy_bins[i][0]*energy_bins[i][1])
             else:
-                centerE = -1
+                centerE = -1 #integral bin
             bin_center.append(centerE)
 
     #The highest energy EPEAD bin overlaps with all of the HEPAD bins
@@ -195,7 +195,7 @@ def from_differential_to_integral_flux(experiment, min_energy, energy_bins,
             ninc = ninc + 1
 
         if ninc == 0:
-            sum_flux = -1
+            sum_flux = np.nan
         integral_fluxes.append(sum_flux)
 
     return integral_fluxes
