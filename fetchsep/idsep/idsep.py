@@ -550,5 +550,16 @@ def run_idsep(str_startdate, str_enddate, experiment,
  
         if params.showplot: plt.show()
 
+    #Clean up selected variables manually
+    del dates
+    del fluxes
+    del trim_dates
+    del trim_fluxes
+    del trim_fluxes_high
+    del final_fluxes_sep
+    del trim_bg_dates
+    del trim_ave_bg
+    del fluxes_high
+
     print("TIMESTAMP: Completed idsep " + str(datetime.datetime.now()))
     return params.module_outpath, params.module_plotpath

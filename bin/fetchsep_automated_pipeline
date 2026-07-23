@@ -447,14 +447,13 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
 showplot = False
 saveplot = True
 ############## END DEFAULTS #################
-sep_filename = os.path.join(idsep_path, batchfile)
+sep_filename = os.path.join(id_outpath, batchfile)
 statusfname = 'batch_run_status.csv'
 
 batch.run_all_events(sep_filename, threshold,
     statusfname=statusfname,
     directory_depth=directory_depth,
     color_scheme=color_scheme, no_goes_colors=no_goes_colors,
-    umasep=umasep,
     dointerp=dointerp, showplot=showplot, saveplot=saveplot,
     associations=associations,
     path_to_data=path_to_data,
