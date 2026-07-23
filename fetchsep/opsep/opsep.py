@@ -421,7 +421,7 @@ class Data:
         #and which spacecraft is used. IDSEP will use the energy bins
         #for the data at the start of the dataset, so need to relax
         alt_energy_bins = []
-        if params.goes_Bruno2017:
+        if self.params.goes_Bruno2017:
             alt_energy_bins_A, centers_A = datasets.define_energy_bins(self.params, ["A"])
             alt_energy_bins_B, centers_B = datasets.define_energy_bins(self.params,["B"])
             alt_energy_bins = alt_energy_bins_A + alt_energy_bins_B
