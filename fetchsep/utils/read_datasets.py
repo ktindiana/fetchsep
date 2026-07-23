@@ -2409,8 +2409,16 @@ def check_neutron_monitor_data(params):
                 fname = None
 
         if fname != None:
-            filenames1.append(svfile)
-        
+            #Check if actual data was downloaded into the savefile
+            good_data = False
+            with open(svfile, "r") as file:
+                content = file.read()
+                if "start_date_time" in content:
+                    filenames1.append(svfile)
+                else:
+                    os.remove(svfile) # if no data inside, remove it directly
+
+
     return filenames1
     
 
