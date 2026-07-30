@@ -23,9 +23,9 @@ def valid_experiments():
 def valid_neutron_monitors():
     """ Return a list of neutron monitors that can be processed by FetchSEP """
 
-    valid_nm = ['AATA', 'AATB', 'AHMD', 'APTY', 'ARNM', 'ATHN', 'BKSN', 'BUDA',
-                'CALG', 'CALM', 'CHAC', 'CLMX', 'DJON', 'DOMB', 'DOMC', 'DRBS',
-                'DRHM', 'ESOI', 'FSMT', 'HRMS', 'HUAN', 'ICRB', 'ICRO', 'INVK',
+    valid_nm = ['AATA', 'AATB', 'AHMD', 'APTY', 'ARNM', 'ATHN', 'BKSN',
+                'CALM', 'CLMX', 'DJON', 'DOMB', 'DOMC', 'DRBS',
+                'ESOI', 'FSMT', 'HRMS', 'HUAN', 'ICRB', 'ICRO', 'INVK',
                 'IRK2', 'IRK3', 'IRKT', 'JBGO', 'JUNG', 'JUNG1', 'KERG', 'KGSN',
                 'KIEL', 'KIEL2', 'LMKS', 'MCMU', 'MCRL', 'MGDN', 'MOSC', 'MRNY',
                 'MWSB', 'MWSN', 'MXCO', 'NAIN', 'NANM', 'NEU3', 'NEWK', 'NRLK',
@@ -1258,33 +1258,7 @@ def experiment_info(experiment):
 
  
             ####NEUTRON MONITORS
-            'BKSN': {
-                'info': 'Baksan (R=5.70, Alt=1700 m)',
-                'first_date': datetime.datetime(2009,5,18),#2009-05-18
-                'last_date': None,
-                'flux_type': ['integral'],
-                'json_type': 'observations',
-                'json_mode': 'measurement',
-                'species': 'neutron',
-                'location': 'earth',
-                'cadence': 'day', #after processeing by FetchSEP
-                'resolution': datetime.timedelta(minutes=1),
-                'energy_units': 'GV',
-                'differential':{
-                    'flux_units': None,
-                    'fluence_units': None,
-                    'kurtosis_cut': 999,
-                },
-                'integral': {
-                    'flux_units': 'counts*s^-1',
-                    'fluence_units': 'counts',
-                    'energy_bins': [[5.70,-1]],
-                    'energy_bin_centers': [5.70],
-                    'url': 'https://www.nmdb.eu/nest/',
-                    'kurtosis_cut': 999,
-                }
-            
-            },
+
 
             'OULU': {
                 'info': 'Oulu (R=0.81, Alt=15 m)',
@@ -1343,8 +1317,8 @@ def experiment_info(experiment):
             ##########TO UPDATE WITH START AND END TIMES ##############
             'AATA': {
                 'info': 'Alma-Ata A (R=5.90, Alt=897 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(2019,1,4),
+                'last_date': datetime.datetime(2022,9,15),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1370,7 +1344,7 @@ def experiment_info(experiment):
 
             'AATB': {
                 'info': 'Alma-Ata B (R=5.90, Alt=3340 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(1973,1,1),
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1424,7 +1398,7 @@ def experiment_info(experiment):
 
             'APTY': {
                 'info': 'Apatity (R=0.65, Alt=181 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(2000,7,1),
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1451,8 +1425,8 @@ def experiment_info(experiment):
 
             'ARNM': {
                 'info': 'Aragats (R=7.10, Alt=3200 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(2008,1,1),
+                'last_date': datetime.datetime(2012,4,8),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1478,7 +1452,7 @@ def experiment_info(experiment):
 
             'ATHN': {
                 'info': 'Athens (R=8.53, Alt=260 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(2000,11,11),
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1503,19 +1477,20 @@ def experiment_info(experiment):
                 }
             },
 
+
             'BKSN': {
                 'info': 'Baksan (R=5.70, Alt=1700 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(2009,5,18),#2009-05-18
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'neutron',
                 'location': 'earth',
-                'cadence': 'day',
+                'cadence': 'day', #after processeing by FetchSEP
                 'resolution': datetime.timedelta(minutes=1),
                 'energy_units': 'GV',
-                'differential': {
+                'differential':{
                     'flux_units': None,
                     'fluence_units': None,
                     'kurtosis_cut': 999,
@@ -1523,13 +1498,15 @@ def experiment_info(experiment):
                 'integral': {
                     'flux_units': 'counts*s^-1',
                     'fluence_units': 'counts',
-                    'energy_bins': [[5.7,-1]],
-                    'energy_bin_centers': [5.7],
+                    'energy_bins': [[5.70,-1]],
+                    'energy_bin_centers': [5.70],
                     'url': 'https://www.nmdb.eu/nest/',
                     'kurtosis_cut': 999,
                 }
+            
             },
 
+            #No data found from the nmdb.eu GUI query; excluding
             'BUDA': {
                 'info': 'BUDA (R=, Alt= m)',
                 'first_date': datetime.datetime(1940,1,1),
@@ -1557,6 +1534,7 @@ def experiment_info(experiment):
                 }
             },
 
+            #No data found from the nmdb.eu GUI query; excluding
             'CALG': {
                 'info': 'Calgary (R=1.08, Alt=1123 m)',
                 'first_date': datetime.datetime(1940,1,1),
@@ -1586,8 +1564,8 @@ def experiment_info(experiment):
 
             'CALM': {
                 'info': 'NM de Castilla la Mancha (R=6.95, Alt=708 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(2012,7,11),
+                'last_date': datetime.datetime(2018,4,30),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1610,11 +1588,12 @@ def experiment_info(experiment):
                     'kurtosis_cut': 999,
                 }
             },
-
+            
+            #Only available for 10 days, excluding
             'CHAC': {
                 'info': 'CHACALTAYA (R=11.80, Alt=5270 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(2025,11,10),
+                'last_date': datetime.datetime(2025,11,20),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1667,8 +1646,8 @@ def experiment_info(experiment):
 
             'DJON': {
                 'info': 'Daejeon (R=11.20, Alt=200 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(2011,10,12),
+                'last_date': datetime.datetime(2021,12,31),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1694,7 +1673,7 @@ def experiment_info(experiment):
 
             'DOMB': {
                 'info': 'Dome C mini NM (bare) (R=0.01, Alt=3233 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(2015,1,6),
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1721,7 +1700,7 @@ def experiment_info(experiment):
 
             'DOMC': {
                 'info': 'Dome C mini NM (R=0.01, Alt=3233 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(2015,1,6),
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1748,8 +1727,8 @@ def experiment_info(experiment):
 
             'DRBS': {
                 'info': 'Dourbes (R=3.18, Alt=225 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(1967,1,1),
+                'last_date': datetime.datetime(2021,7,24),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1772,7 +1751,8 @@ def experiment_info(experiment):
                     'kurtosis_cut': 999,
                 }
             },
-
+    
+            #No data was available in the nmdb database, excluding
             'DRHM': {
                 'info': 'Durham (R=2.21, Alt=20 m)',
                 'first_date': datetime.datetime(1940,1,1),
@@ -1802,8 +1782,8 @@ def experiment_info(experiment):
 
             'ESOI': {
                 'info': 'Emilio Segre Obs. Israel (R=10.75, Alt=2055 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(1998,4,2),
+                'last_date': datetime.datetime(2016,7,3),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1829,7 +1809,7 @@ def experiment_info(experiment):
 
             'FSMT': {
                 'info': 'Fort Smith (R=0.30, Alt=180 m)',
-                'first_date': datetime.datetime(1940,1,1),
+                'first_date': datetime.datetime(2000,10,4),
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1856,8 +1836,8 @@ def experiment_info(experiment):
 
             'HRMS': {
                 'info': 'Hermanus (R=4.58, Alt=26 m)',
-                'first_date': datetime.datetime(1940,1,1),
-                'last_date': None,
+                'first_date': datetime.datetime(1957,5,29),
+                'last_date': datetime.datetime(2021,2,9),
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',

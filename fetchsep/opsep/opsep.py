@@ -1460,8 +1460,11 @@ class Analyze:
         dates = data.dates
         
         #Trim to the SEP start and end times
-        sep_dates, sep_fluxes = datasets.extract_date_range(self.sep_start_time,
-                                self.sep_end_time, dates, fluxes)
+        sep_fluxes = []
+        for arr in fluxes:
+            sep_flux = self.trim_to_date_range(self.sep_start_time,
+                                self.sep_end_time, dates, arr)
+            sep_fluxes.append(sep_flux)
 
         fluence_spectrum = []
         for flux in sep_fluxes:
