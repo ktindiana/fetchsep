@@ -4966,7 +4966,7 @@ def extract_date_range(startdate,enddate,all_dates,all_fluxes):
     for i in range(ndates):
         if all_dates[i] <= startdate:
             nst = i
-        if all_dates[i] < enddate: #exclusive
+        if all_dates[i] <= enddate: #inclusive
             nend = i
     if all_dates[nst] < startdate:
         nst = nst + 1 #move one step past the start time if no
