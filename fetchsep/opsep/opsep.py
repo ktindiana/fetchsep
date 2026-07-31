@@ -723,6 +723,12 @@ class Analyze:
         #Derived values
         self.sep_start_time = pd.NaT
         self.sep_end_time = pd.NaT
+        
+        #Does the event drop below threshold or return to background before
+        #the end of the analyzed time period
+        self.return_to_threshold = True
+        self.return_to_background = True
+        
         self.onset_peak = np.nan
         self.onset_peak_time = pd.NaT
         self.onset_rise_time = np.nan
@@ -958,10 +964,16 @@ class Analyze:
             sep_start_time, sep_end_time = analysis.identify_sep_noaa(dates, fluxes, threshold)
             if data.params.two_peaks:
                 sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
+            if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+                self.return_to_threshold = False
+
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
             sep_start_time, sep_end_time, SPEfluxes = analysis.identify_sep_above_background_one(dates, fluxes)
+            if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+                self.return_to_background = False
+
 
         #In case that date range ended before fell before threshold,
         #use the last time in the file
@@ -974,6 +986,7 @@ class Analyze:
                 "end time and duration.")
             if check_quality and 'I' not in self.quality_flags:
                 self.quality_flags += 'I'
+
 
         if threshold == cfg.opsep_min_threshold:
             print(f"For {energy_bin} above background found SEP: {sep_start_time} to {sep_end_time}")
@@ -2764,6 +2777,26 @@ class Output:
             fluence_spectra, fluence_spectra_units)
         
 
+    def event_interrupted(self):
+        """ Check if any SEP events ended before dropping below threshold
+            or returning to background.
+            
+        """
+        
+        return_to_threshold = True
+        return_to_background = True
+        #Cycle through all Analyze objects for the various event definitions
+        for analyze in self.data.results:
+            if not analyze.return_to_threshold:
+                return_to_threshold = False
+                print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before dropping below threshold.")
+
+            if not analyze.return_to_background:
+                return_to_background = False
+                print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before returning to background.")
+
+        return return_to_threshold, return_to_background
+
 
 
 ##### OPSEP MAIN FUNCTIONS ####
@@ -3065,6 +3098,9 @@ def run_opsep(str_startdate, str_enddate, experiment,
     output_data.plot_all_fluxes()
     output_data.plot_fluence_spectra()
 
+    #Determine if return below threshold and background
+    return_to_threshold, return_to_background = output_data.event_interrupted()
+
     if not pd.isnull(flux_data.sep_date):
         print(f"An SEP occurred on {flux_data.sep_date.year}-{flux_data.sep_date.month}-{flux_data.sep_date.day}")
     else:
@@ -3072,4 +3108,4 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     if showplot: plt.show()
     
-    return flux_data.sep_date, jsonfname, event_dict_csv, params.module_outpath, params.module_plotpath
+    return flux_data.sep_date, jsonfname, event_dict_csv, params.module_outpath, params.module_plotpath, return_to_background, return_to_threshold

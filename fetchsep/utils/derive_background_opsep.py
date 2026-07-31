@@ -334,7 +334,7 @@ def create_histogram(flux, energy_bin, iteration):
     variance = np.average((bin_centers - hist_mean)**2, weights=hist)
     sigma = np.sqrt(variance)
 
-    # Plot histogram
+#    #Plot histogram
 #    figname = 'FluxHistogram_'+ str(energy_bin[0]) + '_' \
 #            + str(energy_bin[1]) + '_it' +str(iteration)
 #    fig = plt.figure(figname,figsize=(8,5))
@@ -360,10 +360,10 @@ def calc_mean_sigma(flux):
     """ Calculate the mean and the sigma of the flux using simple
         mean and sigma definitions.
     """
-    #Bad values in the data were set to None
+    #Bad values in the data were set to NaN
     #Remove None values to calculate flux distribution in a histogram
     clean_flux, bad_index = remove_none(flux) #remove any None values in numpy array
-    clean_flux, bad_index = remove_zero(flux) #remove any None values in numpy array
+    clean_flux, bad_index = remove_zero(clean_flux) #remove any zero values in numpy array
     mean  = sum(clean_flux)/len(clean_flux)
     sigmasq = sum([(x-mean)**2 for x in clean_flux])/len(clean_flux)
     sigma = math.sqrt(sigmasq)
@@ -397,6 +397,7 @@ def iterate_background(fluxes, energy_bins):
             #First iteration: Use all fluxes in the background time period to
             #estimate mean and sigma.
             mean, sigma = create_histogram(strip_flux, energy_bins[i],it)
+            #print("mean1: " + str(mean) + ", sigma1: "+ str(sigma))
             mean, sigma = calc_mean_sigma(strip_flux)
             #print("mean: " + str(mean) + ", sigma: "+ str(sigma))
             #exclude values above mean + 3sigma
@@ -468,8 +469,9 @@ def derive_background(params, dates, fluxes, energy_bins, doBGSub=False):
     print(f"Calculating background with data from {params.bgstartdate} to {params.bgenddate}.")
 
     means, sigmas = iterate_background(bg_fluxes, energy_bins)
+    print(means)
     bgfluxes, sepfluxes = separate_sep_and_background(params, fluxes, means, sigmas, doBGSub=doBGSub)
-                     
+ 
     print("=====BACKGROUND IDENTIFICATION=====")
     for k in range(len(means)):
         print(f"Mean: {means[k]} +- {params.opsep_nsigma} * {sigmas[k]}")
