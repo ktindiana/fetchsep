@@ -2777,25 +2777,45 @@ class Output:
             fluence_spectra, fluence_spectra_units)
         
 
-    def event_interrupted(self):
+    def event_end_state(self):
         """ Check if any SEP events ended before dropping below threshold
             or returning to background.
             
         """
         
-        return_to_threshold = True
-        return_to_background = True
+        event_return = {"threshold": {}, "background": {}}
         #Cycle through all Analyze objects for the various event definitions
         for analyze in self.data.results:
+            energy_bin = analyze.make_energy_bin()
+            energy_units = analyze.event_definition['energy_channel'].units
+            threshold = analyze.event_definition['threshold'].threshold
+            threshold_units = analyze.event_definition['threshold'].threshold_units
+
+            if energy_bin[1] == -1:
+                channel_label = f">{energy_bin[0]} {energy_units}"
+            else:
+                channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+        
+            threshold_label = f"{threshold} {threshold_units}"
+
+            #If identification of events above background,
+            #rename arbitrary low threshold to "above background"
+            if threshold == cfg.opsep_min_threshold:
+                threshold_label = "above background"
+                label = channel_label + " " + threshold_label
+                event_return["background"].update({label: analyze.return_to_background})
+            else:
+                label = channel_label + " " + threshold_label
+                event_return["threshold"].update({label: analyze.return_to_threshold})
+
+
             if not analyze.return_to_threshold:
-                return_to_threshold = False
                 print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before dropping below threshold.")
 
             if not analyze.return_to_background:
-                return_to_background = False
                 print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before returning to background.")
 
-        return return_to_threshold, return_to_background
+        return event_return
 
 
 
@@ -3099,7 +3119,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
     output_data.plot_fluence_spectra()
 
     #Determine if return below threshold and background
-    return_to_threshold, return_to_background = output_data.event_interrupted()
+    event_return = output_data.event_end_state()
 
     if not pd.isnull(flux_data.sep_date):
         print(f"An SEP occurred on {flux_data.sep_date.year}-{flux_data.sep_date.month}-{flux_data.sep_date.day}")
@@ -3108,4 +3128,4 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     if showplot: plt.show()
     
-    return flux_data.sep_date, jsonfname, event_dict_csv, params.module_outpath, params.module_plotpath, return_to_background, return_to_threshold
+    return flux_data.sep_date, jsonfname, event_dict_csv, params.module_outpath, params.module_plotpath, event_return

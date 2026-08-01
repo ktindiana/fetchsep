@@ -571,7 +571,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-    sep_date, jsonfname, event_dict_csv, opsep_outpath, opsep_plotpath = \
+    sep_date, jsonfname, event_dict_csv, opsep_outpath, opsep_plotpath, event_return = \
         opsep.run_opsep(start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,

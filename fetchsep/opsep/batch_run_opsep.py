@@ -608,7 +608,7 @@ def run_all_events(sep_filename, threshold,
         print('\n-------RUNNING SEP ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            sep_date, jsonfname, event_dict_csv, op_outpath, op_plotpath, return_to_threshold, return_to_background = opsep.run_opsep(start_date,
+            sep_date, jsonfname, event_dict_csv, op_outpath, op_plotpath, event_return = opsep.run_opsep(start_date,
                 end_date, experiment, flux_type=flux_type,
                 directory_depth=directory_depth,
                 color_scheme=color_scheme, no_goes_colors=no_goes_colors,
