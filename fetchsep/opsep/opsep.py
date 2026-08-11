@@ -399,9 +399,9 @@ class Data:
         df_thresh = df_thresh.replace(1e6,np.nan)
         
         #Trim to date range
-        df_mean = df_mean.loc[(df_mean['dates'] >= self.params.startdate) & (df_mean['dates'] < self.params.enddate)]
-        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.params.startdate) & (df_sigma['dates'] < self.params.enddate)]
-        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.params.startdate) & (df_thresh['dates'] < self.params.enddate)]
+        df_mean = df_mean.loc[(df_mean['dates'] >= self.params.startdate) & (df_mean['dates'] <= self.params.enddate)]
+        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.params.startdate) & (df_sigma['dates'] <= self.params.enddate)]
+        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.params.startdate) & (df_thresh['dates'] <= self.params.enddate)]
         if df_mean.empty:
             sys.exit("read_idsep_files: The idsep file containing the mean background "
                     f"does not cover the dates required. {bgfilename}")
@@ -2783,7 +2783,7 @@ class Output:
             
         """
         
-        event_return = {"threshold": {}, "background": {}}
+        event_end_status = {"threshold": {}, "background": {}}
         #Cycle through all Analyze objects for the various event definitions
         for analyze in self.data.results:
             energy_bin = analyze.make_energy_bin()
@@ -2803,10 +2803,10 @@ class Output:
             if threshold == cfg.opsep_min_threshold:
                 threshold_label = "above background"
                 label = channel_label + " " + threshold_label
-                event_return["background"].update({label: analyze.return_to_background})
+                event_end_status["background"].update({label: analyze.return_to_background})
             else:
                 label = channel_label + " " + threshold_label
-                event_return["threshold"].update({label: analyze.return_to_threshold})
+                event_end_status["threshold"].update({label: analyze.return_to_threshold})
 
 
             if not analyze.return_to_threshold:
@@ -2815,7 +2815,7 @@ class Output:
             if not analyze.return_to_background:
                 print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before returning to background.")
 
-        return event_return
+        return event_end_status
 
 
 
@@ -3119,7 +3119,24 @@ def run_opsep(str_startdate, str_enddate, experiment,
     output_data.plot_fluence_spectra()
 
     #Determine if return below threshold and background
-    event_return = output_data.event_end_state()
+    event_end_status = output_data.event_end_state()
+
+    outputs = {
+        "sep_date": str(flux_data.sep_date) if not pd.isnull(flux_data.sep_date) else None,
+        "jsonfname": jsonfname,
+        "opsep_subdir": params.module_subdir,
+        "opsep_outpath": params.module_outpath,
+        "opsep_plotpath": params.module_plotpath,
+        "event_end_status": event_end_status
+    }
+    
+    stdtz = dh.time_to_zulu(str_startdate).replace(":","")
+    print(outputs)
+    outputs_fname = os.path.join(outputs["opsep_outpath"], f"{outputs['opsep_subdir']}.{stdtz}_opsep_outputs.json")
+    ccmc_json.write_json(outputs,outputs_fname)
+
+    #trouble with writing variable types to json, so add after writing to file
+    outputs.update({"event_dict_csv": event_dict_csv})
 
     if not pd.isnull(flux_data.sep_date):
         print(f"An SEP occurred on {flux_data.sep_date.year}-{flux_data.sep_date.month}-{flux_data.sep_date.day}")
@@ -3128,4 +3145,4 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     if showplot: plt.show()
     
-    return flux_data.sep_date, jsonfname, event_dict_csv, params.module_outpath, params.module_plotpath, event_return
+    return outputs

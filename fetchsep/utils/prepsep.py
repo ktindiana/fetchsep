@@ -11,6 +11,7 @@ import pandas as pd
 import numpy as np
 import shutil
 from pathlib import Path
+import json
 
 __author__ = "Katie Whitman"
 __maintainer__ = "Katie Whitman"
@@ -571,8 +572,7 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
-    sep_date, jsonfname, event_dict_csv, opsep_outpath, opsep_plotpath, event_return = \
-        opsep.run_opsep(start_date, end_date, experiment,
+    outputs = opsep.run_opsep(start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,
         color_scheme=color_scheme,
@@ -611,8 +611,4 @@ def update_observations(target_dir, start_date, end_date, experiment,
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
 
-    subdirectories = Path(opsep_outpath)
-    subdirectories = subdirectories.parts
-    subdir = subdirectories[-1]
-
-    return subdir
+    return outputs

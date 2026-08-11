@@ -173,6 +173,7 @@ path_to_data = args.datapath
 path_to_output = args.outpath
 path_to_plots = args.plotpath
 path_to_lists = args.listpath
+outputs_fname = args.outputs_fname
 
 
 if flux_type == '':

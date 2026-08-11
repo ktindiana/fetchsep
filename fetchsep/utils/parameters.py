@@ -46,7 +46,7 @@ class Parameters:
 
         #Directory behavior
         self.directory_depth = 2
-        self.use_absolute_datapath = False
+        self.use_absolute_datapath = False #only for original downloaded data
 
         #GOES-specific options
         self.options = []
@@ -453,6 +453,7 @@ class Parameters:
         self.set_opsep_background_info()
         #With IDSEP
         if idsep_path != None: self.idsep_path = idsep_path
+        if IDSEPEnhancement != None: self.IDSEPEnhancement = IDSEPEnhancement
         if doBGSubIDSEP != None: self.doBGSubIDSEP = doBGSubIDSEP
         self.set_idsep_background_info()
 
