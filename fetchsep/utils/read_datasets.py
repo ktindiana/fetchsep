@@ -1196,12 +1196,12 @@ def check_goes_swpc_data(params):
         
     """
 
-    url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (spacecraft,flux_type))
+    url = ('https://services.swpc.noaa.gov/json/goes/%s/%s-protons-7-day.json' % (params.spacecraft, params.flux_type))
 
     dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
-    fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
+    fname1 = f"{params.spacecraft}-{params.flux_type}-protons-7-day.json"
     filenames1 = []
     print("Trying to download url: " + url)
     try:
@@ -3410,13 +3410,13 @@ def read_in_goes_RT(params, filenames1):
 def read_in_goes_swpc(params):
     """ Read in SWPC 7-day jsons for GOES protons """
 
-    fname1 = f"{spacecraft}-{flux_type}-protons-7-day.json"
+    fname1 = f"{params.spacecraft}-{params.flux_type}-protons-7-day.json"
     dir = dirs.get_directory('GOES-SWPC', use_absolute_datapath=params.use_absolute_datapath)
     fname = os.path.join(dir, fname1)
 
     all_dates = []
 
-    if flux_type == "integral":
+    if params.flux_type == "integral":
         fluxes_dict = {"\u003E=1 MeV": [],
                   "\u003E=5 MeV": [],
                   "\u003E=10 MeV": [],
@@ -3453,7 +3453,7 @@ def read_in_goes_swpc(params):
             df = df.drop(col, axis=1)
 
 
-    if flux_type == "differential":
+    if params.flux_type == "differential":
         fluxes_dict = {"P1": [],
                   "P2A": [],
                   "P2B": [],
