@@ -187,7 +187,8 @@ def get_data(params,
 
     #READ IN FLUXES
     dates, fluxes, energy_bins, energy_bin_centers = read_in_flux_files(params)
-  
+ 
+    fluxes_filename = None 
     if params.write_fluxes:
         fluxes_filename = tools.write_fluxes(params, energy_bins, dates, fluxes, suffix="original_fluxes")
  
@@ -197,4 +198,4 @@ def get_data(params,
         if showplot:
             plt.show()
 
-    return params.module_outpath, params.module_plotpath, dates, fluxes, energy_bins, energy_bin_centers
+    return params.module_outpath, params.module_plotpath, dates, fluxes, energy_bins, energy_bin_centers, fluxes_filename

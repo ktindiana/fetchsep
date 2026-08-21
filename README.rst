@@ -106,6 +106,30 @@ is created containing the time series file
 
     | fluxes_GOES-18_differential_20250101_20250131.csv
 
+Interpolate Energy Spectrum
+============================
+
+After downloading differential flux data, the energy spectrum at each timestep may optionally be interpolated onto a common energy bin grid using ``fetchsep/utils/interpolate_energy.py``. This is useful for comparing spectra across experiments with different native energy channels, or for producing a fixed-format input for downstream tools that expect a consistent bin structure.
+
+Interpolation only applies to differential flux data and is off by default. To enable it, add the ``--InterpolateEnergy`` flag to ``bin/download``:
+
+    | python bin/download --StartDate 2000-07-14 --EndDate 2000-07-17 --Experiment GOES-10 --FluxType differential --InterpolateEnergy
+
+This produces a second csv file alongside the original download output, named with an ``_interpolated`` suffix, e.g.:
+
+    | fluxes_GOES-10_differential_20000714_20000717_interpolated.csv
+
+By default, the interpolated grid is the built-in 100-bin HZETRN SPE energy grid (0.01 - 2500 MeV). A custom energy grid may be supplied instead with ``--EbinFile``, pointing to a file containing one energy value per line:
+
+    | python bin/download --StartDate 2000-07-14 --EndDate 2000-07-17 --Experiment GOES-10 --FluxType differential --InterpolateEnergy --EbinFile my_energy_bins.txt
+
+By default, values are only interpolated within the range of the actual measured energy channels. To additionally extrapolate beyond the measured energy range using a Weibull fit to the spectrum shape, add ``--ExtrapolateEnergy``:
+
+    | python bin/download --StartDate 2000-07-14 --EndDate 2000-07-17 --Experiment GOES-10 --FluxType differential --InterpolateEnergy --ExtrapolateEnergy
+
+**Note:** extrapolation beyond the measured energy range is inherently less reliable, particularly when extrapolating across a wide gap (e.g. down to very low energies where no channel measures flux directly). Interpolated or extrapolated values that come out orders of magnitude above what was actually measured at a given timestep are replaced with zero in the output csv rather than a physically implausible number, so downstream analysis should be prepared to handle missing values.
+
+
 
 
 IDSEP
