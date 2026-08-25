@@ -2,6 +2,7 @@ import configparser
 import argparse
 import os.path
 import shutil
+from . import date_handler as dh
 
 """fetchsep configuration
 
@@ -82,6 +83,17 @@ def print_configured_values():
                 print(f"{k}: {pkg_globals[k]}")
     print("======= END CONFIG VALUES =========================")
     print()
+
+def output_config():
+    output = {}
+    for section in sections:
+        if section in config.sections():
+            for k in config[section]:
+                value = pkg_globals[k]
+                if 'time' in k or 'date' in k:
+                    value = dh.time_to_zulu(value, strict_str=True)
+                output.update({k: value})
+    return output
 
 ##### PATHS ####
 def process_experiment_paths():

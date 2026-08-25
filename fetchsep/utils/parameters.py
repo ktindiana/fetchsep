@@ -489,3 +489,15 @@ class Parameters:
         self.error_check()
 
         self.print_parameters()
+
+
+    def output_parameters(self):
+        """ Output all parameters to a dictionary """
+        output = {}
+        for param, ref in self.__dict__.items():
+            value = getattr(self, param)
+            if 'time' in param or 'date' in param:
+                value = dh.time_to_zulu(value, strict_str=True)
+            output.update({param: value})
+
+        return output

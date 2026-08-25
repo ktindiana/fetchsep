@@ -386,7 +386,7 @@ id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
 
 
 if startpoint == "IDSEP":
-    id_outpath, id_plotpath = fetchsep.idsep.run_idsep(str_startdate, str_enddate,
+    idsep_outputs = fetchsep.idsep.run_idsep(str_startdate, str_enddate,
         experiment,
         flux_type=flux_type, spacecraft=spacecraft,
         exp_name=exp_name, user_file=user_file,
