@@ -3131,7 +3131,6 @@ def run_opsep(str_startdate, str_enddate, experiment,
     }
     
     stdtz = dh.time_to_zulu(str_startdate).replace(":","")
-    print(outputs)
     outputs_fname = os.path.join(outputs["opsep_outpath"], f"{outputs['opsep_subdir']}.{stdtz}_opsep_outputs.json")
     ccmc_json.write_json(outputs,outputs_fname)
 

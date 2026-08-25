@@ -243,8 +243,8 @@ def experiment_info(experiment):
                 'integral': {
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'energy_bins': [[30.0,-1],[60.0,-1]],
-                    'energy_bin_centers': [30.0,60.0],
+                    'energy_bins': [[10.0,-1],[30.0,-1]],
+                    'energy_bin_centers': [10.0,30.0],
                     'url': 'https://sohoftp.nascom.nasa.gov/sdb/goes/ace/daily/',
                     'kurtosis_cut': 999,
                 }
@@ -564,7 +564,7 @@ def experiment_info(experiment):
             'GOES-05':{
                 'first_date': datetime.datetime(1984,1,1),#1984-01-01
                 'last_date': datetime.datetime(1985,12,31), #1985-12-31
-                'flux_type': ['integral', 'differential'],
+                'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -621,7 +621,7 @@ def experiment_info(experiment):
             },
 
             'GOES-07':{
-                'first_date': datetime.datetime(1987,3,1),#1987-03-01
+                'first_date': datetime.datetime(1987,3,6),#1987-03-06
                 'last_date': datetime.datetime(1996,8,31), #1996-08-31
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
@@ -755,7 +755,7 @@ def experiment_info(experiment):
             },
 
             'GOES-11':{
-                'first_date': datetime.datetime(2003,6,1),#2003-06-01
+                'first_date': datetime.datetime(2003,6,19,17,20,0),#2003-06-01
                 'last_date': datetime.datetime(2011,2,28), #2011-02-28
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
@@ -853,10 +853,12 @@ def experiment_info(experiment):
                 }
             },
 
+            #NOAA does not provide East-West orientation files to accompany
+            #the differential fluxes of GOES-14. Exclude and use only integral fluxes.
             'GOES-14':{
-                'first_date': datetime.datetime(2009,7,1),#2009-07-01
+                'first_date': datetime.datetime(2010,1,1),#2010-01-01
                 'last_date': datetime.datetime(2020,3,4), #2020-03-04
-                'flux_type': ['integral', 'differential'],
+                'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
                 'species': 'proton',
@@ -920,7 +922,8 @@ def experiment_info(experiment):
             },
 
             'GOES-16':{
-                'first_date': datetime.datetime(2020,11,1),#2020-11-01
+                #regular data starts 2020-11-01; special event data for 2017-09-10
+                'first_date': datetime.datetime(2017,9,1),
                 'last_date': datetime.datetime(2025,4,6), #2025-04-06, there is a file on the 7th, but has a problem
                 'flux_type': ['differential'],
                 'json_type': 'observations',
@@ -1039,6 +1042,10 @@ def experiment_info(experiment):
                 }
             },
 
+            #GOES real time primary fluxes in ISWA have a gap from
+            #2020-03-04T14:35:00Z to 2020-03-08T00:00:00Z
+            #GOES real time secondary fluxes in ISWA have a gap from
+            #2020-03-09T19:05:00Z to 2021-09-02T18:55:00Z
             'GOES-RT':{
                 'first_date': datetime.datetime(2010,4,14),#2010-04-14
                 'last_date': None,
@@ -1101,7 +1108,7 @@ def experiment_info(experiment):
 
 
             'IMP-8_CPME':{
-                'first_date': datetime.datetime(1974,2,17),#1974-02-17
+                'first_date': datetime.datetime(1974,3,1),#1974-02-17
                 'last_date': datetime.datetime(2001,11,7), #2001-11-07
                 'flux_type': ['differential'],
                 'json_type': 'observations',

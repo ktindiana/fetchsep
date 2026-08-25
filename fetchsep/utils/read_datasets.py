@@ -390,13 +390,13 @@ def check_sepem_data(params):
         if not exists:
             full_exists = os.path.isfile(os.path.join(dir, basenm + '.txt'))
             if not full_exists:
-                if experiment == 'SEPEM':
+                if params.experiment == 'SEPEM':
                     sys.exit("Please download and unzip the RSDv2 data set."
                         " You may download the file at"
                         " http://sepem.eu/help/SEPEM_RDS_v2-00.zip for full "
                         "fluxes or http://sepem.eu/help/SEPEM_RDS_v2-00.zip "
                         "for ESA background-subtracted fluxes.")
-                if experiment == 'SEPEMv3':
+                if params.experiment == 'SEPEMv3':
                     sys.exit('Please contact DH Consultancy for the SEPEM '
                             'RDSv3 data set. Unzip and put SEPEM_RDS_V3_H.txt '
                             'in the data/SEPEMv3 folder.')
@@ -929,6 +929,7 @@ def check_goesR_data(params):
         if not exists1:
             url=('https://www.ngdc.noaa.gov/stp/space-weather/satellite-data/satellite-systems/goesr/solar_proton_events/sgps_sep2017_event_data/%s' % (fname1))
             try:
+                print(f"check_goesR_data: Downloading special file containing 2017-09-10 data is {url}")
                 urllib.request.urlopen(url, timeout=5)
                 wget.download(url, fullpath1)
             except urllib.request.HTTPError:
@@ -939,8 +940,7 @@ def check_goesR_data(params):
             except Exception as e:
                 sys.exit(f"Cannot access file at {url} because {e}. Exiting.")
 
-
-        print("check_goesR_data: Special file containing 2017-09-10 data is {fname1}")
+        print(f"check_goesR_data: Special file containing 2017-09-10 data is {fullpath1}")
         filenames1.append(os.path.join(dir,fname1))
         return filenames1, filenames2, filenames_orien, params.startdate
     
@@ -2287,11 +2287,11 @@ def check_imp8_cpme_data(params):
             dy1 = grp[0]
             dy2 = grp[1]
             if is_leap_year and dy2 == 365: dy2 = 366
-            #h_330s_1974_048_071.txt.gz
+            #h_330s_1974_048_071.txt.gz for 1996 and previous; txt only 1997 and forward
             fname = f"h_330s_{year}_{dy1:03d}_{dy2:03d}.txt"
-#            gzfname = f"{fname}.gz"
+            gzfname = f"{fname}.gz"
         
-#            gzsvfile = os.path.join(dir,gzfname)
+            gzsvfile = os.path.join(dir,gzfname)
             svfile = os.path.join(dir,fname)
             exists = os.path.isfile(svfile)
         
@@ -2301,6 +2301,8 @@ def check_imp8_cpme_data(params):
                 complete = check_completeness(params.experiment, params.flux_type, svfile, df=df)
             
             if not exists or not complete: #download file if not found on your computer
+                if year <= 1996:
+                    fname = gzfname
                 url = ('http://sd-www.jhuapl.edu/IMP/data/imp8/cpme/cpme_330s/protons/%s/%s'
                         % (year, fname))
                 print('Downloading IMP-8/CPME data: ' + url)
@@ -2312,14 +2314,18 @@ def check_imp8_cpme_data(params):
                     if os.path.exists(svfile):
                         os.remove(svfile) # if exist, remove it directly
       
-                    wget.download(url, svfile)
-                    #Decompress gzip file
-#                    # Open the gzipped file in binary read mode ('rb')
-#                    with gzip.open(gzsvfile, 'rb') as f_in:
-#                        # Open the output file in binary write mode ('wb')
-#                        with open(svfile, 'wb') as f_out:
-#                            # Copy the decompressed data from the input to the output file
-#                            shutil.copyfileobj(f_in, f_out)
+                    if year <= 1996:
+                        wget.download(url, gzsvfile)
+                        #Decompress gzip file
+                        # Open the gzipped file in binary read mode ('rb')
+                        with gzip.open(gzsvfile, 'rb') as f_in:
+                            # Open the output file in binary write mode ('wb')
+                            with open(svfile, 'wb') as f_out:
+                                # Copy the decompressed data from the input to the output file
+                                shutil.copyfileobj(f_in, f_out)
+
+                    else:
+                        wget.download(url, svfile)
 
                 except urllib.request.HTTPError as e:
                     print(f"Cannot access {params.experiment} file at {url} because {e}. Please check that selected spacecraft covers date range. Skipping.")
@@ -3373,7 +3379,7 @@ def read_in_goes_RT(params, filenames1):
             df_in = pd.read_csv(filenames1[i], header=None)
         except:
             #Sometimes files may be empty if there is a data gap > 1 day
-            print(f"read_in_GOES-RT: Could not open {fullpath}. Skipping.")
+            print(f"read_in_GOES-RT: Could not open {filenames1[i]}. Skipping.")
             continue
 
         df_in[0] = df_in[0].str.replace('T',' ')
@@ -4315,9 +4321,11 @@ def read_in_stereo(params, filenames1, filenames2):
 
     df_all = dfL.merge(dfH, on='dates')
     allcol = df_all.columns.to_list()
+    for col in allcol[1:]:
+        df_all[col] = df_all[col].astype(float)
 
     all_dates = df_all['dates'].to_list()
-    all_fluxes = df_all[allcol[1:]].values.T
+    all_fluxes = np.array(df_all[allcol[1:]].values.T)
 
     print(f"{datetime.datetime.now()} read_in_stereo: Finished reading STEREO data.")
 
@@ -4702,7 +4710,7 @@ def read_in_files(params, filenames1, filenames2, filenames_orien, detector=[]):
         all_dates, all_fluxes = read_in_sepem(filenames1)
 
     elif params.experiment == "CalGOES":
-        all_dates, all_fluxes = read_in_calgoes(experiment, filenames1)
+        all_dates, all_fluxes = read_in_calgoes(filenames1)
 
     #All GOES data
     elif params.experiment == "GOES":

@@ -140,6 +140,14 @@ def set_user_energy_bins(user_energy_bins):
     pkg_globals['user_energy_bins'] = user_energy_bins
     print(f"config: Setting global user_energy_bins to {user_energy_bins}.")
 
+def set_user_delimeter(delim):
+    pkg_globals['user_delim'] = delim
+    print(f"config: Setting global user_delim to {delim}.")
+
+def set_user_columns(columns):
+    pkg_globals['user_col'] = columns
+    print(f"config: Setting global user_col to {columns}.")
+
 #### UNITS ####
 def set_energy_units(energy_units):
     #allow user to set the datapath on the fly across all modules

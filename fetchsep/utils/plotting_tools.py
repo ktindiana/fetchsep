@@ -1356,7 +1356,8 @@ def setup_idsep_plot(figname, experiment, title_mod, unique_id, flux_units, nrow
 
 
 def idsep_make_plots(unique_id, params, dates, fluxes, energy_bins, ave_dates, ave_fluxes,
-    ave_sigma, threshold_dates, threshold, showplot=None, disable_sigma=False, close_plot=False):
+    ave_sigma, threshold_dates, threshold, showplot=None, saveplot=None,
+    disable_sigma=False, close_plot=False):
     """ Make multiple plots with 3 vertical subplots representing individual energy
         channels.
         
@@ -1383,9 +1384,9 @@ def idsep_make_plots(unique_id, params, dates, fluxes, energy_bins, ave_dates, a
     
     
     """
-    #allow to override showplot
-    if showplot == None:
-        showplot = params.showplot
+    #allow override for showplot and saveplot
+    if showplot == None: showplot = params.showplot
+    if saveplot == None: saveplot = params.saveplot
     
     #Additions to titles and filenames according to user-selected options
     name = params.idsep_subdir
@@ -1447,7 +1448,7 @@ def idsep_make_plots(unique_id, params, dates, fluxes, energy_bins, ave_dates, a
         ax[iax].set_ylim([ymin, ymax])
 
 
-        if params.saveplot and (iax ==2 or i == nbins-1):
+        if saveplot and (iax ==2 or i == nbins-1):
             fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)
@@ -1460,11 +1461,11 @@ def idsep_make_plots(unique_id, params, dates, fluxes, energy_bins, ave_dates, a
 
 
 def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins,
-    showplot=None, close_plot=False):
+    showplot=None, saveplot=None, close_plot=False):
     
-    #allow override for showplot
-    if showplot == None:
-        showplot = params.showplot
+    #allow override for showplot and saveplot
+    if showplot == None: showplot = params.showplot
+    if saveplot == None: saveplot = params.saveplot
 
     #Additions to titles and filenames according to user-selected options
     name = params.idsep_subdir
@@ -1508,7 +1509,7 @@ def idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins,
             ymax = np.ceil(np.nanmax(maskfluxes))
         ax[iax].set_ylim([ymin, ymax])
         
-        if params.saveplot and (iax ==2 or i == nbins-1):
+        if saveplot and (iax ==2 or i == nbins-1):
             fig.savefig(os.path.join(params.module_plotpath, (f"{figname}_{i}.png")))
             if not showplot:
                 plt.close(fig)

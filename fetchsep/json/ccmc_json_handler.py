@@ -6,7 +6,6 @@ import calendar
 import datetime
 from datetime import timedelta
 import copy
-from astropy import units as u
 import os
 import sys
 import pandas as pd
@@ -1708,32 +1707,32 @@ def set_json_value_by_index(value, injson, key_id, channel_index=0, index=0):
 
 ######################################################
 #### Converting json fields to strings and vice versa
-def convert_string_to_units(str_units):
-    """ Take units written as a string following the CCMC SEP
-        Scoreboard format and convert to astropy units.
-        
-        Expect, e.g.
-        "MeV^-1*s^-1*cm^-2*sr^-1"
-        "MeV"
-        "cm^-2*sr^-1"
-        "pfu"
-        
-    """
-    
-    str_units = str_units.replace("*",".")
-    str_units = str_units.replace("^","")
-    if str_units == "pfu":
-        units = u.cm**-2*u.sr**-1*u.s**-1 #pfu
-    else:
-        units = u.Unit(str_units)
-    
-    return units
-
-
-def convert_units_to_string(units):
-    """ Convert astropy units object to a string.
-    """
-    return str(units)
+#def convert_string_to_units(str_units):
+#    """ Take units written as a string following the CCMC SEP
+#        Scoreboard format and convert to astropy units.
+#        
+#        Expect, e.g.
+#        "MeV^-1*s^-1*cm^-2*sr^-1"
+#        "MeV"
+#        "cm^-2*sr^-1"
+#        "pfu"
+#        
+#    """
+#    
+#    str_units = str_units.replace("*",".")
+#    str_units = str_units.replace("^","")
+#    if str_units == "pfu":
+#        units = u.cm**-2*u.sr**-1*u.s**-1 #pfu
+#    else:
+#        units = u.Unit(str_units)
+#    
+#    return units
+#
+#
+#def convert_units_to_string(units):
+#    """ Convert astropy units object to a string.
+#    """
+#    return str(units)
 
 
 def energy_channel_to_key(energy_channel):
@@ -1755,14 +1754,9 @@ def energy_channel_to_key(energy_channel):
     """
 
     units = energy_channel['units']
-    if isinstance(units,str):
-        units = convert_string_to_units(units)
-        
-    str_units = convert_units_to_string(units)
-
     key = "min." +str(float(energy_channel['min'])) + ".max." \
         + str(float(energy_channel['max'])) + ".units." \
-        + str_units
+        + units
     
     return key
 
@@ -1786,13 +1780,8 @@ def threshold_to_key(threshold):
     """
 
     units = threshold['threshold_units']
-    if isinstance(units,str):
-        units = convert_string_to_units(units)
-        
-    str_units = convert_units_to_string(units)
-
     key = "threshold." +str(float(threshold['threshold'])) \
-        + ".units." + str_units
+        + ".units." + units
     
     return key
 
