@@ -9,6 +9,10 @@ models/
 fetchsep.cfg
 
 ./CLEAR/
+./tests/data/
+./tests/output/
+./tests/plots/
+./tests/lists/
 
 fetchsep/reference/user_associations.csv
 
