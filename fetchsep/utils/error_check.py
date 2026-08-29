@@ -100,11 +100,11 @@ def error_check_inputs(startdate, enddate, experiment, flux_type, module=None,
             sys.exit(msg)
 
     if experiment == "GOES-RT" and flux_type == "integral":
-        print('Using GOES primary satellite real time fluxes as provided by SWPC in their 3-day jsons '
+        print('Using GOES primary satellite real time fluxes as provided by SWPC in their real-time jsons '
             'and archived by CCMC. Available starting 2010-04-14.')
 
     if experiment == "GOES-RT" and flux_type == "differential":
-        print('Using GOES primary satellite real time fluxes as provided by SWPC in their 7-day jsons.')
+        print('Using GOES primary satellite real time fluxes as provided by SWPC in their real-time jsons.')
 
     goes_R = expts.goes_R()
     goes16_integral_stdate = datetime.datetime(2020,3,8)

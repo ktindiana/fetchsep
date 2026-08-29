@@ -43,26 +43,32 @@ def str_to_datetime(date):
     return dt
 
 
-def time_to_zulu(dt): #make_ccmc_zulu_time(dt):
+def time_to_zulu(dt, strict_str=False): #make_ccmc_zulu_time(dt):
     """ Make a datetime string in the format YYYY-MM-DDTHH:MM:SSZ
         
         INPUTS:
         
         :dt: (datetime)
+        :strict_str: (bool) set to True to return empty string for null
         
         OUTPUTS:
         
         :zuludate: (string) in the format YYYY-MM-DDTHH:MM:SSZ
     
     """
-    if dt == '':
-        return ''
-    if dt == None:
-        return None
-    if dt is pd.NaT:
-        return pd.NaT
-    if dt == 0:
-        return 0
+    if not strict_str:
+        if dt == '':
+            return ''
+        if dt == None:
+            return None
+        if dt is pd.NaT:
+            return pd.NaT
+        if dt == 0:
+            return 0
+    else:
+        if dt == '' or dt == None or dt is pd.NaT or dt == 0:
+            return ''
+
 
     if isinstance(dt,str):
         dt = str_to_datetime(dt)

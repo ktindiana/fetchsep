@@ -2,6 +2,7 @@ import configparser
 import argparse
 import os.path
 import shutil
+from . import date_handler as dh
 
 """fetchsep configuration
 
@@ -83,6 +84,17 @@ def print_configured_values():
     print("======= END CONFIG VALUES =========================")
     print()
 
+def output_config():
+    output = {}
+    for section in sections:
+        if section in config.sections():
+            for k in config[section]:
+                value = pkg_globals[k]
+                if 'time' in k or 'date' in k:
+                    value = dh.time_to_zulu(value, strict_str=True)
+                output.update({k: value})
+    return output
+
 ##### PATHS ####
 def process_experiment_paths():
     expt_paths = pkg_globals['experiment_directories']
@@ -139,6 +151,14 @@ def set_config_paths(path_to_data=None, path_to_output=None, path_to_plots=None,
 def set_user_energy_bins(user_energy_bins):
     pkg_globals['user_energy_bins'] = user_energy_bins
     print(f"config: Setting global user_energy_bins to {user_energy_bins}.")
+
+def set_user_delimeter(delim):
+    pkg_globals['user_delim'] = delim
+    print(f"config: Setting global user_delim to {delim}.")
+
+def set_user_columns(columns):
+    pkg_globals['user_col'] = columns
+    print(f"config: Setting global user_col to {columns}.")
 
 #### UNITS ####
 def set_energy_units(energy_units):

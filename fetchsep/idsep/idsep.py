@@ -11,6 +11,7 @@ from ..utils import error_check
 from ..utils import tools
 from ..utils import names
 from ..utils import experiments as expts
+from ..json import ccmc_json_handler as ccmc_json
 import datetime
 from datetime import timedelta
 import os
@@ -169,7 +170,9 @@ def write_all_high_points(params, energy_bins, dates, fluxes_high):
 
     prename = (f"HighPoints_{name}")
     zstdate = dh.time_to_zulu(params.startdate)
+    zstdate = zstdate.replace(':', '')
     zenddate = dh.time_to_zulu(params.enddate)
+    zenddate = zenddate.replace(':', '')
     
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(fluxes_high)):
@@ -543,6 +546,19 @@ def run_idsep(str_startdate, str_enddate, experiment,
     write_sep_dates(params, energy_bins, SEPstart, SEPend)
     write_all_high_points(params, energy_bins, dates, fluxes_high)
 
+    outputs = {
+        "idsep_subdir": params.module_subdir,
+        "idsep_outpath": params.module_outpath,
+        "idsep_plotpath": params.module_plotpath,
+    }
+
+    outputs.update({"config": cfg.output_config()})
+    outputs.update({"parameters": params.output_parameters()})
+
+    stdtz = dh.time_to_zulu(str_startdate).replace(":","")
+    outputs_fname = os.path.join(outputs["idsep_outpath"], f"{outputs['idsep_subdir']}.{stdtz}_idsep_outputs.json")
+    ccmc_json.write_json(outputs,outputs_fname)
+
  
     if params.showplot or params.saveplot:
         plt_tools.idsep_make_bg_sep_plot("FINALSEP", params, trim_dates, trim_fluxes,
@@ -562,4 +578,4 @@ def run_idsep(str_startdate, str_enddate, experiment,
     del fluxes_high
 
     print("TIMESTAMP: Completed idsep " + str(datetime.datetime.now()))
-    return params.module_outpath, params.module_plotpath
+    return outputs

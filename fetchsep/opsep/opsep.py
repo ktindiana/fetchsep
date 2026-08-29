@@ -399,9 +399,9 @@ class Data:
         df_thresh = df_thresh.replace(1e6,np.nan)
         
         #Trim to date range
-        df_mean = df_mean.loc[(df_mean['dates'] >= self.params.startdate) & (df_mean['dates'] < self.params.enddate)]
-        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.params.startdate) & (df_sigma['dates'] < self.params.enddate)]
-        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.params.startdate) & (df_thresh['dates'] < self.params.enddate)]
+        df_mean = df_mean.loc[(df_mean['dates'] >= self.params.startdate) & (df_mean['dates'] <= self.params.enddate)]
+        df_sigma = df_sigma.loc[(df_sigma['dates'] >= self.params.startdate) & (df_sigma['dates'] <= self.params.enddate)]
+        df_thresh = df_thresh.loc[(df_thresh['dates'] >= self.params.startdate) & (df_thresh['dates'] <= self.params.enddate)]
         if df_mean.empty:
             sys.exit("read_idsep_files: The idsep file containing the mean background "
                     f"does not cover the dates required. {bgfilename}")
@@ -723,6 +723,12 @@ class Analyze:
         #Derived values
         self.sep_start_time = pd.NaT
         self.sep_end_time = pd.NaT
+        
+        #Does the event drop below threshold or return to background before
+        #the end of the analyzed time period
+        self.return_to_threshold = True
+        self.return_to_background = True
+        
         self.onset_peak = np.nan
         self.onset_peak_time = pd.NaT
         self.onset_rise_time = np.nan
@@ -958,10 +964,16 @@ class Analyze:
             sep_start_time, sep_end_time = analysis.identify_sep_noaa(dates, fluxes, threshold)
             if data.params.two_peaks:
                 sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
+            if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+                self.return_to_threshold = False
+
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
             sep_start_time, sep_end_time, SPEfluxes = analysis.identify_sep_above_background_one(dates, fluxes)
+            if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+                self.return_to_background = False
+
 
         #In case that date range ended before fell before threshold,
         #use the last time in the file
@@ -974,6 +986,7 @@ class Analyze:
                 "end time and duration.")
             if check_quality and 'I' not in self.quality_flags:
                 self.quality_flags += 'I'
+
 
         if threshold == cfg.opsep_min_threshold:
             print(f"For {energy_bin} above background found SEP: {sep_start_time} to {sep_end_time}")
@@ -2764,6 +2777,46 @@ class Output:
             fluence_spectra, fluence_spectra_units)
         
 
+    def event_end_state(self):
+        """ Check if any SEP events ended before dropping below threshold
+            or returning to background.
+            
+        """
+        
+        event_end_status = {"threshold": {}, "background": {}}
+        #Cycle through all Analyze objects for the various event definitions
+        for analyze in self.data.results:
+            energy_bin = analyze.make_energy_bin()
+            energy_units = analyze.event_definition['energy_channel'].units
+            threshold = analyze.event_definition['threshold'].threshold
+            threshold_units = analyze.event_definition['threshold'].threshold_units
+
+            if energy_bin[1] == -1:
+                channel_label = f">{energy_bin[0]} {energy_units}"
+            else:
+                channel_label = f"{energy_bin[0]}-{energy_bin[1]} {energy_units}"
+        
+            threshold_label = f"{threshold} {threshold_units}"
+
+            #If identification of events above background,
+            #rename arbitrary low threshold to "above background"
+            if threshold == cfg.opsep_min_threshold:
+                threshold_label = "above background"
+                label = channel_label + " " + threshold_label
+                event_end_status["background"].update({label: analyze.return_to_background})
+            else:
+                label = channel_label + " " + threshold_label
+                event_end_status["threshold"].update({label: analyze.return_to_threshold})
+
+
+            if not analyze.return_to_threshold:
+                print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before dropping below threshold.")
+
+            if not analyze.return_to_background:
+                print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before returning to background.")
+
+        return event_end_status
+
 
 
 ##### OPSEP MAIN FUNCTIONS ####
@@ -2998,7 +3051,6 @@ def run_opsep(str_startdate, str_enddate, experiment,
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
- #   cfg.print_configured_values()
 
 
     #### SET UP EXPERIMENT VALUES #####
@@ -3065,6 +3117,28 @@ def run_opsep(str_startdate, str_enddate, experiment,
     output_data.plot_all_fluxes()
     output_data.plot_fluence_spectra()
 
+    #Determine if return below threshold and background
+    event_end_status = output_data.event_end_state()
+
+    outputs = {
+        "sep_date": str(flux_data.sep_date) if not pd.isnull(flux_data.sep_date) else None,
+        "jsonfname": jsonfname,
+        "opsep_subdir": params.module_subdir,
+        "opsep_outpath": params.module_outpath,
+        "opsep_plotpath": params.module_plotpath,
+        "event_end_status": event_end_status
+    }
+
+    outputs.update({"config": cfg.output_config()})
+    outputs.update({"parameters": params.output_parameters()})
+
+    stdtz = dh.time_to_zulu(str_startdate).replace(":","")
+    outputs_fname = os.path.join(outputs["opsep_outpath"], f"{outputs['opsep_subdir']}.{stdtz}_opsep_outputs.json")
+    ccmc_json.write_json(outputs,outputs_fname)
+
+    #trouble with writing variable types to json, so add after writing to file
+    outputs.update({"event_dict_csv": event_dict_csv})
+
     if not pd.isnull(flux_data.sep_date):
         print(f"An SEP occurred on {flux_data.sep_date.year}-{flux_data.sep_date.month}-{flux_data.sep_date.day}")
     else:
@@ -3072,4 +3146,4 @@ def run_opsep(str_startdate, str_enddate, experiment,
 
     if showplot: plt.show()
     
-    return flux_data.sep_date, jsonfname, event_dict_csv, params.module_outpath, params.module_plotpath
+    return outputs

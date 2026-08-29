@@ -46,7 +46,7 @@ class Parameters:
 
         #Directory behavior
         self.directory_depth = 2
-        self.use_absolute_datapath = False
+        self.use_absolute_datapath = False #only for original downloaded data
 
         #GOES-specific options
         self.options = []
@@ -78,7 +78,6 @@ class Parameters:
         self.init_win=cfg.init_win
         self.sliding_win=cfg.sliding_win
         self.percent_points=cfg.percent_points
-        self.plot_timeseries_only=False
         self.write_fluxes=True
         #When calculating the background in idsep, some time periods may have very
         #non-Gaussian flux distributions. This may cause problems with the
@@ -101,8 +100,11 @@ class Parameters:
         self.color_scheme=1
         self.no_goes_colors=False #Set to True to turn off SWPC colors
         
-        self.location = None #earth, mars, etc
-        self.species = None #protons, electrons
+        #Allowed values from CCMC SEP Scoreboards JSON schema
+        #mercury, venus, earth, mars, psp, stereoa, stereob, dawn, juno, L1, L2, L4, L5
+        self.location = 'earth'
+        #electron, proton, helium, helium3, helium4, oxygen, iron, ion
+        self.species = 'proton'
         
         self.json_type=''
         self.json_mode=''
@@ -185,13 +187,13 @@ class Parameters:
             self.idsep_nsigma = idsep_nsigma
             print(f"parameters: Setting idsep_nsigma to {idsep_nsigma}.")
         if init_win != None:
-            self.idsep_init_win = init_win
+            self.init_win = init_win
             print(f"parameters: Setting idsep init_win to {init_win}.")
         if sliding_win != None:
-            self.idsep_sliding_win = sliding_win
+            self.sliding_win = sliding_win
             print(f"parameters: Setting idsep sliding_win to {sliding_win}.")
         if percent_points != None:
-            self.idsep_percent_points = percent_points
+            self.percent_points = percent_points
             print(f"parameters: Setting idsep percent_points to {percent_points}.")
 
 
@@ -358,13 +360,15 @@ class Parameters:
         print(f"flux_type is {flux_type}")
         if flux_type == '' or flux_type == None:
             flux_type = expts.get_flux_type(self.experiment)
-        if flux_type != None: self.flux_type = flux_type
+        if flux_type != None:
+            self.flux_type = flux_type
 
         #If user specifies a spacecraft but isn't relevant to experiment,
         #overrides and sets spacecraft to ''
         if spacecraft == '' or spacecraft == None:
             spacecraft = expts.get_spacecraft(self.experiment, spacecraft)
-        if spacecraft != None: self.spacecraft = spacecraft #GOES only; primary or secondary
+        if spacecraft != None:
+            self.spacecraft = spacecraft #GOES only; primary or secondary
 
         if self.experiment != 'user':
             exp_info = expts.experiment_info(self.experiment)
@@ -453,6 +457,7 @@ class Parameters:
         self.set_opsep_background_info()
         #With IDSEP
         if idsep_path != None: self.idsep_path = idsep_path
+        if IDSEPEnhancement != None: self.IDSEPEnhancement = IDSEPEnhancement
         if doBGSubIDSEP != None: self.doBGSubIDSEP = doBGSubIDSEP
         self.set_idsep_background_info()
 
@@ -483,4 +488,14 @@ class Parameters:
         #Quality controls
         self.error_check()
 
-        self.print_parameters()
+
+    def output_parameters(self):
+        """ Output all parameters to a dictionary """
+        output = {}
+        for param, ref in self.__dict__.items():
+            value = getattr(self, param)
+            if 'time' in param or 'date' in param:
+                value = dh.time_to_zulu(value, strict_str=True)
+            output.update({param: value})
+
+        return output

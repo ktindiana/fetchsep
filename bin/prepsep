@@ -182,7 +182,7 @@ if print_info:
     prepsep.print_target_info(target_dir)
 
 if not print_info:
-    subdir = prepsep.update_observations(target_dir, start_date, end_date, experiment,
+    outputs = prepsep.update_observations(target_dir, start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,
         user_thresholds=threshold,
@@ -202,7 +202,7 @@ if not print_info:
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
     
-    prepsep.move_output(target_dir, subdir=subdir, enforce_new=enforce_new,
-        enforce_sep_stop=enforce_sep_stop)
+    prepsep.move_output(target_dir, opsep_outputs=outputs,
+        enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
 
 

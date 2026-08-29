@@ -4,6 +4,7 @@ import fetchsep.idsep
 import fetchsep.idsep.make_event_list as event_list
 import fetchsep.opsep as opsep
 import fetchsep.opsep.batch_run_opsep as batch
+import fetchsep.utils.date_handler as dh
 import fetchsep.utils.config as cfg
 import fetchsep.utils.names as names
 import fetchsep.utils.directories as dirs
@@ -24,7 +25,7 @@ logging.getLogger("matplotlib").setLevel(logging.WARNING)
 valid_experiments = expts.valid_experiments()
 
 #Helper
-def septimes_fname(experiment, flux_type, exp_name, energy_bin,
+def septimes_fname(startdate, enddate, experiment, flux_type, exp_name, energy_bin,
     modifier='', idsep_path=''):
     """ Create the filename of the file output by
         SEPAutoID (idsep) that contains the SEP start and
@@ -43,6 +44,11 @@ def septimes_fname(experiment, flux_type, exp_name, energy_bin,
     name = names.idsep_naming_scheme(experiment, flux_type, exp_name, modifier=modifier)
 
     prename = (f"SEPTimes_{name}")
+    zstdate = dh.time_to_zulu(startdate)
+    zstdate = zstdate.replace(':', '')
+    zenddate = dh.time_to_zulu(enddate)
+    zenddate = zenddate.replace(':', '')
+    prename = f"{prename}_{zstdate}_{zenddate}"
  
     energy_bin[0] = float(energy_bin[0])
     if energy_bin[1] == -1:
@@ -386,10 +392,10 @@ id_plotpath = dirs.create_subdirectories(cfg.plotpath, module='idsep',
 
 
 if startpoint == "IDSEP":
-    id_outpath, id_plotpath = fetchsep.idsep.run_idsep(str_startdate, str_enddate,
+    idsep_outputs = fetchsep.idsep.run_idsep(str_startdate, str_enddate,
         experiment,
         flux_type=flux_type, spacecraft=spacecraft,
-        exp_name=exp_name, user_file=user_file,
+        user_name=exp_name, user_file=user_file,
         directory_depth=directory_depth,
         is_unixtime=is_unixtime,
         options=options, dointerp=dointerp,
@@ -424,7 +430,8 @@ if experiment == "GOES":
 #time periods in OpSEP.
 ################################
 if startpoint == "MAKEFILE" or startpoint == "IDSEP":
-    septimes_file = septimes_fname(experiment, flux_type, exp_name, ref_energy_bin,
+    septimes_file = septimes_fname(str_startdate, str_enddate,
+        experiment, flux_type, exp_name, ref_energy_bin,
         modifier=modifier, idsep_path=id_outpath)
     detector_list = goesfname
     revise = True #add time padding in front of each SEP event
@@ -447,10 +454,10 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
 showplot = False
 saveplot = True
 ############## END DEFAULTS #################
-sep_filename = os.path.join(id_outpath, batchfile)
+batch_filename = os.path.join(id_outpath, batchfile)
 statusfname = 'batch_run_status.csv'
 
-batch.run_all_events(sep_filename, threshold,
+batch.run_all_events(batch_filename, threshold,
     statusfname=statusfname,
     directory_depth=directory_depth,
     color_scheme=color_scheme, no_goes_colors=no_goes_colors,

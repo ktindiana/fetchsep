@@ -180,7 +180,6 @@ def get_data(params,
 
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
-    cfg.print_configured_values()
 
     if showplot == None: showplot = params.showplot
     if saveplot == None: saveplot = params.saveplot
@@ -193,7 +192,8 @@ def get_data(params,
  
     if showplot or saveplot:
         unique_id = "FluxTimeSeries"
-        plt_tools.idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins)
+        plt_tools.idsep_make_timeseries_plot(unique_id, params, dates, fluxes, energy_bins,
+            saveplot=saveplot, showplot=showplot)
         if showplot:
             plt.show()
 

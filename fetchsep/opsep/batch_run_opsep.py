@@ -75,8 +75,8 @@ def check_list_path():
         os.mkdir(os.path.join(cfg.listpath,'opsep'));
 
 
-def read_sep_dates(sep_filename):
-    ''' Reads in a csv list file of SEP events. List must have the format:
+def read_batch_dates(filename):
+    ''' Reads in a csv list file of time periods. List must have the format:
         
         StartDate, Enddate, Experiment, FluxType, Flags,,,options,bgstartdate,
             bgenddate
@@ -98,7 +98,7 @@ def read_sep_dates(sep_filename):
         
         INPUTS:
         
-        :sep_filename: (string) name of file containing the list of
+        :filename: (string) name of file containing the list of
             experiments and time periods to run
         
         OUTPUTS:
@@ -116,7 +116,7 @@ def read_sep_dates(sep_filename):
         :bgenddate: (datetime 1xn array)
         
     '''
-    print('Reading in file ' + sep_filename)
+    print('Reading in file ' + filename)
     start_dates = [] #row 0
     end_dates = []
     experiments = [] #row 1, e.g. GOES-11, GOES-13, GOES-15, SEPEM, user
@@ -134,7 +134,7 @@ def read_sep_dates(sep_filename):
     particles = [] #proton, electron, etc CCMC json
     
 
-    with open(sep_filename) as csvfile:
+    with open(filename) as csvfile:
         readCSV = csv.reader(csvfile, delimiter=',')
         #Define arrays that hold dates
         for row in readCSV:
@@ -489,7 +489,7 @@ def clean_non_event_df(df):
     return df
 
 
-def run_all_events(sep_filename, threshold,
+def run_all_events(batch_filename, threshold,
     statusfname='batch_run_status.csv',
     directory_depth=2,
     color_scheme=1, no_goes_colors=False,
@@ -508,7 +508,7 @@ def run_all_events(sep_filename, threshold,
 
         INPUTS:
 
-        :sep_filename: (string) file containing list of events
+        :batch_filename: (string) file containing list of events
             and experiments to run
         :statusfname: (string) name of a file that will report any
             errors encountered when running each event in the list
@@ -552,7 +552,7 @@ def run_all_events(sep_filename, threshold,
     #READ IN SEP DATES AND experiments
     start_dates, end_dates, experiments, flux_types, flags,  user_names,\
         user_files, json_types, options, bgstart, bgend, spacecrafts,\
-        idsep_paths, locations, particles = read_sep_dates(sep_filename)
+        idsep_paths, locations, particles = read_batch_dates(batch_filename)
 
     #Prepare output file listing events and flags
     fout = open(os.path.join(cfg.listpath,"opsep",statusfname),"w+")
@@ -563,7 +563,8 @@ def run_all_events(sep_filename, threshold,
     df_sep_csv = pd.DataFrame()
     df_quiet_csv = pd.DataFrame()
     dict_all_pkl = {}
-    print(f"Read in {Nsep} SEP events.")
+    subdirs = [] #Subdirs processed in batch run
+    print(f"Read in {Nsep} time periods.")
     for i in range(Nsep):
         start_date = start_dates[i]
         end_date = end_dates[i]
@@ -605,10 +606,10 @@ def run_all_events(sep_filename, threshold,
         if "IDSEPEnhancement" in flag:
             IDSEPEnhancement = True
 
-        print('\n-------RUNNING SEP ' + start_date + '---------')
+        print('\n-------RUNNING TIME PERIOD ' + start_date + '---------')
         #CALCULATE SEP INFO AND OUTPUT RESULTS TO FILE
         try:
-            sep_date, jsonfname, event_dict_csv, op_outpath, op_plotpath = opsep.run_opsep(start_date,
+            outputs = opsep.run_opsep(start_date,
                 end_date, experiment, flux_type=flux_type,
                 directory_depth=directory_depth,
                 color_scheme=color_scheme, no_goes_colors=no_goes_colors,
@@ -633,12 +634,42 @@ def run_all_events(sep_filename, threshold,
             fout.write(str(start_date) + ', ')
             fout.write('Success\n')
 
-            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST FOR
-            df_event_csv = pd.DataFrame(event_dict_csv, index=[0])
-            if not pd.isnull(sep_date):
+            sep_fname_csv = f"{outputs['opsep_subdir']}_sep_events.csv"
+            sep_fname_csv = os.path.join(outputs['opsep_outpath'], sep_fname_csv)
+            quiet_fname_csv = f"{outputs['opsep_subdir']}_non_events.csv"
+            quiet_fname_csv = os.path.join(outputs['opsep_outpath'], quiet_fname_csv)
+
+            #If file exists in the directory from a previous run, delete and start fresh
+            if outputs["opsep_subdir"] not in subdirs:
+                if os.path.isfile(sep_fname_csv):
+                    os.remove(sep_fname_csv)
+                    df_sep_csv = pd.DataFrame()
+                if os.path.isfile(quiet_fname_csv):
+                    os.remove(quiet_fname_csv)
+                    df_quiet_csv = pd.DataFrame()
+                subdirs.append(outputs["opsep_subdir"])
+ 
+            #If already started processing events in this subdir, read in and append
+            else:
+                if os.path.isfile(sep_fname_csv):
+                    df_sep_csv = pd.read_csv(sep_fname_csv)
+                else:
+                    df_sep_csv = pd.DataFrame()
+                
+                if os.path.isfile(quiet_fname_csv):
+                    df_quiet_csv = pd.read_csv(quiet_fname_csv)
+                else:
+                    df_quiet_csv = pd.DataFrame()
+
+            #COMPILE QUANTITIES FROM ALL SEP EVENTS INTO A SINGLE LIST AND WRITE OUT
+            df_event_csv = pd.DataFrame(outputs["event_dict_csv"], index=[0])
+            if not pd.isnull(outputs["sep_date"]):
                 df_sep_csv = pd.concat([df_sep_csv, df_event_csv])
+                df_sep_csv.to_csv(sep_fname_csv, index=False)
             else:
                 df_quiet_csv = pd.concat([df_quiet_csv, df_event_csv])
+                df_quiet_csv = clean_non_event_df(df_quiet_csv)
+                df_quiet_csv.to_csv(quiet_fname_csv, index=False)
 
             plt.close('all')
             print(f"ANALYSIS SUCCEEDED: {experiment} {user_name} {start_date}")
@@ -658,24 +689,8 @@ def run_all_events(sep_filename, threshold,
             reload(opsep)
             continue
 
+    for sub in subdirs:
+        print(f"Compiled SEP event and non-event lists for {sub}.")
+
     fout.close()
     
-    #Assuming that options is the same for all files in the batch list
-    opts = options[0]
-    opts = opts.strip().split(";")
-    modifier, title_mod = names.setup_modifiers(opts, spacecraft=spacecraft,
-        doBGSubOPSEP=doBGSubOPSEP, doBGSubIDSEP=doBGSubIDSEP,OPSEPEnhancement=OPSEPEnhancement,
-        IDSEPEnhancement=IDSEPEnhancement)
-    subdir = names.opsep_subdir(experiment, flux_type, user_name, modifier=modifier)
-        #f"{experiment}_{flux_type}{modifier}"
-
-    sep_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_sep_events.csv"
-    sep_fname_csv = os.path.join(op_outpath, sep_fname_csv)
-    print(f"batch_run_opsep: Writing SEP events to csv file {sep_fname_csv}")
-    df_sep_csv.to_csv(sep_fname_csv, index=False)
-
-    quiet_fname_csv = f"{subdir}.{start_dates[0][0:10]}.{end_dates[-1][0:10]}_non_events.csv"
-    quiet_fname_csv = os.path.join(op_outpath, quiet_fname_csv)
-    print(f"batch_run_opsep: Writing non-event periods to csv file {quiet_fname_csv}")
-    df_quiet_csv = clean_non_event_df(df_quiet_csv)
-    df_quiet_csv.to_csv(quiet_fname_csv, index=False)
