@@ -3051,7 +3051,6 @@ def run_opsep(str_startdate, str_enddate, experiment,
     expts.set_config_flux_units(experiment)
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
- #   cfg.print_configured_values()
 
 
     #### SET UP EXPERIMENT VALUES #####

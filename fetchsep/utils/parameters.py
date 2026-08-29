@@ -488,8 +488,6 @@ class Parameters:
         #Quality controls
         self.error_check()
 
-        self.print_parameters()
-
 
     def output_parameters(self):
         """ Output all parameters to a dictionary """

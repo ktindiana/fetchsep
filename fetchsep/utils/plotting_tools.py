@@ -1137,7 +1137,7 @@ def opsep_plot_event_definitions(params, all_energy_bins,
 
     if params.saveplot:
         fig.savefig(os.path.join(params.module_plotpath, figname + '.png'))
-    if not params.showplot:
+    if not params.showplot or params.showplot is None:
         plt.close(fig)
 
 

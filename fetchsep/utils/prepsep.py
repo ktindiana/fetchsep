@@ -70,23 +70,24 @@ def read_batch_list():
     return obs_st, obs_end
 
 
-def make_observation_window_list(path):
+def make_observation_window_list(dir):
     """ Look in the output/opsep directory for observation files.
         Create a list of filenames and compile the associated 
         observation window start and end times.
         
     """
-    print("make_observation_window_list: Identifying observation windows for files in " + path)
+    print("make_observation_window_list: Identifying observation windows for files in " + dir)
     
     #List all json files in the opsep output directory
-    allfiles = os.listdir(path)
-    jsonfiles = [os.path.join(path,f) for f in allfiles if '.json' in f]
+    allfiles = os.listdir(dir)
+    jsonfiles = [os.path.join(dir,f) for f in allfiles if '.json' in f and 'outputs' not in f]
 
     win_st = []
     win_end = []
     ek_id = keys.id_energy_channel
     id_pred_win = keys.id_prediction_window
     for fname in jsonfiles:
+        print(f"Reading in json {fname}")
         data = ccmc_json.read_in_json(fname)
         if data == None:
             continue
@@ -153,7 +154,7 @@ def make_observation_window_list(path):
 
 
 
-def identify_new_obs(target_dir, subdir='', enforce_new=True):
+def identify_new_obs(target_dir, dir='', enforce_new=True):
     """ Identify which of the time periods are new and should
         be added to the target_dir. Do not overwrite observations
         that are already in the directory.
@@ -162,7 +163,7 @@ def identify_new_obs(target_dir, subdir='', enforce_new=True):
     new_end = []
     
 #    obs_st, obs_end = read_batch_list()
-    sort_obs_st, sort_obs_end = make_observation_window_list(os.path.join(cfg.outpath, "opsep", subdir))
+    sort_obs_st, sort_obs_end = make_observation_window_list(dir)
     
     if not sort_obs_st:
         sys.exit("identify_new_obs: No new observations are available. "
@@ -191,7 +192,7 @@ def identify_new_obs(target_dir, subdir='', enforce_new=True):
 
 
 
-def check_for_sep(path):
+def check_for_sep(dir):
     """ Read in json files output by OpSEP and check if SEP events
         are present.
         
@@ -220,8 +221,8 @@ def check_for_sep(path):
             "SEP Occurred": []}
     
 
-    onlyfiles = [os.path.join(path, f) for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))]
-    jsonfiles = [f for f in onlyfiles if '.json' in f]
+    onlyfiles = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
+    jsonfiles = [f for f in onlyfiles if '.json' in f and 'output' not in f]
 
     for fname in jsonfiles:
         data = ccmc_json.read_in_json(fname)
@@ -449,7 +450,7 @@ def print_target_info(target_dir):
     
 
 
-def move_output(target_dir, subdir='', enforce_new=True,
+def move_output(target_dir, opsep_outputs={}, enforce_new=True,
     enforce_sep_stop=True):
     """ Move the json and supporting files created by OpSEP to
         the target directory. Move the associated plots into
@@ -468,10 +469,10 @@ def move_output(target_dir, subdir='', enforce_new=True,
     check_target(target_dir)
 
     #Check which observations are not already present in the target dir
-    new_obs_st, new_obs_end = identify_new_obs(target_dir, subdir=subdir, enforce_new=enforce_new)
+    obspath = opsep_outputs["opsep_outpath"]
+    new_obs_st, new_obs_end = identify_new_obs(target_dir, dir=obspath, enforce_new=enforce_new)
     
     #SEP in fetchsep observations
-    obspath = os.path.join(cfg.outpath, "opsep", subdir)
     df_sep = check_for_sep(obspath) #True/False columns indicates if SEP
     
     #Approved SEP in target directory
@@ -480,7 +481,7 @@ def move_output(target_dir, subdir='', enforce_new=True,
     #Identify which files to move and move them
     allfiles = [f for f in os.listdir(obspath) if os.path.isfile(os.path.join(obspath, f))]
     
-    pltpath = os.path.join(cfg.plotpath, "opsep", subdir)
+    pltpath = opsep_outputs["opsep_plotpath"]
     allplots = [f for f in os.listdir(pltpath) if os.path.isfile(os.path.join(pltpath, f))]
 
     for i in range(len(new_obs_st)):

@@ -4,6 +4,7 @@
 
 
 import unittest
+from unittest.mock import patch, MagicMock
 import os
 import json
 import shutil
@@ -13,8 +14,10 @@ import datetime
 import pandas as pd
 import sys
 import glob
+import numpy as np
 
 import fetchsep
+import fetchsep.idsep.idsep as idsep
 import fetchsep.opsep.opsep as opsep
 import fetchsep.utils.read_datasets as datasets
 import fetchsep.utils.date_handler as dh
@@ -51,6 +54,8 @@ for pth in [datapath, outpath, plotpath, listpath]:
 with contextlib.redirect_stdout(None):
     cfg.set_config_paths(path_to_data=datapath, path_to_output=outpath,
         path_to_plots=plotpath, path_to_lists=listpath)
+
+
 
 class TestFetchsep(unittest.TestCase):
     """Tests for `fetchsep` package."""
@@ -208,9 +213,154 @@ class TestDownload(unittest.TestCase):
 
 
 
+def load_idsep_flux_timeseries(filename):
+    """ Read in .csv output by opsep in format YYYY-MM-DD HH:MM:SS, F1, F2, ... """
+    dates = []
+    fluxes = []
+    with open(filename, 'r') as file:
+        for line in file:
+            line = line.strip().split(',')
+            if line == '': continue
+            if len(line) == 0: continue
+            if '#' in line: continue
+            if 'dates' in line: continue
+            date = dh.str_to_datetime(line[0])
+            dates.append(date)
+            row = []
+            for flux in line[1:]:
+                if flux == '':
+                    flux = None
+                else:
+                    flux = float(flux)
+                row.append(flux)
+            fluxes.append(row)
+            
+        file.close()
+    
+    fluxes = np.array(fluxes).T.tolist()
+    return dates, fluxes
 
-########### USER INPUT FILE ##############
-def load_flux_timeseries(filename):
+
+
+class TestIdsep(unittest.TestCase):
+    """ Test IDSEP functionality """
+    @classmethod
+    def setUpClass(cls):
+
+        #Move test GOES data to data directory
+        goes_path = os.path.join(cfg.datapath,'GOES')
+        epead_path = os.path.join(cfg.datapath,'GOES','EPEAD')
+        hepad_path = os.path.join(cfg.datapath,'GOES','HEPAD')
+        os.makedirs(goes_path, exist_ok=True)
+        os.makedirs(epead_path, exist_ok=True)
+        os.makedirs(hepad_path, exist_ok=True)
+        shutil.copy('tests/files/data/GOES/fetchsep_data_manager.csv', cfg.datapath)
+        for file in glob.glob('tests/files/data/GOES/EPEAD/*'):
+            shutil.copy(file, epead_path)
+        for file in glob.glob('tests/files/data/GOES/HEPAD/*'):
+            shutil.copy(file, hepad_path)
+
+        startdate = "2011-10-01 00:10:00"
+        enddate = "2012-06-01"
+        experiment = "GOES-13"
+        flux_type = "integral"
+        showplot = False
+        saveplot = True
+        dointerp = False
+        remove_above = 10
+        idsep_nsigma = 3
+        init_win = 150
+        sliding_win = 5
+        percent_points = 0.4
+
+        #####INTEGRAL FLUXES
+        print(f"Running idsep for unit tests. This could take 5 minutes. Plots are being generated in {cfg.plotpath}")
+        #with contextlib.redirect_stdout(None):
+        cls.idsep_outputs = idsep.run_idsep(startdate, enddate,
+                experiment, flux_type=flux_type, showplot=showplot, saveplot=saveplot,
+                dointerp=dointerp, remove_above=remove_above, idsep_nsigma=idsep_nsigma,
+                init_win=init_win, sliding_win=sliding_win, percent_points=percent_points)
+
+        if utility_get_verbosity() == 2:
+            print(f"\n[setUpClass] Creating idsep outputs for native experiment ({experiment} {flux_type}) tests.")
+
+    @classmethod
+    def tearDownClass(cls):
+        if utility_get_verbosity() == 2:
+            print("\n[tearDownClass] Cleaning up and deleting idsep native experiment outputs.")
+        del cls.idsep_outputs
+
+    def setUp(self):
+        self.verbosity = utility_get_verbosity()
+
+
+    def test_idsep_original_fluxes(self):
+        file = 'fluxes_GOES-13_integral_20110806_20120531.csv'
+        ref_path = 'tests/files/output/idsep/GOES-13_integral/'
+        test_path = self.idsep_outputs["idsep_outpath"]
+
+        ref_fname = os.path.join(ref_path, file)
+        test_fname = os.path.join(test_path, file)
+
+        if self.verbosity == 2:
+            print(f"------------ test_idsep_original_fluxes: \nref  {ref_fname}, \ntest {test_fname}")
+
+        ref_dates, ref_fluxes = load_idsep_flux_timeseries(ref_fname)
+        test_dates, test_fluxes = load_idsep_flux_timeseries(test_fname)
+
+        for i in range(len(ref_fluxes)):
+            for j in range(len(ref_dates)):
+                self.assertEqual(ref_dates[j], test_dates[j])
+                self.assertAlmostEqual(ref_fluxes[i][j], test_fluxes[i][j], delta=0.0001)
+
+
+    def test_idsep_background(self):
+        files = ['background_mean_fluxes_FINAL.csv',
+                     'background_sigma_FINAL.csv',
+                     'background_threshold_FINAL.csv']
+        ref_path = 'tests/files/output/idsep/GOES-13_integral/'
+        test_path = self.idsep_outputs["idsep_outpath"]
+
+        for file in files:
+            ref_fname = os.path.join(ref_path, file)
+            test_fname = os.path.join(test_path, file)
+
+            if self.verbosity == 2:
+                print(f"------------ test_idsep_background: \nref  {ref_fname}, \ntest {test_fname}")
+
+            ref_dates, ref_fluxes = load_idsep_flux_timeseries(ref_fname)
+            test_dates, test_fluxes = load_idsep_flux_timeseries(test_fname)
+
+            for i in range(len(ref_fluxes)):
+                for j in range(len(ref_dates)):
+                    self.assertEqual(ref_dates[j], test_dates[j])
+                    self.assertAlmostEqual(ref_fluxes[i][j], test_fluxes[i][j], delta=0.0001)
+
+
+    def test_idsep_sep(self):
+        files = ['SEP_fluxes_FINAL.csv', 'SEP_fluxes_background-subtracted_FINAL.csv']
+        ref_path = 'tests/files/output/idsep/GOES-13_integral/'
+        test_path = self.idsep_outputs["idsep_outpath"]
+
+        for file in files:
+            ref_fname = os.path.join(ref_path, file)
+            test_fname = os.path.join(test_path, file)
+
+            if self.verbosity == 2:
+                print(f"------------ test_idsep_sep: \nref  {ref_fname}, \ntest {test_fname}")
+
+            ref_dates, ref_fluxes = load_idsep_flux_timeseries(ref_fname)
+            test_dates, test_fluxes = load_idsep_flux_timeseries(test_fname)
+
+            for i in range(len(ref_fluxes)):
+                for j in range(len(ref_dates)):
+                    self.assertEqual(ref_dates[j], test_dates[j])
+                    self.assertAlmostEqual(ref_fluxes[i][j], test_fluxes[i][j], delta=0.0001)
+
+
+
+
+def load_opsep_flux_timeseries(filename):
     """ Read in .txt output by opsep in format YYYY-MM-DDTHH:MM:SSZ FLUX """
     dates = []
     fluxes = []
@@ -230,6 +380,21 @@ class TestExperimentOpsep(unittest.TestCase):
     """ Test native experiments in OpSEP and overall functionality. """
     @classmethod
     def setUpClass(cls):
+
+        #Move test GOES data to data directory
+        goes_path = os.path.join(cfg.datapath,'GOES')
+        epead_path = os.path.join(cfg.datapath,'GOES','EPEAD')
+        hepad_path = os.path.join(cfg.datapath,'GOES','HEPAD')
+        os.makedirs(goes_path, exist_ok=True)
+        os.makedirs(epead_path, exist_ok=True)
+        os.makedirs(hepad_path, exist_ok=True)
+        shutil.copy('tests/files/data/GOES/fetchsep_data_manager.csv', cfg.datapath)
+        for file in glob.glob('tests/files/data/GOES/EPEAD/*'):
+            shutil.copy(file, epead_path)
+        for file in glob.glob('tests/files/data/GOES/HEPAD/*'):
+            shutil.copy(file, hepad_path)
+
+
         startdate = "2012-05-17 00:10:00"
         enddate = "2012-05-22"
         experiment = "GOES-13"
@@ -239,55 +404,192 @@ class TestExperimentOpsep(unittest.TestCase):
         user_thresholds = "30,1;50,1"
         associations = True
 
-        #####INTEGRAL FLUXES
-        with contextlib.redirect_stdout(None):
-            cls.opsep_outputs_integral = opsep.run_opsep(startdate, enddate,
-                experiment, flux_type=flux_type, showplot=showplot, saveplot=saveplot,
-                user_thresholds=user_thresholds)
-        
+        cls.opsep_outputs = {"integral": {}, "differential": {}}
+
         if utility_get_verbosity() == 2:
             print(f"\n[setUpClass] Creating opsep outputs for native experiment ({experiment} {flux_type}) tests.")
+
+        #####INTEGRAL FLUXES
+        with contextlib.redirect_stdout(None):
+            cls.opsep_outputs[flux_type] = opsep.run_opsep(startdate, enddate,
+                experiment, flux_type=flux_type, showplot=showplot, saveplot=saveplot,
+                user_thresholds=user_thresholds, associations=associations)
 
         flux_type = "differential"
         user_thresholds = "30,1;50,1;38.0-82.0,0.1"
 
-        #####DIFFERENTIAL FLUXES
-        with contextlib.redirect_stdout(None):
-            cls.opsep_outputs_differential = opsep.run_opsep(startdate, enddate,
-                experiment, flux_type=flux_type, showplot=showplot, saveplot=saveplot,
-                user_thresholds=user_thresholds)
-        
         if utility_get_verbosity() == 2:
             print(f"\n[setUpClass] Creating opsep outputs for native experiment ({experiment} {flux_type}) tests.")
 
+        #####DIFFERENTIAL FLUXES
+        with contextlib.redirect_stdout(None):
+            cls.opsep_outputs[flux_type] = opsep.run_opsep(startdate, enddate,
+                experiment, flux_type=flux_type, showplot=showplot, saveplot=saveplot,
+                user_thresholds=user_thresholds, associations=associations)
 
 
     @classmethod
     def tearDownClass(cls):
         if utility_get_verbosity() == 2:
             print("\n[tearDownClass] Cleaning up and deleting opsep native experiment outputs.")
-        del cls.opsep_outputs_integral
-        del cls.opsep_outputs_differential
+        del cls.opsep_outputs
 
 
-#    def setUp(self):
-#        self.verbosity = utility_get_verbosity()
-#        
-#        ref_file = 'tests/files/output/opsep/GOES-13_integral/'
-#        with open(ref_file,"r") as f:
-#            self.ref_json = json.load(f)
-#            f.close()
-#        
-#        test_file = self.opsep_outputs["jsonfname"]
-#        with open(test_file,"r") as f:
-#            self.test_json = json.load(f)
-#            f.close()
-#
-#        self.ref_pathnm = 'tests/files/user/'
-#
-# 
+    def setUp(self):
+        self.verbosity = utility_get_verbosity()
+        
+        self.ref_pathnm = {"integral": 'tests/files/output/opsep/GOES-13_integral',
+                           "differential": 'tests/files/output/opsep/GOES-13_differential'}
+        self.ref_json = {"integral": {}, "differential": {}}
+        self.test_json = {"integral": {}, "differential": {}}
+        #INTEGRAL FLUXES
+        ref_file = 'tests/files/output/opsep/GOES-13_integral/GOES-13_integral.2012-05-17T001000Z.json'
+        with open(ref_file,"r") as f:
+            self.ref_json["integral"] = json.load(f)
+            f.close()
+        
+        test_file = self.opsep_outputs["integral"]["jsonfname"]
+        with open(test_file,"r") as f:
+            self.test_json["integral"] = json.load(f)
+            f.close()
+
+
+        #DIFFERENTIAL FLUXES
+        ref_file = 'tests/files/output/opsep/GOES-13_differential/GOES-13_differential.2012-05-17T001000Z.json'
+        with open(ref_file,"r") as f:
+            self.ref_json["differential"] = json.load(f)
+            f.close()
+        
+        test_file = self.opsep_outputs["differential"]["jsonfname"]
+        with open(test_file,"r") as f:
+            self.test_json["differential"] = json.load(f)
+            f.close()
+
  
+    def test_experiment_event_start_end(self):
+        for ftype in ["integral", "differential"]:
+            for i in range(len(self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["event_lengths"])):
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["event_lengths"][i]["start_time"]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["event_lengths"][i]["start_time"]
+                self.assertEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_event_start_end START TIME: ref {ref}, test {test}")
 
+
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["event_lengths"][i]["end_time"]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["event_lengths"][i]["end_time"]
+                self.assertEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_event_start_end END TIME: ref {ref}, test {test}")
+     
+ 
+ 
+    def test_experiment_fluence(self):
+        for ftype in ["integral", "differential"]:
+            for i in range(len(self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluences"])):
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluences"][i]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["fluences"][i]
+                self.assertEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_fluence: ref {ref}, test {test}")
+
+
+    def test_experiment_fluence_spectrum(self):
+        for ftype in ["integral", "differential"]:
+            ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["start_time"]
+            test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["start_time"]
+            self.assertEqual(ref, test)
+            if self.verbosity == 2:
+                print(f"------------ test_user_fluence_spectrum: ref {ref}, test {test}")
+
+            ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["end_time"]
+            test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["end_time"]
+            self.assertEqual(ref, test)
+            if self.verbosity == 2:
+                print(f"------------ test_experiment_fluence_spectrum: ref {ref}, test {test}")
+
+            ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["fluence_units"]
+            test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["fluence_units"]
+            self.assertEqual(ref, test)
+            if self.verbosity == 2:
+                print(f"------------ test_experiment_fluence_spectrum: ref {ref}, test {test}")
+
+            for i in range(len(self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["fluence_spectrum"])):
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["fluence_spectrum"][i]["fluence"]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][0]["fluence_spectra"][0]["fluence_spectrum"][i]["fluence"]
+                self.assertAlmostEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_fluence_spectrum: ref {ref}, test {test}")
+            
+
+    def test_experiment_max_flux(self):
+        for ftype in ["integral", "differential"]:
+            for i in range(len(self.ref_json[ftype]["sep_observation_submission"]["observations"])):
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][i]["peak_intensity_max"]["intensity"]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][i]["peak_intensity_max"]["intensity"]
+                self.assertAlmostEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_max_flux: ref {ref}, test {test}")
+            
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][i]["peak_intensity_max"]["units"]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][i]["peak_intensity_max"]["units"]
+                self.assertAlmostEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_max_flux: ref {ref}, test {test}")
+
+                ref = self.ref_json[ftype]["sep_observation_submission"]["observations"][i]["peak_intensity_max"]["time"]
+                test = self.test_json[ftype]["sep_observation_submission"]["observations"][i]["peak_intensity_max"]["time"]
+                self.assertAlmostEqual(ref, test)
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_max_flux: ref {ref}, test {test}")
+
+
+    def test_experiment_time_profile(self):
+        for ftype in ["integral", "differential"]:
+            test_pathnm = os.path.dirname(self.opsep_outputs[ftype]["jsonfname"])
+            
+            for i in range(len(self.ref_json[ftype]["sep_observation_submission"]["observations"])):
+                ref_fname = os.path.join(self.ref_pathnm[ftype], self.ref_json[ftype]["sep_observation_submission"]["observations"][i]["sep_profile"])
+                ref_dates, ref_fluxes = load_opsep_flux_timeseries(ref_fname)
+     
+                test_fname = os.path.join(test_pathnm, self.test_json[ftype]["sep_observation_submission"]["observations"][i]["sep_profile"])
+                test_dates, test_fluxes = load_opsep_flux_timeseries(test_fname)
+
+                if self.verbosity == 2:
+                    print(f"------------ test_experiment_time_profile: \nref  {ref_fname}, \ntest {test_fname}")
+
+                for i in range(len(ref_dates)):
+                    self.assertEqual(ref_dates[i], test_dates[i])
+                    self.assertAlmostEqual(ref_fluxes[i], test_fluxes[i], delta=0.0001)
+                    
+
+    def test_experiment_trigger(self):
+        for ftype in ["integral", "differential"]:
+            keys = self.ref_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"].keys()
+            for key in keys:
+                if isinstance(self.ref_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"][key], dict):
+                    keys2 = self.ref_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"][key].keys()
+                    for key2 in keys2:
+                        ref = self.ref_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"][key][key2]
+                        test = self.test_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"][key][key2]
+                        if 'time' in key2:
+                            ref = dh.str_to_datetime(ref)
+                            test = dh.str_to_datetime(test)
+                        self.assertEqual(ref, test)
+                        if self.verbosity == 2:
+                            print(f"------------ test_experiment_trigger: ref {ref}, test {test}")
+                else:
+                    ref = self.ref_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"][key]
+                    test = self.test_json[ftype]["sep_observation_submission"]["triggers"][0]["cme"][key]
+                    if 'time' in key:
+                        ref = dh.str_to_datetime(ref)
+                        test = dh.str_to_datetime(test)
+                    self.assertEqual(ref, test)
+                    if self.verbosity == 2:
+                        print(f"------------ test_experiment_trigger: ref {ref}, test {test}")
+
+ 
+ 
 
 class TestUserOpsep(unittest.TestCase):
     """ Test user-input flux timeseries in OpSEP """
@@ -465,10 +767,10 @@ class TestUserOpsep(unittest.TestCase):
         
         for i in range(len(self.ref_json["sep_forecast_submission"]["forecasts"])):
             ref_fname = os.path.join(self.ref_pathnm, self.ref_json["sep_forecast_submission"]["forecasts"][i]["sep_profile"])
-            ref_dates, ref_fluxes = load_flux_timeseries(ref_fname)
+            ref_dates, ref_fluxes = load_opsep_flux_timeseries(ref_fname)
  
             test_fname = os.path.join(test_pathnm, self.test_json["sep_forecast_submission"]["forecasts"][i]["sep_profile"])
-            test_dates, test_fluxes = load_flux_timeseries(test_fname)
+            test_dates, test_fluxes = load_opsep_flux_timeseries(test_fname)
 
             for i in range(len(ref_dates)):
                 self.assertEqual(ref_dates[i], test_dates[i])

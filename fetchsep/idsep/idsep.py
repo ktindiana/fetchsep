@@ -11,6 +11,7 @@ from ..utils import error_check
 from ..utils import tools
 from ..utils import names
 from ..utils import experiments as expts
+from ..json import ccmc_json_handler as ccmc_json
 import datetime
 from datetime import timedelta
 import os
@@ -169,7 +170,9 @@ def write_all_high_points(params, energy_bins, dates, fluxes_high):
 
     prename = (f"HighPoints_{name}")
     zstdate = dh.time_to_zulu(params.startdate)
+    zstdate = zstdate.replace(':', '')
     zenddate = dh.time_to_zulu(params.enddate)
+    zenddate = zenddate.replace(':', '')
     
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(fluxes_high)):
@@ -544,8 +547,6 @@ def run_idsep(str_startdate, str_enddate, experiment,
     write_all_high_points(params, energy_bins, dates, fluxes_high)
 
     outputs = {
-        "sep_date": str(flux_data.sep_date) if not pd.isnull(flux_data.sep_date) else None,
-        "jsonfname": jsonfname,
         "idsep_subdir": params.module_subdir,
         "idsep_outpath": params.module_outpath,
         "idsep_plotpath": params.module_plotpath,

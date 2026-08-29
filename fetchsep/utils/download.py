@@ -180,7 +180,6 @@ def get_data(params,
 
     cfg.set_config_paths(path_to_data=path_to_data, path_to_output=path_to_output,
         path_to_plots=path_to_plots, path_to_lists=path_to_lists)
-    cfg.print_configured_values()
 
     if showplot == None: showplot = params.showplot
     if saveplot == None: saveplot = params.saveplot
