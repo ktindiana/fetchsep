@@ -1,3 +1,7 @@
+jsons
+saved_lists/
+
+
 # fetchsep default output dirs
 data/
 output/
@@ -5,10 +9,11 @@ plots/
 lists/
 templates/
 models/
+tmp/
 
 fetchsep.cfg
 
-./CLEAR/
+CLEAR/
 
 fetchsep/reference/user_associations.csv
 
