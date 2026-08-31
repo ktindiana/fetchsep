@@ -29,17 +29,17 @@ __email__ = "kathryn.whitman@nasa.gov"
 """
 
 
-def add_subdir(path, subdir):
+def add_subdir(path, subdir, create_dir=True):
     """ Add a subdir under a path and create if doesn't exist. """
     fullpath = os.path.join(path, subdir)
-    if not os.path.isdir(fullpath):
+    if not os.path.isdir(fullpath) and create_dir:
         print("Making directory:", fullpath)
         os.mkdir(fullpath)
 
     return fullpath
     
 
-def add_subdirs(path,subdirs):
+def add_subdirs(path, subdirs, create_dir=True):
     """ Add multiple subdirectories to the path
     
         path/subdir1/subdir2
@@ -48,17 +48,20 @@ def add_subdirs(path,subdirs):
         
             :path: (string)
             :subdirs: (arr of strings) [subdir1, subdir2, ...]
+            :create_dir: (bool) set to True to create directories, False to
+                only return the name of the directories
     
     """
     fullpath = path
     for subdir in subdirs:
-        add_subdir(fullpath, subdir)
+        add_subdir(fullpath, subdir, create_dir=create_dir)
         fullpath = os.path.join(fullpath, subdir)
 
     return fullpath
 
 #################### FETCHSEP PATHS #######################
-def create_subdirectories(basedir, module='', subdir='', directory_depth=2):
+def create_subdirectories(basedir, module='', subdir='', directory_depth=2,
+    create_dir=True):
     """ Default paths within output/ plots/ for specified fetchsep module: 
             idsep
             opsep
@@ -75,18 +78,20 @@ def create_subdirectories(basedir, module='', subdir='', directory_depth=2):
                 2 - Include subdirectory named according to experiment and
                     options, e.g. cfg.outpath/module/subdir
                     (output/opsep/GOES-13_integral/
-            
+            :create_dir: (bool) set to True to create directories, False to
+                only return the name of the directories
+                
     """
     
     if directory_depth == 0:
         return basedir
         
     elif directory_depth == 1:
-        fullpath = add_subdir(basedir, module)
+        fullpath = add_subdir(basedir, module, create_dir=create_dir)
         return fullpath
         
     elif directory_depth == 2:
-        fullpath = add_subdirs(basedir, [module, subdir])
+        fullpath = add_subdirs(basedir, [module, subdir], create_dir=create_dir)
         return fullpath
         
     else:

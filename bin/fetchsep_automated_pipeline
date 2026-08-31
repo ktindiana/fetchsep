@@ -56,12 +56,12 @@ def septimes_fname(startdate, enddate, experiment, flux_type, exp_name, energy_b
     else:
         energy_bin[1] = float(energy_bin[1])
  
-    fname = os.path.join(idsep_path, f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.txt")
+    fname = os.path.join(idsep_path, f"{prename}_{energy_bin[0]}_to_{energy_bin[1]}.csv")
 
     if not os.path.isfile(fname):
         bin0 = int(energy_bin[0])
         bin1 = int(energy_bin[1])
-        fname = os.path.join(idsep_path, f"{prename}_{bin0}_to_{bin1}.txt")
+        fname = os.path.join(idsep_path, f"{prename}_{bin0}_to_{bin1}.csv")
         
         if not os.path.isfile(fname):
             sys.exit(f"septimes_fname: Cannot find either file: {fname} or "

@@ -51,9 +51,9 @@ def read_sep_times_file(septimes_file):
             if "#" in line: continue
             if line == "": continue
             
-            line = line.strip().split()
-            stdt = line[0] + " " + line[1]
-            enddt= line[2] + " " + line[3]
+            line = line.strip().split(",")
+            stdt = line[0]
+            enddt= line[1]
             
             stdate = datetime.datetime.strptime(stdt, '%Y-%m-%d %H:%M:%S')
             enddate = datetime.datetime.strptime(enddt, '%Y-%m-%d %H:%M:%S')

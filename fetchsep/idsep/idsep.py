@@ -104,7 +104,7 @@ def write_sep_dates(params, energy_bins, SEPstart, SEPend):
     
     #####WRITE SEP DATES OUT TO FILE##########
     for j in range(len(SEPstart)):
-        fname = (f"{prename}_{zstdate}_{zenddate}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
+        fname = (f"{prename}_{zstdate}_{zenddate}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.csv")
         fname = os.path.join(params.module_outpath, fname)
         outfile = open(fname,"w")
         outfile.write("#SEP times calculated by idsep\n")
@@ -128,14 +128,14 @@ def write_sep_dates(params, energy_bins, SEPstart, SEPend):
                 + " exceeded threshold, allowing up to " + str(allow_miss)
                 + " points to be missed. The SEP event ended after " +
                 str(dwell_pts) + " were below threshold (dwell time).\n")
-        outfile.write("#Start Time    End Time\n")
+        outfile.write("#Start Time,End Time\n")
         
         for k in range(len(SEPstart[j])):
             SEPst = SEPstart[j][k]
             SEPed = SEPend[j][k]
             if params.for_inclusive:
                 SEPed = SEPed - one_sec
-            outfile.write(str(SEPst) + " " + str(SEPed) + "\n")
+            outfile.write(str(SEPst) + "," + str(SEPed) + "\n")
             
         outfile.close()
 
@@ -176,7 +176,7 @@ def write_all_high_points(params, energy_bins, dates, fluxes_high):
     
     #####WRITE SEP DATES OUT TO FILE INSTEAD OF PRINTING##########
     for j in range(len(fluxes_high)):
-        fname = (f"{prename}_{zstdate}_{zenddate}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.txt")
+        fname = (f"{prename}_{zstdate}_{zenddate}_{energy_bins[j][0]}_to_{energy_bins[j][1]}.csv")
         fname = os.path.join(params.module_outpath, fname)
         outfile = open(fname,"w")
         outfile.write("#All high points above mean background + 3*sigma calculated by idsep\n")
@@ -200,11 +200,11 @@ def write_all_high_points(params, energy_bins, dates, fluxes_high):
                     "exceeded mean background flux + 3*sigma "
                     "by applying a " + str(params.sliding_win) + " days "
                     "backward sliding window to estimate the background levels.\n")
-        outfile.write("#Start Time    End Time\n")
+        outfile.write("#Start Time,End Time\n")
         
         for k in range(len(fluxes_high[j])):
             if fluxes_high[j][k] > 0:
-                outfile.write(str(dates[k]) + " " + str(dates[k] + time_res) + "\n")
+                outfile.write(str(dates[k]) + "," + str(dates[k] + time_res) + "\n")
             
         outfile.close()
 

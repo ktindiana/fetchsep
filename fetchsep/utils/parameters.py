@@ -435,12 +435,20 @@ class Parameters:
         #Need idsep subdir before setting idsep background info
         id_modifier, id_title_mod = names.setup_modifiers(self.options, spacecraft=self.spacecraft)
  
-        #Need idsep subdir and outpath in opsep and download, too
+        #Need idsep subdir and outpath to use in opsep and download, too
         self.idsep_subdir = names.idsep_naming_scheme(self.experiment, self.flux_type, self.user_name, modifier=id_modifier)
-        self.idsep_outpath = dirs.create_subdirectories(cfg.outpath, module=self.module,
-            subdir=self.idsep_subdir, directory_depth=self.directory_depth)
-        
-        if self.module != 'opsep':
+
+        if self.module == 'opsep':
+            #only need name of idsep directory
+            self.idsep_outpath = dirs.create_subdirectories(cfg.outpath, module='idsep',
+                subdir=self.idsep_subdir, directory_depth=self.directory_depth,
+                create_dir=False)
+            #Then wait for background-subtraction info before setting modifiers, titles
+        else:
+            self.idsep_outpath = dirs.create_subdirectories(cfg.outpath, module=self.module,
+                subdir=self.idsep_subdir, directory_depth=self.directory_depth,
+                create_dir=True)
+            #Set modifiers, titles
             self.modifier = id_modifier
             self.title_modifier = id_title_mod
             self.module_subdir = self.idsep_subdir
@@ -494,7 +502,7 @@ class Parameters:
         output = {}
         for param, ref in self.__dict__.items():
             value = getattr(self, param)
-            if 'time' in param or 'date' in param:
+            if ('time' in param or 'date' in param) and ('unixtime' not in param):
                 value = dh.time_to_zulu(value, strict_str=True)
             output.update({param: value})
 
