@@ -384,9 +384,9 @@ class Data:
             definition.
             
         """
-        bgfilename = os.path.join(self.params.idsep_path,'background_mean_fluxes_FINAL.csv')
-        sigmafilename = os.path.join(self.params.idsep_path, 'background_sigma_FINAL.csv')
-        threshfilename = os.path.join(self.params.idsep_path, 'background_threshold_FINAL.csv')
+        bgfilename = os.path.join(self.params.idsep_path, self.params.idsep_fname_background)
+        sigmafilename = os.path.join(self.params.idsep_path, self.params.idsep_fname_sigma)
+        threshfilename = os.path.join(self.params.idsep_path, self.params.idsep_fname_threshold)
 
         df_mean = pd.read_csv(bgfilename)
         df_mean['dates'] =pd.to_datetime(df_mean['dates'])

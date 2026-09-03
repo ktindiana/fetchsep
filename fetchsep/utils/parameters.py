@@ -65,13 +65,25 @@ class Parameters:
         self.idsep_outpath = ''
         self.idsep_plotpath = ''
 
-        self.idsep_path = '' #May be set by user as path to background_mean_fluxes_FINAL.csv, etc
+        self.idsep_path = '' #May be set by user as path to
+            #background_mean_fluxes_FINAL.csv, etc;
+            #Used by OpSEP for background subtraction with IDSEP output.
+            #Used by IDSEP when using the resume functionality.
 
         self.module_subdir = ''
         self.module_outpath = ''
         self.module_plotpath = ''
 
         ######## IDSEP-SPECIFIC PARAMETERS #######
+        #IDSEP-produced files filenames
+        self.idsep_fname_background = 'background_mean_fluxes_FINAL.csv'
+        self.idsep_fname_sigma = 'background_sigma_FINAL.csv'
+        self.idsep_fname_threshold = 'background_threshold_FINAL.csv'
+        self.idsep_fname_kurtosis = 'kurtosis_FINAL.csv'
+        self.idsep_fname_sep_bgsub ='SEP_fluxes_background-subtracted_FINAL.csv'
+        self.idsep_fname_sep = 'SEP_fluxes_FINAL.csv'
+        #Configured parameters
+        self.idsep_resume = False
         self.remove_above=999999
         self.for_inclusive=False
         self.idsep_nsigma=cfg.idsep_nsigma
@@ -175,14 +187,13 @@ class Parameters:
 
 
     def configure_idsep(self, remove_above=None, kurtosis_cut=None, idsep_nsigma=None,
-        init_win=None, sliding_win=None, percent_points=None):
+        init_win=None, sliding_win=None, percent_points=None, idsep_resume=None):
         if remove_above != None:
             self.remove_above = remove_above
             print(f"parameters: Setting remove_above to {remove_above}.")
         if kurtosis_cut != None:
             self.kurtosis_cut = kurtosis_cut
             print(f"parameters: Setting kurtosis_cut to {kurtosis_cut}.")
-            print(f"parameters: Superceding any kurtosis_cut value set in experiments.py")
         if idsep_nsigma != None:
             self.idsep_nsigma = idsep_nsigma
             print(f"parameters: Setting idsep_nsigma to {idsep_nsigma}.")
@@ -195,6 +206,23 @@ class Parameters:
         if percent_points != None:
             self.percent_points = percent_points
             print(f"parameters: Setting idsep percent_points to {percent_points}.")
+        if idsep_resume != None:
+            self.idsep_resume = idsep_resume
+            print(f"parameters: Setting idsep resume to {idsep_resume}.")
+
+
+    def set_idsep_background_info(self):
+        """ Specify whether to use background calculated by idsep """
+
+        #If want to use IDSEP files, but no path specified, try the default
+        if (self.IDSEPEnhancement or self.doBGSubIDSEP) and self.idsep_path == '':
+            self.idsep_path = self.idsep_outpath
+
+        #IF choose to do background subtraction, then automatically choose
+        #to calculate enhancement above background
+        if self.doBGSubIDSEP: self.IDSEPEnhancement = True
+
+        return
 
 
     def set_opsep_background_info(self):
@@ -225,20 +253,6 @@ class Parameters:
             if pd.isnull(self.bgstartdate) or pd.isnull(self.bgenddate):
                 sys.exit("WARNING!!! User selected to perform background-subtraction, but did not provide dates. Please provide dates of a quiet background period to use this feature.")
         
-        return
-
-
-    def set_idsep_background_info(self):
-        """ Specify whether to use background calculated by idsep """
-
-        #If want to use IDSEP files, but no path specified, try the default
-        if (self.IDSEPEnhancement or self.doBGSubIDSEP) and self.idsep_path == '':
-            self.idsep_path = self.idsep_outpath
-
-        #IF choose to do background subtraction, then automatically choose
-        #to calculate enhancement above background
-        if self.doBGSubIDSEP: self.IDSEPEnhancement = True
-
         return
 
 
@@ -328,6 +342,8 @@ class Parameters:
         use_absolute_datapath=None,
         write_fluxes=None,
         for_inclusive=None,
+        idsep_resume=None,
+        idsep_path=None,
         remove_above=None,
         kurtosis_cut=None,
         idsep_nsigma=None,
@@ -349,7 +365,6 @@ class Parameters:
         bgenddate=None,
         doBGSubIDSEP=None,
         IDSEPEnhancement=None,
-        idsep_path=None,
         location=None,
         species=None):
         """ Set all the values related to user choices that are needed across fetchsep. 
@@ -405,7 +420,8 @@ class Parameters:
             kurtosis_cut = expts.set_kurtosis_cut(self.experiment, self.flux_type)
         self.configure_idsep(remove_above=remove_above, kurtosis_cut=kurtosis_cut,
             idsep_nsigma=idsep_nsigma, init_win=init_win,
-            sliding_win=sliding_win, percent_points=percent_points)
+            sliding_win=sliding_win, percent_points=percent_points,
+            idsep_resume=idsep_resume)
 
 
         ### JSON FILE INFO
