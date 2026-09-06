@@ -5,7 +5,6 @@ from ..utils import config as cfg
 from ..utils import parameters as fsparam
 from ..utils import experiments as expts
 from ..utils import analysis
-from ..utils import error_check
 from ..utils import tools
 from ..utils import names
 from ..utils import date_handler as dh

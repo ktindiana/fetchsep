@@ -3,7 +3,7 @@ from ..utils import names
 from ..utils import date_handler as dh
 from ..utils import experiments as expts
 from ..utils import directories as dirs
-from ..utils import error_check
+import datetime
 import os
 import sys
 import pandas as pd
@@ -17,8 +17,159 @@ __email__ = "kathryn.whitman@nasa.gov"
     
 """
 
+def error_check_options(experiment, flux_type, options, spacecraft=""):
+    """ Make sure the selected options make sense for the experiment.
+        
+        INPUTS:
+        
+        :experiment: (string)
+        :flux_type: (string) - integral or differential
+        :options: (string array) - various options applied to GOES data
+        :spacecraft: (string)
+        
+        OUTPUTS:
+        
+        no outputs by system exit if error found
+        
+    """
+    if "S14" in options and experiment[0:4] != "GOES":
+        sys.exit("Sandberg et al. (2014) effective energies (S14) may only "
+            "be applied to GOES data.")
+    if "S14" in options and "uncorrected" not in options:
+        sys.exit("Sandberg et al. (2014) effective energies (S14) may only be "
+            "applied to GOES uncorrected fluxes. Please add "
+            "\"uncorrected\" to options.")
+    if "uncorrected" in options and flux_type == "integral":
+        sys.exit("The uncorrected option cannot be used with integral fluxes. "
+                "Please remove this option and run again. Exiting.")
+    if "uncorrected" in options and experiment[0:4] != "GOES":
+        sys.exit("The uncorrected option may only be specified for GOES "
+                "differential fluxes. Exiting.")
+    if "Bruno2017" in options and (experiment != "GOES-13" and \
+        experiment != "GOES-15"):
+        sys.exit("Bruno2017 effective energies may only be appied to GOES-13 "
+                "or GOES-15 fluxes. Exiting.")
+    if "S14" in options and (experiment == "GOES-13" or \
+        experiment == "GOES-15"):
+        print("Sandberg et al. (2014) effective energies found for GOES-11 "
+            "will be applied to channels P2-P7. Continuing.")
+    if "S14" in options and "Bruno2017" in options:
+        print("Sandberg et al. (2014) effective energies from GOES-11 will be "
+            "applied to P2-P5. Bruno (2017) effective energies will be applied "
+            "to P6-P11.")
+    if ("uncorrected" in options or "S14" in options or "Bruno2017" in options)\
+                and experiment[0:4] != "GOES":
+        sys.exit("The options you have selected are only applicable to GOES "
+                "data. Please remove these options and run again: "
+                "uncorrected, S14, or Bruno2017.")
+
+
+def error_check_inputs(startdate, enddate, experiment, flux_type, module=None,
+    init_win=None, idsep_resume=False):
+    """ Check that all of the user inputs make sense and fall within bounds.
+        
+        INPUTS:
+        
+        :startdate: (datetime) - start of time period entered by user
+        :enddate: (datetime) - end of time period entered by user
+        :experiment: (string) - name of experiment specifed by user
+        :flux_type: (string) - integral or differential
+        :module: (string) idsep, opsep, download
+        :init_win: (int) initial window used to estimate background
+            
+        OUTPUTS:
+        
+        None, but system exit if error found
+        
+    """
+    #Check start and end dates, but relax in the case of idsep_resume
+    if not idsep_resume:
+        if (enddate < startdate):
+            sys.exit('End time before start time! Enter a valid date range. '
+                    'Exiting.')
+     
+        if module == 'idsep':
+            dt = enddate - startdate
+            if (dt.days < init_win):
+                print(f'Date range from {startdate.date()} to {enddate.date()} ({dt.days} days) '
+                    'is less than the '
+                    f'length of the background subtraction window, init_win={cfg.init_win} days. '
+                    'fetchsep is extending the time frame automatically to run and '
+                    'trimming results to requested time frame at the end. Continuing.')
+ 
+ 
+    if experiment != "user":
+        exp_info = expts.experiment_info(experiment)
+        if len(exp_info['flux_type']) > 1 and flux_type == "":
+            sys.exit(f"User must indicate whether input flux is {exp_info['flux_type']}. Exiting.")
+
+        if flux_type != "" and flux_type not in exp_info['flux_type']:
+             sys.exit(f"User must specify flux type for {experiment} from the choices: {exp_info['flux_type']}. Exiting.")
+
+        available, msg = expts.dates_available(experiment, startdate, enddate)
+        if not available:
+            sys.exit(msg)
+
+    if experiment == "GOES-RT" and flux_type == "integral":
+        print('Using GOES primary satellite real time fluxes as provided by SWPC in their real-time jsons '
+            'and archived by CCMC. Available starting 2010-04-14.')
+
+    if experiment == "GOES-RT" and flux_type == "differential":
+        print('Using GOES primary satellite real time fluxes as provided by SWPC in their real-time jsons.')
+
+    goes_R = expts.goes_R()
+    goes16_integral_stdate = datetime.datetime(2020,3,8)
+    if(experiment in goes_R) and startdate < goes16_integral_stdate:
+        if startdate >= datetime.datetime(2017,9,1) and \
+            startdate <= datetime.datetime(2017,9,20):
+            print("error_check_inputs: Only special event data for September 2017 is available for GOES-16.")
+        else:
+            sys.exit('The GOES-R real time integral fluxes are only available '
+                    + 'starting on '+ str(goes16_integral_stdate) +
+                '. Please change your requested dates and use GOES-RT for the experiment. Exiting.')
+    elif (experiment in goes_R) and flux_type == "integral":
+        #UNTIL NOAA PROVIDES A SUPPORTED INTEGRAL PRODUCT
+        sys.exit('Note: The GOES-R integral fluxes are real-time fluxes archived at CCMC. '
+            'When NOAA\'s official L2 integral fluxes become available, they will be included in FetchSEP. '
+            'Please specify GOES-RT for --Experiment to use GOES-R integral fluxes.')
+  
+  
+
+
+def error_check_background(experiment, flux_type, doBGSubOPSEP, doBGSubIDSEP,
+    OPSEPEnhancement, IDSEPEnhancement):
+    """ Check background separatation and background subtraction options.
+    
+    """
+    if doBGSubOPSEP and doBGSubIDSEP:
+        sys.exit("You chose background subtraction applied by both OPSEP and "
+                "IDSEP. Please select only one method to perform background "
+                "subtraction by selecting only --doBGSubOPSEP or --doBGSubIDSEP.")
+                
+    if doBGSubOPSEP and IDSEPEnhancement:
+        sys.exit("You chose to perform background subtraction with OPSEP "
+            "and to identify enhancements above background using IDSEP. "
+            "Please choose only one method to perform background "
+            "subtraction and identify enhancements.")
+            
+    if doBGSubIDSEP and OPSEPEnhancement:
+        sys.exit("You chose to perform background subtraction with IDSEP "
+            "and to identify enhancements above background using OPSEP. "
+            "Please choose only one method to perform background "
+            "subtraction and identify enhancements.")
+
+    if (doBGSubOPSEP or doBGSubIDSEP) and experiment[0:4] == "GOES" and flux_type == "integral":
+        print("WARNING: Do you want to perform background subtraction? "
+                "Do not perform background subtraction on GOES integral "
+                "fluxes. Integral fluxes have already been derived by "
+                "applying corrections for cross-contamination and removing "
+                "the instrument background levels.")
+
+
+
+
 class Parameters:
-    def __init__(self, module, startdate, enddate, experiment):
+    def __init__(self, module, startdate, enddate, experiment, idsep_resume=False):
         """ Parameters that may be set by the user. 
             Start with default values and change if user specifies a different value.
             
@@ -29,11 +180,19 @@ class Parameters:
         self.experiment = experiment
 
         #Dates
-        if startdate == "" or enddate == "" or startdate == None or enddate == None:
-            sys.exit('You must enter start and end dates. Exiting.')
-        self.startdate = dh.str_to_datetime(startdate)
+        if idsep_resume:
+            self.startdate=None
+        else:
+            if startdate == "" or startdate == None:
+                sys.exit('You must enter a start dates. Exiting.')
+            self.startdate = dh.str_to_datetime(startdate)
+            print(f"Set analysis start date to {self.startdate}")
+        
+
+        if enddate == "" or enddate == None:
+            sys.exit('You must enter an end date. Exiting.')
         self.enddate = dh.str_to_datetime(enddate)
-        print(f"Set analysis dates {self.startdate} to {self.enddate}")
+        print(f"Set analysis end date to {self.enddate}")
 
         self.flux_type = None
         self.spacecraft = '' #GOES only; primary or secondary
@@ -214,9 +373,10 @@ class Parameters:
     def set_idsep_background_info(self):
         """ Specify whether to use background calculated by idsep """
 
-        #If want to use IDSEP files, but no path specified, try the default
-        if (self.IDSEPEnhancement or self.doBGSubIDSEP) and self.idsep_path == '':
-            self.idsep_path = self.idsep_outpath
+        #If want to use IDSEP files with opsep, but no path specified, try the default
+        if self.module != 'idsep':
+            if (self.IDSEPEnhancement or self.doBGSubIDSEP) and self.idsep_path == '':
+                self.idsep_path = self.idsep_outpath
 
         #IF choose to do background subtraction, then automatically choose
         #to calculate enhancement above background
@@ -259,9 +419,9 @@ class Parameters:
     def error_check(self):
         """ Error check the inputs and options. """
             
-        error_check.error_check_options(self.experiment, self.flux_type, self.options, spacecraft=self.spacecraft)
-        error_check.error_check_inputs(self.startdate, self.enddate, self.experiment, self.flux_type, module=self.module, init_win=self.init_win)
-        error_check.error_check_background(self.experiment, self.flux_type, self.doBGSubOPSEP,
+        error_check_options(self.experiment, self.flux_type, self.options, spacecraft=self.spacecraft)
+        error_check_inputs(self.startdate, self.enddate, self.experiment, self.flux_type, module=self.module, init_win=self.init_win, idsep_resume=self.idsep_resume)
+        error_check_background(self.experiment, self.flux_type, self.doBGSubOPSEP,
             self.doBGSubIDSEP, self.OPSEPEnhancement, self.IDSEPEnhancement)
 
         return

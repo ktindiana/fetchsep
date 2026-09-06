@@ -3,7 +3,6 @@ from ..utils import directories as dirs
 from ..utils import read_datasets as datasets
 from ..utils import date_handler as dh
 from ..utils import plotting_tools as plt_tools
-from ..utils import error_check
 from ..utils import tools
 from ..utils import names
 from ..utils import experiments as expts
