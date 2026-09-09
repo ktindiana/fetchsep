@@ -1738,7 +1738,9 @@ class Output:
     
 
         self.json_dict = {} #json dictionary from template
-        self.json_filename = None #output path and filename
+        self.filename_prefix = None #output path and filename
+        self.json_filename = None
+        self.fluence_filename = None
         self.issue_time = pd.NaT
         
         #Find associations from the SRAG, IGR, User list or manual inputs
@@ -1780,6 +1782,8 @@ class Output:
             if not pd.isnull(self.data.params.user_name) and self.data.params.user_name != "":
                 fnameprefix = f"{self.data.params.user_name}_{self.data.params.flux_type}{self.data.params.modifier}.{zstdate}.{issue_time}"
 
+        self.filename_prefix = fnameprefix
+        
         ####JSON FILE
         self.json_filename = fnameprefix + ".json"
     
@@ -1788,8 +1792,7 @@ class Output:
     
     def set_sep_profile_filename(self, analyze):
 
-        fnameprefix = self.json_filename.strip().split(".json")
-        fnameprefix = fnameprefix[0]
+        fnameprefix = self.filename_prefix
         
         ####TIME PROFILE
         energy_bin = analyze.make_energy_bin()
@@ -2576,6 +2579,47 @@ class Output:
         return filename
 
 
+
+    def write_fluence_spectrum(self):
+        """ Write the fluence spectrum in the same format as the
+            flux time series for use with SRAG tools.
+            
+            Call after write_ccmc_json so can reference filenames.
+        
+        """
+        for analyze in self.data.results:
+            #Only write out fluence if there is an SEP event
+            if pd.isnull(analyze.sep_start_time):
+                continue
+     
+            energy_bin = analyze.make_energy_bin()
+            energy_units = analyze.event_definition['energy_channel'].units
+            threshold = analyze.event_definition['threshold'].threshold
+            threshold_units = analyze.event_definition['threshold'].threshold_units
+
+            ####Event-integrated Fluence Spectra
+            energy_bin = analyze.make_energy_bin()
+            if energy_bin[1] == -1: #integral
+               name = f".{energy_bin[0]}.{energy_units}.{threshold}_fluence.csv"
+            else:
+               name = f".{energy_bin[0]}-{energy_bin[1]}.{energy_units}.{threshold}_fluence.csv"
+     
+            fluence_filename = self.filename_prefix + name
+     
+            #Write fluences to file
+            dct = {"dates": [analyze.sep_start_time]}
+            keys = []
+            for i,bin in enumerate(self.data.energy_bins):
+                keys.append(names.energy_bin_key(bin))
+                dct.update({keys[i]:[analyze.fluence_spectrum[i]]})
+
+            df = pd.DataFrame(dct)
+            df.to_csv(os.path.join(self.data.params.module_outpath,fluence_filename), index=False)
+            print("Wrote " + fluence_filename + " to file.")
+
+
+
+
 #    def clean_dictionary(self, in_dict):
 #        """ Remove all null or empty string values from a flat dictionary """
 #        clean_dict = in_dict
@@ -2629,8 +2673,7 @@ class Output:
         #dict = self.clean_dictionary(dict)
         df = pd.DataFrame([dict])
         
-        filename = self.json_filename
-        filename = filename.replace(".json",".csv")
+        filename = self.filename_prefix + ".csv"
         filename = os.path.join(self.data.params.module_outpath, filename)
         df.to_csv(filename, index=None)
         print(f"create_csv_dict: Wrote {filename}")
@@ -2678,8 +2721,7 @@ class Output:
         header = header[:-1] + "\n"
         row = row[:-1] + "\n"
         
-        filename = self.json_filename
-        filename = filename.replace(".json",".pkl")
+        filename = self.filename_prefix + ".pkl"
         filename = os.path.join(self.data.params.module_outpath, filename)
         with open(filename, 'wb') as file:
             pickle.dump(dict, file)
@@ -3112,6 +3154,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
     jsonfname = output_data.write_ccmc_json() #CCMC JSON file
     event_dict_csv = output_data.create_csv_dict()
     event_dict_pkl = {} #output_data.create_pkl_dict()
+    output_data.write_fluence_spectrum()
     output_data.plot_event_definitions()
     output_data.plot_all_fluxes()
     output_data.plot_fluence_spectra()
