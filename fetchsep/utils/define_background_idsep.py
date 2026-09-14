@@ -605,7 +605,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins, nsigma, remove_above)
         cols.append(key)
     df = pd.DataFrame(dict)
 
-    if isinstance(remove_above,float):
+    if isinstance(remove_above,float) or isinstance(remove_above, int):
         remove_above = [remove_above]*len(fluxes)
 
     means = []

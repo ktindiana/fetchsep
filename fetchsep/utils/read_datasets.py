@@ -496,7 +496,7 @@ def check_old_goes_data(params):
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date < params.enddate):
+    while (test_date <= params.enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -676,7 +676,7 @@ def check_goes_data(params):
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date < params.enddate):
+    while (test_date <= params.enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1
@@ -1294,7 +1294,7 @@ def check_preferential_goes_data(params):
     test_year = styear
     test_month = stmonth
     test_date = datetime.datetime(year=test_year, month=test_month, day=1)
-    while (test_date < params.enddate):
+    while (test_date <= params.enddate):
         get_years.append(test_year)
         get_months.append(test_month)
         test_month = test_month + 1

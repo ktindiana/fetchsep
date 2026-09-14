@@ -86,6 +86,7 @@ def write_fluxes(params, energy_bins, dates, fluxes, suffix=''):
     name = ''
     stdate = dates[0].strftime("%Y%m%d")
     enddate = dates[-1].strftime("%Y%m%d")
+
     if params.module == 'opsep':
         #name like the json schema
         tzulu = dh.time_to_zulu(dates[0])

@@ -243,6 +243,8 @@ class Parameters:
         self.idsep_fname_sep = 'SEP_fluxes_FINAL.csv'
         #Configured parameters
         self.idsep_resume = False
+        self.idsep_resume_firstdate = None #start of previous idsep run
+        self.idsep_resume_lastdate = None #end of previous idsep run/start of resume run
         self.remove_above=999999
         self.for_inclusive=False
         self.idsep_nsigma=cfg.idsep_nsigma
