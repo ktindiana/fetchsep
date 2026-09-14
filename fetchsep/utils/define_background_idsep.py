@@ -416,7 +416,7 @@ def find_last_good(idx, arr):
 def write_df(df, name, verbose=True, savepath=''):
     """Writes a pandas dataframe to the standard location in multiple formats
     """
-    filepath = os.path.join(savepath, name + '.csv')
+    filepath = os.path.join(savepath, name)
     df.to_csv(filepath, index=False)
     if verbose:
         print('Wrote ' + filepath)
@@ -568,8 +568,7 @@ def plot_dist_hist(params, df, iteration):
 #####################################
 #OPTIMIZED ALGORITHM
 #####################################
-def ndays_average_optimized(N, dates, fluxes, energy_bins,
-    nsigma, remove_above, savepath=''):
+def ndays_average_optimized(N, dates, fluxes, energy_bins, nsigma, remove_above):
     """ Average flux over N days.
 
         INPUTS:
@@ -577,7 +576,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
         :N: (integer) number of days over which to average
         :dates: (1xn datetime array)
         :fluxes: (pxn float array) fluxes for p energy channels
-        :remove_above: (float) - remove all flux values above this value
+        :remove_above: (float or list) - remove all flux values above this value
             (assumed that these are enhanced or undesirable fluxes)
         :savepath: (string) path to save output files
 
@@ -606,6 +605,9 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
         cols.append(key)
     df = pd.DataFrame(dict)
 
+    if isinstance(remove_above,float) or isinstance(remove_above, int):
+        remove_above = [remove_above]*len(fluxes)
+
     means = []
     sigmas = []
     thresholds = []
@@ -630,8 +632,8 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
         #Replace all zero values
         sub = sub.replace(0,np.nan)
         #Replace all values above remove_above
-        for col in cols:
-            sub = set_above_threshold_to_nan(sub, remove_above, col)
+        for index, col in enumerate(cols):
+            sub = set_above_threshold_to_nan(sub, remove_above[index], col)
 
         if sub.empty:
             if not means: #No good data encountered yet
@@ -676,22 +678,34 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins,
     df_means.insert(0,'dates',ave_dates)
     df_sigmas.insert(0,'dates',ave_dates)
 
-    #Write fluxes to file for testing and use
-#    write_df(df_means,'background_mean_fluxes_ndays_optimized',
-#            savepath=savepath)
-#    write_df(df_sigmas,'background_sigma_ndays_optimized',
-#            savepath=savepath)
-#    write_df(df_thresholds,'background_threshold_ndays_optimized',
-#            savepath=savepath)
-
     return ave_dates, ave_fluxes, ave_sigma, threshold_dates, threshold
+
+
+
+######### RESUME ##########
+def combine_resume_df(params, df, filename):
+    """ When using resume, combine dataframe with all values from previous run """
+    #Read in values from previous run
+    filenm = os.path.join(params.idsep_path, filename)
+    df_prev = pd.read_csv(filenm)
+    df_prev['dates'] =pd.to_datetime(df_prev['dates'])
+    #lastdate = df.at[len(df['dates'])-1,'dates']
+    df_prev = df_prev.loc[df_prev['dates'] < params.startdate]
+
+    #Trim values for current run to remove sliding win that was added in
+    df = df.loc[df['dates'] >= params.startdate]
+
+    #Concatenate
+    df = pd.concat([df_prev, df], ignore_index=True)
+
+    return df
 
 
 #####################################
 ##OPTIMIZED AGLORITHM
 #####################################
 def backward_window_background_optimized(params, dates, fluxes, energy_bins,
-    iteration=0, is_final=False):
+    iteration=0, is_final=False, resume_arrays={}):
     """ Average over a backward sliding window of N days.
         Estimate the value of the mean background (GCR) flux,
         sigma, and a threshold to separate GCR from SEP for
@@ -776,7 +790,7 @@ def backward_window_background_optimized(params, dates, fluxes, energy_bins,
     df_thresholds = pd.DataFrame()
     df_diff_fluxes = pd.DataFrame()
     df_stats1 = pd.DataFrame()
-    
+
     for i in range(Nstart,Nsteps+1,1):
         #Start N days into the calculation so can use the
         #Specify a backwards window from Ndays earlier up to current date
@@ -795,6 +809,18 @@ def backward_window_background_optimized(params, dates, fluxes, energy_bins,
         insert_dates = []
         if i == Nstart: #All dates from the start
             insert_dates = selected_dates
+
+            ########### RESUME###############
+            #If resuming, read in a sliding window's worth of data from the previous run.
+            if params.idsep_resume:
+                df_diff_fluxes = resume_arrays['df_fluxes'].loc[(resume_arrays['df_fluxes']['dates'] >= starttime) & (resume_arrays['df_fluxes']['dates'] < endtime)]
+                df_means = resume_arrays['df_means'].loc[(resume_arrays['df_means']['dates'] >= starttime) & (resume_arrays['df_means']['dates'] < endtime)]
+                df_sigmas = resume_arrays['df_sigmas'].loc[(resume_arrays['df_sigmas']['dates'] >= starttime) & (resume_arrays['df_sigmas']['dates'] < endtime)]
+                df_thresholds = resume_arrays['df_thresholds'].loc[(resume_arrays['df_thresholds']['dates'] >= starttime) & (resume_arrays['df_thresholds']['dates'] < endtime)]
+                df_stats1 = resume_arrays['df_kurtosis'].loc[(resume_arrays['df_kurtosis']['dates'] >= starttime) & (resume_arrays['df_kurtosis']['dates'] < endtime)]
+                continue
+            #################################
+
         else:
             insert_dates = current_dates
 
@@ -907,6 +933,14 @@ def backward_window_background_optimized(params, dates, fluxes, energy_bins,
             df_s1.insert(0,'dates',current_dates[0])
             df_stats1 = pd.concat([df_stats1,df_s1],ignore_index=True)
 
+    ########### RESUME###############
+    #If RESUMING, add in all of the results from the previous IDSEP run
+    if is_final and params.idsep_resume:
+        df_means = combine_resume_df(params, df_means, params.idsep_fname_background)
+        df_sigmas = combine_resume_df(params, df_sigmas, params.idsep_fname_sigma)
+        df_thresholds = combine_resume_df(params, df_thresholds, params.idsep_fname_threshold)
+        df_stats1 = combine_resume_df(params, df_stats1, params.idsep_fname_kurtosis)
+    ########### RESUME###############
 
     ave_dates = df_means['dates'].to_list()
     mean_background = df_means[cols].T.to_numpy()
@@ -914,13 +948,15 @@ def backward_window_background_optimized(params, dates, fluxes, energy_bins,
     threshold = df_thresholds[cols].T.to_numpy()
 
     #Write fluxes to file for testing and use
+    #params.idsep_fname_background (etc) are named like 'background_mean_fluxes_FINAL.csv'
+    #If need to print out for each iteration, then can do a string replace of
+    #_FINAL with appx
     appx = '_it'+str(iteration)
     if is_final:
-        appx = '_FINAL'
-        write_df(df_means,'background_mean_fluxes'+appx, savepath=params.module_outpath)
-        write_df(df_sigmas,'background_sigma'+appx, savepath=params.module_outpath)
-        write_df(df_thresholds,'background_threshold'+appx, savepath=params.module_outpath)
-        write_df(df_stats1,'kurtosis'+appx, savepath=params.module_outpath)
+        write_df(df_means, params.idsep_fname_background, savepath=params.module_outpath)
+        write_df(df_sigmas, params.idsep_fname_sigma, savepath=params.module_outpath)
+        write_df(df_thresholds, params.idsep_fname_threshold, savepath=params.module_outpath)
+        write_df(df_stats1, params.idsep_fname_kurtosis, savepath=params.module_outpath)
 
     return mean_background, ave_sigma, threshold
 
