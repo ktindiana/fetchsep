@@ -947,8 +947,8 @@ def check_goesR_data(params):
     
     #GOES-R data is stored in daily data files
     td = params.enddate - params.startdate
-    NFILES = td.days #number of data files to download
-    if td.seconds > 0: NFILES = NFILES + 1
+    NFILES = td.days +1 #number of data files to download
+    #if td.seconds > 0: NFILES = NFILES + 1
 
     if params.experiment == "GOES-16":
         prefix = 'sci_sgps-l2-avg5m_g16_' #'sci_sgps-l2-avg1m_g16_'
@@ -1109,12 +1109,10 @@ def check_goes_RTdata(params):
     endday = params.enddate.day
     
     enddate = params.enddate
-    #If the end date extends partially into the last day
-    if params.enddate > datetime.datetime(endyear, endmonth, endday):
-        enddate = params.enddate + datetime.timedelta(hours=24)
-        endyear = enddate.year
-        endmonth = enddate.month
-        endday = enddate.day
+ 
+    #Choose to download daily data files
+    td = params.enddate - params.startdate
+    NFILES = td.days + 1 #number of data files to download
 
     df = read_data_manager() #file completeness record
 
@@ -1125,11 +1123,6 @@ def check_goes_RTdata(params):
 
     dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
-
-    #Choose to download daily data files
-    td = params.enddate - params.startdate
-    NFILES = td.days #number of data files to download
-    if td.seconds > 0: NFILES = NFILES + 1
 
     #pulls primary spacecraft fluxes
     #fname like 20230501_Gp_part_5m.txt
@@ -1576,7 +1569,6 @@ def check_ephin_data(params):
     dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
 
-    Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = str(year) + '.l3i'
         res = '5min'
@@ -1751,7 +1743,6 @@ def check_ephin_release_data(params):
     dir = dirs.get_directory(params.experiment, use_absolute_datapath=params.use_absolute_datapath)
     dirs.check_path(dir)
     
-    Nyr = endyear - styear + 1
     for year in range(styear, endyear+1):
         fname = str(year) + '.asc'
 

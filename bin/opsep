@@ -258,7 +258,6 @@ parser.add_argument("--CME-start-time", default=pd.NaT,
 parser.add_argument("--CME-liftoff-time", default=pd.NaT,
                     help="Manual input CME liftoff time; time eruption lifts off from the Sun.")
 
-
 # CME geometry & kinematics
 parser.add_argument("--CME-half-width", type=float, default=np.nan,
                     help="Manual input CME half width (deg)")
@@ -279,7 +278,6 @@ parser.add_argument("--CME-time-at-height-time", default=pd.NaT,
                     help="Manual input time when CME reached specified height "
                     "(specified with CME-time-at-height-height), e.g. time at "
                     "which CME reached 21.5 Rs.")
-
 
 # Metadata
 parser.add_argument("--CME-coordinates", default="",
@@ -304,6 +302,7 @@ parser.add_argument("--CME-measurement-type", default="",
                         "BW (Black White Boundary), COR (Prominence Core), DIS (Disconnection Front), "
                         "SH (Shock Front)"))
 
+#####MANUAL INPUT OF FLARE PARAMETERS
 parser.add_argument("--Flare-last-data-time", default=pd.NaT,
                     help="Time of last data used")
 parser.add_argument("--Flare-start-time", default=pd.NaT,

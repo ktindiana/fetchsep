@@ -2402,7 +2402,7 @@ class Output:
             Or update values at specified index.
             
         """
-        user_list = assoc_lists.UserList()
+        user_list = assoc_lists.User_List()
         df = user_list.read_list()
 
         if pd.isnull(index):

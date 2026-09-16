@@ -320,7 +320,7 @@ def download_goes_xray_science_data(request_date, experiment):
 
     #Create path for GOES X-ray data if doesn't exist
     if not os.path.isdir(os.path.join(cfg.datapath,goesX_dir)):
-        os.mkdirs(os.path.join(cfg.datapath,goesX_dir))
+        os.mkdir(os.path.join(cfg.datapath,goesX_dir))
 
     sat_info = goes_xray_satellite_info()
 
