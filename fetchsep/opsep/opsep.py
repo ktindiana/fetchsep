@@ -3146,7 +3146,10 @@ def run_opsep(str_startdate, str_enddate, experiment,
         flare_peak_ratio=flare_peak_ratio,
         flare_catalog=flare_catalog,
         flare_catalog_id=flare_catalog_id,
-        flare_urls=flare_urls)
+        flare_urls=flare_urls,
+        source_lat=source_lat,
+        source_lon=source_lon,
+        noaa_region=noaa_region)
 
     if save_associations:
         output_data.save_associations_to_user_list(source_lat=source_lat, source_lon=source_lon, noaa_region=noaa_region, location=location)
