@@ -686,7 +686,7 @@ def ndays_average_optimized(N, dates, fluxes, energy_bins, nsigma, remove_above)
 def combine_resume_df(params, df, filename):
     """ When using resume, combine dataframe with all values from previous run """
     #Read in values from previous run
-    filenm = os.path.join(params.idsep_path, filename)
+    filenm = os.path.join(params.idsep_resume_path, filename)
     df_prev = pd.read_csv(filenm)
     df_prev['dates'] =pd.to_datetime(df_prev['dates'])
     #lastdate = df.at[len(df['dates'])-1,'dates']

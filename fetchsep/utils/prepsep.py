@@ -80,7 +80,7 @@ def make_observation_window_list(dir):
     
     #List all json files in the opsep output directory
     allfiles = os.listdir(dir)
-    jsonfiles = [os.path.join(dir,f) for f in allfiles if '.json' in f and 'outputs' not in f]
+    jsonfiles = [os.path.join(dir,f) for f in allfiles if '.json' in f and 'opsep_outputs' not in f]
 
     win_st = []
     win_end = []
@@ -186,13 +186,16 @@ def identify_new_obs(target_dir, dir='', enforce_new=True):
         if sort_obs_st[i] >= last_time:
             new_st.append(sort_obs_st[i])
             new_end.append(sort_obs_end[i])
-            
+    
+    if len(new_st)==0:
+        sys.exit(f"identify_new_obs: Observations in {dir} are not more recent in time than files in {target_dir}. Expect to add files to the target directory in consecutive order with time. Exiting.")
+    
     return new_st, new_end
 
 
 
 
-def check_for_sep(dir):
+def check_for_sep(dir, enforce_files=True):
     """ Read in json files output by OpSEP and check if SEP events
         are present.
         
@@ -222,7 +225,11 @@ def check_for_sep(dir):
     
 
     onlyfiles = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
-    jsonfiles = [f for f in onlyfiles if '.json' in f and 'output' not in f]
+    jsonfiles = [f for f in onlyfiles if '.json' in f and 'opsep_outputs' not in f]
+
+    if len(jsonfiles) == 0 and enforce_files:
+        sys.exit(f"check_for_sep: Did not find any observation json files in {dir}. Exiting.")
+
 
     for fname in jsonfiles:
         data = ccmc_json.read_in_json(fname)
@@ -305,14 +312,15 @@ def check_target(target_dir):
     
     """
     if not os.path.isdir(target_dir):
-        sys.exit("check_target: Specified target directory does not exist. "
-            + target_dir + " Please create or check path and rerun. Exiting.")
+        print("check_target: Specified target directory does not exist. "
+            + target_dir + " Creating.")
+        os.makedirs(target_dir, exist_ok=True)
 
     plot_dir = os.path.join(target_dir, "plots")
     if not os.path.isdir(plot_dir):
         print("check_target: plots subdirectory not found. Creating. "
                 + plot_dir)
-        os.makedirs(plot_dir)
+        os.makedirs(plot_dir, exist_ok=True)
        
 
     fname = os.path.join(target_dir, "observation_windows.csv")
@@ -326,7 +334,7 @@ def check_target(target_dir):
     if not os.path.isfile(fname):
         print("check_target: Cannot find " + fname + ". Creating and populating with any SEP events already in directory.")
         
-        df = check_for_sep(target_dir)
+        df = check_for_sep(target_dir, enforce_files=False)
         df = df[["Energy Channel","Threshold","Threshold Crossing Time", "Observation Window Start", "Observation Window End"]]
         df = df.dropna()
         df.to_csv(fname,index=False)
@@ -512,9 +520,9 @@ def update_observations(target_dir, start_date, end_date, experiment,
     json_type='observations', json_mode='measurement', spase_id=None,
     showplot=False, saveplot=True, use_absolute_datapath=None,
     detect_prev_event=None, two_peaks=None, options=None,
+    dointerp=False,
     doBGSubOPSEP=None, OPSEPEnhancement=None, bgstartdate=None, bgenddate=None,
-    dointerp=False, doBGSubIDSEP=None,
-    IDSEPEnhancement=None, idsep_path=None,
+    doBGSubIDSEP=None, IDSEPEnhancement=None, idsep_path=None,
     location=None, species=None,
     associations=False, save_associations=False,
     auto_flare_time=None, auto_cme_time=None,

@@ -5,6 +5,10 @@ import argparse
 import fetchsep.utils.experiments as expts
 import numpy as np
 
+#### SCRIPT FOR SRAG PROCESSING OF OPSEP OUTPUT ####
+#Used for SRAG operational purposes, so only a subset of
+#OpSEP arguments are provided here.
+
 valid_experiments = expts.valid_experiments()
 
 parser = argparse.ArgumentParser(
@@ -97,6 +101,47 @@ parser.add_argument("--NoGOESColors",
         help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
             "Set to True not to use these colors."), action="store_true")
 
+
+#Capability to find enhancements above background or perform background subtraction
+parser.add_argument("--IDSEPEnhancement",
+        help="Set flag to use background mean+n*sigma found with IDSEP "
+            "to identify SEP enhancement above background. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with IDSEPPath flag.", action="store_true")
+
+parser.add_argument("--IDSEPSubtractBG",
+        help="Set flag to subtract the background from the "
+            "SEP flux using the background found with IDSEP. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with IDSEPPath flag.", action="store_true")
+            
+parser.add_argument("--IDSEPPath", type=str, default='',
+        help="Path to the directory containing the IDSEP "
+            "output files background_mean_fluxes_optimized_FINAL.csv and "
+            "background_threshold_optimized_FINAL.csv.")
+
+parser.add_argument("--OPSEPSubtractBG",
+        help="Set flag to calculate the background and subtract from the "
+            "SEP flux using the algorithm in OpSEP. Must define start "
+            "and end dates for the background with the BGStartDate and "
+            "BGEndDate flags.", action="store_true")
+
+parser.add_argument("--OPSEPEnhancement",
+        help="Set flag to use the background mean+n*sigma found "
+            "with OPSEP to identify SEP enhancement above background. "
+            "Must define start and end dates for the background "
+            "with the BGStartDate and BGEndDate flags.",
+            action="store_true")
+
+parser.add_argument("--BGStartDate", type=str, default='',
+        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+               " with quotes to define the background time period."))
+
+parser.add_argument("--BGEndDate", type=str, default='',
+        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+                " with quotes to define the background time period."))
+
+
 #Adding Flare, CME, Location associated information
 parser.add_argument("--Associations",
         help=("Set flag to associate flare, CME, radio, etc information "
@@ -161,6 +206,14 @@ subdir = ''
 color_scheme = args.ColorScheme
 no_goes_colors = args.NoGOESColors
 
+doBGSubIDSEP = args.IDSEPSubtractBG
+IDSEPEnhancement = args.IDSEPEnhancement
+idsep_path = args.IDSEPPath
+doBGSubOPSEP = args.OPSEPSubtractBG
+OPSEPEnhancement = args.OPSEPEnhancement
+bgstartdate = args.BGStartDate
+bgenddate = args.BGEndDate
+
 associations = args.Associations
 save_associations = args.SaveAssociations
 auto_flare_time = args.AutoFlareTime
@@ -190,6 +243,13 @@ if not print_info:
         two_peaks=two_peaks,
         color_scheme=color_scheme,
         no_goes_colors=no_goes_colors,
+        doBGSubOPSEP=doBGSubOPSEP,
+        OPSEPEnhancement=OPSEPEnhancement,
+        bgstartdate=bgstartdate,
+        bgenddate=bgenddate,
+        doBGSubIDSEP=doBGSubIDSEP,
+        IDSEPEnhancement=IDSEPEnhancement,
+        idsep_path=idsep_path,
         associations=associations,
         save_associations=save_associations,
         auto_flare_time=auto_flare_time,
@@ -201,7 +261,7 @@ if not print_info:
         path_to_output=path_to_output,
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
-    
+
     prepsep.move_output(target_dir, opsep_outputs=outputs,
         enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
 
