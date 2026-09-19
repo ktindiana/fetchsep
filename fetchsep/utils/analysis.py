@@ -458,8 +458,8 @@ def identify_sep_noaa(dates, fluxes, threshold):
             #Included for flexibility, but 1.0 is used for operational values
 
     time_res = determine_time_resolution(dates)
-    print("Time resolution of the data set is: "
-            + str(time_res.total_seconds()) + " seconds.")
+#    print("Time resolution of the data set is: "
+#            + str(time_res.total_seconds()) + " seconds.")
     time_res_sec = time_res.total_seconds()
     
     npoints = 3 #require 3 points above threshold as employed by SWPC

@@ -1,4 +1,5 @@
 from ..opsep import opsep
+from ..idsep import idsep
 from . import config as cfg
 from . import date_handler as dh
 from ..json import keys
@@ -515,7 +516,7 @@ def move_output(target_dir, opsep_outputs={}, enforce_new=True,
 
 def update_observations(target_dir, start_date, end_date, experiment,
     flux_type=None, spacecraft=None, user_thresholds=None,
-    user_name=None, user_file=None,
+    user_name=None, user_file=None, idsep_resume_path = None,
     color_scheme=None, no_goes_colors=None,
     json_type='observations', json_mode='measurement', spase_id=None,
     showplot=False, saveplot=True, use_absolute_datapath=None,
@@ -581,6 +582,23 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
+    #If user specified an idsep resume path, update the idsep background solution
+    #to include the new time period up to the end date specified in prepsep.
+    #Output to directories in path_to_output
+    if idsep_resume_path is not None and idsep_resume_path != '':
+        idsep_outputs = idsep.run_idsep(start_date, end_date, experiment,
+            flux_type=flux_type, spacecraft=spacecraft,
+            idsep_resume_path=idsep_resume_path,
+            options=options, dointerp=dointerp,
+            path_to_data=path_to_data,
+            path_to_output=path_to_output,
+            path_to_plots=path_to_plots,
+            path_to_lists=path_to_lists)
+        #Automatically set the idsep_path for opsep to use the idsep files
+        #created during resume.
+        idsep_path = idsep_outputs["idsep_outpath"]
+        
+        
     outputs = opsep.run_opsep(start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,

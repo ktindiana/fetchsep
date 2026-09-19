@@ -815,8 +815,18 @@ def run_idsep(str_startdate, str_enddate, experiment,
     #If RESUME, set end date of previous IDSEP run to startdate of this one
     if params.idsep_resume: #False if False or None
         set_resume_dates(params)
+        #Graceful exit if user tries to run idsep for a time period already completed
         if params.startdate >= params.enddate:
-            sys.exit(f"The previous idsep run ends at {params.startdate}. You specified an extension to {params.enddate}. Your end date is earlier than the end of the previous run. Please correct. Exiting.")
+            outputs = {
+                "idsep_subdir": params.module_subdir,
+                "idsep_outpath": params.module_outpath,
+                "idsep_plotpath": params.module_plotpath,
+            }
+
+            outputs.update({"config": cfg.output_config()})
+            outputs.update({"parameters": params.output_parameters()})
+            print(f"The previous idsep run ends at {params.startdate}. You specified an extension to {params.enddate}. Your end date is earlier than the end of the previous run. Please correct if not intentional. Returning.")
+            return outputs
     #################################
 
     print(f"IDSEP START DATE {params.startdate}")

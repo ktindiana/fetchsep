@@ -17,7 +17,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("--TargetDir", type=str, default='',
         help=("Target directory to move files and plots "
-            "produced by OpSEP."))
+            "produced by OPSEP."))
 
 parser.add_argument("--PrintInfo",
         help=("Print information about the Target directory."),
@@ -72,6 +72,13 @@ parser.add_argument("--DoInterp",
                 "linear interpolation in time. Default it to set as nan."),
                 action="store_true")
 
+parser.add_argument("--ResumePath", type=str, default=None,
+        help=("RESUME AND EXTEND PREVIOUS IDSEP ANALYSIS: The full path containing the mean "
+        "background, sigma, etc files generated during the previous IDSEP run to "
+        "use as a starting point for RESUMING the analysis. "
+        "If --ResumePath is specified, the --IDSEPPath parameter will automatically "
+        "be set within PREPSEP to point OPSEP to the correct files."))
+
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
@@ -101,45 +108,49 @@ parser.add_argument("--NoGOESColors",
         help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
             "Set to True not to use these colors."), action="store_true")
 
-
 #Capability to find enhancements above background or perform background subtraction
 parser.add_argument("--IDSEPEnhancement",
-        help="Set flag to use background mean+n*sigma found with IDSEP "
-            "to identify SEP enhancement above background. "
+        help=("USE IDSEP BACKGROUND SOLUTION IN OPSEP: Set flag to use background mean+n*sigma "
+            "found with IDSEP to identify SEP enhancement above background. "
             "Must specify the path to the directory containing the IDSEP "
-            "output files with IDSEPPath flag.", action="store_true")
+            "output files with --IDSEPPath flag."), action="store_true")
 
 parser.add_argument("--IDSEPSubtractBG",
-        help="Set flag to subtract the background from the "
+        help=("USE IDSEP BACKGROUND SOLUTION IN OPSEP: Set flag to subtract the background from the "
             "SEP flux using the background found with IDSEP. "
             "Must specify the path to the directory containing the IDSEP "
-            "output files with IDSEPPath flag.", action="store_true")
+            "output files with --IDSEPPath flag."), action="store_true")
             
-parser.add_argument("--IDSEPPath", type=str, default='',
-        help="Path to the directory containing the IDSEP "
+parser.add_argument("--IDSEPPath", type=str, default=None,
+        help=("USE IDSEP BACKGROUND SOLUTION IN OPSEP: Path to the directory containing the IDSEP "
             "output files background_mean_fluxes_optimized_FINAL.csv and "
-            "background_threshold_optimized_FINAL.csv.")
+            "background_threshold_optimized_FINAL.csv. Set this if want to use IDSEP background "
+            "files in OPSEP and you are not setting --ResumePath to update IDSEP files. "
+            "Otherwise, this path will automatically be set within PREPSEP to point to the files created "
+            "during IDSEP resume."))
 
 parser.add_argument("--OPSEPSubtractBG",
-        help="Set flag to calculate the background and subtract from the "
-            "SEP flux using the algorithm in OpSEP. Must define start "
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: Set flag to calculate the background and subtract from the SEP flux using the algorithm in OPSEP. Must define start "
             "and end dates for the background with the BGStartDate and "
-            "BGEndDate flags.", action="store_true")
+            "BGEndDate flags."), action="store_true")
 
 parser.add_argument("--OPSEPEnhancement",
-        help="Set flag to use the background mean+n*sigma found "
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: Set flag to use "
+            "the background mean+n*sigma found "
             "with OPSEP to identify SEP enhancement above background. "
             "Must define start and end dates for the background "
-            "with the BGStartDate and BGEndDate flags.",
+            "with the BGStartDate and BGEndDate flags."),
             action="store_true")
 
 parser.add_argument("--BGStartDate", type=str, default='',
-        help=("Start date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
-               " with quotes to define the background time period."))
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: Start date in "
+            "YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+            " with quotes to define the background time period."))
 
 parser.add_argument("--BGEndDate", type=str, default='',
-        help=("End date in YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
-                " with quotes to define the background time period."))
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: End date in "
+            "YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+            " with quotes to define the background time period."))
 
 
 #Adding Flare, CME, Location associated information
@@ -200,6 +211,7 @@ flux_type = args.FluxType
 spacecraft = args.Spacecraft
 threshold = args.Threshold
 dointerp = args.DoInterp
+idsep_resume_path = args.ResumePath
 two_peaks = args.TwoPeaks
 subdir = ''
 
@@ -240,6 +252,7 @@ if not print_info:
         spacecraft=spacecraft,
         user_thresholds=threshold,
         dointerp=dointerp,
+        idsep_resume_path=idsep_resume_path,
         two_peaks=two_peaks,
         color_scheme=color_scheme,
         no_goes_colors=no_goes_colors,

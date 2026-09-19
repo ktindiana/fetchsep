@@ -40,9 +40,9 @@ parser.add_argument("--UserFile", type=str, default='', help=("If "
         "the fluxes. Specify energy bins and delimeter in code at top. "
         "Default is tmp.txt."))
         
-parser.add_argument("--ResumePath", type=str, default='', help=("If "
-        "set the Resume flag, specify the full path containing the mean background, "
-        "sigma, etc files generated during the previous IDSEP run."))
+parser.add_argument("--ResumePath", type=str, default='',
+        help=("The full path containing the mean background, sigma, etc files generated "
+        "during the previous IDSEP run to use as a starting point for RESUMING the analysis."))
 
 parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
         help=("The default behavior of OpSEP is to create an opsep subdirectory under "

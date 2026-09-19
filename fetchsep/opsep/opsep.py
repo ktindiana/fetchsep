@@ -783,8 +783,8 @@ class Analyze:
                     "(--OPSEPEnhancement, variable: OPSEPEnhancement or "
                     "--IDSEPEnhancement, variable: IDSEPEnhancement)")
                     
-            print("-1 threshold indicates you have selected to identify "
-                "enhancement above background. Setting threshold to "
+            print("You have selected to identify enhancement above background. "
+                "Setting threshold to placeholder "
                 f"opsep_min_threshold in fetchsep.cfg: {cfg.opsep_min_threshold}.")
             self.event_definition['threshold'].threshold = cfg.opsep_min_threshold
             
@@ -926,7 +926,8 @@ class Analyze:
                 :data: (Data object) contains flux information
                 :event_definition: (dict) dict of EnergyBin and Threshold objects
                 :check_quality: (bool) set to True to determine if time period ends
-                    before event crosses below threshold or returns to background
+                    before event crosses below threshold or returns to background;
+                    True will set return_to_threshold and return_to_background
                 
             OUTPUT:
             
@@ -963,15 +964,17 @@ class Analyze:
             sep_start_time, sep_end_time = analysis.identify_sep_noaa(dates, fluxes, threshold)
             if data.params.two_peaks:
                 sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
-            if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
-                self.return_to_threshold = False
+            if check_quality:
+                if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+                    self.return_to_threshold = False
 
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
             sep_start_time, sep_end_time, SPEfluxes = analysis.identify_sep_above_background_one(dates, fluxes)
-            if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
-                self.return_to_background = False
+            if check_quality:
+                if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
+                    self.return_to_background = False
 
 
         #In case that date range ended before fell before threshold,
@@ -986,11 +989,11 @@ class Analyze:
             if check_quality and 'I' not in self.quality_flags:
                 self.quality_flags += 'I'
 
-
-        if threshold == cfg.opsep_min_threshold:
-            print(f"For {energy_bin} above background found SEP: {sep_start_time} to {sep_end_time}")
-        else:
-            print(f"For {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
+        if check_quality:
+            if threshold == cfg.opsep_min_threshold:
+                print(f"For energy bin {energy_bin} above background found SEP: {sep_start_time} to {sep_end_time}")
+            else:
+                print(f"For energy bin {energy_bin}, {threshold} found SEP: {sep_start_time} to {sep_end_time}")
 
         return sep_start_time, sep_end_time
 
@@ -2597,21 +2600,28 @@ class Output:
             threshold = analyze.event_definition['threshold'].threshold
             threshold_units = analyze.event_definition['threshold'].threshold_units
 
+            #If identification of events above background,
+            #rename arbitrary low threshold to "above background"
+            if threshold == cfg.opsep_min_threshold:
+                threshold_label = "above_background"
+            else:
+                threshold_label = str(threshold)
+
             ####Event-integrated Fluence Spectra
             energy_bin = analyze.make_energy_bin()
             if energy_bin[1] == -1: #integral
-               name = f".{energy_bin[0]}.{energy_units}.{threshold}_fluence.csv"
+               name = f".{energy_bin[0]}.{energy_units}.{threshold_label}_fluence.csv"
             else:
-               name = f".{energy_bin[0]}-{energy_bin[1]}.{energy_units}.{threshold}_fluence.csv"
+               name = f".{energy_bin[0]}-{energy_bin[1]}.{energy_units}.{threshold_label}_fluence.csv"
      
             fluence_filename = self.filename_prefix + name
      
             #Write fluences to file
             dct = {"dates": [analyze.sep_start_time]}
-            keys = []
-            for i,bin in enumerate(self.data.energy_bins):
-                keys.append(names.energy_bin_key(bin))
-                dct.update({keys[i]:[analyze.fluence_spectrum[i]]})
+            for i,bin in enumerate(self.data.energy_bin_centers):
+                #key = names.energy_bin_key(bin)
+                key = str(bin)
+                dct.update({key:[analyze.fluence_spectrum[i]]})
 
             df = pd.DataFrame(dct)
             df.to_csv(os.path.join(self.data.params.module_outpath,fluence_filename), index=False)
