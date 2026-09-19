@@ -368,7 +368,7 @@ class Parameters:
         if percent_points != None:
             self.percent_points = percent_points
             print(f"parameters: Setting idsep percent_points to {percent_points}.")
-        if idsep_resume_path != None:
+        if idsep_resume_path != None and idsep_resume_path != '':
             self.idsep_resume = True
             self.idsep_resume_path = idsep_resume_path
             print(f"parameters: Setting idsep resume to {self.idsep_resume}.")
