@@ -27,6 +27,8 @@ __author__ = "Kathryn Whitman"
 __maintainer__ = "Kathryn Whitman"
 __email__ = "kathryn.whitman@nasa.gov"
 
+np.seterr(divide = 'ignore')
+
 def plot_time_profile(date, values, labels, dy=None, dyl=None,
                 dyh=None, title=None, x_min=None, x_max=None,
                 x_label="Date", y_min=None, y_max=None,

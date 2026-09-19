@@ -39,13 +39,10 @@ parser.add_argument("--UserFile", type=str, default='', help=("If "
         "you chose user for experiment, specify the filename containing "
         "the fluxes. Specify energy bins and delimeter in code at top. "
         "Default is tmp.txt."))
-
-parser.add_argument("--Resume",
-        help="Flag to resume from a previous IDSEP run", action="store_true")
         
-parser.add_argument("--ResumePath", type=str, default='', help=("If "
-        "set the Resume flag, specify the full path containing the mean background, "
-        "sigma, etc files generated during the previous IDSEP run."))
+parser.add_argument("--ResumePath", type=str, default='',
+        help=("The full path containing the mean background, sigma, etc files generated "
+        "during the previous IDSEP run to use as a starting point for RESUMING the analysis."))
 
 parser.add_argument("--DirectoryDepth", type=int, default=2, choices=[0,1,2],
         help=("The default behavior of OpSEP is to create an opsep subdirectory under "
@@ -169,8 +166,7 @@ flux_type = args.FluxType
 spacecraft = args.Spacecraft
 user_name = args.ExperimentName
 user_file = args.UserFile
-idsep_resume = args.Resume
-idsep_path = args.ResumePath
+idsep_resume_path = args.ResumePath
 directory_depth = args.DirectoryDepth
 is_unixtime = args.Unixtime
 
@@ -202,8 +198,7 @@ fetchsep.idsep.run_idsep(str_startdate, str_enddate, experiment,
     spacecraft=spacecraft,
     user_name=user_name,
     user_file=user_file,
-    idsep_path=idsep_path,
-    idsep_resume=idsep_resume,
+    idsep_resume_path=idsep_resume_path,
     directory_depth=directory_depth,
     is_unixtime=is_unixtime,
     options=options,

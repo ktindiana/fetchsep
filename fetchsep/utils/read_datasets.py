@@ -946,9 +946,8 @@ def check_goesR_data(params):
     
     
     #GOES-R data is stored in daily data files
-    td = params.enddate - params.startdate
+    td = datetime.datetime(endyear, endmonth, endday) - datetime.datetime(styear, stmonth, stday)
     NFILES = td.days +1 #number of data files to download
-    #if td.seconds > 0: NFILES = NFILES + 1
 
     if params.experiment == "GOES-16":
         prefix = 'sci_sgps-l2-avg5m_g16_' #'sci_sgps-l2-avg1m_g16_'
@@ -1111,7 +1110,7 @@ def check_goes_RTdata(params):
     enddate = params.enddate
  
     #Choose to download daily data files
-    td = params.enddate - params.startdate
+    td = datetime.datetime(endyear, endmonth, endday) - datetime.datetime(styear, stmonth, stday)
     NFILES = td.days + 1 #number of data files to download
 
     df = read_data_manager() #file completeness record
@@ -1911,7 +1910,7 @@ def check_stereo_data(params):
     filenames1 = [] #LET  
     filenames2 = [] #HET
 
-    td = params.enddate - params.startdate
+    td = datetime.datetime(endyear, endmonth, endday) - datetime.datetime(styear, stmonth, stday)
     #LET STEREO data is stored in daily data files
     NFILESd = td.days + 1
     #HET STEREO data is stored in monthly data files

@@ -82,6 +82,14 @@ def error_check_inputs(startdate, enddate, experiment, flux_type, module=None,
         None, but system exit if error found
         
     """
+
+    #Dates
+    if (startdate == "" or startdate == None) and not idsep_resume:
+        sys.exit('You must enter a start dates. Exiting.')
+    
+    if enddate == "" or enddate == None:
+        sys.exit('You must enter an end date. Exiting.')
+
     #Check start and end dates, but relax in the case of idsep_resume
     if not idsep_resume:
         if (enddate < startdate):
@@ -169,7 +177,7 @@ def error_check_background(experiment, flux_type, doBGSubOPSEP, doBGSubIDSEP,
 
 
 class Parameters:
-    def __init__(self, module, startdate, enddate, experiment, idsep_resume=False):
+    def __init__(self, module, startdate, enddate, experiment):
         """ Parameters that may be set by the user. 
             Start with default values and change if user specifies a different value.
             
@@ -180,17 +188,9 @@ class Parameters:
         self.experiment = experiment
 
         #Dates
-        if idsep_resume:
-            self.startdate=None
-        else:
-            if startdate == "" or startdate == None:
-                sys.exit('You must enter a start dates. Exiting.')
-            self.startdate = dh.str_to_datetime(startdate)
-            print(f"Set analysis start date to {self.startdate}")
+        self.startdate = dh.str_to_datetime(startdate)
+        print(f"Set analysis start date to {self.startdate}")
         
-
-        if enddate == "" or enddate == None:
-            sys.exit('You must enter an end date. Exiting.')
         self.enddate = dh.str_to_datetime(enddate)
         print(f"Set analysis end date to {self.enddate}")
 
@@ -243,6 +243,7 @@ class Parameters:
         self.idsep_fname_sep = 'SEP_fluxes_FINAL.csv'
         #Configured parameters
         self.idsep_resume = False
+        self.idsep_resume_path = None #location of files from previous idsep run
         self.idsep_resume_firstdate = None #start of previous idsep run
         self.idsep_resume_lastdate = None #end of previous idsep run/start of resume run
         self.remove_above=999999
@@ -348,7 +349,7 @@ class Parameters:
 
 
     def configure_idsep(self, remove_above=None, kurtosis_cut=None, idsep_nsigma=None,
-        init_win=None, sliding_win=None, percent_points=None, idsep_resume=None):
+        init_win=None, sliding_win=None, percent_points=None, idsep_resume_path=None):
         if remove_above != None:
             self.remove_above = remove_above
             print(f"parameters: Setting remove_above to {remove_above}.")
@@ -367,10 +368,11 @@ class Parameters:
         if percent_points != None:
             self.percent_points = percent_points
             print(f"parameters: Setting idsep percent_points to {percent_points}.")
-        if idsep_resume != None:
-            self.idsep_resume = idsep_resume
-            print(f"parameters: Setting idsep resume to {idsep_resume}.")
-
+        if idsep_resume_path != None:
+            self.idsep_resume = True
+            self.idsep_resume_path = idsep_resume_path
+            print(f"parameters: Setting idsep resume to {self.idsep_resume}.")
+            print(f"parameters: Setting idsep_resume_path to {idsep_resume_path}.")
 
     def set_idsep_background_info(self):
         """ Specify whether to use background calculated by idsep """
@@ -504,8 +506,7 @@ class Parameters:
         use_absolute_datapath=None,
         write_fluxes=None,
         for_inclusive=None,
-        idsep_resume=None,
-        idsep_path=None,
+        idsep_resume_path=None,
         remove_above=None,
         kurtosis_cut=None,
         idsep_nsigma=None,
@@ -515,6 +516,7 @@ class Parameters:
         opsep_nsigma=None,
         color_scheme=None,
         no_goes_colors=None,
+        idsep_path=None,
         json_type=None,
         json_mode=None,
         spase_id=None,
@@ -583,7 +585,7 @@ class Parameters:
         self.configure_idsep(remove_above=remove_above, kurtosis_cut=kurtosis_cut,
             idsep_nsigma=idsep_nsigma, init_win=init_win,
             sliding_win=sliding_win, percent_points=percent_points,
-            idsep_resume=idsep_resume)
+            idsep_resume_path=idsep_resume_path)
 
 
         ### JSON FILE INFO

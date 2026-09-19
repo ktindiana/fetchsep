@@ -5,6 +5,10 @@ import argparse
 import fetchsep.utils.experiments as expts
 import numpy as np
 
+#### SCRIPT FOR SRAG PROCESSING OF OPSEP OUTPUT ####
+#Used for SRAG operational purposes, so only a subset of
+#OpSEP arguments are provided here.
+
 valid_experiments = expts.valid_experiments()
 
 parser = argparse.ArgumentParser(
@@ -13,7 +17,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("--TargetDir", type=str, default='',
         help=("Target directory to move files and plots "
-            "produced by OpSEP."))
+            "produced by OPSEP."))
 
 parser.add_argument("--PrintInfo",
         help=("Print information about the Target directory."),
@@ -68,6 +72,13 @@ parser.add_argument("--DoInterp",
                 "linear interpolation in time. Default it to set as nan."),
                 action="store_true")
 
+parser.add_argument("--ResumePath", type=str, default=None,
+        help=("RESUME AND EXTEND PREVIOUS IDSEP ANALYSIS: The full path containing the mean "
+        "background, sigma, etc files generated during the previous IDSEP run to "
+        "use as a starting point for RESUMING the analysis. "
+        "If --ResumePath is specified, the --IDSEPPath parameter will automatically "
+        "be set within PREPSEP to point OPSEP to the correct files."))
+
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
@@ -96,6 +107,51 @@ parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,
 parser.add_argument("--NoGOESColors",
         help=("Default is to plot >5, >10, >30, etc MeV in SWPC/SEP Scoreboard colors. "
             "Set to True not to use these colors."), action="store_true")
+
+#Capability to find enhancements above background or perform background subtraction
+parser.add_argument("--IDSEPEnhancement",
+        help=("USE IDSEP BACKGROUND SOLUTION IN OPSEP: Set flag to use background mean+n*sigma "
+            "found with IDSEP to identify SEP enhancement above background. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with --IDSEPPath flag."), action="store_true")
+
+parser.add_argument("--IDSEPSubtractBG",
+        help=("USE IDSEP BACKGROUND SOLUTION IN OPSEP: Set flag to subtract the background from the "
+            "SEP flux using the background found with IDSEP. "
+            "Must specify the path to the directory containing the IDSEP "
+            "output files with --IDSEPPath flag."), action="store_true")
+            
+parser.add_argument("--IDSEPPath", type=str, default=None,
+        help=("USE IDSEP BACKGROUND SOLUTION IN OPSEP: Path to the directory containing the IDSEP "
+            "output files background_mean_fluxes_optimized_FINAL.csv and "
+            "background_threshold_optimized_FINAL.csv. Set this if want to use IDSEP background "
+            "files in OPSEP and you are not setting --ResumePath to update IDSEP files. "
+            "Otherwise, this path will automatically be set within PREPSEP to point to the files created "
+            "during IDSEP resume."))
+
+parser.add_argument("--OPSEPSubtractBG",
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: Set flag to calculate the background and subtract from the SEP flux using the algorithm in OPSEP. Must define start "
+            "and end dates for the background with the BGStartDate and "
+            "BGEndDate flags."), action="store_true")
+
+parser.add_argument("--OPSEPEnhancement",
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: Set flag to use "
+            "the background mean+n*sigma found "
+            "with OPSEP to identify SEP enhancement above background. "
+            "Must define start and end dates for the background "
+            "with the BGStartDate and BGEndDate flags."),
+            action="store_true")
+
+parser.add_argument("--BGStartDate", type=str, default='',
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: Start date in "
+            "YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+            " with quotes to define the background time period."))
+
+parser.add_argument("--BGEndDate", type=str, default='',
+        help=("USE BACKGROUND SOLUTION CALCULATED WITHIN OPSEP: End date in "
+            "YYYY-MM-DD or \"YYYY-MM-DD HH:MM:SS\""
+            " with quotes to define the background time period."))
+
 
 #Adding Flare, CME, Location associated information
 parser.add_argument("--Associations",
@@ -155,11 +211,20 @@ flux_type = args.FluxType
 spacecraft = args.Spacecraft
 threshold = args.Threshold
 dointerp = args.DoInterp
+idsep_resume_path = args.ResumePath
 two_peaks = args.TwoPeaks
 subdir = ''
 
 color_scheme = args.ColorScheme
 no_goes_colors = args.NoGOESColors
+
+doBGSubIDSEP = args.IDSEPSubtractBG
+IDSEPEnhancement = args.IDSEPEnhancement
+idsep_path = args.IDSEPPath
+doBGSubOPSEP = args.OPSEPSubtractBG
+OPSEPEnhancement = args.OPSEPEnhancement
+bgstartdate = args.BGStartDate
+bgenddate = args.BGEndDate
 
 associations = args.Associations
 save_associations = args.SaveAssociations
@@ -187,9 +252,17 @@ if not print_info:
         spacecraft=spacecraft,
         user_thresholds=threshold,
         dointerp=dointerp,
+        idsep_resume_path=idsep_resume_path,
         two_peaks=two_peaks,
         color_scheme=color_scheme,
         no_goes_colors=no_goes_colors,
+        doBGSubOPSEP=doBGSubOPSEP,
+        OPSEPEnhancement=OPSEPEnhancement,
+        bgstartdate=bgstartdate,
+        bgenddate=bgenddate,
+        doBGSubIDSEP=doBGSubIDSEP,
+        IDSEPEnhancement=IDSEPEnhancement,
+        idsep_path=idsep_path,
         associations=associations,
         save_associations=save_associations,
         auto_flare_time=auto_flare_time,
@@ -201,7 +274,7 @@ if not print_info:
         path_to_output=path_to_output,
         path_to_plots=path_to_plots,
         path_to_lists=path_to_lists)
-    
+
     prepsep.move_output(target_dir, opsep_outputs=outputs,
         enforce_new=enforce_new, enforce_sep_stop=enforce_sep_stop)
 

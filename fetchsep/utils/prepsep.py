@@ -1,4 +1,5 @@
 from ..opsep import opsep
+from ..idsep import idsep
 from . import config as cfg
 from . import date_handler as dh
 from ..json import keys
@@ -80,7 +81,7 @@ def make_observation_window_list(dir):
     
     #List all json files in the opsep output directory
     allfiles = os.listdir(dir)
-    jsonfiles = [os.path.join(dir,f) for f in allfiles if '.json' in f and 'outputs' not in f]
+    jsonfiles = [os.path.join(dir,f) for f in allfiles if '.json' in f and 'opsep_outputs' not in f]
 
     win_st = []
     win_end = []
@@ -186,13 +187,16 @@ def identify_new_obs(target_dir, dir='', enforce_new=True):
         if sort_obs_st[i] >= last_time:
             new_st.append(sort_obs_st[i])
             new_end.append(sort_obs_end[i])
-            
+    
+    if len(new_st)==0:
+        sys.exit(f"identify_new_obs: Observations in {dir} are not more recent in time than files in {target_dir}. Expect to add files to the target directory in consecutive order with time. Exiting.")
+    
     return new_st, new_end
 
 
 
 
-def check_for_sep(dir):
+def check_for_sep(dir, enforce_files=True):
     """ Read in json files output by OpSEP and check if SEP events
         are present.
         
@@ -222,7 +226,11 @@ def check_for_sep(dir):
     
 
     onlyfiles = [os.path.join(dir, f) for f in os.listdir(dir) if os.path.isfile(os.path.join(dir, f))]
-    jsonfiles = [f for f in onlyfiles if '.json' in f and 'output' not in f]
+    jsonfiles = [f for f in onlyfiles if '.json' in f and 'opsep_outputs' not in f]
+
+    if len(jsonfiles) == 0 and enforce_files:
+        sys.exit(f"check_for_sep: Did not find any observation json files in {dir}. Exiting.")
+
 
     for fname in jsonfiles:
         data = ccmc_json.read_in_json(fname)
@@ -305,14 +313,15 @@ def check_target(target_dir):
     
     """
     if not os.path.isdir(target_dir):
-        sys.exit("check_target: Specified target directory does not exist. "
-            + target_dir + " Please create or check path and rerun. Exiting.")
+        print("check_target: Specified target directory does not exist. "
+            + target_dir + " Creating.")
+        os.makedirs(target_dir, exist_ok=True)
 
     plot_dir = os.path.join(target_dir, "plots")
     if not os.path.isdir(plot_dir):
         print("check_target: plots subdirectory not found. Creating. "
                 + plot_dir)
-        os.makedirs(plot_dir)
+        os.makedirs(plot_dir, exist_ok=True)
        
 
     fname = os.path.join(target_dir, "observation_windows.csv")
@@ -326,7 +335,7 @@ def check_target(target_dir):
     if not os.path.isfile(fname):
         print("check_target: Cannot find " + fname + ". Creating and populating with any SEP events already in directory.")
         
-        df = check_for_sep(target_dir)
+        df = check_for_sep(target_dir, enforce_files=False)
         df = df[["Energy Channel","Threshold","Threshold Crossing Time", "Observation Window Start", "Observation Window End"]]
         df = df.dropna()
         df.to_csv(fname,index=False)
@@ -507,14 +516,14 @@ def move_output(target_dir, opsep_outputs={}, enforce_new=True,
 
 def update_observations(target_dir, start_date, end_date, experiment,
     flux_type=None, spacecraft=None, user_thresholds=None,
-    user_name=None, user_file=None,
+    user_name=None, user_file=None, idsep_resume_path = None,
     color_scheme=None, no_goes_colors=None,
     json_type='observations', json_mode='measurement', spase_id=None,
     showplot=False, saveplot=True, use_absolute_datapath=None,
     detect_prev_event=None, two_peaks=None, options=None,
+    dointerp=False,
     doBGSubOPSEP=None, OPSEPEnhancement=None, bgstartdate=None, bgenddate=None,
-    dointerp=False, doBGSubIDSEP=None,
-    IDSEPEnhancement=None, idsep_path=None,
+    doBGSubIDSEP=None, IDSEPEnhancement=None, idsep_path=None,
     location=None, species=None,
     associations=False, save_associations=False,
     auto_flare_time=None, auto_cme_time=None,
@@ -573,6 +582,23 @@ def update_observations(target_dir, start_date, end_date, experiment,
         target_st, target_end = make_observation_window_list(target_dir)
         start_date = str(max(target_end))
     
+    #If user specified an idsep resume path, update the idsep background solution
+    #to include the new time period up to the end date specified in prepsep.
+    #Output to directories in path_to_output
+    if idsep_resume_path is not None and idsep_resume_path != '':
+        idsep_outputs = idsep.run_idsep(start_date, end_date, experiment,
+            flux_type=flux_type, spacecraft=spacecraft,
+            idsep_resume_path=idsep_resume_path,
+            options=options, dointerp=dointerp,
+            path_to_data=path_to_data,
+            path_to_output=path_to_output,
+            path_to_plots=path_to_plots,
+            path_to_lists=path_to_lists)
+        #Automatically set the idsep_path for opsep to use the idsep files
+        #created during resume.
+        idsep_path = idsep_outputs["idsep_outpath"]
+        
+        
     outputs = opsep.run_opsep(start_date, end_date, experiment,
         flux_type=flux_type,
         spacecraft=spacecraft,
