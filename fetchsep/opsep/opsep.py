@@ -3188,7 +3188,8 @@ def run_opsep(str_startdate, str_enddate, experiment,
     outputs.update({"parameters": params.output_parameters()})
 
     stdtz = dh.time_to_zulu(str_startdate).replace(":","")
-    outputs_fname = os.path.join(outputs["opsep_outpath"], f"{outputs['opsep_subdir']}.{stdtz}_opsep_outputs.json")
+    enddtz = dh.time_to_zulu(params.enddate).replace(":","")
+    outputs_fname = os.path.join(outputs["opsep_outpath"], f"{outputs['opsep_subdir']}.{stdtz}_{enddtz}_opsep_outputs.json")
     ccmc_json.write_json(outputs,outputs_fname)
 
     #trouble with writing variable types to json, so add after writing to file
