@@ -570,7 +570,7 @@ def back_up_resume_files(params):
         
     """
     #If previous run path and current path aren't the same, no action
-    if params.module_outpath != params.idsep_resume_path:
+    if os.path.samefile(params.module_outpath, params.idsep_resume_path):
         return
     
     for filenm in [params.idsep_fname_background, params.idsep_fname_sigma,
@@ -598,7 +598,7 @@ def clean_up_resume_files(params):
 
     #For the rest of the files, check that writing to the same path.
     #If previous run path and current path aren't the same, no action
-    if params.module_outpath != params.idsep_resume_path:
+    if os.path.samefile(params.module_outpath,params.idsep_resume_path):
         return
     
     for filenm in [params.idsep_fname_background, params.idsep_fname_sigma,

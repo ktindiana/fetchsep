@@ -141,6 +141,10 @@ parser.add_argument("--UserFile", type=str, default='tmp.txt',
                 "Specify energy bins and delimeter in the config "
                 "file (idsep/config.py). Default is tmp.txt."))
 
+parser.add_argument("--ResumePath", type=str, default=None,
+        help=("The full path containing the mean background, sigma, etc files generated "
+        "during the previous IDSEP run to use as a starting point for RESUMING the analysis."))
+
 parser.add_argument("--Unixtime",
         help=("Flag to indicate first column in user file is in unixtime"),
                 action="store_true")
@@ -322,6 +326,7 @@ location = args.Location
 species = args.Species
 exp_name = args.ExperimentName
 user_file = args.UserFile
+idsep_resume_path = args.ResumePath
 is_unixtime = args.Unixtime
 
 options = args.options
@@ -379,7 +384,7 @@ if ref_energy_bin != None:
     if ref_energy_bin[1] != -1: ref_energy_bin[1] = float(ref_energy_bin[1])
 
 
-if flux_type == '':
+if flux_type == '' or flux_type == None:
     flux_type = expts.get_flux_type(experiment)
 
 #PATHS for IDSEP
@@ -396,6 +401,7 @@ if startpoint == "IDSEP":
         experiment,
         flux_type=flux_type, spacecraft=spacecraft,
         user_name=exp_name, user_file=user_file,
+        idsep_resume_path=idsep_resume_path,
         directory_depth=directory_depth,
         is_unixtime=is_unixtime,
         options=options, dointerp=dointerp,
