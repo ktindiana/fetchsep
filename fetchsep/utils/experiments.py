@@ -182,9 +182,7 @@ def dates_available(experiment, startdate, enddate):
     enddate = dh.str_to_datetime(enddate)
     exp_info = experiment_info(experiment)
     if exp_info['last_date'] != None:
-        date = exp_info['last_date']+datetime.timedelta(hours=24)
-        exclusive_end_date = datetime.datetime(date.year, date.month, date.day)
-        if startdate < exp_info['first_date'] or enddate > exclusive_end_date:
+        if startdate < exp_info['first_date'] or enddate > exp_info['last_date']:
             msg = (f"The {experiment} data is available from {exp_info['first_date']} to {exp_info['last_date']}. Please change your requested dates. Exiting.")
             return False, msg
     else:
@@ -361,7 +359,7 @@ def experiment_info(experiment):
 
             'EPHIN_REleASE':{
                 'first_date': datetime.datetime(1995,12,8),#1995-12-08
-                'last_date': datetime.datetime(2016,12,31),#2016-12-31
+                'last_date': datetime.datetime(2017,1,1),#2016-12-31 (exclusive 2017-01-01)
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -429,7 +427,7 @@ def experiment_info(experiment):
             'ERNEf10':{
                 'info': 'original launch format and energy bin definitions',
                 'first_date': datetime.datetime(1996,5,7),#1996-05-07
-                'last_date': datetime.datetime(2000,4,19), #2000-04-19
+                'last_date': datetime.datetime(2000,4,20), #2000-04-19, exclusive 2000-04-20
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -466,7 +464,7 @@ def experiment_info(experiment):
             'ERNEf40':{
                 'info': 'Major update of the on-board program. From 21 Nov 2000, HED S1X H2 E-amplifier breakdown at 00:15:44.833. All HED data are left out of this dataset.',
                 'first_date': datetime.datetime(2000,4,20), #2000-04-20
-                'last_date': datetime.datetime(2001,7,2), #2001-07-02
+                'last_date': datetime.datetime(2001,7,3), #2001-07-02
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -533,7 +531,7 @@ def experiment_info(experiment):
 
             'GOES':{
                 'first_date': datetime.datetime(1984,1,1),#1984-01-01 GOES-05
-                'last_date': datetime.datetime(2020,3,4), #2020-03-04, GOES-15
+                'last_date': datetime.datetime(2020,3,5), #2020-03-04, GOES-15
                 'flux_type': ['integral'],
                 'spacecraft': ['primary', 'secondary'],
                 'json_type': 'observations',
@@ -563,7 +561,7 @@ def experiment_info(experiment):
             #GOES-05 has very irregular coverage of particle measurements
             'GOES-05':{
                 'first_date': datetime.datetime(1984,1,1),#1984-01-01
-                'last_date': datetime.datetime(1985,12,31), #1985-12-31
+                'last_date': datetime.datetime(1986,1,1), #1985-12-31, exclusive 1986-01-01
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -589,7 +587,7 @@ def experiment_info(experiment):
 
             'GOES-06':{
                 'first_date': datetime.datetime(1986,1,1),#1986-01-01
-                'last_date': datetime.datetime(1994,11,30), #1994-11-30
+                'last_date': datetime.datetime(1994,12,1), #1994-11-30, exclusive 1994-12-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -622,7 +620,7 @@ def experiment_info(experiment):
 
             'GOES-07':{
                 'first_date': datetime.datetime(1987,3,6),#1987-03-06
-                'last_date': datetime.datetime(1996,8,31), #1996-08-31
+                'last_date': datetime.datetime(1996,9,1), #1996-08-31, exclusive 1996-09-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -654,7 +652,7 @@ def experiment_info(experiment):
 
             'GOES-08':{
                 'first_date': datetime.datetime(1995,1,1),#1995-01-01
-                'last_date': datetime.datetime(2003,6,30), #2003-05-31
+                'last_date': datetime.datetime(2003,7,1), #2003-06-30, exclusive 2003-07-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -690,7 +688,7 @@ def experiment_info(experiment):
 
             'GOES-09':{
                 'first_date': datetime.datetime(1996,4,1),#1996-04-01
-                'last_date': datetime.datetime(1998,7,31), #1998-07-31
+                'last_date': datetime.datetime(1998,8,1), #1998-07-31, exclusive 1998-08-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -723,7 +721,7 @@ def experiment_info(experiment):
 
             'GOES-10':{
                 'first_date': datetime.datetime(1998,7,1),#1998-07-01
-                'last_date': datetime.datetime(2004,6,30), #2004-06-30
+                'last_date': datetime.datetime(2004,7,1), #2004-06-30, exclusive 2004-07-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -756,7 +754,7 @@ def experiment_info(experiment):
 
             'GOES-11':{
                 'first_date': datetime.datetime(2003,6,19,17,20,0),#2003-06-01
-                'last_date': datetime.datetime(2011,2,28), #2011-02-28
+                'last_date': datetime.datetime(2011,3,1), #2011-02-28, exclusive 2011-03-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -789,7 +787,7 @@ def experiment_info(experiment):
 
             'GOES-12':{
                 'first_date': datetime.datetime(2003,1,1),#2003-01-01
-                'last_date': datetime.datetime(2010,8,31), #2010-08-31
+                'last_date': datetime.datetime(2010,9,1), #2010-08-31, exclusive 2010-09-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -822,7 +820,7 @@ def experiment_info(experiment):
 
             'GOES-13':{
                 'first_date': datetime.datetime(2010,5,1),#2010-05-01
-                'last_date': datetime.datetime(2017,12,31), #2017-12-14
+                'last_date': datetime.datetime(2019,1,1), #2018-12-31, exclusive 2019-01-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -857,7 +855,7 @@ def experiment_info(experiment):
             #the differential fluxes of GOES-14. Exclude and use only integral fluxes.
             'GOES-14':{
                 'first_date': datetime.datetime(2010,1,1),#2010-01-01
-                'last_date': datetime.datetime(2020,3,4), #2020-03-04
+                'last_date': datetime.datetime(2020,3,5), #2020-03-04, exclusive 2020-03-05
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -890,7 +888,7 @@ def experiment_info(experiment):
 
             'GOES-15':{
                 'first_date': datetime.datetime(2011,1,1),#2011-01-01
-                'last_date': datetime.datetime(2020,3,4), #2020-03-04
+                'last_date': datetime.datetime(2020,3,5), #2020-03-04, exclusive 2020-03-05
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -924,7 +922,7 @@ def experiment_info(experiment):
             'GOES-16':{
                 #regular data starts 2020-11-01; special event data for 2017-09-10
                 'first_date': datetime.datetime(2017,9,1),
-                'last_date': datetime.datetime(2025,4,6), #2025-04-06, there is a file on the 7th, but has a problem
+                'last_date': datetime.datetime(2025,4,8), #2025-04-06, there is a file on the 7th, but might have a problem
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -954,7 +952,7 @@ def experiment_info(experiment):
 
             'GOES-17':{
                 'first_date': datetime.datetime(2020,12,1),#2020-12-01
-                'last_date': datetime.datetime(2023,3,14), #2023-03-14
+                'last_date': datetime.datetime(2023,3,15), #2023-03-14, 2023-03-15 exclusive
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1109,7 +1107,7 @@ def experiment_info(experiment):
 
             'IMP-8_CPME':{
                 'first_date': datetime.datetime(1974,3,1),#1974-02-17
-                'last_date': datetime.datetime(2001,11,7), #2001-11-07
+                'last_date': datetime.datetime(2001,11,8), #2001-11-07, exclusive 2001-11-08
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1135,7 +1133,7 @@ def experiment_info(experiment):
 
             'SEPEM':{
                 'first_date': datetime.datetime(1974,7,1),#1974-07-01
-                'last_date': datetime.datetime(2015,12,31), #2015-12-31
+                'last_date': datetime.datetime(2016,1,1), #2015-12-31, exclusive 2016-01-01
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1167,7 +1165,7 @@ def experiment_info(experiment):
 
             'SEPEMv3':{
                 'first_date': datetime.datetime(1974,7,1),#1974-07-01
-                'last_date': datetime.datetime(2017,12,31), #2017-12-31
+                'last_date': datetime.datetime(2018,1,1), #2017-12-31, exclusive 2018-01-01
                 'flux_type': ['differential'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1325,7 +1323,7 @@ def experiment_info(experiment):
             'AATA': {
                 'info': 'Alma-Ata A (R=5.90, Alt=897 m)',
                 'first_date': datetime.datetime(2019,1,4),
-                'last_date': datetime.datetime(2022,9,15),
+                'last_date': datetime.datetime(2022,9,16), #2022-09-15, exclusive 2022-09-16
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1572,7 +1570,7 @@ def experiment_info(experiment):
             'CALM': {
                 'info': 'NM de Castilla la Mancha (R=6.95, Alt=708 m)',
                 'first_date': datetime.datetime(2012,7,11),
-                'last_date': datetime.datetime(2018,4,30),
+                'last_date': datetime.datetime(2018,5,1), #2018-04-30, exclusive 2018-05-01
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1600,7 +1598,7 @@ def experiment_info(experiment):
             'CHAC': {
                 'info': 'CHACALTAYA (R=11.80, Alt=5270 m)',
                 'first_date': datetime.datetime(2025,11,10),
-                'last_date': datetime.datetime(2025,11,20),
+                'last_date': datetime.datetime(2025,11,21), #2025-11-20, exclusive 2025-11-21
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1654,7 +1652,7 @@ def experiment_info(experiment):
             'DJON': {
                 'info': 'Daejeon (R=11.20, Alt=200 m)',
                 'first_date': datetime.datetime(2011,10,12),
-                'last_date': datetime.datetime(2021,12,31),
+                'last_date': datetime.datetime(2022,1,1), #2021-12-31, exclusive 2022-01-01
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1735,7 +1733,7 @@ def experiment_info(experiment):
             'DRBS': {
                 'info': 'Dourbes (R=3.18, Alt=225 m)',
                 'first_date': datetime.datetime(1967,1,1),
-                'last_date': datetime.datetime(2021,7,24),
+                'last_date': datetime.datetime(2021,7,25), #2021-01-24, exclusive 2021-07-25
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1790,7 +1788,7 @@ def experiment_info(experiment):
             'ESOI': {
                 'info': 'Emilio Segre Obs. Israel (R=10.75, Alt=2055 m)',
                 'first_date': datetime.datetime(1998,4,2),
-                'last_date': datetime.datetime(2016,7,3),
+                'last_date': datetime.datetime(2016,7,3), #2016-07-03, exclusive 2016-07-04
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',
@@ -1816,7 +1814,7 @@ def experiment_info(experiment):
 
             'FSMT': {
                 'info': 'Fort Smith (R=0.30, Alt=180 m)',
-                'first_date': datetime.datetime(2000,10,4),
+                'first_date': datetime.datetime(2000,10,5), #2000-10-04, exclusive 2000-10-05
                 'last_date': None,
                 'flux_type': ['integral'],
                 'json_type': 'observations',
@@ -1844,7 +1842,7 @@ def experiment_info(experiment):
             'HRMS': {
                 'info': 'Hermanus (R=4.58, Alt=26 m)',
                 'first_date': datetime.datetime(1957,5,29),
-                'last_date': datetime.datetime(2021,2,9),
+                'last_date': datetime.datetime(2021,2,10), #2021-02-09, exclusive 2021-02-10
                 'flux_type': ['integral'],
                 'json_type': 'observations',
                 'json_mode': 'measurement',

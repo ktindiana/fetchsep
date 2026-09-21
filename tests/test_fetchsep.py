@@ -295,7 +295,7 @@ class TestIdsep(unittest.TestCase):
 
 
     def test_idsep_original_fluxes(self):
-        file = 'fluxes_GOES-13_integral_20110806_20120531.csv'
+        file = 'fluxes_GOES-13_integral_20110806_20120601.csv'
         ref_path = 'tests/files/output/idsep/GOES-13_integral/'
         test_path = self.idsep_outputs["idsep_outpath"]
 
