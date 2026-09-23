@@ -1602,3 +1602,326 @@ def idsep_make_bg_sep_plot(unique_id, params, dates, fluxes_bg, fluxes_sep, ener
 
 
 
+def opsep_plot_event_definitions_pipeline(params, all_energy_bins,
+    evaluated_dates, evaluated_fluxes, evaluated_energy_bins, event_definitions,
+    sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
+    max_fluxes, max_flux_times, bg_means=None, bg_sigmas=None, bg_dates=None):
+    """ ADDITIONAL, PIPELINE-SPECIFIC VARIANT OF opsep_plot_event_definitions.
+        DOES NOT MODIFY THE ORIGINAL FUNCTION -- PRODUCES A SEPARATE PLOT FILE
+        (SUFFIX "Event_Def_Pipeline") ALONGSIDE THE ORIGINAL "Event_Def" PLOT.
+    """
+
+    suffix = "Event_Def_Pipeline"
+    figname = names.opsep_naming_scheme(evaluated_dates[0], suffix, params.experiment,
+        params.flux_type, params.user_name, modifier=params.modifier)
+
+    exp_name = params.experiment
+    if params.experiment == "user":
+        exp_name = params.user_name
+
+    colors = define_colors(all_energy_bins, event_definitions=event_definitions,
+        color_scheme=params.color_scheme, no_goes_colors=params.no_goes_colors)
+
+    if params.flux_type == "differential":
+        print("Generating figure (pipeline variant) of estimated integral fluxes with threshold crossings.")
+    if params.flux_type == "integral":
+        print("Generating figure (pipeline variant) of integral fluxes with threshold crossings.")
+
+    nthresh = len(event_definitions)
+    energy_units = event_definitions[0]['energy_channel'].units
+
+    # PRE-COMPUTE A NEAREST-TIMESTAMP INDEX FOR THE BACKGROUND ARRAYS, IF
+    # PROVIDED, SO EACH CHANNEL'S EFFECTIVE THRESHOLD AT ONSET CAN BE
+    # LOOKED UP WITHOUT REQUIRING AN EXACT TIMESTAMP MATCH.
+    bg_date_index = None
+    if bg_dates is not None and len(bg_dates) > 0:
+        bg_date_index = pd.Index(bg_dates)
+
+    # DETERMINE THE DYNAMIC X-AXIS RANGE: 1 DAY BEFORE THE EARLIEST
+    # ABOVE-BACKGROUND CROSSING AND 1 DAY AFTER THE LATEST ABOVE-BACKGROUND
+    # RETURN-TO-BACKGROUND TIME, ACROSS ALL ENERGY CHANNELS. FALLS BACK TO
+    # THE FULL evaluated_dates RANGE (MATCHING THE ORIGINAL FUNCTION'S
+    # BEHAVIOR) IF NO ABOVE-BACKGROUND CROSSING WAS FOUND FOR ANY CHANNEL.
+    valid_starts = []
+    valid_ends = []
+    for i in range(nthresh):
+        threshold_i = event_definitions[i]['threshold'].threshold
+        if threshold_i == cfg.opsep_min_threshold:
+            if not pd.isnull(sep_start_times[i]):
+                valid_starts.append(sep_start_times[i])
+            if not pd.isnull(sep_end_times[i]):
+                valid_ends.append(sep_end_times[i])
+
+    if valid_starts and valid_ends:
+        xlim_start = min(valid_starts) - datetime.timedelta(days=1)
+        xlim_end = max(valid_ends) + datetime.timedelta(days=1)
+    else:
+        xlim_start = None
+        xlim_end = None
+
+    if nthresh > 4:
+        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,12), layout='constrained')
+    else:
+        fig, ax = plt.subplots(nthresh, 1, sharex=True, figsize=(12,9), layout='constrained')
+        if nthresh == 1: ax = [ax]
+
+    fig.canvas.manager.set_window_title(figname)
+    plot_title = f"Event Definitions (Pipeline)\n {exp_name} {params.title_modifier} {params.flux_type} Fluxes"
+    plt.suptitle(plot_title)
+
+    for i in range(nthresh):
+        energy_bin = [event_definitions[i]['energy_channel'].min,
+                    event_definitions[i]['energy_channel'].max]
+        threshold = event_definitions[i]['threshold'].threshold
+        flux_units = event_definitions[i]['threshold'].threshold_units
+
+        threshold_label = f"{threshold} {flux_units}"
+        threshold_label = make_math_label(threshold_label)
+
+        dates = evaluated_dates
+        fluxes = np.array(evaluated_fluxes[i])
+
+        is_good = check_for_good_fluxes(fluxes)
+        if not is_good:
+            continue
+
+        energy_label = names.setup_energy_bin_label(energy_bin)
+
+        ylabel = f"Intensity\n[{flux_units}]"
+        ylabel = make_math_label(ylabel)
+        data_label = f"{energy_label}"
+        if energy_bin[1] == -1 and params.flux_type == "differential":
+            data_label = f"Estimated {energy_label}"
+
+        # CHANGE 1: ONLY MASK GENUINELY INVALID VALUES -- DO NOT HIDE
+        # ZERO/NEGATIVE BACKGROUND-LEVEL FLUX.
+        maskfluxes = np.ma.masked_invalid(fluxes)
+        ax[i].plot(dates, maskfluxes,'.-', markersize=3, label=data_label, color=colors[energy_label])
+
+        if threshold != cfg.opsep_min_threshold:
+            # CHANGE 3a: COLOR-MATCH THE FIXED-THRESHOLD LINE (WAS BLACK).
+            ax[i].axhline(threshold,color=colors[energy_label],linestyle='--', label=f"Threshold {threshold_label}")
+        else:
+            # CHANGE 3b: DRAW THE REAL, EFFECTIVE CROSSING THRESHOLD
+            # (mean + idsep_nsigma*sigma AT ONSET) IN PLACE OF THE
+            # ORIGINAL'S INVISIBLE (lw=0) PLACEHOLDER LINE.
+            effective_threshold = None
+            if bg_means is not None and bg_sigmas is not None and bg_date_index is not None \
+                    and not pd.isnull(sep_start_times[i]):
+                # MAP THIS EVENT DEFINITION'S ENERGY CHANNEL TO ITS INDEX
+                # WITHIN all_energy_bins, SINCE bg_means/bg_sigmas ARE
+                # INDEXED THE SAME WAY AS all_energy_bins, NOT AS
+                # event_definitions (THE SAME CHANNEL CAN APPEAR MORE THAN
+                # ONCE ACROSS event_definitions, ONCE PER THRESHOLD).
+                bin_idx = None
+                for j, eb in enumerate(all_energy_bins):
+                    if eb[0] == energy_bin[0] and eb[1] == energy_bin[1]:
+                        bin_idx = j
+                        break
+                if bin_idx is not None and bin_idx < len(bg_means):
+                    onset_idx = bg_date_index.get_indexer([sep_start_times[i]], method='nearest')[0]
+                    if onset_idx != -1:
+                        bg_mean_at_onset = bg_means[bin_idx][onset_idx]
+                        bg_sigma_at_onset = bg_sigmas[bin_idx][onset_idx]
+                        if not pd.isnull(bg_mean_at_onset) and not pd.isnull(bg_sigma_at_onset):
+                            effective_threshold = bg_mean_at_onset + params.idsep_nsigma * bg_sigma_at_onset
+
+            if effective_threshold is not None:
+                eff_label = f"Effective threshold ({params.idsep_nsigma}\u03c3) at onset"
+                ax[i].axhline(effective_threshold,color=colors[energy_label],linestyle=':', label=eff_label)
+            else:
+                # NO BACKGROUND DATA AVAILABLE OR NO ONSET FOUND -- OMIT
+                # THE LINE RATHER THAN GUESS, BUT STILL KEEP AN INVISIBLE
+                # LEGEND ENTRY SO THE LEGEND LAYOUT STAYS CONSISTENT
+                # ACROSS CHANNELS/WINDOWS.
+                ax[i].axhline(max_fluxes[i],color=colors[energy_label],linestyle=':', lw=0, label="Above background")
+
+        if not pd.isnull(sep_start_times[i]):
+            ax[i].axvline(sep_start_times[i],color='black',linestyle=':', linewidth=2)
+            ax[i].axvline(sep_end_times[i],color='black',linestyle=':',
+                        label="Start, End", linewidth=2)
+
+
+        if not pd.isnull(onset_peaks[i]) and not pd.isnull(onset_peak_times[i]):
+            ax[i].plot_date(onset_peak_times[i],onset_peaks[i],'o',color='black',
+                    label="Onset Peak")
+        if not pd.isnull(max_fluxes[i]) and not pd.isnull(max_flux_times[i]):
+            ax[i].plot_date(max_flux_times[i],max_fluxes[i],'s',mfc='none', color='black',
+                    label="Max Flux", mew=2)
+
+        # CLAMP THE TIME AXIS TO THE ABOVE-BACKGROUND CROSSING
+        # WINDOW +/- 1 DAY, IF ONE WAS FOUND FOR ANY CHANNEL. sharex=True
+        # MEANS THIS ONLY NEEDS TO TAKE EFFECT ONCE, BUT IS SET ON EVERY
+        # SUBPLOT EXPLICITLY SINCE THAT IS HARMLESS AND MORE ROBUST.
+        if xlim_start is not None and xlim_end is not None:
+            ax[i].set_xlim(xlim_start, xlim_end)
+
+        if i == nthresh-1:
+            ax[i].set_xlabel('Date')
+            plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+            plt.xticks(rotation=45, ha="right")
+        ax[i].set_ylabel(ylabel)
+        ax[i].set_yscale("log")
+        if 'counts' in flux_units:
+            ax[i].set_yscale("linear")
+        ax[i].legend(loc='upper left', bbox_to_anchor=(1.0, 1.0))
+        for item in ([ax[i].title, ax[i].xaxis.label, ax[i].yaxis.label] + ax[i].get_xticklabels() + ax[i].get_yticklabels()):
+            item.set_fontsize(10)
+
+        if nthresh <= 2:
+            for item in ([ax[i].title, ax[i].yaxis.label] + ax[i].get_yticklabels()):
+                item.set_fontsize(14)
+
+    if params.saveplot:
+        fig.savefig(os.path.join(params.module_plotpath, figname + '.png'))
+    if not params.showplot or params.showplot is None:
+        plt.close(fig)
+
+
+def opsep_plot_all_bins_pipeline(params, all_dates, all_fluxes, all_energy_bins, event_definitions,
+    sep_start_times, sep_end_times, bg_means=None, bg_sigmas=None, bg_dates=None):
+    """ ADDITIONAL, PIPELINE-SPECIFIC VARIANT OF opsep_plot_all_bins.
+        DOES NOT MODIFY THE ORIGINAL FUNCTION -- PRODUCES A SEPARATE PLOT
+        FILE (SUFFIX "All_Bins_Pipeline") ALONGSIDE THE ORIGINAL "All_Bins"
+        PLOT. 
+    """
+
+    suffix = "All_Bins_Pipeline"
+    figname = names.opsep_naming_scheme(all_dates[0], suffix, params.experiment, params.flux_type,
+        params.user_name, modifier=params.modifier)
+
+    exp_name = params.experiment
+    if params.experiment == "user":
+        exp_name = params.user_name
+
+    energy_units = event_definitions[0]['energy_channel'].units
+
+    plot_title = f"All Energy Bins with Threshold Crossings (Pipeline)\n {exp_name} {params.title_modifier} {params.flux_type}"
+
+    fig = plt.figure(figname,figsize=(13.5,8))
+    ax = plt.subplot(111)
+    colors = define_colors(all_energy_bins, color_scheme=params.color_scheme,
+        event_definitions=event_definitions, no_goes_colors=params.no_goes_colors)
+    vstyles = vline_styles(event_definitions)
+
+    bg_date_index = None
+    if bg_dates is not None and len(bg_dates) > 0:
+        bg_date_index = pd.Index(bg_dates)
+
+    # DETERMINE THE DYNAMIC X-AXIS RANGE -- SAME LOGIC AS THE EVENT_DEF
+    # PIPELINE VARIANT.
+    valid_starts = []
+    valid_ends = []
+    for i in range(len(event_definitions)):
+        threshold_i = event_definitions[i]['threshold'].threshold
+        if threshold_i == cfg.opsep_min_threshold:
+            if not pd.isnull(sep_start_times[i]):
+                valid_starts.append(sep_start_times[i])
+            if not pd.isnull(sep_end_times[i]):
+                valid_ends.append(sep_end_times[i])
+
+    if valid_starts and valid_ends:
+        xlim_start = min(valid_starts) - datetime.timedelta(days=1)
+        xlim_end = max(valid_ends) + datetime.timedelta(days=1)
+    else:
+        xlim_start = None
+        xlim_end = None
+
+    #Plot the fluxes
+    for j in range(len(all_energy_bins)):
+        energy_bin = all_energy_bins[j]
+        energy_label = names.setup_energy_bin_label(energy_bin)
+
+        is_good = check_for_good_fluxes(all_fluxes[j])
+        if not is_good:
+            continue
+
+        #Don't plot integral channels on plots with differential units
+        if params.flux_type == 'differential' and '>' in energy_label:
+            continue
+
+        # CHANGE 1: ONLY MASK GENUINELY INVALID VALUES.
+        maskfluxes = np.ma.masked_invalid(all_fluxes[j])
+        ax.plot(all_dates, maskfluxes,'.-', markersize=3, label=energy_label, color=colors[energy_label])
+
+    #Plot the threshold crossing times and horizontal reference lines
+    for i in range(len(event_definitions)):
+        energy_bin = [event_definitions[i]['energy_channel'].min,
+                    event_definitions[i]['energy_channel'].max]
+        energy_label = names.setup_energy_bin_label(energy_bin)
+
+        threshold = event_definitions[i]['threshold'].threshold
+        flux_units = event_definitions[i]['threshold'].threshold_units
+
+        threshold_label = f"{threshold} {flux_units}"
+        threshold_label = make_math_label(threshold_label)
+
+        if threshold == cfg.opsep_min_threshold:
+            threshold_label = "above background"
+
+        line_label = f"{energy_label}, {threshold_label}"
+
+        if not pd.isnull(sep_start_times[i]):
+            ax.axvline(sep_start_times[i],color=colors[energy_label],linestyle=vstyles[i],
+                        label=line_label, linewidth=2)
+            ax.axvline(sep_end_times[i],color=colors[energy_label],linestyle=vstyles[i], linewidth=2)
+
+        # ADD HORIZONTAL REFERENCE LINES (THE ORIGINAL DRAWS
+        # NONE). FIXED THRESHOLD: A SIMPLE, COLOR-MATCHED HORIZONTAL LINE
+        # AT THE THRESHOLD VALUE. ABOVE-BACKGROUND: THE EFFECTIVE
+        # mean + idsep_nsigma*sigma AT ONSET, SAME AS THE EVENT_DEF
+        # PIPELINE VARIANT.
+        if threshold != cfg.opsep_min_threshold:
+            ax.axhline(threshold,color=colors[energy_label],linestyle='--',linewidth=1)
+        else:
+            effective_threshold = None
+            if bg_means is not None and bg_sigmas is not None and bg_date_index is not None \
+                    and not pd.isnull(sep_start_times[i]):
+                bin_idx = None
+                for j, eb in enumerate(all_energy_bins):
+                    if eb[0] == energy_bin[0] and eb[1] == energy_bin[1]:
+                        bin_idx = j
+                        break
+                if bin_idx is not None and bin_idx < len(bg_means):
+                    onset_idx = bg_date_index.get_indexer([sep_start_times[i]], method='nearest')[0]
+                    if onset_idx != -1:
+                        bg_mean_at_onset = bg_means[bin_idx][onset_idx]
+                        bg_sigma_at_onset = bg_sigmas[bin_idx][onset_idx]
+                        if not pd.isnull(bg_mean_at_onset) and not pd.isnull(bg_sigma_at_onset):
+                            effective_threshold = bg_mean_at_onset + params.idsep_nsigma * bg_sigma_at_onset
+            if effective_threshold is not None:
+                ax.axhline(effective_threshold,color=colors[energy_label],linestyle=':',linewidth=1)
+
+    # CLAMP THE TIME AXIS.
+    if xlim_start is not None and xlim_end is not None:
+        ax.set_xlim(xlim_start, xlim_end)
+
+    plt.title(plot_title)
+
+    #Flux in original energy bins
+    flux_units = names.get_flux_units(params.flux_type)
+    ylabel = f"Intensity [{flux_units}]"
+    ylabel = make_math_label(ylabel)
+    plt.ylabel(ylabel)
+    plt.xlabel('Date')
+    plt.gca().xaxis.set_major_formatter(DateFormatter("%Y-%m-%d\n%H:%M"))
+    plt.xticks(rotation=45, ha="right")
+
+    plt.grid(axis="y")
+    plt.yscale("log")
+    if 'counts' in flux_units:
+        plt.yscale("linear")
+    chartBox = ax.get_position()
+    ax.set_position([chartBox.x0, chartBox.y0, chartBox.width*0.85,
+                     chartBox.height])
+    ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), fontsize=10)
+    for item in ([ax.title, ax.yaxis.label] + ax.get_yticklabels()):
+        item.set_fontsize(14)
+    for item in ([ax.xaxis.label] + ax.get_xticklabels()):
+        item.set_fontsize(10)
+    if params.saveplot:
+        fname = os.path.join(params.module_plotpath, figname + '.png')
+        fig.savefig(fname)
+    if not params.showplot:
+        plt.close(fig)
+
