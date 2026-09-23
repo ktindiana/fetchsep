@@ -2845,7 +2845,7 @@ class Output:
 
 
 
-    def plot_event_definitions(self):
+    def plot_event_definitions(self, pipeline=True):
         """ Plot the fluxes used for event definitions with threshold,
             start and end times, onset peak and max flux.
         
@@ -2860,9 +2860,18 @@ class Output:
             self.data.evaluated_energy_bins, event_definitions,
             sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
             max_fluxes, max_flux_times)
+        if pipeline:
+            plt_tools.opsep_plot_event_definitions_pipeline(self.data.params, self.data.energy_bins,
+                self.data.evaluated_dates, analyzed_fluxes,
+                self.data.evaluated_energy_bins, event_definitions,
+                sep_start_times, sep_end_times, onset_peaks, onset_peak_times,
+                max_fluxes, max_flux_times,
+                bg_means=getattr(self.data, 'bgmeans', None),
+                bg_sigmas=getattr(self.data, 'bgsigmas', None),
+                bg_dates=getattr(self.data, 'bgdates', None))
 
 
-    def plot_all_fluxes(self):
+    def plot_all_fluxes(self, pipeline=True):
         """ Plot threshold crossings on top of all fluxes """
  
         #Collect calculated values from Analyze objects
@@ -2873,6 +2882,13 @@ class Output:
         plt_tools.opsep_plot_all_bins(self.data.params,
             self.data.dates, self.data.fluxes, self.data.energy_bins,
             self.data.event_definitions, sep_start_times, sep_end_times)
+        if pipeline:
+            plt_tools.opsep_plot_all_bins_pipeline(self.data.params,
+                self.data.dates, self.data.fluxes, self.data.energy_bins,
+                self.data.event_definitions, sep_start_times, sep_end_times,
+                bg_means=getattr(self.data, 'bgmeans', None),
+                bg_sigmas=getattr(self.data, 'bgsigmas', None),
+                bg_dates=getattr(self.data, 'bgdates', None))
 
 
     def plot_fluence_spectra(self):
