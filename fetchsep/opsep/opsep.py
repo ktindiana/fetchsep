@@ -725,8 +725,8 @@ class Analyze:
         
         #Does the event drop below threshold or return to background before
         #the end of the analyzed time period
-        self.return_to_threshold = True
-        self.return_to_background = True
+        self.return_to_threshold = None
+        self.return_to_background = None
         
         self.onset_peak = np.nan
         self.onset_peak_time = pd.NaT
@@ -965,17 +965,22 @@ class Analyze:
             if data.params.two_peaks:
                 sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
             if check_quality:
-                if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
-                    self.return_to_threshold = False
+                if not pd.isnull(sep_start_time):
+                    if pd.isnull(sep_end_time):
+                        self.return_to_threshold = False
+                    else:
+                        self.return_to_threshold = True
 
 
         #When identifying an event above background, use the same logic as IDSEP
         if threshold == cfg.opsep_min_threshold:
             sep_start_time, sep_end_time, SPEfluxes = analysis.identify_sep_above_background_one(dates, fluxes)
             if check_quality:
-                if not pd.isnull(sep_start_time) and pd.isnull(sep_end_time):
-                    self.return_to_background = False
-
+                if not pd.isnull(sep_start_time):
+                    if pd.isnull(sep_end_time):
+                        self.return_to_background = False
+                    else:
+                        self.return_to_background = True
 
         #In case that date range ended before fell before threshold,
         #use the last time in the file
@@ -2860,10 +2865,10 @@ class Output:
                 event_end_status["threshold"].update({label: analyze.return_to_threshold})
 
 
-            if not analyze.return_to_threshold:
+            if analyze.return_to_threshold is not None and not analyze.return_to_threshold:
                 print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before dropping below threshold.")
 
-            if not analyze.return_to_background:
+            if analyze.return_to_background is not None and not analyze.return_to_background:
                 print(f"{analyze.event_definition['energy_channel'].min} to {analyze.event_definition['energy_channel'].max}, {analyze.event_definition['threshold'].threshold} {analyze.event_definition['threshold'].threshold_units}: SEP event ended before returning to background.")
 
         return event_end_status
