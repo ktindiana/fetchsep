@@ -437,7 +437,7 @@ def identify_sep_above_background(dates, fluxes):
 
 
 
-def identify_sep_noaa(dates, fluxes, threshold):
+def identify_sep_noaa(dates, fluxes, threshold, set_dwell_time=None):
     """ Follow SWPC approach to identifying event start and end 
         above threshold.
         
@@ -445,6 +445,9 @@ def identify_sep_noaa(dates, fluxes, threshold):
     
     """
     dwell_time = 3*60*60 #Hours for flux to be below threshold to determine last point
+    if set_dwell_time != None:
+        dwell_time = set_dwell_time
+    
     
     threshold_crossed = False
     event_ended = False

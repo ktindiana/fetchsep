@@ -885,13 +885,75 @@ class Analyze:
         if len(trim_flux) == 0:
             return first_start_time, first_end_time
         
-        sep_start_time, sep_end_time = analysis.identify_sep_noaa(trim_dates, trim_flux, threshold)
+        #Search for more threshold crossings with an extended dwell time (96 hours instead of default 3 hours)
+        #to match the duration of a SEP event, since user indicates wants to include multiple crossings
+        sep_start_time, sep_end_time = analysis.identify_sep_noaa(trim_dates, trim_flux, threshold, set_dwell_time=4*24*60*60)
         if pd.isnull(sep_start_time) or pd.isnull(sep_end_time):
             return first_start_time, first_end_time
         else:
             print("User specified that event has two peaks. Extending "
                   "event to second decrease below threshold.")
             return first_start_time, sep_end_time
+
+
+
+    def extend_many_peaks(self, first_start_time, first_end_time, threshold):
+        """ If user indicates that the same event has an initial threshold
+            crossing, then temporarily drops below threshold, then continues
+            again with multiple threshold crossings, extend to include
+            the complete event. 
+            
+            If data.params.many_peaks is True, search for extended event.
+            
+            INPUTS:
+            
+                :first_start_time: (datetime) start of first threshold crossing
+                :first_end_time: (datetime) end of first threshold crossing
+                :threshold: (float) threshold used in event definitions
+            
+            OUTPUTS:
+            
+                :start_time: (datetime) start of first threshold crossing
+                :end_time: (datetime) modified end of second threshold crossing
+
+            
+        """
+        dates = self.dates
+        flux = self.flux
+        
+        lastdate = dates[-1]
+        
+        #Trim fluxes starting from the end of the first threshold crossing
+        trim_flux = self.trim_to_date_range(first_end_time, lastdate, dates, flux)
+        trim_dates = self.trim_to_date_range(first_end_time, lastdate, dates, dates)
+        
+        #If first_end_time already the end of the analyzed time period (lastdate)
+        if len(trim_flux) == 0:
+            return first_start_time, first_end_time
+        
+        #Search for next threshold crossings
+        last_crossing = False
+        last_end_times = [first_end_time]
+        if not last_crossing:
+            #Search for more threshold crossings with an extended dwell time (96 hours instead of default 3 hours)
+            #to match the duration of a SEP event, since user indicates wants to include multiple crossings
+            sep_start_time, sep_end_time = analysis.identify_sep_noaa(trim_dates, trim_flux, threshold, set_dwell_time=4*24*60*60)
+            if not pd.isnull(sep_end_time):
+                if sep_end_time not in last_end_times:
+                    last_end_times.append(sep_end_time)
+                     #Trim from end of SEP to end of analyzed time period
+                    trim_flux = self.trim_to_date_range(sep_end_time, lastdate, dates, flux)
+                    trim_dates = self.trim_to_date_range(sep_end_time, lastdate, dates, dates)
+                else:
+                    last_crossing = True
+            else:
+                last_crossing = True
+
+        print("User specified that event has many peaks. Extending event to last decrease below threshold. "
+              f"Setting to the last of all identified threshold crossing end times: {last_end_times}")
+        last_end_time = max(last_end_times)
+        return first_start_time, last_end_time
+
 
 
 
@@ -964,6 +1026,8 @@ class Analyze:
             sep_start_time, sep_end_time = analysis.identify_sep_noaa(dates, fluxes, threshold)
             if data.params.two_peaks:
                 sep_start_time, sep_end_time = self.extend_two_peaks(sep_start_time, sep_end_time, threshold)
+            if data.params.many_peaks:
+                sep_start_time, sep_end_time = self.extend_many_peaks(sep_start_time, sep_end_time, threshold)
             if check_quality:
                 if not pd.isnull(sep_start_time):
                     if pd.isnull(sep_end_time):
@@ -2950,7 +3014,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
     json_type=None, json_mode=None, spase_id=None,
     dointerp=None, spacecraft=None,
     showplot=None, saveplot=None,
-    detect_prev_event=None, two_peaks=None,
+    detect_prev_event=None, two_peaks=None, many_peaks=None,
     user_thresholds=None, options=None,
     doBGSubOPSEP=None, OPSEPEnhancement=None, bgstartdate=None, bgenddate=None,
     doBGSubIDSEP=None, IDSEPEnhancement=None, idsep_path=None,
@@ -3117,7 +3181,7 @@ def run_opsep(str_startdate, str_enddate, experiment,
         use_absolute_datapath=use_absolute_datapath, opsep_nsigma=opsep_nsigma,
         color_scheme=color_scheme, no_goes_colors=no_goes_colors, json_type=json_type,
         json_mode=json_mode, spase_id=spase_id, detect_prev_event=detect_prev_event,
-        two_peaks=two_peaks, user_thresholds=user_thresholds,
+        two_peaks=two_peaks, many_peaks=many_peaks, user_thresholds=user_thresholds,
         doBGSubOPSEP=doBGSubOPSEP, OPSEPEnhancement=OPSEPEnhancement,
         bgstartdate=bgstartdate, bgenddate=bgenddate,
         doBGSubIDSEP=doBGSubIDSEP, IDSEPEnhancement=IDSEPEnhancement,

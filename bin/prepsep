@@ -82,7 +82,14 @@ parser.add_argument("--ResumePath", type=str, default=None,
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
-                "before increasing again to the true peak of the event."),
+                "before increasing again to the true peak of the event. "
+                "Set flag to capture both threshold crossings as a single SEP event."),
+                action="store_true")
+
+parser.add_argument("--ManyPeaks",
+        help=("Flag to indicate that the event crosses threshold many times before "
+                "reaching the end of the event. Set flag to capture all threshold "
+                "crossings as a single SEP event."),
                 action="store_true")
 
 parser.add_argument("--ColorScheme", type=int, choices=[1,2,3,4,5,6,7,8,9,10,11,12,13], default=1,
@@ -213,6 +220,7 @@ threshold = args.Threshold
 dointerp = args.DoInterp
 idsep_resume_path = args.ResumePath
 two_peaks = args.TwoPeaks
+many_peaks = args.ManyPeaks
 subdir = ''
 
 color_scheme = args.ColorScheme
@@ -254,6 +262,7 @@ if not print_info:
         dointerp=dointerp,
         idsep_resume_path=idsep_resume_path,
         two_peaks=two_peaks,
+        many_peaks=many_peaks,
         color_scheme=color_scheme,
         no_goes_colors=no_goes_colors,
         doBGSubOPSEP=doBGSubOPSEP,

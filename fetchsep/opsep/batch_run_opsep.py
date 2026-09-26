@@ -597,6 +597,8 @@ def run_all_events(batch_filename, threshold,
             detect_prev_event = True
         if "TwoPeaks" in flag:
             two_peaks = True
+        if "ManyPeaks" in flag:
+            many_peaks = True
         if "OPSEPSubtractBG" in flag:
             doBGSubOPSEP = True
         if "OPSEPEnhancement" in flag:
@@ -616,7 +618,7 @@ def run_all_events(batch_filename, threshold,
                 user_name=user_name, user_file=user_file,
                 json_type=json_type, spase_id=spase_id, showplot=showplot,
                 saveplot=saveplot, detect_prev_event=detect_prev_event,
-                two_peaks=two_peaks, user_thresholds=threshold,
+                two_peaks=two_peaks, many_peaks=many_peaks, user_thresholds=threshold,
                 options=option, doBGSubOPSEP=doBGSubOPSEP,
                 OPSEPEnhancement=OPSEPEnhancement, bgstartdate=bgstartdate,
                 bgenddate=bgenddate, dointerp=dointerp, spacecraft=spacecraft,

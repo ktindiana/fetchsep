@@ -196,7 +196,14 @@ parser.add_argument("--DetectPreviousEvent",
 parser.add_argument("--TwoPeaks",
         help=("Flag to indicate that the event exceeds threshold (usually "
                 "for a couple of points), then drops below threshold "
-                "before increasing again to the true peak of the event."),
+                "before increasing again to the true peak of the event. "
+                "Set flag to capture both threshold crossings as a single SEP event."),
+                action="store_true")
+
+parser.add_argument("--ManyPeaks",
+        help=("Flag to indicate that the event crosses threshold many times before "
+                "reaching the end of the event. Set flag to capture all threshold "
+                "crossings as a single SEP event."),
                 action="store_true")
 
 parser.add_argument("--AbsoluteDatapath",
@@ -382,6 +389,7 @@ showplot = args.showplot
 saveplot = args.saveplot
 detect_prev_event = args.DetectPreviousEvent
 two_peaks = args.TwoPeaks
+many_peaks = args.ManyPeaks
 options = args.options
 dointerp = args.DoInterp
 use_absolute_datapath = args.AbsoluteDatapath
@@ -452,6 +460,7 @@ outputs = fetchsep.opsep.run_opsep(
     saveplot=saveplot,
     detect_prev_event=detect_prev_event,
     two_peaks=two_peaks,
+    many_peaks=many_peaks,
     options=options,
     doBGSubOPSEP=doBGSubOPSEP,
     OPSEPEnhancement=OPSEPEnhancement,

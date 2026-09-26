@@ -306,6 +306,7 @@ class Parameters:
         #Two peaks may extend an event if it crosses threshold,
         #temporarily drops below, then increases above threshold again
         self.two_peaks = False
+        self.many_peaks = False
         self.detect_prev_event = False
     
 
@@ -522,6 +523,7 @@ class Parameters:
         spase_id=None,
         detect_prev_event=None,
         two_peaks=None,
+        many_peaks=None,
         user_thresholds=None,
         doBGSubOPSEP=None,
         OPSEPEnhancement=None,
@@ -671,6 +673,7 @@ class Parameters:
         #Two peaks may extend an event if it crosses threshold,
         #temporarily drops below, then increases above threshold again
         if two_peaks != None: self.two_peaks = two_peaks
+        if many_peaks != None: self.many_peaks = many_peaks
         if detect_prev_event != None: self.detect_prev_event = detect_prev_event
     
         #Quality controls
