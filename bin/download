@@ -60,6 +60,21 @@ parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
 
+parser.add_argument("--InterpolateEnergy",
+        help=("After downloading, interpolate the energy spectrum at each "
+              "timestep using interpolate_energy.py. Only applies when "
+              "--FluxType differential is used."), action="store_true")
+
+parser.add_argument("--ExtrapolateEnergy",
+        help=("If used with --InterpolateEnergy, enable Weibull extrapolation "
+              "beyond the measured energy range."), action="store_true")
+
+parser.add_argument("--EbinFile", type=str, default=None,
+        help=("If used with --InterpolateEnergy, path to a file containing target "
+              "energy bins to interpolate onto (one value per line, passed "
+              "to numpy.loadtxt). Defaults to interpolate_energy.py's "
+              "built-in 100-bin HZETRN SPE energy grid if not specified."))
+
 parser.add_argument("--showplot",
         help="Flag to display plots", action="store_true")
 
@@ -111,6 +126,10 @@ directory_depth = args.DirectoryDepth
 
 options = args.options
 dointerp = args.DoInterp
+interpolate_energy = args.InterpolateEnergy
+extrapolate_energy = args.ExtrapolateEnergy
+ebin_file = args.EbinFile
+
 
 showplot = args.showplot
 saveplot = args.saveplot
@@ -138,5 +157,15 @@ params = fetchsep.utils.download.load_parameters(
     path_to_lists=path_to_lists,
     use_absolute_datapath=use_absolute_datapath)
 
-fetchsep.utils.download.get_data(params)
+module_outpath, module_plotpath, dates, fluxes, energy_bins, energy_bin_centers, fluxes_filename = fetchsep.utils.download.get_data(params)
+
+if interpolate_energy:
+    if params.flux_type != "differential":
+        print("download: --Interpolate requires --FluxType differential. Skipping energy interpolation.")
+    elif fluxes_filename is None:
+        print("download: --Interpolate requires a written flux CSV, but none was produced. Skipping energy interpolation.")
+    else:
+        import fetchsep.utils.interpolate_energy
+        
+        fetchsep.utils.interpolate_energy.main(fluxes_filename, extrapolate_energy, ebin_file)
 
