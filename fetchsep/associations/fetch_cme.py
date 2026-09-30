@@ -94,7 +94,7 @@ def get_donki_cmes(start_date, end_date, minimum_speed=None, minimum_halfAngle=N
 
 
     #Start/End date in YYYY-MM-DD format
-    url = 'https://kauai.ccmc.gsfc.nasa.gov/DONKI/WS/get/CME?startDate=' + start_date + '&endDate=' + end_date
+    url = 'https://ccmc.gsfc.nasa.gov/DONKI-API/get/CME?startDate=' + start_date + '&endDate=' + end_date
     try:
         print(f"get_donki_cmes: Querying {url}")
         response = requests.get(url, timeout=15)
