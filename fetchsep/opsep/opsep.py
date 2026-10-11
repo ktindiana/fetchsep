@@ -517,7 +517,7 @@ class Data:
                 params_cp.enddate = max(self.params.enddate, self.params.bgenddate)
         
         #DOWNLOAD AND READ IN DATA
-        dl_outpath, dl_plotpath, all_dates, all_fluxes, energy_bins, energy_bin_centers =\
+        dl_outpath, dl_plotpath, all_dates, all_fluxes, energy_bins, energy_bin_centers, orig_fluxes_filename =\
             fsdl.get_data(params_cp, showplot=False, saveplot=False)
         
         self.energy_bins = energy_bins

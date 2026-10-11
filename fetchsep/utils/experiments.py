@@ -294,7 +294,7 @@ def experiment_info(experiment):
                         [398.1,398.1],[630.9,630.9],[1000.0,1000.0]],
                     'energy_bin_centers': [10.0, 15.8, 25.1, 39.8, 65.1, 100.0, 158.5, 251.2,
                         398.1,630.9,1000.0],
-                    'url': 'Request from Shaowen Hu of the NASA Space Radiation Analysis Group',
+                    'url': 'https://doi.org/10.7910/DVN/WBQA2I',
                     'kurtosis_cut': 999,
                 },
                 'integral':{
