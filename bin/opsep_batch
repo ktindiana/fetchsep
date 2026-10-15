@@ -22,10 +22,10 @@ parser = argparse.ArgumentParser(
     description=("DESCRIPTION: Batch run OPSEP to analyze individual SEP event or non-event time periods. Produce csv files containing an SEP event list and a non-event list for all time periods analyzed.")
 )
 
-parser.add_argument("--Filename", type=str, default='tmp.csv', \
-        help=("Name of csv file containing list of SEP start dates and files. Expected columns: "
+parser.add_argument("--Filename", type=str, default='batch_event_list.csv', \
+        help=("Full path and filename of csv file containing list of SEP start dates and files. Expected columns: "
             "#Start Time,End Time,Experiment,Flux Type,Flags,User Experiment Name,User Filename,Options,BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,Location,Species. "
-            "Default is tmp.csv."))
+            "Default is batch_event_list.csv."))
 
 parser.add_argument("--StatusFilename", type=str, default='batch_run_status.csv', \
         help=("Name of csv file containing list of SEP dates with "

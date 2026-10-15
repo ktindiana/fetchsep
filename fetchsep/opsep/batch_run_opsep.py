@@ -584,6 +584,7 @@ def run_all_events(batch_filename, threshold,
         
         detect_prev_event=False
         two_peaks=False
+        many_peaks=False
 
         spase_id = ''
 
