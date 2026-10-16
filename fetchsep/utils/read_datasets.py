@@ -4858,7 +4858,7 @@ def read_in_user_files(filenames1, is_unixtime=False):
                 csvfile.readline()  # Skip header rows.
 
             user_col_mod = cfg.user_col #Flux columns in user file
-
+            print('user_col_mod', user_col_mod)
             count = 0
             for line in csvfile:
                 if line == " " or line == "":

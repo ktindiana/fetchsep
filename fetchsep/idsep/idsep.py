@@ -850,6 +850,7 @@ def run_idsep(str_startdate, str_enddate, experiment,
 
     #READ IN FLUXES
     print("TIMESTAMP: Reading in flux files at time " + str(datetime.datetime.now()))
+
     #DOWNLOAD AND READ IN DATA
     dl_outpath, dl_plotpath, dates, fluxes, energy_bins, energy_bin_centers, orig_fluxes_filename =\
         fsdl.get_data(params_cp, showplot=False)
