@@ -185,6 +185,9 @@ parser.add_argument("--PlotTimeSeriesOnly",
 parser.add_argument("--showplot",
         help="Flag to display plots in IDSEP.", action="store_true")
 
+parser.add_argument("--dontsaveplot",
+        help="Plots are saved by default in this script. Set this flag to override.", action="store_true")
+
 parser.add_argument("--datapath", type=str, default=None,
         help=("Specify path where satellite data should be downloaded. Will default to "
             "datapath listed in fetchsep.cfg if a value is not specified."))
@@ -365,6 +368,9 @@ if IDSEPEnhancement:
 
 showplot = args.showplot
 saveplot = True #args.saveplot #Always saveplot for this script
+if args.dontsaveplot:
+    saveplot = False
+
 
 threshold = args.Threshold
 associations = args.Associations

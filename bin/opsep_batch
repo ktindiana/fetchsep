@@ -11,8 +11,6 @@ import logging
 
 
 ############## SET DEFAULTS ##################
-showplot = False
-saveplot = True
 detect_prev_event_default = False #Set to true if get FirstStart flag
 two_peaks_default = False #Set to true if get ShortEvent flag
 ############## END DEFAULTS #################
@@ -79,6 +77,12 @@ parser.add_argument("--DoInterp",
         help=("Fill in negative, bad, or missing fluxes via "
                 "linear interpolation in time."), action="store_true")
 
+parser.add_argument("--showplot",
+        help="Flag to display plots in IDSEP.", action="store_true")
+
+parser.add_argument("--dontsaveplot",
+        help="Plots are saved by default in this script. Set this flag to override.", action="store_true")
+
 parser.add_argument("--datapath", type=str, default=None,
         help=("Specify path where satellite data should be downloaded. Will default to "
             "datapath listed in fetchsep.cfg if a value is not specified."))
@@ -116,6 +120,11 @@ path_to_plots = args.plotpath
 path_to_lists = args.listpath
 
 opsep_nsigma = args.opsep_nsigma
+
+showplot = args.showplot
+saveplot = True #args.saveplot #Always saveplot for this script
+if args.dontsaveplot:
+    saveplot = False
 
 logger = logging.getLogger('opsep')
 
