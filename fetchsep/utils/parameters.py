@@ -538,12 +538,12 @@ class Parameters:
             overwrite the default values set when the Parameter object was created.
             
         """
-        print(f"flux_type is {flux_type}")
         if flux_type == '' or flux_type == None:
             flux_type = expts.get_flux_type(self.experiment)
         if flux_type != None:
             self.flux_type = flux_type
-
+        print(f"flux_type is {flux_type}")
+        
         #If user specifies a spacecraft but isn't relevant to experiment,
         #overrides and sets spacecraft to ''
         if spacecraft == '' or spacecraft == None:

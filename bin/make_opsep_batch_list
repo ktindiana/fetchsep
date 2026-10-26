@@ -42,10 +42,15 @@ parser.add_argument("--options", type=str, default='', help=("You "
         "specified for GOES-13 or GOES-15, S14 bins will be applied to "
         "P2-P5 and Bruno2017 bins will be applied to P6-P11 for uncorrected "
         "fluxes.\n"
-        "e.g. \"uncorrected;S14;Bruno2017\""))
+        "e.g. \"uncorrected;S14;Bruno2017\"\n "
+        "Other available options include IDSEPSubtractBG and IDSEPEnhancement. "))
 
-parser.add_argument("--OutFile", type=str, default='out_event_list.txt',
-        help=("Name of output SEP event list file."))
+parser.add_argument("--BatchFile", type=str, default='batch_event_list.csv',
+        help=("Full path and filename of output file created to run OpSEP in batch mode. "
+            "Default = batch_event_list.csv."))
+            
+parser.add_argument("--IDSEPPath", type=str, default='',
+        help=("Path to IDSEP files if using IDSEPSubtractBG or IDSEPEnhancement options."))
 
 
 args = parser.parse_args()
@@ -55,11 +60,12 @@ detector_list = args.DetectorList
 experiment = args.Experiment
 flux_type = args.FluxType
 options = args.options
-outfile = args.OutFile
+batchfile = args.BatchFile
+idsep_path = args.IDSEPPath
 
 if flux_type == '':
     flux_type = expts.get_flux_type(experiment)
 
-event_list.make_event_list(septimes_file, detector_list, experiment, flux_type, options, outfile)
+event_list.make_event_list(septimes_file, detector_list, experiment, flux_type, options, batchfile, idsep_path=idsep_path)
 
 

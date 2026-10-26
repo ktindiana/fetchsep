@@ -295,12 +295,12 @@ def experiment_info(experiment):
                     'energy_bin_centers': [10.0, 15.8, 25.1, 39.8, 65.1, 100.0, 158.5, 251.2,
                         398.1,630.9,1000.0],
                     'url': 'https://doi.org/10.7910/DVN/WBQA2I',
-                    'kurtosis_cut': 999,
+                    'kurtosis_cut': 65,
                 },
                 'integral':{
                     'flux_units': 'pfu',
                     'fluence_units': 'cm^-2',
-                    'kurtosis_cut': 999,
+                    'kurtosis_cut': 65,
                 }
             },
 
@@ -720,7 +720,7 @@ def experiment_info(experiment):
             },
 
             'GOES-10':{
-                'first_date': datetime.datetime(1998,7,1),#1998-07-01
+                'first_date': datetime.datetime(1998,7,9,15,50,0),#1998-07-01
                 'last_date': datetime.datetime(2004,7,1), #2004-06-30, exclusive 2004-07-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',
@@ -786,7 +786,7 @@ def experiment_info(experiment):
             },
 
             'GOES-12':{
-                'first_date': datetime.datetime(2003,1,1),#2003-01-01
+                'first_date': datetime.datetime(2003,1,7,16,35,0),#2003-01-01
                 'last_date': datetime.datetime(2010,9,1), #2010-08-31, exclusive 2010-09-01
                 'flux_type': ['integral', 'differential'],
                 'json_type': 'observations',

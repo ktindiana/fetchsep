@@ -46,6 +46,12 @@ def read_sep_times_file(septimes_file):
     """
     sep_sttimes = []
     sep_endtimes = []
+    
+    if not os.path.isfile(septimes_file):
+        sys.exit(f"read_sep_times_files: Cannot read {septimes_file}. Exiting.")
+    else:
+        print(f"read_sep_times_files: Reading in {septimes_file}.")
+    
     with open(septimes_file,'r') as timesfile:
         for line in timesfile:
             if "#" in line: continue
@@ -60,7 +66,7 @@ def read_sep_times_file(septimes_file):
 
             sep_sttimes.append(stdate)
             sep_endtimes.append(enddate)
-            
+        
     return sep_sttimes, sep_endtimes
     
 
@@ -141,11 +147,11 @@ def get_detector(date, detector_dates, detector):
 
 def make_event_list(str_startdate, str_enddate, septimes_file,
             detector_list, experiment, flux_type, options, json_type,
-            outfile, revise=False, spacecraft="",
-            location='earth', species='proton', idsep_path='', flags=''):
+            batchfile, revise=False, spacecraft="",
+            location='earth', species='proton', flags='', idsep_path=''):
     """ Read in SEP times and detector list, if applicable,
         and create a file in the appropriate format to run
-        operational_sep_quantities.py in batch mode.
+        batch_opsep.py, i.e., opsep in batch mode.
         
         Output file will create a file that has the
         SEP event start and end times, but will also
@@ -174,8 +180,7 @@ def make_event_list(str_startdate, str_enddate, septimes_file,
             +"BGStart,BGEnd,JSON Type,Spacecraft,IDSEP Path,"\
             +"Location,Species\n"
     
-    outfname = os.path.join(idsep_path, outfile)
-    out = open(outfname,'w')
+    out = open(batchfile,'w')
     out.write(header)
     
     if detector_list != '':

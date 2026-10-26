@@ -142,7 +142,7 @@ class TestDownload(unittest.TestCase):
 
                     #Try to download data
                     #with contextlib.redirect_stdout(None):
-                    module_outpath, module_plotpath, dates, fluxes, energy_bins, energy_bin_centers = fsdl.get_data(params, saveplot=True)
+                    module_outpath, module_plotpath, dates, fluxes, energy_bins, energy_bin_centers, fluxes_filename = fsdl.get_data(params, saveplot=True)
             
                     
                     self.assertNotEqual(len(dates), 0)
@@ -205,7 +205,7 @@ class TestDownload(unittest.TestCase):
 
                     #Try to download data
                     #with contextlib.redirect_stdout(None):
-                    module_outpath, module_plotpath, dates, fluxes, energy_bins, energy_bin_centers = fsdl.get_data(params, saveplot=True)
+                    module_outpath, module_plotpath, dates, fluxes, energy_bins, energy_bin_centers, fluxes_filename = fsdl.get_data(params, saveplot=True)
             
                     self.assertNotEqual(len(dates), 0)
                     self.assertEqual(sorted(exp_info[flux_type]['energy_bins']), energy_bins)

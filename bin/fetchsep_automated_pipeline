@@ -436,6 +436,10 @@ if startpoint == "IDSEP":
         sys.exit("User selected to only plot the timeseries. Exiting.")
 
 
+if batchfile == None:
+    batch_filename = os.path.join(id_outpath, 'batch_event_list.csv')
+else:
+    batch_filename = batchfile
 
 #SECOND ########################
 #Parse the output file created in the previous step. This will
@@ -450,7 +454,7 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
     revise = True #add time padding in front of each SEP event
     event_list.make_event_list(str_startdate, str_enddate,
         septimes_file, detector_list,experiment, flux_type, options, json_type,
-        batchfile, revise, flags=flags, spacecraft=spacecraft,
+        batch_filename, revise, flags=flags, spacecraft=spacecraft,
         location=location, species=species, idsep_path=id_outpath)
 
 
@@ -467,11 +471,6 @@ if startpoint == "MAKEFILE" or startpoint == "IDSEP":
 showplot = False
 saveplot = True
 ############## END DEFAULTS #################
-if batchfile == None:
-    batch_filename = os.path.join(id_outpath, 'batch_event_list.csv')
-else:
-    batch_filename = batchfile
-    
 statusfname = 'batch_run_status.csv'
 
 batch.run_all_events(batch_filename, threshold,
