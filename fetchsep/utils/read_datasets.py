@@ -220,8 +220,8 @@ def file_completeness(df, experiment, flux_type, filename, dates, spacecraft='')
     if experiment in goes_sc: key = 'GOES'
     if experiment in goes_R: key = 'GOES_R'
     if 'STEREO' in experiment:
-        if 'HET' in filename: key = 'STEREO HET'
-        if 'LET' in filename: key = 'STEREO LET'
+        if '.1m' in filename: key = 'STEREO HET'
+        if 'H_summed' in filename: key = 'STEREO LET'
     if experiment in valid_nm: key = 'NeutronMonitor'
 
     cadence = manager[key]['cadence']
